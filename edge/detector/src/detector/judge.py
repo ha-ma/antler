@@ -47,6 +47,11 @@ def side_of(center_x: float) -> str:
     return "L" if center_x < 0.5 else "R"
 
 
+def is_blind(result: FrameResult) -> bool:
+    """推論が失敗した、または出力が全部不正で捨てられたフレーム。「鹿なし」とは区別する。"""
+    return result.failed or (result.invalid_count > 0 and not result.detections)
+
+
 def _usable(d: Detection, threshold: float) -> bool:
     height = d.xywh[3]
     return d.conf >= threshold and math.isfinite(height) and height > 0.0
@@ -66,7 +71,7 @@ class Judge:
     def update(self, result: FrameResult, now: float) -> bool:
         """1 フレーム分の結果を取り込む。ON/OFF の切り替えと方向の変化で True。"""
         t = result.t_frame
-        if result.failed:
+        if is_blind(result):
             return self._maybe_off(t)
         hits = [d for d in result.detections if _usable(d, self._cfg.threshold)]
         if not hits:

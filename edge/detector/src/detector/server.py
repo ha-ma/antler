@@ -26,7 +26,7 @@ logger = logging.getLogger("detector.server")
 
 PATH = "/alerts"
 MAX_MESSAGE_BYTES = 64 * 1024
-MAX_WRITE_BUFFER = 256 * 1024
+MAX_WRITE_BUFFER = 16 * 1024  # フラグ約 60 通ぶん。それ以上溜まった接続は古い危険を運ぶので切る
 MAX_MESSAGES_PER_S = 5
 
 

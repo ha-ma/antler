@@ -51,7 +51,8 @@ Story: B の検知システムとして、鹿が写ったらためらわず、�
   - ハートビートは現在の判定（ON 中は最新の鹿ありフレームの距離と `t_frame`）を、`t_sent` だけ新しくして送る
   - **見えていない間はハートビートを止める**: 推論が成功したフレームが 3 秒（`stall_after_s`）来ていない（カメラ停止・パイプライン固着・推論が失敗し続けている）あいだ、ハートビートを送らない。PWA は 3 秒受信が無いと「未接続」帯を出すので、「見えていないのに緑」を作らない（edge-camera の Deferred「検知停止の通知」をここで受ける。推奨で決定）。ON だった鹿は 1.5 秒で OFF のフラグを 1 回送ってから黙る。成功したフレームが戻れば再開する
   - 判定がまだ一度も無いあいだは何も送らない（作り話の「鹿なし」を送らない）
-  - 新しくつないだクライアントには、直近の判定を 1 回すぐに送る（あれば）
+  - 新しくつないだクライアントには、直近の判定を 1 回すぐに送る（あれば）。ただし、先に `expire` を回し、見えていない（成功フレームが 3 秒来ていない）ときは送らない（停止中の再接続で「鹿なし」も古い「鹿あり」も配らない。code-reviewer C1）
+  - 推論の出力が全部不正で捨てられたフレーム（`invalid_count > 0` で鹿 0 件）は、失敗と同じく「見えていない」に数える（ハートビートを支えない。code-reviewer C2）
   - フレームが来なくなって（入力が止まって）いても、ON の鹿は `expire(now)` で、最後に見た時刻から 1.5 秒後に OFF にする。`now` は **単調時計**（壁時計が跳んでも ON を早く解かない・遅らせない。注入できる）。`update` 側の 1.5 秒は `t_frame` の差で測り、`t_frame` が戻った（負の経過）ときは 0 として扱う
   - Judge と Hub はイベントループの上だけで触る（`pump` が結果をスレッドから渡す）。OFF にしたあとに遅れて届いた鹿ありフレームも受け入れる（見逃しを避ける。2 フレーム連続の規則からやり直し）
 - R5: WebSocket サーバー
@@ -72,7 +73,7 @@ Story: B の検知システムとして、鹿が写ったらためらわず、�
   - 入力が尽きたら、鹿を ON のままにせず `expire` に任せる（時計が進めば OFF）。入力の例外は上へ出す
   - ハートビートのタスクは 1 秒ごと。停止時にタスクもサーバーも片付ける
 - R8: 設定
-  - `[judge]` `threshold`（既定 0.4、0〜1）・`off_after_s`（既定 1.5、0.5〜10）・`stall_after_s`（既定 3.0、1〜30）・`distance_table`（`[[高さ, m], ...]`）
+  - `[judge]` `threshold`（既定 0.4、0〜1）・`off_after_s`（既定 1.5、0.5〜10）・`stall_after_s`（既定 3.0、1〜10）・`distance_table`（`[[高さ, m], ...]`）
   - `[server]` `host`・`port`（既定 8765、1〜65535）・`max_clients`（既定 16、1〜64）
   - 不正（型・範囲・表が 2 点未満・高さが増えているのに距離が増える）→ `ConfigError`、メッセージにキー名。既存の edge-camera の設定の規則を踏襲する
 
@@ -157,6 +158,8 @@ Questions は全問、推奨で決定（ユーザー指示。2026-11-03）。決
 - [Deferred: 担当=人 B / 期日=2026-11-05（Day 3 の実機）/ 暫定挙動=`frameJpegB64` は常に null。JPEG の符号化と 320px の縮小は入れない（画像を持ち出さない）] B3-3 の JPEG
 - [Deferred: 担当=人 B（pwa-connect 側の ack の送り元）/ 期日=2026-11-05 / 暫定挙動=`since_frame_ms` は Mac とスマホの壁時計の差をそのまま含む。補正しない] 端末間の時計のずれ
 - [Deferred: 担当=ユーザー（Wi-Fi AP の feature）/ 期日=2026-11-06 / 暫定挙動=既定は `127.0.0.1`。車載では設定の host で AP 側にする。Origin は検査しない（WPA2 の AP に入れた端末は信頼）] 待ち受けの範囲・Origin の検査・`ezoroad.local` の名前解決
+- [Deferred: 担当=人 B / 期日=2026-11-05（Day 3 の実機）/ 暫定挙動=判定の遅延は ON フラグの `t_frame`（2 枚目のフレーム）から測るため、1 枚目を待つ時間（5 fps で約 100 ms）が `flag.sent` に出ない。10 fps 前提では 250 ms 内] 判定区間の測り方（1 枚目の時刻のログ）と停止・復帰の記録（`judge.recovered`）
+- [Deferred: 担当=人 B（AP・自動起動の feature）/ 期日=2026-11-06 / 暫定挙動=server・hub・pump を組み立てる起動の入口（CLI）とログのファイル出力は無い。テストの中で組み立てている] 起動の入口
 - [Deferred: 担当=人 B（pwa-drive。`apps/pwa/` は別セッション）/ 期日=2026-11-05 / 暫定挙動=edge は凍結済みの schema に従い `zone:"outside"` を常に送る。`deriveAlertState` は GPS が unknown のとき `zone:"outside"` を信じて緑にするため、pwa-drive が GPS を渡すまでは、鹿ゾーン内でも edge 経由では緑になり得る（赤は影響しない）。pwa-drive で GPS の判定を必ず渡す、または edge の zone を無視する] edge の `zone` と PWA の緑の関係
 
 ## Test List（Canon TDD Step 1）
@@ -202,6 +205,8 @@ UC-4 ハブ:
 - [x] UC-4d: 新しくつないだクライアントに直近の判定を 1 回送る（`snapshot`）
 - [x] UC-4e: `expire(now)` が最後に見てから 1.5 秒後に OFF を送る（now は単調時計）
 - [x] UC-4f: [ADDED adversary] 成功したフレームが 3 秒来ていない間はハートビートを送らない（OFF を 1 回送ってから黙る）。成功したフレームが戻れば再開する。失敗が続く場合も同じ
+- [x] UC-4h: [ADDED code-reviewer] 停止中の新しい接続に snapshot を配らない。古い ON は snapshot の前に expire する
+- [x] UC-4i: [ADDED code-reviewer] 全部不正で捨てた出力は見えていない扱いで、ハートビートを止め snapshot も配らない
 - [x] UC-4g: [ADDED adversary] ハートビートの `t_frame` は状態の `t_frame`（ON 中は最新の鹿ありフレーム）で、`t_sent` だけ新しい
 
 UC-5 サーバー:
@@ -221,11 +226,13 @@ UC-6 ack と計測:
 - [x] UC-6a: `ack` のログに `t_shown`・`t_frame`・`since_frame_ms`。`t_frame` は最後に送った `deer:true` の最初のフラグの `t_frame`（OFF になっていても同じ）。ON が無ければ null
 - [x] UC-6b: `t_shown` がタイムゾーン無し・文字列でない → `ack.invalid`、本文は残さない
 - [x] UC-6c: `flag.sent` に `t_frame`・`t_sent`・`deer`・`reason`・`clients`
+- [x] UC-6e: [ADDED code-reviewer] 深くネストした JSON と年 9999 の ack で接続が落ちない
 - [x] UC-6d: ログの全行に画像・画素・位置情報・クライアントの本文が無い
 
 UC-7 実行:
 
 - [x] UC-7a: `pump` が別スレッドでパイプラインを進め、推論が遅くてもハートビートが 1 秒ごとに出る
+- [x] UC-7c: [ADDED code-reviewer] ticker が例外で死なず、終了時にパイプラインの生成器を閉じる
 - [x] UC-7b: 入力が尽きたあと `expire` で OFF になる。入力の例外は上へ出て、サーバーとタスクが片付く
 
 UC-8 設定:

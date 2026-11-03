@@ -237,3 +237,53 @@ def test_idem1_ハートビートを繰り返してもchangeは1回(logbuf):
         hub.tick()
     reasons = [e["reason"] for e in named(logbuf, "flag.sent")]
     assert reasons.count("change") == 2  # 最初の判定（鹿なし）と ON の 2 回だけ
+
+
+# UC-4h
+def test_uc4h_停止中の新しい接続にsnapshotを配らない_古いONはexpireしてから(logbuf):
+    hub, clock, sink = make()
+    go_on(hub, clock)
+    clock.advance(1.6)  # ticker が止まっていても、snapshot が expire する
+    assert json.loads(hub.snapshot())["deer"] is False  # 古い ON は配らず、先に OFF にする
+    assert sink.sent[-1]["deer"] is False
+    clock.advance(5.0)
+    assert hub.snapshot() is None  # 3 秒以上見えていない
+
+
+def test_uc4h_見えている間はsnapshotを配る():
+    hub, clock, _ = make()
+    go_on(hub, clock)
+    clock.advance(0.2)
+    hub.on_result(result(300, deer()))
+    assert json.loads(hub.snapshot())["deer"] is True
+
+
+# UC-4i
+def test_uc4i_全部不正で捨てた出力は鹿なしと区別しハートビートを止める():
+    from detector.pipeline import FrameResult
+
+    hub, clock, sink = make()
+    hub.on_result(result(0))
+    for i in range(1, 12):
+        clock.advance(0.5)
+        hub.on_result(
+            FrameResult(i, T0 + timedelta(milliseconds=i * 500), [], 5.0, invalid_count=3)
+        )
+        hub.tick()
+    n = len(sink.sent)
+    for i in range(12, 20):
+        clock.advance(0.5)
+        hub.on_result(
+            FrameResult(i, T0 + timedelta(milliseconds=i * 500), [], 5.0, invalid_count=3)
+        )
+        hub.tick()
+    assert len(sink.sent) == n and hub.snapshot() is None
+
+
+# UC-6e
+def test_uc6e_深いJSONと年9999のackで落ちない(logbuf):
+    hub, _, _ = make()
+    hub.on_client_message("[" * 100_000)
+    hub.on_client_message(json.dumps({"type": "ack", "t_shown": "9999-12-31T23:59:59.999+00:00"}))
+    assert len(named(logbuf, "client.ignored")) == 1
+    assert len(named(logbuf, "ack.invalid")) == 1

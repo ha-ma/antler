@@ -112,6 +112,34 @@ def test_uc7a_遅い推論でもハートビートが出る():
     assert len(sent) >= 2  # 最初の判定 + 1 秒のハートビート（スレッドが止めていない）
 
 
+# UC-7c
+def test_uc7c_tickerの例外で死なず_生成器を閉じる(logbuf):
+    hub = fast_hub()
+    calls = []
+    orig = hub.tick
+
+    def flaky():
+        calls.append(1)
+        if len(calls) == 1:
+            raise RuntimeError("boom SECRET")
+        orig()
+
+    hub.tick = flaky
+    closed = []
+
+    def gen():
+        try:
+            yield result(0)
+            time.sleep(0.3)
+            yield result(100)
+        finally:
+            closed.append(1)
+
+    run(pump(gen(), hub, tick_s=0.05))
+    assert len(calls) > 2 and closed == [1]
+    assert named(logbuf, "tick.failed") and "SECRET" not in logbuf.getvalue()
+
+
 # UC-7b・FAIL-3
 def test_uc7b_入力の例外は上へ出てタスクが片付く(logbuf):
     hub = fast_hub()

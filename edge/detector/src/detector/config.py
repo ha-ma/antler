@@ -88,7 +88,7 @@ _RANGES = {
     "budget_ms": (1, 1000),
     "threshold": (0.0, 1.0),
     "off_after_s": (0.5, 10.0),
-    "stall_after_s": (1.0, 30.0),
+    "stall_after_s": (1.0, 10.0),
     "port": (1, 65535),
     "max_clients": (1, 64),
 }
@@ -128,6 +128,9 @@ def _check(name: str, key: str, default: object, value: object) -> object:
         ok = not isinstance(value, bool) and isinstance(value, type(default))
     if not ok:
         msg = f"{name}.{key} の型が違う（{type(default).__name__} にする）"
+        raise ConfigError(msg)
+    if key == "host" and not str(value).strip():
+        msg = f"{name}.{key} は空にできない（全インターフェースを開けない）"
         raise ConfigError(msg)
     if key in _RANGES and not _RANGES[key][0] <= value <= _RANGES[key][1]:  # type: ignore[operator]
         lo, hi = _RANGES[key]

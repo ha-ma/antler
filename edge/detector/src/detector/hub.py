@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from detector.flag import build_flag
 from detector.frame import format_t_frame
-from detector.judge import Judge
+from detector.judge import Judge, is_blind
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -58,7 +58,7 @@ class AlertHub:
 
     def on_result(self, result: FrameResult) -> None:
         now = self._clock()
-        if not result.failed:
+        if not is_blind(result):
             self._last_ok = now
             self._stalled = False
         if self._judge.update(result, now):
@@ -72,18 +72,24 @@ class AlertHub:
             return
         if self._judge.state is None or now - self._last_sent < HEARTBEAT_S:
             return
-        if self._last_ok is None or now - self._last_ok >= self._cfg.stall_after_s:
+        if self._is_stalled(now):
             if not self._stalled:
                 self._stalled = True
                 logger.warning("judge.stalled")
             return  # 見えていないのに「鹿なし」を送らない。PWA は無受信で「未接続」を出す
         self._emit("heartbeat")
 
+    def _is_stalled(self, now: float) -> bool:
+        return self._last_ok is None or now - self._last_ok >= self._cfg.stall_after_s
+
     def snapshot(self) -> str | None:
         """新しくつないだクライアントへ送る直近の判定。まだ判定が無ければ None。"""
+        now = self._clock()
+        if self._judge.expire(now):
+            self._emit("change")  # 入力が止まったままの鹿を、新しい接続に配らない
         state = self._judge.state
-        if state is None:
-            return None
+        if state is None or self._is_stalled(now):
+            return None  # 見えていないのに「鹿なし」も「鹿あり」も配らない
         text = json.dumps(build_flag(state, self._wall()))
         logger.info(
             "flag.sent",
@@ -103,7 +109,7 @@ class AlertHub:
         if isinstance(raw, str):
             try:
                 message = json.loads(raw)
-            except ValueError:
+            except (ValueError, RecursionError):
                 message = None
         kind = message.get("type") if isinstance(message, dict) else None
         if kind == "ack":
@@ -115,26 +121,23 @@ class AlertHub:
             logger.warning("client.ignored", extra={"type": safe})
 
     def _on_ack(self, t_shown: object) -> None:
-        parsed = None
-        if isinstance(t_shown, str):
-            try:
-                parsed = datetime.fromisoformat(t_shown)
-            except ValueError:
-                parsed = None
-        if parsed is None or parsed.tzinfo is None:
-            logger.warning("ack.invalid")
-            return
-        since = None
-        if self._ack_t_frame is not None:
-            since = round((parsed - self._ack_t_frame).total_seconds() * 1000.0, 1)
-        logger.info(
-            "ack",
-            extra={
+        try:
+            if not isinstance(t_shown, str):
+                raise ValueError
+            parsed = datetime.fromisoformat(t_shown)
+            if parsed.tzinfo is None:
+                raise ValueError
+            fields = {
                 "t_shown": format_t_frame(parsed),
                 "t_frame": format_t_frame(self._ack_t_frame) if self._ack_t_frame else None,
-                "since_frame_ms": since,
-            },
-        )
+                "since_frame_ms": None
+                if self._ack_t_frame is None
+                else round((parsed - self._ack_t_frame).total_seconds() * 1000.0, 1),
+            }
+        except (ValueError, OverflowError):  # 年 9999 の時刻など。本文は残さない
+            logger.warning("ack.invalid")
+            return
+        logger.info("ack", extra=fields)
 
     def _emit(self, reason: str) -> None:
         state = self._judge.state

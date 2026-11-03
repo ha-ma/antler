@@ -33,7 +33,10 @@ async def pump(
 
     async def ticker() -> None:
         while True:
-            hub.tick()
+            try:
+                hub.tick()
+            except Exception as exc:  # noqa: BLE001  ticker が黙って死ぬと ON が固定される
+                logger.error("tick.failed", extra={"error_type": type(exc).__name__})
             await sleep(tick_s)
 
     task = asyncio.create_task(ticker())
@@ -51,6 +54,10 @@ async def pump(
         logger.critical("pump.aborted", extra={"error_type": type(exc).__name__})
         raise
     finally:
+        close = getattr(results, "close", None)
+        if close is not None:
+            with contextlib.suppress(ValueError, RuntimeError):
+                close()  # 生成器（カメラ）を解放する
         task.cancel()
         with contextlib.suppress(asyncio.CancelledError):
             await task

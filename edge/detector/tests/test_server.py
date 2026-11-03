@@ -70,8 +70,8 @@ def test_uc5b_上限を超えたら503で既存の接続は無事():
                         pass
                 assert err.value.response.status_code == 503
                 go_on(hub, clk)
-                assert (await recv_json(a))["deer"] is False or True
-                assert (await recv_json(b)) is not None
+                assert (await recv_json(a))["type"] == "flag"
+                assert (await recv_json(b))["type"] == "flag"
         finally:
             await server.stop()
 
@@ -142,7 +142,7 @@ def test_uc5e_全員に同じフラグ_接続切断を繰り返しても落ち�
             async with connect(url) as a, connect(url) as b, connect(url) as lazy:
                 go_on(hub, clk)
                 got = [await recv_json(a), await recv_json(b)]
-                assert got[0] == got[1] or got[0]["deer"] in (True, False)
+                assert got[0] == got[1]
                 # lazy は読まない。a,b は先へ進める
                 for _ in range(5):
                     clk.advance(1.1)

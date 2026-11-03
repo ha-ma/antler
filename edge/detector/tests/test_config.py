@@ -119,6 +119,8 @@ def test_uc8b_指定した値と距離表(tmp_path):
         ("[server]\nport=70000\n", "port"),
         ("[server]\nmax_clients=100\n", "max_clients"),
         ("[server]\nhost=1\n", "host"),
+        ('[server]\nhost=""\n', "host"),
+        ("[judge]\nstall_after_s=11\n", "stall_after_s"),
     ],
 )
 def test_uc8c_不正はキー名つき(tmp_path, text, key):
