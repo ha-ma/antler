@@ -3,6 +3,8 @@
 /** 旅の id の長さ（英数）。推測困難な 8 文字（ch6） */
 export const TRIP_ID_LENGTH = 8
 export const TRIP_ID_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+/** 読み出しで受ける id の形（@antler/schema の TripPlan.id と同じ英数 4〜16 文字。作るのは 8 文字） */
+export const TRIP_ID_PATTERN = /^[A-Za-z0-9]{4,16}$/
 /** seed の最大（2^32 - 1） */
 export const MAX_SEED = 0xffff_ffff
 /** id の衝突で作り直す回数（最初の 1 回 + 作り直し 3 回） */

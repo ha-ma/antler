@@ -53,6 +53,30 @@ export class TripWriterError extends TripError {
   }
 }
 
+/** 旅が無い・id の形が違う（brief-map R5。区別しない） */
+export class TripNotFoundError extends TripError {
+  override name = 'TripNotFoundError'
+  constructor() {
+    super('旅が見つかりません')
+  }
+}
+
+/** n が旅の日数を超える（brief-map R5） */
+export class TripDayNotFoundError extends TripError {
+  override name = 'TripDayNotFoundError'
+  constructor() {
+    super('その日はありません')
+  }
+}
+
+/** 保存したしおりを、いまのマスターで作り直せない（brief-map R2） */
+export class ItineraryChangedError extends TripError {
+  override name = 'ItineraryChangedError'
+  constructor() {
+    super('この旅は古い形式です')
+  }
+}
+
 /** 旅の id が既存の旅と衝突した（repository が投げ、usecase が作り直す） */
 export class TripIdCollisionError extends TripError {
   override name = 'TripIdCollisionError'

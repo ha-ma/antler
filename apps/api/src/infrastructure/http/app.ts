@@ -5,6 +5,7 @@ import { secureHeaders } from 'hono/secure-headers'
 import { serializeError, type Logger } from '../logging/logger.js'
 import { toHttpError } from './error-mapper.js'
 import { healthRoutes, type ReadinessCheck } from './routes/health.routes.js'
+import { tripDayRoutes, type TripDayRoutesDeps } from './routes/trip-day.routes.js'
 import { tripRoutes, type TripRoutesDeps } from './routes/trip.routes.js'
 
 // Hono アプリの定義（ランタイム非依存）。起動は src/index.ts、組み立ては di/container.ts。
@@ -16,6 +17,8 @@ export type AppDeps = {
   exposeErrorDetails: boolean
   /** POST /api/trips（plan-trip）。無ければ載せない */
   trips?: TripRoutesDeps
+  /** GET /api/trips/:id/day/:n（brief-map）。無ければ載せない */
+  tripDays?: TripDayRoutesDeps
 }
 
 export function createApp({
@@ -24,6 +27,7 @@ export function createApp({
   readinessChecks,
   exposeErrorDetails,
   trips,
+  tripDays,
 }: AppDeps): Hono {
   const app = new Hono()
 
@@ -52,6 +56,7 @@ export function createApp({
 
   app.route('/', healthRoutes(readinessChecks))
   if (trips) app.route('/', tripRoutes(trips))
+  if (tripDays) app.route('/', tripDayRoutes(tripDays))
 
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: '見つかりません' } }, 404))
   app.onError((error, c) => {

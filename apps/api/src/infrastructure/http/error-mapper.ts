@@ -3,7 +3,10 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import {
   DailyLimitError,
   IdempotencyMismatchError,
+  ItineraryChangedError,
+  TripDayNotFoundError,
   TripInProgressError,
+  TripNotFoundError,
   TripInputError,
   TripWriterBusyError,
   TripWriterError,
@@ -18,6 +21,15 @@ export type HttpError = { status: ContentfulStatusCode; code: string; message: s
 export function toHttpError(error: unknown): HttpError {
   if (error instanceof TripInputError) {
     return { status: 400, code: 'INVALID_INPUT', message: error.message }
+  }
+  if (error instanceof TripNotFoundError) {
+    return { status: 404, code: 'TRIP_NOT_FOUND', message: error.message }
+  }
+  if (error instanceof TripDayNotFoundError) {
+    return { status: 404, code: 'DAY_NOT_FOUND', message: error.message }
+  }
+  if (error instanceof ItineraryChangedError) {
+    return { status: 409, code: 'ITINERARY_CHANGED', message: error.message }
   }
   if (error instanceof IdempotencyKeyRequiredError) {
     return { status: 400, code: 'IDEMPOTENCY_KEY_REQUIRED', message: error.message }
