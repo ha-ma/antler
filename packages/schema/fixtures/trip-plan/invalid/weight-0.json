@@ -1,0 +1,38 @@
+{
+  "id": "K7m2",
+  "lang": "ja",
+  "seed": 918273,
+  "party": {
+    "size": 4,
+    "drivers": 2,
+    "experience": "first"
+  },
+  "depart": {
+    "at": "2027-02-14T10:00+09:00",
+    "place": "CTS"
+  },
+  "return": {
+    "at": "2027-02-18T17:00+09:00",
+    "place": "CTS"
+  },
+  "budgetPerPersonJPY": 120000,
+  "area": "doto",
+  "pleasures": [
+    {
+      "id": "a",
+      "weight": 0
+    }
+  ],
+  "title": "流氷とタンチョウと、雪見の温泉。道東をめぐる5日間。",
+  "days": [
+    {
+      "day": 1,
+      "from": "cts",
+      "to": "kushiro",
+      "stops": ["washo-market"],
+      "stay": "kushiro"
+    }
+  ],
+  "riskScore": 0.78,
+  "alertEnabled": true
+}

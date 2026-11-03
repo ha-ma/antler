@@ -1,0 +1,232 @@
+{
+  "$id": "https://antler.local/schema/trip-plan.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9]{4,16}$"
+    },
+    "lang": {
+      "type": "string",
+      "enum": [
+        "ja",
+        "en",
+        "zh",
+        "ko"
+      ]
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "party": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "drivers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "experience": {
+          "type": "string",
+          "enum": [
+            "first",
+            "few",
+            "experienced"
+          ]
+        }
+      },
+      "required": [
+        "size",
+        "drivers",
+        "experience"
+      ],
+      "additionalProperties": false
+    },
+    "depart": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            {
+              "type": "string",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          ]
+        },
+        "place": {
+          "type": "string",
+          "enum": [
+            "CTS",
+            "KUH",
+            "SAPPORO",
+            "AKJ",
+            "HKD"
+          ]
+        }
+      },
+      "required": [
+        "at",
+        "place"
+      ],
+      "additionalProperties": false
+    },
+    "return": {
+      "type": "object",
+      "properties": {
+        "at": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            {
+              "type": "string",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          ]
+        },
+        "place": {
+          "type": "string",
+          "enum": [
+            "CTS",
+            "KUH",
+            "SAPPORO",
+            "AKJ",
+            "HKD"
+          ]
+        }
+      },
+      "required": [
+        "at",
+        "place"
+      ],
+      "additionalProperties": false
+    },
+    "budgetPerPersonJPY": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "area": {
+      "type": "string",
+      "enum": [
+        "doto",
+        "doo"
+      ]
+    },
+    "pleasures": {
+      "maxItems": 10,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "weight": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5
+          }
+        },
+        "required": [
+          "id",
+          "weight"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "days": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
+          },
+          "from": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "to": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "stops": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            }
+          },
+          "stay": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "day",
+          "from",
+          "to",
+          "stops",
+          "stay"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "riskScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "alertEnabled": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "id",
+    "lang",
+    "seed",
+    "party",
+    "depart",
+    "return",
+    "budgetPerPersonJPY",
+    "area",
+    "pleasures",
+    "title",
+    "days",
+    "riskScore",
+    "alertEnabled"
+  ],
+  "additionalProperties": false
+}
