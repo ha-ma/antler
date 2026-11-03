@@ -10,5 +10,12 @@
   "scripts": {
     "build:tokens": "tsx scripts/build-tokens.ts",
     "build:sounds": "tsx scripts/build-sounds.ts"
+  },
+  "dependencies": {
+    "@antler/schema": "^0.0.0"
+  },
+  "peerDependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   }
 }
