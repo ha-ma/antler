@@ -4,7 +4,7 @@ target_paths:
   - packages/schema/
   - packages/alert-ui/
   - edge/detector/tests/test_schema_contract.py
-spec_confirmed_at: f552526
+spec_confirmed_at: 9482f02
 tier: 2
 ---
 
@@ -40,6 +40,7 @@ Story: A の車内スマホを見るプレイヤーと B の PWA を見るドラ
   - deer:false が届いた → すぐ前の状態（ゾーン内なら zone、外なら safe）
   - 最後が deer:true のまま 5 秒届かない（切断・停止）→ 危険側に倒して 5 秒は danger、過ぎたらゾーンの状態へ
   - フラグの zone と GPS のどちらかが inside → zone。GPS が不明で新しいフラグも無い → 前のゾーンの状態を保つ
+  - 起動してからゾーンの内外が一度も分かっていない（GPS が unknown のまま・前の状態が無い）→ zone（琥珀）。緑は「ゾーン外と分かった」ときだけ出す（2026-11-03 ユーザー判断。alert-contract-guard C-1。R9 の「緑はゾーン外であって安全ではない」）
   - フラグが 1 つも来ない（Mac Mini なし）→ safe / zone だけが出て danger は出ない（B4-5）
 - R3: AlertState は状態ごとに背景・形・主数値・文言が決まる（AlertState.md の表）
   - safe, 38 → alert-safe の背景、円＋チェック、「38 km」、主文「鹿ゾーンまで」
@@ -219,6 +220,7 @@ UC-2 表示状態の決定:
 - [x] UC-2f: フラグの zone が inside・GPS が outside → zone。逆も zone
 - [x] UC-2g: GPS unknown で新しいフラグも無い → 前のゾーンの状態を保つ
 - [x] UC-2h: フラグが 1 つも無い → danger にならない
+- [x] UC-2i: [ADDED alert-contract-guard] 起動直後で GPS が unknown・前の状態なし → zone（距離「--」）。その後 outside が分かれば safe、unknown が続く間は zone のまま
 
 UC-3 状態ごとの表示:
 
@@ -244,6 +246,7 @@ UC-5 音:
 - [x] UC-5g: ビープ 2 回のあとに読み上げ 1 回（lang の文）。2 回目の前に解けたら読まない。同じ danger の間は 2 回目を読まない
 - [x] UC-5h: muted ならチャイムもビープも読み上げも鳴らない。danger の途中で muted → 次から止まる
 - [x] UC-5i: 解除前は何も鳴らさず canPlay=false。`unlock()` 後は canPlay=true
+- [x] UC-5j: [ADDED alert-contract-guard] 起動直後で位置が不明（距離「--」の zone）→ チャイム 1 回。不明のあいだは鳴らず、outside と分かって safe になっても鳴らない
 - [x] UC-5l: [ADDED code-reviewer] danger の AlertState が画面から外れたら、ビープと発話が止まる
 
 UC-6 言語:
