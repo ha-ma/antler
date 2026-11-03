@@ -1,7 +1,6 @@
 /* A-1 旅をつくる（/plan）。色・文字・余白は tokens.css の CSS 変数だけを使う（ch8 規約 1・4）。 */
 
-.plan,
-.plan-brief {
+.plan {
   min-height: 100vh;
   background: var(--ground);
   color: var(--ink);
@@ -26,8 +25,7 @@
   border: 0;
 }
 
-.plan :focus-visible,
-.plan-brief :focus-visible {
+.plan :focus-visible {
   outline: 3px solid var(--spruce);
   outline-offset: 2px;
 }
@@ -648,26 +646,9 @@
   color: var(--ink-muted);
 }
 
-/* /trip/:id/brief（仮） */
-.plan-brief {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-7) var(--space-6);
-}
-
-.plan-brief__title {
-  margin: 0;
-  font-size: var(--title-size);
-  line-height: var(--title-line);
-  font-weight: var(--title-weight);
-}
-
 @media (max-width: 640px) {
   .plan-header,
-  .plan-body,
-  .plan-brief {
+  .plan-body {
     padding-left: var(--space-4);
     padding-right: var(--space-4);
   }

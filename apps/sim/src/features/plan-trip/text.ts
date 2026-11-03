@@ -229,19 +229,6 @@ export const PLAN_TEXT = {
     zh: '預算請填 0～{max} 日圓。',
     ko: '예산은 0~{max}엔으로 해 주세요.',
   },
-  briefPending: {
-    ja: 'ブリーフィングは準備中です',
-    en: 'The briefing is being prepared',
-    zh: '行前說明準備中',
-    ko: '브리핑은 준비 중입니다',
-  },
-  briefTitle: { ja: '旅のタイトル', en: 'Trip title', zh: '旅程標題', ko: '여행 제목' },
-  briefBack: {
-    ja: '旅をつくり直す',
-    en: 'Plan another trip',
-    zh: '重新規劃旅程',
-    ko: '여행 다시 만들기',
-  },
 } satisfies Record<string, UiText>
 
 export type PlanTextKey = keyof typeof PLAN_TEXT
