@@ -1,12 +1,14 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
+import { GetTripDayUseCase } from '../application/usecases/trip-day/get-trip-day.usecase.js'
 import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
 import { openDatabase, type Connection } from '../infrastructure/db/connection.js'
 import { DrizzleUnitOfWork } from '../infrastructure/db/drizzle-unit-of-work.js'
 import { ensureSchema } from '../infrastructure/db/migrate.js'
 import { ClaudeTripWriterGateway } from '../infrastructure/gateways/claude-trip-writer.gateway.js'
+import { FileRoadCatalogGateway } from '../infrastructure/gateways/file-road-catalog.gateway.js'
 import { createApp } from '../infrastructure/http/app.js'
 import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
@@ -48,6 +50,26 @@ export async function buildContainer(
     dailyWriterCallLimit: env.CLAUDE_DAILY_CALL_LIMIT,
   })
 
+  // 読み出し（brief-map）は同梱データだけで計算し、外部へ通信しない
+  const getTripDay = new GetTripDayUseCase({
+    trips,
+    data: new FileRoadCatalogGateway(),
+    clock: new SystemClock(),
+    log: logger,
+  })
+
+  const rateLimitKey = clientIpKey({
+    trustProxy: env.TRUST_PROXY,
+    remoteAddress: (c) => {
+      try {
+        return getConnInfo(c).remote.address
+      } catch {
+        // Node のソケットが無い（app.request のテストなど）
+        return undefined
+      }
+    },
+  })
+
   const app = createApp({
     logger,
     corsOrigins: env.CORS_ORIGINS,
@@ -61,20 +83,8 @@ export async function buildContainer(
     ],
     // 例外のメッセージ（detail）を応答に出すのは development だけ（test・production・未設定では出さない）
     exposeErrorDetails: env.NODE_ENV === 'development',
-    trips: {
-      createTrip,
-      rateLimitKey: clientIpKey({
-        trustProxy: env.TRUST_PROXY,
-        remoteAddress: (c) => {
-          try {
-            return getConnInfo(c).remote.address
-          } catch {
-            // Node のソケットが無い（app.request のテストなど）
-            return undefined
-          }
-        },
-      }),
-    },
+    trips: { createTrip, rateLimitKey },
+    tripDays: { getTripDay, rateLimitKey },
   })
   return { env, logger, app, connection }
 }

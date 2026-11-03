@@ -1,0 +1,681 @@
+/* A-2 出発前ブリーフィング（/trip/:id/brief）。色・文字・余白は tokens.css の CSS 変数だけを使う（ch8 規約 1・4）。
+   ground の上の小さい文字は ink-muted（ink-faint は ground 上で 4.5:1 に届かない。functional.md R6）。 */
+
+.brief {
+  min-height: 100vh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--body-size);
+  line-height: var(--body-line);
+}
+
+.brief--status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-7) var(--space-6);
+}
+
+.brief-num {
+  font-family: var(--font-mono);
+}
+
+.brief-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.brief :focus-visible {
+  outline: 3px solid var(--spruce);
+  outline-offset: 2px;
+}
+
+/* ヘッダー */
+.brief-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.brief-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--heading-size);
+  font-weight: 900;
+  letter-spacing: var(--eyebrow-tracking);
+}
+
+.brief-brand__logo path,
+.brief-step__check path,
+.brief-start path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brief-brand__ridge {
+  stroke: var(--spruce);
+}
+
+.brief-brand__road {
+  stroke: var(--clay);
+}
+
+.brief-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: var(--label-weight);
+}
+
+.brief-step--done {
+  color: var(--spruce);
+  font-weight: 700;
+}
+
+.brief-step__check path {
+  stroke: var(--spruce);
+}
+
+.brief-step--current {
+  background: var(--spruce);
+  color: var(--on-spruce);
+  font-weight: 700;
+}
+
+.brief-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* 44 × 44 px 以上の当たり判定 */
+.brief-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  text-decoration: none;
+}
+
+.brief-day[aria-current='page'] {
+  border-color: var(--spruce);
+  background: var(--spruce);
+  color: var(--on-spruce);
+}
+
+/* 本文（2 カラム。1000 px 未満で右が下に回る） */
+.brief-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-6) var(--space-7);
+}
+
+.brief-main {
+  flex: 999 1 600px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.brief-aside {
+  flex: 1 1 360px;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.brief-eyebrow {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-line);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
+.brief-title {
+  margin: 0;
+  font-size: var(--display-l-size);
+  line-height: var(--display-l-line);
+  font-weight: var(--display-l-weight);
+}
+
+.brief-lead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.brief-lead .brief-num {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.brief-stops {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--label-size);
+}
+
+.brief-muted {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.brief-fine {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+/* 地図（高さの決まった枠に背景・SVG・読み込み中を重ね、下に凡例と帰属表示） */
+.brief-map {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.brief-map__frame {
+  position: relative;
+  height: 440px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--map-land);
+  overflow: hidden;
+}
+
+.brief-map__base,
+.brief-map__overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.brief-map__overlay {
+  pointer-events: none;
+  font-family: var(--font-sans);
+}
+
+.brief-map__loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.brief-map__casing path,
+.brief-map__bands path,
+.brief-map__route path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.brief-map__casing path {
+  stroke: var(--surface);
+  stroke-width: 9;
+}
+
+/* 鹿多発区間の帯: alert-zone、不透明度 45 %、幅 22 px（docs/design/README.md） */
+.brief-map__bands path {
+  stroke: var(--alert-zone);
+  stroke-opacity: 0.45;
+  stroke-width: 22;
+}
+
+.brief-map__route path {
+  stroke: var(--spruce);
+  stroke-width: 5;
+}
+
+.brief-map__route--zone path {
+  stroke-dasharray: 10 9;
+}
+
+.brief-map__point circle {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+
+.brief-map__point--stop circle {
+  fill: var(--spruce);
+  stroke: var(--surface);
+}
+
+.brief-map__point text {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.brief-map__tag rect {
+  fill: var(--clay-deep);
+}
+
+.brief-map__tag text {
+  fill: var(--on-spruce);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.brief-map__caption {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.brief-map__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-map__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.brief-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.brief-swatch--route {
+  background: var(--spruce);
+}
+
+.brief-swatch--zone {
+  background: var(--alert-zone);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.brief-swatch--dash {
+  width: 22px;
+  height: 0;
+  border-top: 3px dashed var(--spruce);
+  border-radius: 0;
+}
+
+.brief-map__note {
+  margin: 0;
+  color: var(--clay-deep);
+  font-size: var(--caption-size);
+}
+
+.brief-map__attr {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.brief-map__attr a {
+  color: var(--ink-muted);
+}
+
+/* カード */
+.brief-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+.brief-card__title {
+  margin: 0;
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+  font-weight: var(--heading-weight);
+}
+
+.brief-passages__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-passage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.brief-passage__mark path {
+  fill: var(--alert-zone);
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.brief-passage__road {
+  font-weight: 700;
+}
+
+/* 鹿アラートのカード（暗い面。night テーマの変数） */
+.brief-alert {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--ground);
+  color: var(--ink);
+}
+
+.brief-alert__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.brief-alert__title {
+  margin: 0;
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+  font-weight: var(--heading-weight);
+}
+
+.brief-alert__lead,
+.brief-alert__note {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.brief-alert__legend-title {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--eyebrow-size);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
+/* 44 × 44 px 以上の当たり判定 */
+.brief-switch {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 64px;
+  min-height: 44px;
+  padding: var(--space-1);
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.brief-switch__track {
+  position: relative;
+  display: block;
+  width: 56px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  /* OFF でも輪郭が面に対して 3:1 以上（WCAG 1.4.11） */
+  box-shadow: inset 0 0 0 2px var(--ink-faint);
+}
+
+.brief-switch[aria-checked='true'] .brief-switch__track {
+  background: var(--alert-safe);
+}
+
+.brief-switch__thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition: left 0.15s ease;
+}
+
+.brief-switch[aria-checked='true'] .brief-switch__thumb {
+  left: 28px;
+}
+
+.brief-switch__text {
+  font-family: var(--font-mono);
+  font-size: var(--caption-size);
+  font-weight: 700;
+}
+
+.brief-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-legend__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* 220 × 380 の車内スマホの画面を 0.4 倍で見せる（AlertState は大きな文字の前提なので、箱を小さくせず縮める） */
+.brief-legend__phone {
+  flex: 0 0 auto;
+  width: 94px;
+  height: 158px;
+  overflow: hidden;
+  border: 3px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--ground);
+}
+
+.brief-legend__screen {
+  width: 220px;
+  height: 380px;
+  transform: scale(0.4);
+  transform-origin: top left;
+}
+
+/* 凡例の赤は見本なので点滅させない（ページを開いている間ずっと動くものを置かない。WCAG 2.2.2）。白枠は付けたままにする */
+.brief-legend__screen .antler-alert[data-alert-state='danger'] {
+  border-color: var(--on-alert-danger);
+}
+
+.brief-legend__text {
+  margin: 0;
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+/* 条件と操作 */
+.brief-conditions__list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.brief-conditions__list div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.brief-conditions__list dt {
+  color: var(--ink-muted);
+}
+
+.brief-conditions__list dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: right;
+}
+
+.brief-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.brief-controls__device {
+  margin: 0 0 var(--space-1);
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+}
+
+.brief-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-chips li {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--ground);
+  font-size: var(--caption-size);
+}
+
+/* ボタン・リンク */
+.brief-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-l);
+  background: var(--spruce);
+  color: var(--on-spruce);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.brief-button--secondary {
+  border: 1px solid var(--spruce);
+  background: var(--surface);
+  color: var(--spruce);
+}
+
+.brief-start {
+  min-height: 58px;
+  font-size: var(--heading-size);
+  box-shadow: var(--shadow-press);
+}
+
+.brief-start path {
+  stroke: var(--on-spruce);
+}
+
+.brief-start:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.brief-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--spruce);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .brief-header,
+  .brief-body {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .brief-title {
+    font-size: var(--title-size);
+    line-height: var(--title-line);
+  }
+
+  .brief-map__frame {
+    height: 320px;
+  }
+
+  .brief-aside {
+    max-width: none;
+  }
+}

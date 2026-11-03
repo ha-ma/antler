@@ -5,7 +5,7 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 278d38a
+spec_confirmed_at: ed3a46f
 tier: 2
 ---
 
@@ -21,7 +21,7 @@ A-1 の画面で、人数・日程・出発地・楽しみを選ぶと、その�
 
 **Tier 2 の理由**: 外部副作用（Claude API の呼び出し。費用と遅延）、永続化（TripPlan と TripDetails を保存し、後の feature が読む）、並行性（「決める」の二重押し・再送）。
 
-**範囲外**: `GET /api/trips/{id}/day/{n}`・地図（brief-map）、`/t/{id}` と削除の画面・API（record）、出来事の文（stop-events）、喪失文（loss）、写真の実物（Day 6）。
+**範囲外**: `GET /api/trips/{id}/day/{n}`・地図（brief-map。`/trip/:id/brief` の仮の画面は brief-map が本物の A-2 に置き換えた。2026-11-03）、`/t/{id}` と削除の画面・API（record）、出来事の文（stop-events）、喪失文（loss）、写真の実物（Day 6）。
 
 ## Example Map
 

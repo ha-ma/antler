@@ -22,3 +22,5 @@ packages/alert-ui/src/tokens/
 # 生成物（npm run resolve:zones / build:zones -w @antler/zones）。整形すると UC-1d の一致テストが落ちる
 packages/zones/data/zones.source.json
 packages/zones/data/zones.geojson
+# 生成物（npm run fetch:routes -w @antler/trip）。OSRM から取った線
+packages/trip/data/routes.json

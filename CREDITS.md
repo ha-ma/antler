@@ -14,6 +14,9 @@ EZO ROAD（antler）が使うデータ・素材の出典と利用条件。アセ
 | 区間の始点・終点の座標       | 国土地理院 地名検索（https://msearch.gsi.go.jp/address-search/AddressSearch）                                                                                                                                        | 利用規約を確認中（座標は zones.waypoints.json にのみ置く）                         | 地名・IC 名から座標を引いた                                                                                                           | packages/zones/data/zones.waypoints.json |
 | 統計の実数（6,705 件ほか）   | 北海道警察、日本損害保険協会（docs/requirements/ch1-background.md）                                                                                                                                                  | 事実情報として引用。出典を画面に表示する                                           | A-6 の統計カード、A-1 のリスクの根拠文                                                                                                | packages/trip/data/stats.json            |
 
+| 地点間のルート（線・距離・所要） | OSRM の公開デモサーバー（https://router.project-osrm.org 、profile driving）で 2026-11-03 に取得。利用条件 https://github.com/Project-OSRM/osrm-backend/wiki/Demo-server<br>道路データは © OpenStreetMap contributors | OpenStreetMap のデータは ODbL 1.0（https://www.openstreetmap.org/copyright）。デモサーバーは 1 秒 1 件まで・User-Agent 必須・重い利用をしない | 開発時に 1 回だけ取り、15 m で間引いて同梱（**加工して作成**。実行時に通信しない）。冬に閉まる知床峠は斜里経由で取り直した。所要は × 1.2。A-2 の画面に「ルート: OSRM（© OpenStreetMap contributors, ODbL）」と表示 | packages/trip/data/routes.json |
+| 地図の背景（ベクタタイル・スタイル） | OpenFreeMap（https://openfreemap.org 、スタイル positron）。タイルは OpenMapTiles のスキーマ、データは © OpenStreetMap contributors | キー・登録・費用なし。OpenStreetMap は ODbL 1.0、OpenMapTiles は帰属表示が必要 | A-2 の地図の背景（ブラウザがタイルを読む）。画面に「地図 © OpenStreetMap contributors ・ OpenFreeMap ・ OpenMapTiles」と著作権ページへのリンクを表示。読めなければ背景なしで出す | apps/sim/src/features/brief-map/ |
+
 **範囲の注意**: 鹿ゾーンは北海道開発局の地図に名前が出ている国道の区間だけ。道道・市町村道は調べていない。ゾーン外（緑）は「安全」の意味ではない。
 
 ## 素材
@@ -24,6 +27,12 @@ EZO ROAD（antler）が使うデータ・素材の出典と利用条件。アセ
 | 鹿のピクトグラム・形・矢印      | 自作（インライン SVG）                                                                    | このリポジトリのライセンス | packages/alert-ui/src/components/  |
 | デザイントークン                | EZO ROAD Design System（Claude Design、自作）                                             | このリポジトリのライセンス | docs/design/tokens.json            |
 | 鹿・車内・風景の 3D（ローポリ） | 自作（コードで生成。外部のモデル・テクスチャを使わない。鹿は ch9 ③ が決まるまでの代わり） | このリポジトリのライセンス | apps/sim/src/features/drive/scene/ |
+
+## ライブラリ（ライセンスの表示が要るもの）
+
+| 何             | ライセンス   | 使い方                                           |
+| -------------- | ------------ | ------------------------------------------------ |
+| MapLibre GL JS | BSD-3-Clause | A-2 の地図の背景（apps/sim、遅延読込のチャンク） |
 
 ## 開発ハーネス
 

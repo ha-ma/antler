@@ -5,7 +5,11 @@
   "description": "旅のしおりとリスクの純粋関数、楽しみ・地点のマスター（A-1。sim と api が共有）",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./roads": "./src/day/roads-data.ts"
+  },
+  "scripts": {
+    "fetch:routes": "tsx scripts/fetch-routes.ts"
   },
   "dependencies": {
     "@antler/schema": "^0.0.0",

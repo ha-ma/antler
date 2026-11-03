@@ -11,7 +11,6 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { renderWithProviders } from '@/test/render'
 import { usePlanTripStore } from '../store'
 import { PlanPage } from './PlanPage'
-import { TripBriefPlaceholder } from './TripBriefPlaceholder'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const TRIP_ID = 'Ab3dE6gh'
@@ -70,7 +69,8 @@ function renderPlan() {
   const router = createMemoryRouter(
     [
       { path: '/plan', element: <PlanPage /> },
-      { path: '/trip/:id/brief', element: <TripBriefPlaceholder /> },
+      // 移った先の A-2 は brief-map の feature（ここでは遷移だけを見る）
+      { path: '/trip/:id/brief', element: <p>brief</p> },
     ],
     { initialEntries: ['/plan'] },
   )
@@ -124,8 +124,8 @@ describe('PlanPage（A-1 旅をつくる）', () => {
     const calls = stubFetch([{ status: 201, body: createdResponse(expectedInput) }])
     await user.click(screen.getByRole('button', SUBMIT))
 
-    expect(await screen.findByRole('heading', { name: 'ブリーフィングは準備中です' })).toBeVisible()
-    expect(screen.getByText(TITLES.ja)).toBeInTheDocument()
+    expect(await screen.findByText('brief')).toBeVisible()
+    expect(router.state.location.state).toEqual({ titles: TITLES })
     expect(router.state.location.pathname).toBe(`/trip/${TRIP_ID}/brief`)
     // 所有者トークン（A-7 の削除の権利）は旅の id ごとに端末に残る（R7）
     expect(localStorage.getItem(`antler.trip-owner.${TRIP_ID}`)).toBe('owner-token-for-test')
@@ -154,7 +154,7 @@ describe('PlanPage（A-1 旅をつくる）', () => {
     expect(screen.getByLabelText('人数')).toHaveValue(4)
 
     await user.click(within(screen.getByRole('alert')).getByRole('button', { name: 'もう一度' }))
-    expect(await screen.findByRole('heading', { name: 'ブリーフィングは準備中です' })).toBeVisible()
+    expect(await screen.findByText('brief')).toBeVisible()
     expect(calls).toHaveLength(2)
     expect(calls[1]?.key).toBe(calls[0]?.key)
     expect(calls[1]?.body).toEqual(calls[0]?.body)
