@@ -1,6 +1,11 @@
 import { EnvError, loadEnv } from './env.js'
 
-const base = { CORS_ORIGINS: 'http://localhost:5173' }
+const SECRET = 'test-owner-token-secret-0123456789abcdef'
+const base = {
+  CORS_ORIGINS: 'http://localhost:5173',
+  ANTHROPIC_API_KEY: 'test-key',
+  OWNER_TOKEN_SECRET: SECRET,
+}
 
 describe('loadEnv', () => {
   it('既定値を補い、CORS_ORIGINS を配列にする', () => {
@@ -10,7 +15,46 @@ describe('loadEnv', () => {
       PORT: 8787,
       LOG_LEVEL: 'info',
       CORS_ORIGINS: ['http://localhost:5173', 'https://ezoroad.example'],
+      ANTHROPIC_API_KEY: 'test-key',
+      OWNER_TOKEN_SECRET: SECRET,
+      TRIPS_DAILY_LIMIT: 200,
+      TRIPS_DB_URL: 'file:./data/trips.db',
+      TRUST_PROXY: false,
     })
+  })
+
+  it('FAIL-6: ANTHROPIC_API_KEY が無い・空なら起動しない（既定値を持たない）', () => {
+    expect(() => loadEnv({ CORS_ORIGINS: base.CORS_ORIGINS })).toThrow(/ANTHROPIC_API_KEY/)
+    expect(() => loadEnv({ ...base, ANTHROPIC_API_KEY: '' })).toThrow(/ANTHROPIC_API_KEY/)
+  })
+
+  it('OWNER_TOKEN_SECRET は必須で 32 文字以上（既定値を持たない）', () => {
+    const noSecret: Record<string, string | undefined> = { ...base }
+    delete noSecret['OWNER_TOKEN_SECRET']
+    expect(() => loadEnv(noSecret)).toThrow(/OWNER_TOKEN_SECRET/)
+    expect(() => loadEnv({ ...base, OWNER_TOKEN_SECRET: 'x'.repeat(31) })).toThrow(
+      /OWNER_TOKEN_SECRET/,
+    )
+    expect(
+      loadEnv({ ...base, OWNER_TOKEN_SECRET: 'x'.repeat(32) }).OWNER_TOKEN_SECRET,
+    ).toHaveLength(32)
+  })
+
+  it('TRIPS_DAILY_LIMIT・TRIPS_DB_URL・TRUST_PROXY を読む', () => {
+    expect(
+      loadEnv({
+        ...base,
+        TRIPS_DAILY_LIMIT: '50',
+        TRIPS_DB_URL: 'file:/var/lib/antler/trips.db',
+        TRUST_PROXY: 'true',
+      }),
+    ).toMatchObject({
+      TRIPS_DAILY_LIMIT: 50,
+      TRIPS_DB_URL: 'file:/var/lib/antler/trips.db',
+      TRUST_PROXY: true,
+    })
+    expect(() => loadEnv({ ...base, TRIPS_DAILY_LIMIT: '0' })).toThrow(/TRIPS_DAILY_LIMIT/)
+    expect(() => loadEnv({ ...base, TRUST_PROXY: 'yes' })).toThrow(/TRUST_PROXY/)
   })
 
   it('CORS_ORIGINS が無ければ起動を止める（フォールバックしない）', () => {

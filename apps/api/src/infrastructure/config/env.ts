@@ -24,6 +24,17 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(8787),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   CORS_ORIGINS: corsOrigins,
+  // POST /api/trips（docs/specs/plan-trip/functional.md R5・R9）
+  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY が無いと旅のしおりを仕上げられない'),
+  // 所有者トークン（HMAC）の秘密。変えると発行済みのトークンが全部使えなくなる（R7）
+  OWNER_TOKEN_SECRET: z.string().min(32, 'OWNER_TOKEN_SECRET は 32 文字以上の乱数にする'),
+  TRIPS_DAILY_LIMIT: z.coerce.number().int().min(1).default(200),
+  TRIPS_DB_URL: z.string().min(1).default('file:./data/trips.db'),
+  // プロキシの X-Forwarded-For を信じるか。信じるときは右端（直前のプロキシが付けた値）を使う
+  TRUST_PROXY: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 })
 
 export type Env = z.infer<typeof envSchema>

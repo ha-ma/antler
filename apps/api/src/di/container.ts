@@ -1,20 +1,77 @@
+import Anthropic from '@anthropic-ai/sdk'
+import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
+import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
+import { openDatabase, type Connection } from '../infrastructure/db/connection.js'
+import { DrizzleUnitOfWork } from '../infrastructure/db/drizzle-unit-of-work.js'
+import { ensureSchema } from '../infrastructure/db/migrate.js'
+import { ClaudeTripWriterGateway } from '../infrastructure/gateways/claude-trip-writer.gateway.js'
 import { createApp } from '../infrastructure/http/app.js'
+import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
+import { DrizzleTripRepository } from '../infrastructure/repositories/drizzle-trip.repository.js'
+import {
+  HmacSha256TokenSigner,
+  NodeRandomSource,
+  NodeSha256Hasher,
+} from '../infrastructure/security/node-crypto.js'
+import { SystemClock } from '../infrastructure/system/system-clock.js'
 
 // Composition Root。全層を組み立てる唯一の場所。
+// 起動時に SQLite の表を作る（MIGR-1）。Claude のフェイクはテストの差し込みだけで、ここでは使わない（threat.md）。
 
-export type Container = { env: Env; logger: Logger; app: Hono }
+export type Container = { env: Env; logger: Logger; app: Hono; connection: Connection }
 
-export function buildContainer(source: Record<string, string | undefined>): Container {
+export async function buildContainer(
+  source: Record<string, string | undefined>,
+): Promise<Container> {
   const env = loadEnv(source)
   const logger = createLogger(env.LOG_LEVEL, { base: { service: 'api' } })
+
+  const connection = openDatabase(env.TRIPS_DB_URL)
+  await ensureSchema(connection.client)
+  const trips = new DrizzleTripRepository(connection.db)
+  const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1 })
+
+  const createTrip = new CreateTripUseCase({
+    trips,
+    uow: new DrizzleUnitOfWork(connection.db),
+    writer: new ClaudeTripWriterGateway(anthropic.messages, logger),
+    random: new NodeRandomSource(),
+    hasher: new NodeSha256Hasher(),
+    ownerTokens: new HmacSha256TokenSigner(env.OWNER_TOKEN_SECRET),
+    clock: new SystemClock(),
+    log: logger,
+    dailyLimit: env.TRIPS_DAILY_LIMIT,
+  })
+
   const app = createApp({
     logger,
     corsOrigins: env.CORS_ORIGINS,
-    readinessChecks: [],
+    readinessChecks: [
+      {
+        name: 'sqlite',
+        check: async () => {
+          await connection.client.execute('SELECT 1')
+        },
+      },
+    ],
     exposeErrorDetails: env.NODE_ENV !== 'production',
+    trips: {
+      createTrip,
+      rateLimitKey: clientIpKey({
+        trustProxy: env.TRUST_PROXY,
+        remoteAddress: (c) => {
+          try {
+            return getConnInfo(c).remote.address
+          } catch {
+            // Node のソケットが無い（app.request のテストなど）
+            return undefined
+          }
+        },
+      }),
+    },
   })
-  return { env, logger, app }
+  return { env, logger, app, connection }
 }
