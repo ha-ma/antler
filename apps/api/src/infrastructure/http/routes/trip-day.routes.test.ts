@@ -15,6 +15,7 @@ import { ensureSchema } from '../../db/migrate.js'
 import { FileRoadCatalogGateway } from '../../gateways/file-road-catalog.gateway.js'
 import { createLogger } from '../../logging/logger.js'
 import { DrizzleTripRepository } from '../../repositories/drizzle-trip.repository.js'
+import { SystemClock } from '../../system/system-clock.js'
 import { createApp } from '../app.js'
 import { TRIP_DAYS_PER_MINUTE_PER_IP } from './trip-day.routes.js'
 
@@ -67,6 +68,7 @@ async function setup() {
       getTripDay: new GetTripDayUseCase({
         trips: repo,
         data: new FileRoadCatalogGateway(),
+        clock: new SystemClock(),
         log: logger,
       }),
       rateLimitKey: (c) => c.req.header('x-test-ip') ?? 'unknown',

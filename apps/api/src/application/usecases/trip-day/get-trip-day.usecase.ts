@@ -13,6 +13,7 @@ import {
 import { TRIP_ID_PATTERN } from '../../../domain/trips/rules/trip-rules.js'
 import type { RoadCatalogGateway } from '../../ports/gateways/road-catalog.gateway.js'
 import type { TripRepository } from '../../ports/repositories/trip.repository.js'
+import type { Clock } from '../../ports/system/clock.js'
 import type { EventLog } from '../../ports/system/event-log.js'
 
 // GET /api/trips/:id/day/:n（docs/specs/brief-map/functional.md R2〜R5、threat.md、resilience.md）。
@@ -22,6 +23,8 @@ import type { EventLog } from '../../ports/system/event-log.js'
 export type GetTripDayDeps = {
   trips: Pick<TripRepository, 'findTrip'>
   data: RoadCatalogGateway
+  /** 計算の所要を測る（遅ければ warn） */
+  clock: Clock
   log: EventLog
 }
 
@@ -41,7 +44,7 @@ export class GetTripDayUseCase {
     if (!stored) throw new TripNotFoundError()
     if (day > stored.plan.days.length) throw new TripDayNotFoundError()
 
-    const started = performance.now()
+    const started = this.deps.clock.nowMs()
     let dayPlan: DayPlan
     try {
       dayPlan = buildDayPlan({ plan: stored.plan, day, ...this.deps.data.load() })
@@ -52,7 +55,7 @@ export class GetTripDayUseCase {
       }
       throw error
     }
-    const elapsedMs = Math.round(performance.now() - started)
+    const elapsedMs = Math.round(this.deps.clock.nowMs() - started)
     if (elapsedMs > SLOW_MS) this.deps.log.warn('trip_day.slow', { tripId: id, day, ms: elapsedMs })
     for (const leg of dayPlan.legs.filter((l) => l.source === 'straight'))
       this.deps.log.warn('trip_day.road_missing', { from: leg.from, to: leg.to })

@@ -52,8 +52,24 @@ function setup(roads: RoadCatalog = ROAD_CATALOG) {
   const { plan, details } = personaTrip()
   trips.trips.set(ID, { plan, details, ownerTokenHash: 'secret-hash', createdAtMs: 0 })
   const log = new MemoryLog()
-  const usecase = new GetTripDayUseCase({ trips, data: { load: () => ({ roads, zones }) }, log })
-  return { usecase, trips, plan, log }
+  const clock = new SteppingClock()
+  const usecase = new GetTripDayUseCase({
+    trips,
+    data: { load: () => ({ roads, zones }) },
+    clock,
+    log,
+  })
+  return { usecase, trips, plan, log, clock }
+}
+
+/** 読むたびに step ms 進む時計（計算の所要を決めてテストする） */
+class SteppingClock {
+  t = 0
+  step = 10
+  nowMs(): number {
+    this.t += this.step
+    return this.t
+  }
 }
 
 describe('GetTripDayUseCase', () => {
@@ -99,6 +115,15 @@ describe('GetTripDayUseCase', () => {
     })
     await expect(usecase.execute({ id: ID, day: 1 })).rejects.toBeInstanceOf(ItineraryChangedError)
     expect(log.has('trip_day.itinerary_changed')).toBe(true)
+  })
+
+  it('計算が 200 ms を越えたら trip_day.slow を warn（越えなければ出さない）', async () => {
+    const { usecase, log, clock } = setup()
+    await usecase.execute({ id: ID, day: 1 })
+    expect(log.has('trip_day.slow')).toBe(false)
+    clock.step = 300
+    await usecase.execute({ id: ID, day: 1 })
+    expect(log.has('trip_day.slow')).toBe(true)
   })
 
   it('組がルートのデータに無い → 直線で返し、warn を残す', async () => {

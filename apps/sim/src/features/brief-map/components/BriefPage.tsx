@@ -33,7 +33,15 @@ export function BriefPage() {
   }
   if (query.isError)
     return <BriefError error={query.error} onRetry={() => void query.refetch()} id={id} />
-  return <BriefContent data={query.data} alertOn={alertOn} setAlertOn={setAlertOn} />
+  // 日ごとに作り直す（前の日の地図と投影を持ち越さない。見出しへのフォーカスも日ごとに移す）
+  return (
+    <BriefContent
+      key={`${id}-${String(day)}`}
+      data={query.data}
+      alertOn={alertOn}
+      setAlertOn={setAlertOn}
+    />
+  )
 }
 
 function BriefError({ error, onRetry, id }: { error: Error; onRetry: () => void; id: string }) {

@@ -54,6 +54,7 @@ export async function buildContainer(
   const getTripDay = new GetTripDayUseCase({
     trips,
     data: new FileRoadCatalogGateway(),
+    clock: new SystemClock(),
     log: logger,
   })
 

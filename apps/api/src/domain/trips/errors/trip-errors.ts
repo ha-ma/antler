@@ -1,4 +1,4 @@
-// 旅の作成のドメイン例外。HTTP の status と code は infrastructure/http/error-mapper.ts が決める。
+// 旅の作成（plan-trip）と読み出し（brief-map）のドメイン例外。HTTP の status と code は infrastructure/http/error-mapper.ts が決める。
 
 export abstract class TripError extends Error {}
 
