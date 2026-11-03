@@ -1,0 +1,52 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "speedKmh": 54,
+    "zone": "inside",
+    "light": "dusk",
+    "headlight": "high",
+    "track": [
+      {
+        "t": -0.8,
+        "conf": 0.71,
+        "distanceM": 64,
+        "lateralMps": 0.0,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": 0.0,
+        "conf": 1.2,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      }
+    ],
+    "ttcSec": 3.9,
+    "recentAlerts30s": 1
+  },
+  "questions": [
+    {
+      "id": "alert_level",
+      "type": "choice",
+      "text": "Which alert should the driver get now?",
+      "options": ["none", "zone", "danger"]
+    },
+    {
+      "id": "on_roadway",
+      "type": "noul",
+      "text": "The animal is moving into the driving lane."
+    },
+    {
+      "id": "static_shoulder",
+      "type": "noul",
+      "text": "The animal is standing still on the road shoulder."
+    },
+    {
+      "id": "false_positive",
+      "type": "noul",
+      "text": "The detection is not a real deer (sign, snow, post)."
+    }
+  ]
+}

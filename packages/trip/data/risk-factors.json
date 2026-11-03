@@ -1,0 +1,15 @@
+{
+  "note": "月別係数の写し。正は packages/zones/data/zones.source.json の factors（factors.test.ts が一致を確かめる）",
+  "months": [0.16, 0.101, 0.148, 0.277, 0.263, 0.286, 0.275, 0.253, 0.402, 1, 0.788, 0.427],
+  "periods": {
+    "dawn": 0.202,
+    "day": 0.092,
+    "dusk": 1,
+    "night": 0.282
+  },
+  "source": {
+    "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）の 2025 年 月別・時間帯別の件数の図（図中の出典：北海道警察本部交通部交通企画課資料）を正規化して作成",
+    "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
+    "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト"
+  }
+}

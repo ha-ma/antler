@@ -1,8 +1,9 @@
-"""@antler/schema との契約テスト（docs/specs/alert-ui UC-1j）。
+"""@antler/schema との契約テスト（docs/specs/alert-ui UC-1j、docs/specs/schema-judge UC-5b）。
 
 edge は AlertFlag・Capture・ClientMessage の型を自前で持たず、packages/schema/json/ に書き出された
-JSON Schema で検証する。TS のテストと同じ見本（packages/schema/fixtures/）を使い、
-同じ結果になることを確かめる。
+JSON Schema で検証する。JudgeRequest も同じ見本で JSON Schema を確かめる（pydantic は
+test_judge_request_model.py）。TS のテストと同じ見本（packages/schema/fixtures/）を使い、
+同じ結果になることを確かめる。AlertFlag.l1・Capture.l1Probs の見本もここで通る。
 TripPlan は edge が扱わないので対象外。
 """
 
@@ -15,7 +16,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_DIR = ROOT / "packages" / "schema" / "json"
 FIXTURE_DIR = ROOT / "packages" / "schema" / "fixtures"
-KINDS = ["alert-flag", "capture", "client-message"]
+KINDS = ["alert-flag", "capture", "client-message", "judge-request"]
 
 
 def _validator(kind: str) -> Draft202012Validator:

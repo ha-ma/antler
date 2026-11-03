@@ -1,0 +1,15 @@
+{
+  "name": "@antler/trip",
+  "private": true,
+  "version": "0.0.0",
+  "description": "旅のしおりとリスクの純粋関数、楽しみ・地点のマスター（A-1。sim と api が共有）",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@antler/schema": "^0.0.0",
+    "@antler/zones": "^0.0.0",
+    "zod": "^4.6.7"
+  }
+}

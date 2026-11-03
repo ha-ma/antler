@@ -27,6 +27,8 @@ service-account.json
 # Claude Code（個人設定とログ）
 .claude/settings.local.json
 .claude/logs/
+# hook が作業ディレクトリごとに作るログ（apps/sim/.claude/logs など）
+**/.claude/logs/
 
 # local-ci の記録（コミットしない）
 .claude/state/

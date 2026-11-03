@@ -67,11 +67,12 @@ describe('createApp', () => {
   })
 
   it('想定外の例外は 500。本番では内部メッセージを見せず、ログには残す', async () => {
-    const { app, lines } = setup()
-    app.get('/boom', () => {
+    // 試験だけのルート。変数名を app にしない（sfad-drift が `app.get(` を実在のルートとして数えるため）
+    const { app: server, lines } = setup()
+    server.get('/boom', () => {
       throw new Error('db password=secret')
     })
-    const res = await app.request('/boom')
+    const res = await server.request('/boom')
     expect(res.status).toBe(500)
     const body = JSON.stringify(await res.json())
     expect(body).toContain('INTERNAL_ERROR')
@@ -80,21 +81,21 @@ describe('createApp', () => {
   })
 
   it('開発では detail に例外のメッセージを出す', async () => {
-    const { app } = setup({ exposeErrorDetails: true })
-    app.get('/boom', () => {
+    const { app: server } = setup({ exposeErrorDetails: true })
+    server.get('/boom', () => {
       throw new Error('detail here')
     })
-    expect(await (await app.request('/boom')).json()).toMatchObject({
+    expect(await (await server.request('/boom')).json()).toMatchObject({
       error: { detail: 'detail here' },
     })
   })
 
   it('HTTPException は その status を返す', async () => {
-    const { app } = setup()
-    app.get('/teapot', () => {
+    const { app: server } = setup()
+    server.get('/teapot', () => {
       throw new HTTPException(418, { message: 'teapot' })
     })
-    const res = await app.request('/teapot')
+    const res = await server.request('/teapot')
     expect(res.status).toBe(418)
     expect(await res.json()).toMatchObject({ error: { code: 'HTTP_ERROR', message: 'teapot' } })
   })

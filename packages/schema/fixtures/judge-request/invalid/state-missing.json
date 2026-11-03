@@ -1,0 +1,26 @@
+{
+  "model": "jev-latest",
+  "questions": [
+    {
+      "id": "alert_level",
+      "type": "choice",
+      "text": "Which alert should the driver get now?",
+      "options": ["none", "zone", "danger"]
+    },
+    {
+      "id": "on_roadway",
+      "type": "noul",
+      "text": "The animal is moving into the driving lane."
+    },
+    {
+      "id": "static_shoulder",
+      "type": "noul",
+      "text": "The animal is standing still on the road shoulder."
+    },
+    {
+      "id": "false_positive",
+      "type": "noul",
+      "text": "The detection is not a real deer (sign, snow, post)."
+    }
+  ]
+}

@@ -4,7 +4,7 @@ target_paths:
   - apps/pwa/src/features/connect/
   - apps/pwa/src/app/
   - apps/pwa/scripts/fake-edge.mjs
-spec_confirmed_at: a97b71d
+spec_confirmed_at: 7a68248
 tier: 1
 ---
 
@@ -86,6 +86,7 @@ Story: ドライバー（同乗者）として、QR で Wi-Fi に入ったあと
   - 成功しても失敗しても B-1 へ進む。音が出せない場合、B-1 の上部に「音が出ません」の小さな表示を常に出す（画面だけで警告は続く）
   - 二度押し（連打）でも unlock は 1 回、B-1 への移行も 1 回（B-1 に戻る操作は無いので、押しても何も起きない）
   - B-1 から B-0 に戻るボタンは置かない（B4-6: 走行中に押すボタンを置かない）。戻るのはページの再読み込み（そのときは音の解除からやり直し）
+  - 開発中（`npm run dev`）は既定で無音の出力先を使い、解除は成功扱いにして画面の流れだけを本番と同じに進める。鳴らすのは `VITE_ALERT_SOUND=on` のときだけ。本番ビルドは常に鳴らす（2026-11-03 ユーザーの依頼。内蔵ブラウザでの確認のたびに音が聞こえるため）
   - `AlertSoundController` は `AlertSoundContext.Provider` で `AlertState` に渡す。アンマウントで `dispose`
 - R9: 位置の許可の案内（roadmap の持ち越し）
   - B-0 で `navigator.permissions.query({name:'geolocation'})` の状態を読み、`granted` / `prompt` / `denied` / 判定できない（API が無い・例外）を文言で出す

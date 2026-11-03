@@ -1,26 +1,31 @@
+import '@antler/alert-ui/tokens.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { lazy, Suspense, useState } from 'react'
+import { useState } from 'react'
+import { createBrowserRouter, RouterProvider, type DataRouter } from 'react-router'
 import { AppErrorBoundary } from './AppErrorBoundary'
+import { routes } from './routes'
 
-// /drive（A-3・A-5）は three・R3F を含むので遅延読込にする（ほかの画面の初回読込に入れない）。
-// ルーティング（react-router）が入ったら、その Route に差し替える。
-const DrivePage = lazy(() => import('@/features/drive').then((m) => ({ default: m.DrivePage })))
+type Props = {
+  /** テストでは createMemoryRouter(routes) を渡す */
+  router?: DataRouter
+}
 
-/** プロバイダとレイアウトの外枠。画面（A-1〜A-7）は feature の barrel から組み立てる。 */
-export function App() {
+let browserRouter: DataRouter | null = null
+
+/** ブラウザのルーターは 1 つだけ作る（StrictMode の 2 回の初期化でも作り直さない）。 */
+function getBrowserRouter(): DataRouter {
+  browserRouter ??= createBrowserRouter(routes)
+  return browserRouter
+}
+
+/** プロバイダとルーティングの外枠。画面（A-1〜A-7）は feature の barrel から組み立てる（routes.tsx）。 */
+export function App({ router }: Props) {
   const [queryClient] = useState(() => new QueryClient())
+  const [appRouter] = useState(() => router ?? getBrowserRouter())
   return (
     <AppErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        {window.location.pathname === '/drive' ? (
-          <Suspense fallback={null}>
-            <DrivePage />
-          </Suspense>
-        ) : (
-          <main>
-            <h1>EZO ROAD</h1>
-          </main>
-        )}
+        <RouterProvider router={appRouter} />
       </QueryClientProvider>
     </AppErrorBoundary>
   )

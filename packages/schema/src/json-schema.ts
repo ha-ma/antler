@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { AlertFlagSchema } from './alert-flag'
 import { CaptureSchema } from './capture'
 import { ClientMessageSchema } from './client-message'
+import { JudgeRequestSchema } from './judge-request'
 import { TripPlanSchema } from './trip-plan'
 
 // Zod の定義から JSON Schema（draft 2020-12）を作る。edge（Python）はこの JSON Schema で検証する。
@@ -11,6 +12,7 @@ export const JSON_SCHEMA_SOURCES = {
   'alert-flag': AlertFlagSchema,
   capture: CaptureSchema,
   'client-message': ClientMessageSchema,
+  'judge-request': JudgeRequestSchema,
   'trip-plan': TripPlanSchema,
 } as const
 
