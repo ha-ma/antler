@@ -11,6 +11,7 @@ from detector.sources import open_video_file
 from .conftest import T0, named
 
 
+# AC-1
 def test_ac1_動画から10個の結果とt_frameつきログ(fake_cv2, logbuf):
     fake_cv2.count, fake_cv2.fps = 60, 60.0
     deer = Detection("deer", 0.92, (0.4, 0.5, 0.1, 0.2))

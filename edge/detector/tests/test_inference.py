@@ -11,12 +11,14 @@ def d(label="deer", conf=0.9, xywh=(0.5, 0.5, 0.1, 0.2)) -> Detection:
     return Detection(label, conf, xywh)
 
 
+# UC-4a
 def test_uc4a_deer以外は捨て_確信度順():
     inner = ScriptedDetector([[d("cow", 0.99), d(conf=0.6), d("person"), d(conf=0.95)]])
     out = DeerDetector(inner).detect(image())
     assert [x.conf for x in out] == [0.95, 0.6]
 
 
+# UC-4b
 def test_uc4b_不正な検出だけ捨てて警告(logbuf):
     bad = [
         d(conf=1.2),
@@ -30,10 +32,12 @@ def test_uc4b_不正な検出だけ捨てて警告(logbuf):
     assert len(named(logbuf, "detection.invalid")) == 5
 
 
+# UC-4c
 def test_uc4c_鹿なしは空():
     assert DeerDetector(ScriptedDetector([[d("cow")]])).detect(image()) == []
 
 
+# UC-4d
 def test_uc4d_Scriptedは順に返し尽きたら空_形を記録する():
     s = ScriptedDetector([[d()], [d(conf=0.5)]])
     assert s.detect(image(10, 20))[0].conf == 0.9

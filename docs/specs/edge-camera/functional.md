@@ -55,6 +55,7 @@ Story: B の検知プログラムとして、どんなカメラ・動画でも�
   - `DeerDetector` は下の `Detector` を包み、`label == "deer"` だけ残し、確信度の高い順に並べる
   - 確信度が 0〜1 の外・NaN、`xywh` が 0〜1 の外 → その検出だけ捨てて `detection.invalid` を warn（フレームは落とさない）
   - 鹿が無い → 空のリスト（エラーではない）
+  - 不正で捨てた数は `last_invalid` に持ち、`FrameResult.invalid_count` と `frame.processed` に出す。検出が全部不正で鹿 0 件のフレームが 30 回続いたら、失敗と同じく `infer.degraded`（壊れたモデルが緑のまま走らない。code-reviewer C-1、推奨で決定）
   - 推論が例外を投げた → `failed=True`・detections 空の `FrameResult` を返す（「鹿なし」と区別できる。後段が失敗を鹿なしと読んで緑にしないため）。`infer.failed`（連続失敗数・例外の型名）を error でログして次へ。止めない（推奨で決定）
   - 連続 30 回失敗 → `infer.degraded` を critical で 1 回（回復したら `infer.recovered`）。PWA へ伝える経路は edge-judge / pwa-connect（Deferred）
   - 実モデル（CoreML）の読み込みはこの feature に入れない。差し込み口とフェイク（`ScriptedDetector`）だけ
@@ -63,7 +64,7 @@ Story: B の検知プログラムとして、どんなカメラ・動画でも�
   - `FrameResult` = seq・`t_frame`・detections・`infer_ms`・`failed`
   - 推論時間 = 単調時計（perf_counter。注入できる）の差。壁時計は使わない（負にならない）。`budget_ms`（設定。既定 100）超 → `infer.over_budget` を warn（結果は捨てない）。50 ms 超 予算以下は warn しない（目標は ch6 の ≤ 50 ms）
   - 終わり方によらず（正常終了・`SourceError`・途中で close・KeyboardInterrupt）、`pipeline.summary`（読んだ数・通した数・捨てた数・推論失敗数・`ended`: eof / error / closed）を info で 1 回
-  - 入力が `SourceError` → `pipeline.aborted` を critical でログして、そのまま上へ
+  - 入力が例外（`SourceError` に限らず `ValueError` など）→ `pipeline.aborted`（例外の型名つき）を critical でログして、そのまま上へ
 - R6: 走行ログ（CLAUDE.md MUST「t_frame を必ず残す」）
   - 推論したフレームごとに `frame.processed` を info: `seq`・`t_frame`（ISO 8601 +09:00、ミリ秒）・`infer_ms`・`deer_count`・`max_conf`（鹿が無ければ null）
   - `frame.out_of_order`・`infer.failed`・`infer.over_budget` も `t_frame` と `seq` を持つ
@@ -154,7 +155,7 @@ Questions は全問、推奨で決定（ユーザー指示。2026-11-03）。決
 
 ## Questions（Deferred のみ残存可）
 
-- [Deferred: 担当=人 B / 期日=2026-11-05（Day 3 の実機）/ 暫定挙動=同期の 1 本ループ。推論が間引き間隔より遅いと、カメラのバッファに古いフレームがたまり得る。いまは `t_frame` が古い絵のまま次へ渡る（遅延は frame.processed の t_frame と ts の差で後から見える）] 実カメラの最新フレーム優先（古いフレームを捨てる）の取り込み
+- [Deferred: 担当=人 B / 期日=2026-11-05（Day 3 の実機）/ 暫定挙動=同期の 1 本ループ。推論が間引き間隔より遅いと、カメラのバッファに古いフレームがたまり得る。いまは read() から戻った時刻が t_frame になるため、滞留した分は t_frame に現れず `ts − t_frame` でも見えない。実機では最新 1 枚だけ保持する取り込みと、grab 時点の打刻に替える（edge-latency-reviewer W1・W2）] 実カメラの最新フレーム優先（古いフレームを捨てる）の取り込み
 - [Deferred: 担当=人 B / 期日=2026-11-05（Day 3 の実機）/ 暫定挙動=モデルが無い間は `ScriptedDetector` のフェイクだけ。`model_path` は設定に読めるが使わない] YOLOv8 CoreML の実モデル（deer クラスの学習・変換）の読み込みと、≤ 50 ms の実測
 - [Deferred: 担当=人 B / 期日=2026-11-05（Day 3 の実機）/ 暫定挙動=カメラの t_frame は read() から戻った瞬間。バッファで待った分は t_frame の後ろに隠れ、遅延を実際より良く測る。ドライバの撮影時刻（CAP_PROP_POS_MSEC 等）への切り替えは実機で] カメラの撮影時刻
 - [Deferred: 担当=人 B（pwa-connect）/ 期日=2026-11-05 / 暫定挙動=t_frame は Mac の壁時計、t_shown はスマホの壁時計。AP にインターネットが無く、端末間のずれは補正しない。infer_ms だけは単調時計で正しい] 端末間の時計の同期
@@ -211,6 +212,8 @@ UC-5 パイプライン:
 - [x] UC-5e: 入力が `SourceError` → `pipeline.aborted`（critical）と summary（`ended`=error）、そこまでの結果は返し済みで、例外は上へ出る
 - [x] UC-5f: [ADDED adversary] ジェネレータを途中で close しても summary（`ended`=closed）が 1 回出る
 - [x] UC-5g: [ADDED adversary] 連続 30 回の失敗で `infer.degraded` が 1 回だけ critical、成功で `infer.recovered`
+- [x] UC-5i: [ADDED code-reviewer] `SourceError` 以外の入力の例外でも `pipeline.aborted` と summary（`ended`=error）が出る
+- [x] UC-5j: [ADDED code-reviewer] 全部不正で捨てたフレームは `invalid_count` に出て、30 回続くと `infer.degraded`、鹿なしの正常フレームで `infer.recovered`
 - [x] UC-5h: [ADDED adversary] `infer_ms` は単調時計で測る（壁時計が戻っても負にならない）。`budget_ms` は設定の値で警告が決まる
 
 UC-6 走行ログ:
@@ -226,6 +229,7 @@ UC-7 設定:
 - [x] UC-7a: 空の TOML → 既定値（device 0・1280×720・60 fps・target 10・budget 100）
 - [x] UC-7b: 全項目を書いた TOML が `Config` になる（source=file, path つき）
 - [x] UC-7c: 知らないキー・型違い（width が文字列）・範囲外（幅 0・fps 0）→ `ConfigError`、メッセージにキー名
+- [x] UC-7g: [ADDED code-reviewer] UTF-8 でない設定ファイル → `ConfigError`
 - [x] UC-7f: [ADDED adversary] `budget_ms` が 0・負・1001 → `ConfigError`
 - [x] UC-7d: `source = "file"` で path 無し・source が `"usb"` → `ConfigError`
 - [x] UC-7e: ファイルが無い・TOML でない → `ConfigError`
@@ -244,15 +248,15 @@ UC-8 差し替え:
 
 ## Rule → ドメイン語彙対応（Tier 2 推奨）
 
-| Rule                       | 語彙                                                                    | 置き場所                                        | 証明       |
-| -------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------- | ---------- |
-| R1: フレームと入力         | Frame / FrameSource / ArrayFrameSource / VideoFileSource / CameraSource | edge/detector/src/detector/frame.py・sources.py | UC-1       |
-| R2: リサイズ               | resize_frame                                                            | edge/detector/src/detector/frame.py             | UC-2       |
-| R3: 間引き                 | FrameThrottle                                                           | edge/detector/src/detector/throttle.py          | UC-3       |
-| R4: 推論                   | Detector / Detection / DeerDetector / ScriptedDetector                  | edge/detector/src/detector/inference.py         | UC-4       |
-| R5・R6: パイプラインとログ | process_frames / FrameResult                                            | edge/detector/src/detector/pipeline.py          | UC-5・UC-6 |
-| R7: 設定                   | Config / load_config / ConfigError                                      | edge/detector/src/detector/config.py            | UC-7       |
-| R8: 差し替え               | Protocol                                                                | edge/detector/src/detector/                     | UC-8       |
+| Rule                       | 語彙                                                   | 置き場所                                | 証明       |
+| -------------------------- | ------------------------------------------------------ | --------------------------------------- | ---------- |
+| R1: 入力                   | ArrayFrameSource / VideoFileSource / CameraSource      | edge/detector/src/detector/sources.py   | UC-1       |
+| R1・R2: フレーム           | Frame / resize_frame                                   | edge/detector/src/detector/frame.py     | UC-1・UC-2 |
+| R3: 間引き                 | FrameThrottle                                          | edge/detector/src/detector/throttle.py  | UC-3       |
+| R4: 推論                   | Detector / Detection / DeerDetector / ScriptedDetector | edge/detector/src/detector/inference.py | UC-4       |
+| R5・R6: パイプラインとログ | process_frames / FrameResult                           | edge/detector/src/detector/pipeline.py  | UC-5・UC-6 |
+| R7: 設定                   | Config / load_config / ConfigError                     | edge/detector/src/detector/config.py    | UC-7       |
+| R8: 差し替え               | FrameSource / Detector（Protocol）                     | edge/detector/src/detector/ports.py     | UC-8       |
 
 ## 非機能要件
 

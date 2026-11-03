@@ -12,7 +12,7 @@ TARGET_WIDTH = 640
 TARGET_HEIGHT = 480
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class Frame:
     """image は (高さ, 幅, 3) の uint8（BGR）。t_frame は tz 付きで、JST に正規化する。"""
 

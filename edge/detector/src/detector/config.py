@@ -77,7 +77,7 @@ def _section(cls: type, raw: object, name: str) -> object:
 def load_config(path: str | Path) -> Config:
     try:
         raw = tomllib.loads(Path(path).read_text(encoding="utf-8"))
-    except (OSError, tomllib.TOMLDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
         msg = f"設定ファイルを読めない: {Path(path).name} ({type(exc).__name__})"
         raise ConfigError(msg) from exc
     sections = {"camera": CameraConfig, "pipeline": PipelineConfig, "infer": InferConfig}

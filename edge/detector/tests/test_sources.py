@@ -16,6 +16,7 @@ from detector.sources import (
 from .conftest import T0, FakeCapture, image, named
 
 
+# UC-1a
 def test_uc1a_配列ソースはseq順に返し4回目はNone():
     src = ArrayFrameSource([image(), image(), image()], start=T0, fps=10)
     got = [src.read() for _ in range(4)]
@@ -24,6 +25,7 @@ def test_uc1a_配列ソースはseq順に返し4回目はNone():
     assert got[1].t_frame - got[0].t_frame == timedelta(milliseconds=100)
 
 
+# UC-1d
 def test_uc1d_動画は開始時刻から33ms刻み_尽きたらNone():
     src = VideoFileSource(FakeCapture(5, 30.0), fps=30.0, start=T0)
     got = [src.read() for _ in range(6)]
@@ -32,6 +34,7 @@ def test_uc1d_動画は開始時刻から33ms刻み_尽きたらNone():
     assert ms == [0, 33, 67, 100, 133]
 
 
+# UC-1h
 def test_uc1h_fpsが不正ならSourceError_同じ開始時刻なら再現する():
     for bad in (0, -1, float("nan")):
         with pytest.raises(SourceError, match="fps"):
@@ -41,6 +44,7 @@ def test_uc1h_fpsが不正ならSourceError_同じ開始時刻なら再現する
     assert [a.read().t_frame for _ in range(3)] == [b.read().t_frame for _ in range(3)]
 
 
+# UC-1e
 def test_uc1e_カメラのt_frameは注入した時計_失敗はSourceError(logbuf):
     ticks = iter([T0, T0 + timedelta(milliseconds=17), T0 + timedelta(milliseconds=34)])
     src = CameraSource(FakeCapture(2), clock=lambda: next(ticks))
@@ -51,6 +55,7 @@ def test_uc1e_カメラのt_frameは注入した時計_失敗はSourceError(logb
     assert named(logbuf, "camera.lost")
 
 
+# UC-1f
 def test_uc1f_開けない(fake_cv2, logbuf, monkeypatch):
     fake_cv2.opened = False
     with pytest.raises(SourceError):
@@ -64,6 +69,7 @@ def test_uc1f_開けない(fake_cv2, logbuf, monkeypatch):
         open_video_file("x.mp4")
 
 
+# UC-1g
 def test_uc1g_open_系は偽cv2を解像度とfps付きで使う(fake_cv2):
     cam = open_camera(2, 1280, 720, 60)
     assert fake_cv2.opened_with == [2]

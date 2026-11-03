@@ -11,6 +11,7 @@ def write(tmp_path, text: str):
     return p
 
 
+# UC-7a
 def test_uc7a_空は既定値(tmp_path):
     c = load_config(write(tmp_path, ""))
     assert c == Config()
@@ -19,6 +20,7 @@ def test_uc7a_空は既定値(tmp_path):
     assert (c.pipeline.target_fps, c.infer.budget_ms, c.infer.model_path) == (10, 100, "")
 
 
+# UC-7b
 def test_uc7b_全項目(tmp_path):
     c = load_config(
         write(
@@ -43,11 +45,13 @@ def test_uc7b_全項目(tmp_path):
         ("[camera]\nwidth=true\n", "width"),
     ],
 )
+# UC-7c
 def test_uc7c_不正はConfigError_キー名つき(tmp_path, text, key):
     with pytest.raises(ConfigError, match=key):
         load_config(write(tmp_path, text))
 
 
+# UC-7d
 def test_uc7d_fileでpath無し_sourceが不正(tmp_path):
     with pytest.raises(ConfigError, match="path"):
         load_config(write(tmp_path, '[camera]\nsource="file"\n'))
@@ -55,6 +59,7 @@ def test_uc7d_fileでpath無し_sourceが不正(tmp_path):
         load_config(write(tmp_path, '[camera]\nsource="usb"\n'))
 
 
+# UC-7e
 def test_uc7e_無い_TOMLでない(tmp_path):
     with pytest.raises(ConfigError):
         load_config(tmp_path / "none.toml")
@@ -63,6 +68,15 @@ def test_uc7e_無い_TOMLでない(tmp_path):
 
 
 @pytest.mark.parametrize("bad", [0, -1, 1001])
+# UC-7f
 def test_uc7f_budgetが範囲外(tmp_path, bad):
     with pytest.raises(ConfigError, match="budget_ms"):
         load_config(write(tmp_path, f"[infer]\nbudget_ms={bad}\n"))
+
+
+# UC-7g
+def test_uc7g_UTF8でないファイルもConfigError(tmp_path):
+    p = tmp_path / "bad.toml"
+    p.write_bytes(b"\xff\xfe\x00bad")
+    with pytest.raises(ConfigError):
+        load_config(p)

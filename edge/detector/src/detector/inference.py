@@ -30,13 +30,16 @@ class DeerDetector:
 
     def __init__(self, inner: Detector) -> None:
         self._inner = inner
+        self.last_invalid = 0  # 直近の detect で捨てた不正な検出の数
 
     def detect(self, image: np.ndarray) -> list[Detection]:
         kept = []
+        self.last_invalid = 0
         for d in self._inner.detect(image):
             if d.label != "deer":
                 continue
             if not _valid(d):
+                self.last_invalid += 1
                 logger.warning("detection.invalid", extra={"conf": str(d.conf)})
                 continue
             kept.append(d)

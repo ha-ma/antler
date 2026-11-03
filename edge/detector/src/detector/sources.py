@@ -66,6 +66,7 @@ class VideoFileSource:
 
     def __init__(self, capture: Capture, fps: float, start: datetime | None = None) -> None:
         if not math.isfinite(fps) or fps <= 0:
+            capture.release()
             msg = f"動画の fps が不正: {fps}"
             raise SourceError(msg)
         self._capture = capture

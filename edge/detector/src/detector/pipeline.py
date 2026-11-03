@@ -11,7 +11,6 @@ from time import perf_counter
 from typing import TYPE_CHECKING
 
 from detector.frame import format_t_frame, resize_frame
-from detector.ports import SourceError
 from detector.throttle import FrameThrottle
 
 if TYPE_CHECKING:
@@ -33,6 +32,7 @@ class FrameResult:
     detections: list[Detection] = field(default_factory=list)
     infer_ms: float = 0.0
     failed: bool = False  # 推論が壊れたフレーム。「鹿なし」と区別する
+    invalid_count: int = 0  # 不正で捨てた検出の数。鹿 0 件でこれが多いと「壊れた鹿なし」
 
 
 def process_frames(
@@ -52,9 +52,9 @@ def process_frames(
         while True:
             try:
                 frame = source.read()
-            except SourceError:
+            except Exception as exc:
                 ended = "error"
-                logger.critical("pipeline.aborted")
+                logger.critical("pipeline.aborted", extra={"error_type": type(exc).__name__})
                 raise
             if frame is None:
                 ended = "eof"
@@ -87,10 +87,18 @@ def process_frames(
                 yield FrameResult(frame.seq, frame.t_frame, [], infer_ms, failed=True)
                 continue
             infer_ms = (clock() - started) * 1000.0
-            if degraded:
+            invalid = getattr(detector, "last_invalid", 0)
+            if invalid and not detections:
+                # 全部不正で捨てた: 本物の「鹿なし」と区別し、続くなら degraded に数える
+                consecutive += 1
+                if consecutive == DEGRADED_AFTER:
+                    degraded = True
+                    logger.critical("infer.degraded", extra={"seq": frame.seq, "t_frame": t_frame})
+            else:
+                consecutive = 0
+            if degraded and consecutive == 0:
                 logger.info("infer.recovered", extra={"seq": frame.seq, "t_frame": t_frame})
                 degraded = False
-            consecutive = 0
             if infer_ms > budget_ms:
                 logger.warning(
                     "infer.over_budget",
@@ -104,9 +112,10 @@ def process_frames(
                     "infer_ms": round(infer_ms, 1),
                     "deer_count": len(detections),
                     "max_conf": max((d.conf for d in detections), default=None),
+                    "invalid_count": invalid,
                 },
             )
-            yield FrameResult(frame.seq, frame.t_frame, detections, infer_ms)
+            yield FrameResult(frame.seq, frame.t_frame, detections, infer_ms, invalid_count=invalid)
     finally:
         logger.info(
             "pipeline.summary",
