@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
+import '@antler/alert-ui/tokens.css'
 import './app/global.css'
 import { installGlobalErrorHandlers } from './shared/utils/logger'
 
