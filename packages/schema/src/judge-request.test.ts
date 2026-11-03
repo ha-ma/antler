@@ -289,7 +289,10 @@ describe('UC-5 JSON Schema', () => {
   it('UC-5a: 書き出し済みの json/*.schema.json（judge-request を含む 5 つ）が定義から作り直したものと一致する', () => {
     const names = Object.keys(JSON_SCHEMA_SOURCES) as JsonSchemaName[]
     expect(names).toContain('judge-request')
-    expect(names).toHaveLength(5)
+    // 件数は固定しない（ほかの feature が JSON Schema の対象を足しても壊れないように）
+    expect(names).toEqual(
+      expect.arrayContaining(['alert-flag', 'capture', 'client-message', 'judge-request']),
+    )
     for (const name of names) {
       const file = path.join(jsonSchemaDir, `${name}.schema.json`)
       expect(readFileSync(file, 'utf-8'), `${name}: npm run build:json -w @antler/schema`).toBe(

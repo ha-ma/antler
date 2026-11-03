@@ -50,7 +50,7 @@ export type AlertFlag = z.infer<typeof AlertFlagSchema>
 /** 受信側が読み取れたもの。壊れた項目は入れない（R11: 受信は deer を最優先で読む）。 */
 export type ReceivedFlag = {
   deer: boolean
-  /** 厳しい検証（AlertFlagSchema）も通ったか */
+  /** 厳しい検証（AlertFlagSchema）も通ったか。PWA が読まない l1 は除いて判定する */
   strict: boolean
   conf?: number
   distanceM?: number
