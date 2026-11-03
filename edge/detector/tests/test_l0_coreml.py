@@ -78,7 +78,10 @@ def config(units="cpu_and_ne", path="deer.mlpackage"):
 # CU-1a
 def test_cu1a_既定ではCPU_AND_NEで読み込む(monkeypatch):
     made = fake_coremltools(monkeypatch)
-    det = load_coreml_detector(Config(infer=InferConfig(model_path="deer.mlpackage")))
+    # Pillow は実機だけの依存（CI に無い）。画像の変換は差し替える
+    det = load_coreml_detector(
+        Config(infer=InferConfig(model_path="deer.mlpackage")), prepare=lambda a: a
+    )
     assert made == [("deer.mlpackage", "ne")]
     found = det.detect(np.zeros((480, 640, 3), dtype=np.uint8))
     assert [d.label for d in found] == ["deer"]
