@@ -38,13 +38,22 @@
 要件・デザインの写しは原文のまま。直すときは原本（Claude Docs / Claude Design）を直して再エクスポートする（ch9 の判断記録を除く）。
 文書中の `@ezoroad/*` と `ezo-road/` は、このリポジトリでは `@antler/*` と `antler/`。
 
+**要件は章ファイル単位で読む。全章をまとめて読み込まない**（全文で約 25k トークン）。各 feature の `docs/specs/{feature}/functional.md` は担当の章と要件 ID だけを参照する。広く探す・長いログを読むときは repo-explorer に任せる。
+
+毎回読む価値がある 2 つ（色・文字・余白と、A と B の共通コンポーネントの契約）だけをここで読み込む:
+
+@docs/design/tokens.json
+@docs/design/AlertState.md
+
+**frontend-design スキルを使うときも、色・フォント・余白は tokens.json が正。** スキルの「独自のフォント・配色を選ぶ」指示は antler では使わない（数値は IBM Plex Mono、文章は Noto Sans JP。ch8 規約 4）。
+
 ## ディレクトリ・stack・担当
 
 | ディレクトリ | 中身 | stack（routes.toml） | 規約 | 担当 |
 | --- | --- | --- | --- | --- |
 | `apps/sim/` | A: Vite + React + R3F | `sim`（React） | [apps/sim/CLAUDE.md](apps/sim/CLAUDE.md) | 人 A |
 | `apps/api/` | A API（Hono） | `api`（Hono） | [apps/api/CLAUDE.md](apps/api/CLAUDE.md) | 人 A |
-| `packages/alert-ui/` | 3 状態コンポーネント・音源・トークン | `packages` | ch5・ch8・AlertState.md | 人 A |
+| `packages/alert-ui/` | 3 状態コンポーネント・音源・トークン | `packages`（React のチェッカーを流用） | ch5・ch8・AlertState.md | 人 A |
 | `packages/schema/` | TripPlan / AlertFlag / Capture の型と JSON Schema | `packages` | ch7 | 人 A |
 | `packages/zones/` | 鹿ゾーン GeoJSON と生成スクリプト | `packages` | ch2・ch7 | 人 A |
 | `apps/pwa/` | B: スマホ PWA | `pwa`（React） | [apps/pwa/CLAUDE.md](apps/pwa/CLAUDE.md) | 人 B |
@@ -57,7 +66,10 @@
 
 ## 依頼の単位と完成
 
-- **1 feature ＝ 1 `/sfad cycle`。1 セッションに 1 feature。** 終わったら `/compact` せず新しいセッションで次へ（特に 3D の試行錯誤はコンテキストを食う）
+- **1 feature ＝ 1 `/sfad cycle`（ブランチと PR も feature ごと）。ただしセッションは区切らず、なるべく長く続けて次の feature に進む**（2026-11-03 にユーザーが方針を変更。以前の「1 セッションに 1 feature」は廃止）
+  - feature を 1 つ終えたら（sfad-done exit 0 → PR）、ch10-plan.md の順で次の feature の cycle を同じセッションで始める
+  - 長く続けるためにコンテキストを守る: 探索・長い出力は repo-explorer に、3D の試行錯誤は sim-3d-architect に任せ、エージェントの結果はファイルで受ける（下の「エージェントチームの動かし方」）。コンテキストが 60〜70% を超えたら区切りの良いところで `/compact`（自動圧縮にも任せてよい）
+  - **ユーザーに確認すべきことは、これまでどおり確認してから実行する**: 第 9 章の判断、Example Mapping の Questions、凍結 API の変更、外部への公開（push 以外の公開・送信）、破壊的な操作。確認を待つあいだは、その判断に依存しない作業を先に進める
 - 依頼は要件 ID と画面名で受ける（例: 「B4-2〜B4-7 と ch5 の 3 状態表の各行を Test List に 1 項目ずつ」）。文章の機能説明を Test List に膨らませない
 - 「全部作って」は feature に分けてから始める。「色はいい感じに」は tokens.json の中から選ぶ。「動くはずだから進めて」には応じない
 - **完成は `python .claude/hooks/sfad-done.py` の exit 0 だけ。** 自己申告で「完成」と書かない。feature ごとの追加条件（alert-contract-guard Critical 0 など）は cycle の依頼に従う
@@ -88,21 +100,41 @@ Amptech 由来（stack のチェッカーと SFAD）:
 - 乱数はシード付き（同じシードで再生できる）
 - アセットは CC0 / CC-BY / 自作のみ。入れたら `CREDITS.md` に出所を書く。ライセンス未確認のアセットを `dataset/` に入れない
 
-## エージェント
+## エージェントチームの動かし方
 
-| agent | model | 使うとき |
-| --- | --- | --- |
-| spec-adversary | opus | SFAD の仕様ドラフトの敵対レビュー（`/sfad cycle` が呼ぶ） |
-| sim-3d-architect | opus | A の 3D の難所（カメラ追従・車両力学・鹿 5 パターン・性能）。結果は `docs/reports/` に書かせ、要約だけ受け取る |
-| alert-contract-guard | sonnet | alert-ui・schema・Capture・WebSocket フラグに触れた PR。Critical / Warning / Info |
-| edge-latency-reviewer | sonnet | edge-detector の完成時と閾値・間引きの変更時。区間ごとの p50 / p95 |
-| component-guard / layer-guard | sonnet | React の feature 境界 / Hono の層 |
-| code-reviewer / security-auditor / test-writer / accessibility-checker / performance-analyzer / debugger | sonnet | 汎用 |
-| doc-writer | haiku | README・CREDITS・CHANGELOG |
+**実装はメインセッションが `/sfad cycle` を回して行い、下のエージェントはそこから呼ぶサブエージェント。常駐の PM エージェントは置かない**（Amptech のハーネスの設計どおり）。
+メインセッションは人 A（sim 系統: apps/sim・packages・apps/api）と人 B（edge 系統: edge/detector・apps/pwa・dataset）の 2 系統で分ける。`packages/schema` と `alert-ui` の API 凍結（Day 1 午後）までは、両系統ともモックで進める。
 
-レビューの型: 「PR を code-reviewer と alert-contract-guard でレビュー。Critical だけ直して、Warning は `docs/reports/` に残して次に回す」。
+| agent | 出自 | model | `/sfad cycle` のどこで呼ぶか | 返し方 |
+| --- | --- | --- | --- | --- |
+| spec-adversary | Amptech（sfad） | **opus** | Discovery で functional.md のドラフトに必ず 1 回（鹿ゾーン・アラート・同意は穴が致命的） | 指摘をそのまま |
+| sim-3d-architect | antler | **opus** | drive-3d などの 3D の難所（シーン構成・車両力学・カメラ追従・鹿 5 パターン・性能）。設計から実装まで任せる | `docs/reports/` ＋ 5 行要約 |
+| alert-contract-guard | antler | sonnet | alert-ui・schema・Capture・TripPlan・WebSocket フラグに触れた実装の後と PR の前 | Critical / Warning / Info |
+| edge-latency-reviewer | antler | sonnet | edge-detector の完成時と、閾値・間引き・VLM の設定を変えたとき（Bash はログの読み取りだけ） | `docs/reports/` ＋ 10 行要約 |
+| component-guard / layer-guard | Amptech（react / hono） | sonnet | sim・pwa・alert-ui / api の実装の後 | 指摘をそのまま |
+| accessibility-checker | Amptech | sonnet | 画面・AlertState を作った後（4.5:1、44px、aria-label、1 Hz 点滅） | 指摘をそのまま |
+| performance-analyzer | Amptech | sonnet | 3D（60 / 30 fps）、初回読込 3 秒、B の遅延に触れたとき | `docs/reports/` ＋ 10 行要約 |
+| code-reviewer / security-auditor | Amptech | sonnet | PR の前（security-auditor は API・アップロード・WebSocket・同意に触れたとき） | 指摘をそのまま |
+| test-writer / debugger | Amptech | sonnet | 受け入れテストの雛形づくり / 原因の分からない失敗 | 結果をそのまま |
+| doc-writer | Amptech | **haiku** | README・CREDITS・ライセンス表（Day 6） | 書いたファイル |
+| repo-explorer | antler | **haiku** | 広い探索、要件の章からの抜き出し、長いテスト・ビルド出力の要約 | 10 行要約（長ければ `docs/reports/`） |
 
-メインセッションの目安: sim 側 = Opus・effort high、edge 側 = Sonnet・effort medium、仕様フェーズ = Opus。
+- **エージェントの結果の全文はファイル（`docs/reports/YYYY-MM-DD-<agent>-<対象>.md`）に書かせ、メインセッションはパスと 10 行以内の要約だけを受け取る。** 全文をメッセージで受けない（長時間の作業でコンテキストを守るため）
+- Amptech 由来のエージェントへの antler の変更（モデル・ツール・返し方）は `scripts/setup-from-amptech.sh` の「antler の上書き」が当てる。エージェントのファイルを直接直さない
+- レビューの型: 「code-reviewer と alert-contract-guard でレビュー。Critical だけ直して、Warning は `docs/reports/` に残して次に回す」
+- 互いに依存しないレビュー（例: code-reviewer と accessibility-checker）は同時に呼ぶ
+
+**モデルとトークン**
+
+| メインセッション | model | effort | 理由 |
+| --- | --- | --- | --- |
+| sim 系統（3D 中心） | Opus | high | シーン・物理・HUD の同時整合。往復が減るほうが総トークンは減る |
+| edge 系統（Python ＋ PWA） | Sonnet | medium | 仕様が明確。遅延は数字で判定できる |
+| 仕様フェーズ（Discovery・threat） | Opus | high | ここで漏れると実装が往復する |
+
+- sim 系統だけ出力の上限を広げる（16k 程度）。個人設定なので `.claude/settings.local.json` の `env` に `CLAUDE_CODE_MAX_OUTPUT_TOKENS` を各自で書く（キー名は使っている Claude Code の版で確かめる）
+- hook は dispatcher 経由で編集先の stack のチェッカーだけを回す（全チェッカーを毎回回すと hook の出力でコンテキストを食う）
+- 目安（1 週間）: sim 系統 Opus 1 日 1.5〜2.5M 入力トークン、edge 系統 Sonnet 0.8〜1.2M、サブエージェント合計 0.5M 前後。Day 1 の仕様フェーズは上振れを許容する
 
 ## コマンド
 

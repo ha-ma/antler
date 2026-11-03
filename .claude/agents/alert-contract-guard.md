@@ -1,6 +1,6 @@
 ---
 name: alert-contract-guard
-description: "A（apps/sim）と B（apps/pwa・edge）の接点の契約を検査する。@antler/alert-ui の AlertState、packages/schema の AlertFlag / Capture、tokens.json の 3 状態色、音・多言語・同意の要件からのずれを Critical / Warning / Info で報告する。alert-ui・schema・Capture・WebSocket フラグに触れた PR のレビューで使う。読み取り専用。"
+description: "A（apps/sim）と B（apps/pwa・edge）の接点の契約を検査する。@antler/alert-ui の AlertState、packages/schema の TripPlan / AlertFlag / Capture、tokens.json の 3 状態色、音・多言語・同意の要件からのずれを Critical / Warning / Info で報告する。alert-ui・schema・Capture・WebSocket フラグに触れた PR のレビューで使う。読み取り専用。"
 model: sonnet
 tools: Read, Grep, Glob
 color: orange
@@ -32,7 +32,8 @@ color: orange
 - `AlertState` の props が `docs/design/AlertState.md` と違う（名前・型・単位: safe/zone は km、danger は m）
 - 3 状態の色が tokens 以外から来ている、テーマで変わる、`alert-danger` を検知以外（エラー・削除ボタン・リスク金額など）に使っている。リスクや喪失は `clay`
 - 形が違う（safe=円＋チェック、zone=三角＋鹿ピクト、danger=八角＋鹿ピクト）。色だけで区別している
-- `AlertFlag` / `Capture` の型が `packages/schema` 以外で定義されている、または edge（Python）側のフィールド名・型・単位・`v` が schema とずれている
+- `TripPlan` / `AlertFlag` / `Capture` の型が `packages/schema` 以外で定義されている、または edge（Python）・apps/api 側のフィールド名・型・単位・`v` が schema とずれている（ch7「下のスキーマは第 9 章の判断で変わらない」）
+- `TripPlan` の `seed` を使わずに乱数を引いている、同じシードで同じ旅程・条件にならない（A6-4 の再生が壊れる）
 - `AlertFlag` に `t_frame` / `t_sent` が無い、または B の PWA が `t_shown` を記録・ack していない
 - Capture に氏名・メール・端末識別子・緯度経度・車内の映像が入る。`consent` が無い、または `consent: false` の Capture をアップロードする経路がある
 - 解除条件が違う（`deer:true` の解除は 1.5 秒検知なしで「前の状態」へ。緑に飛ばない）

@@ -12,7 +12,8 @@
 # そのあと Amptech の HOWTO-monorepo.md 手順 5「手で寄せるところ」をここで自動で行い、antler のモデル指定を当てる。
 #
 # 上書きしないもの: antler 固有の CLAUDE.md・routes.toml・local_ci_checks.toml・.claude/settings.json の既存 hook・
-#   .claude/hooks/dispatch_local_rules.py・ch9-status.py・antler の agents 3 体・apps/api/local_ci_checks.toml。
+#   .claude/hooks/dispatch_local_rules.py・ch9-status.py・antler の agents 4 体（sim-3d-architect・alert-contract-guard・edge-latency-reviewer・repo-explorer）・
+#   apps/api/local_ci_checks.toml・scripts/templates/。
 # 上書きするもの: Amptech 由来のファイル（取り込み直したら git diff で確かめてから採る）。
 set -eu
 
@@ -121,16 +122,39 @@ mkdir -p .claude/skills/frontend-design
 cp -R "$A/skills/frontend-design/." .claude/skills/frontend-design/
 echo "  agents 7 体、frontend-design"
 
-echo "== antler のモデル指定（spec-adversary: sonnet→opus、doc-writer: sonnet→haiku）"
+echo "== antler の上書き（Amptech の agents に、モデル・ツール・報告の返し方を当てる）"
+# 正は CLAUDE.md の「エージェントチームの動かし方」。取り込み直しのたびにここで当て直す。
 "$PY" - <<'EOF'
 import re
-for path, model in ((".claude/agents/spec-adversary.md", "opus"), (".claude/agents/doc-writer.md", "haiku")):
+
+REPORT = """
+## antler: 報告の返し方
+
+結果の全文は `docs/reports/YYYY-MM-DD-<agent名>-<対象>.md` に書く（Write はこのフォルダにだけ使う）。
+呼び出したメインセッションには **レポートのパスと 10 行以内の要約**（Critical / 数値の結論 / 次の一手）だけを返す。
+全文をメッセージに貼らない（メインセッションのコンテキストを守るため。CLAUDE.md「エージェントチームの動かし方」）。
+"""
+
+# (path, model, tools, 報告ルールを足すか)
+OVERRIDES = [
+    (".claude/agents/spec-adversary.md", "opus", None, False),
+    (".claude/agents/doc-writer.md", "haiku", None, False),
+    (".claude/agents/performance-analyzer.md", None, "Read, Grep, Glob, Bash, Write", True),
+]
+for path, model, tools, report in OVERRIDES:
     text = open(path, encoding="utf-8").read()
-    new, n = re.subn(r"(?m)^model:\s*\S+\s*$", f"model: {model}", text, count=1)
-    if n != 1:
-        raise SystemExit(f"{path}: frontmatter に model 行が無い")
-    open(path, "w", encoding="utf-8", newline="\n").write(new)
-    print(f"  {path}: model: {model}")
+    if model:
+        text, n = re.subn(r"(?m)^model:\s*\S+\s*$", f"model: {model}", text, count=1)
+        if n != 1:
+            raise SystemExit(f"{path}: frontmatter に model 行が無い")
+    if tools:
+        text, n = re.subn(r"(?m)^tools:.*$", f"tools: {tools}", text, count=1)
+        if n != 1:
+            raise SystemExit(f"{path}: frontmatter に tools 行が無い")
+    if report and "## antler: 報告の返し方" not in text:
+        text = text.rstrip("\n") + "\n" + REPORT
+    open(path, "w", encoding="utf-8", newline="\n").write(text)
+    print(f"  {path}: " + ", ".join(x for x in (f"model={model}" if model else "", f"tools={tools}" if tools else "", "報告の返し方" if report else "") if x))
 EOF
 
 chmod +x .githooks/pre-push 2>/dev/null || true
