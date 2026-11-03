@@ -45,6 +45,38 @@
             "null"
           ]
         },
+        "l1": {
+          "type": "object",
+          "properties": {
+            "alert_level": {
+              "type": "string",
+              "enum": [
+                "none",
+                "zone",
+                "danger"
+              ]
+            },
+            "conf": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "overrode": {
+              "type": "boolean"
+            },
+            "latencyMs": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "alert_level",
+            "conf",
+            "overrode",
+            "latencyMs"
+          ],
+          "additionalProperties": false
+        },
         "deer": {
           "type": "boolean",
           "const": true
@@ -130,6 +162,38 @@
             "string",
             "null"
           ]
+        },
+        "l1": {
+          "type": "object",
+          "properties": {
+            "alert_level": {
+              "type": "string",
+              "enum": [
+                "none",
+                "zone",
+                "danger"
+              ]
+            },
+            "conf": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "overrode": {
+              "type": "boolean"
+            },
+            "latencyMs": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "alert_level",
+            "conf",
+            "overrode",
+            "latencyMs"
+          ],
+          "additionalProperties": false
         },
         "deer": {
           "type": "boolean",
@@ -216,6 +280,38 @@
             "null"
           ]
         },
+        "l1": {
+          "type": "object",
+          "properties": {
+            "alert_level": {
+              "type": "string",
+              "enum": [
+                "none",
+                "zone",
+                "danger"
+              ]
+            },
+            "conf": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "overrode": {
+              "type": "boolean"
+            },
+            "latencyMs": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "alert_level",
+            "conf",
+            "overrode",
+            "latencyMs"
+          ],
+          "additionalProperties": false
+        },
         "deer": {
           "type": "boolean",
           "const": false
@@ -287,6 +383,38 @@
             "string",
             "null"
           ]
+        },
+        "l1": {
+          "type": "object",
+          "properties": {
+            "alert_level": {
+              "type": "string",
+              "enum": [
+                "none",
+                "zone",
+                "danger"
+              ]
+            },
+            "conf": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "overrode": {
+              "type": "boolean"
+            },
+            "latencyMs": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "alert_level",
+            "conf",
+            "overrode",
+            "latencyMs"
+          ],
+          "additionalProperties": false
         },
         "deer": {
           "type": "boolean",

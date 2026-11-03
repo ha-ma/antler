@@ -1,6 +1,6 @@
 // @antler/schema — TripPlan / AlertFlag / Capture と WebSocket のメッセージの型（A と B の唯一の定義）。
 // 要件: docs/requirements/ch7-data.md。仕様: docs/specs/alert-ui/。公開 API はこのファイルの export（凍結対象）。
-export { IsoDateTime, Lang, Side, Slug, toJst } from './common'
+export { AlertLevel, IsoDateTime, Lang, Side, Slug, toJst } from './common'
 export {
   AlertFlagSchema,
   readAlertFlag,
@@ -16,6 +16,8 @@ export {
   type ClientMessage,
 } from './client-message'
 export { CaptureSchema, isUploadable, type Capture } from './capture'
+export { L1ProbsSchema, L1ResultSchema, type L1Probs, type L1Result } from './l1'
+export { JUDGE_QUESTIONS, JudgeRequestSchema, type JudgeRequest } from './judge-request'
 export { DeparturePlace, TripPlanSchema, type TripPlan } from './trip-plan'
 export { LocalizedText, TripDetailsSchema, type TripDetails } from './trip-details'
 export {

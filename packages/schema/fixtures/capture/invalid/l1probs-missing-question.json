@@ -1,0 +1,40 @@
+{
+  "id": "cap_8f3a",
+  "source": "sim",
+  "image": "captures/cap_8f3a.jpg",
+  "imageSize": [1280, 720],
+  "boxes": [
+    {
+      "label": "deer",
+      "xywh": [0.31, 0.49, 0.1, 0.14],
+      "by": "user"
+    }
+  ],
+  "conditions": {
+    "season": "winter",
+    "month": 2,
+    "weather": "light_snow",
+    "surface": "packed_snow",
+    "light": "dusk",
+    "fog": "medium",
+    "traffic": "low",
+    "vehicle": "compact_suv"
+  },
+  "distanceM": 58,
+  "side": "L",
+  "pose": "standing",
+  "reactionMs": 1200,
+  "outcome": "avoided",
+  "roadSegment": "R241-akan-32",
+  "consent": true,
+  "createdAt": "2027-02-15T16:31:09.000+09:00",
+  "l1Probs": {
+    "alert_level": {
+      "none": 0.05,
+      "zone": 0.9,
+      "danger": 0.05
+    },
+    "on_roadway": 0.1,
+    "static_shoulder": 0.8
+  }
+}

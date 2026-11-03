@@ -9,12 +9,19 @@ name = "antler-detector"
 version = "0.0.0"
 description = "EZO ROAD B: 車載カメラの鹿検知とスマホ通知"
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26", "websockets>=14"]
+dependencies = ["numpy>=1.26", "pydantic>=2.7", "websockets>=14"]
 
 [project.optional-dependencies]
 camera = ["opencv-python>=4.9"]
 coreml = ["ultralytics>=8.2", "coremltools>=7.2"]
-dev = ["pytest>=8", "pytest-cov>=5", "ruff>=0.6", "jsonschema>=4.18"]
+# datamodel-code-generator は JSON Schema から pydantic を作る（scripts/generate_models.py）。出力が変わらないよう版を固定する。
+dev = [
+  "pytest>=8",
+  "pytest-cov>=5",
+  "ruff>=0.6",
+  "jsonschema>=4.18",
+  "datamodel-code-generator==0.88.0",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -27,6 +34,8 @@ addopts = "--cov=detector --cov-report=term-missing --cov-fail-under=70"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+# JSON Schema から生成したファイル。手で直さないので整形・lint の対象外（鮮度は tests/test_judge_request_model.py）
+extend-exclude = ["src/detector/schema/judge_request.py"]
 
 [tool.ruff.lint]
 # /sfad init の lint 要件: print 禁止（T20）、何でも捕まえる except 禁止（BLE・E722）、

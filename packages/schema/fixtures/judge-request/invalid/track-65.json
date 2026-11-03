@@ -1,0 +1,556 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "speedKmh": 54,
+    "zone": "inside",
+    "light": "dusk",
+    "headlight": "high",
+    "track": [
+      {
+        "t": -6.4,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -6.3,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -6.2,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -6.1,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -6.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.9,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.8,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.7,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.6,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.5,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.4,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.3,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.2,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.1,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -5.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.9,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.8,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.7,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.6,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.5,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.4,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.3,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.2,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.1,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -4.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.9,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.8,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.7,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.6,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.5,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.4,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.3,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.2,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.1,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -3.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.9,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.8,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.7,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.6,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.5,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.4,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.3,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.2,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.1,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -2.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.9,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.8,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.7,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.6,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.5,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.4,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.3,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.2,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.1,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -1.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.9,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.8,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.7,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.6,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.5,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.4,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.3,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.2,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": -0.1,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": 0.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      }
+    ],
+    "ttcSec": 3.9,
+    "recentAlerts30s": 1
+  },
+  "questions": [
+    {
+      "id": "alert_level",
+      "type": "choice",
+      "text": "Which alert should the driver get now?",
+      "options": ["none", "zone", "danger"]
+    },
+    {
+      "id": "on_roadway",
+      "type": "noul",
+      "text": "The animal is moving into the driving lane."
+    },
+    {
+      "id": "static_shoulder",
+      "type": "noul",
+      "text": "The animal is standing still on the road shoulder."
+    },
+    {
+      "id": "false_positive",
+      "type": "noul",
+      "text": "The detection is not a real deer (sign, snow, post)."
+    }
+  ]
+}

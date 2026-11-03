@@ -19,6 +19,17 @@ export type Lang = z.infer<typeof Lang>
 export const Side = z.enum(['L', 'R'])
 export type Side = z.infer<typeof Side>
 
+/** 小文字と `_` の語彙（Capture の天気・路面、JudgeRequest の位置など。値の一覧を列挙にしない項目）。 */
+export const Vocab = z.string().regex(/^[a-z][a-z_]*$/)
+
+/** 光の区分（太陽の高さで決める。Capture と JudgeRequest が同じ語を使う）。 */
+export const Light = z.enum(['dawn', 'day', 'dusk', 'night'])
+export type Light = z.infer<typeof Light>
+
+/** L1 の質問 alert_level の答えと AlertFlag.l1 の段階（none = 緑、zone = 琥珀、danger = 赤）。 */
+export const AlertLevel = z.enum(['none', 'zone', 'danger'])
+export type AlertLevel = z.infer<typeof AlertLevel>
+
 /** 小文字の英数字とハイフンの識別子（楽しみの ID、地点、宿など）。 */
 export const Slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
 

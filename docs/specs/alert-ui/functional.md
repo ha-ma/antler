@@ -4,7 +4,7 @@ target_paths:
   - packages/schema/
   - packages/alert-ui/
   - edge/detector/tests/test_schema_contract.py
-spec_confirmed_at: c844672
+spec_confirmed_at: 378a605
 tier: 2
 ---
 
@@ -19,6 +19,10 @@ docs/design/AlertState.md、docs/design/tokens.json。
 
 **範囲外**（別 feature）: GPS × 鹿ゾーンの判定そのもの（B4-5 の判定は PWA、ゾーンの GeoJSON は zones）、
 Wake Lock・回転ロック（B4-6 の残り）、「未接続」の灰色帯（ch6、PWA）、WebSocket の接続、Capture の保存と送信。
+
+**追記（2026-11-03、schema-judge）**: 凍結後に `packages/schema` へ次を**追加**した（既存の欄は変えない）。仕様は `docs/specs/schema-judge/`。
+`AlertFlag.l1`・`Capture.l1Probs`（どちらも任意）、新しい型 `JudgeRequest`。`readAlertFlag` は厳しい検証（`strict`）を `l1` を除いて判定する
+（`l1` だけが壊れた deer:false を PWA が捨てて赤が解けなくなるのを防ぐ。R11 の「deer を最優先で読む」と同じ向き）。
 
 ## Example Map
 
