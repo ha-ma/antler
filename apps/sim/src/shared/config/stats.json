@@ -1,0 +1,30 @@
+{
+  "asOf": "2026-11-03",
+  "note": "A-6 統計カードと喪失 4 指標の基準値。コードに数字を埋めず、ここから読む（A6-3）。出典を画面に表示する。",
+  "deerAccidents": {
+    "year": 2025,
+    "total": 6705,
+    "previousYearTotal": 5460,
+    "kushiroArea": 1751,
+    "source": { "name": "北海道警察", "url": null, "verified": true }
+  },
+  "vehicleInsurance": {
+    "period": { "from": "2024-10", "to": "2024-11" },
+    "claims": 1229,
+    "paidJPY": 756000000,
+    "averageJPY": 615000,
+    "maxJPY": 8900000,
+    "source": {
+      "name": "日本損害保険協会",
+      "url": null,
+      "verified": false,
+      "note": "原 PDF は未再照合"
+    }
+  },
+  "deductible": {
+    "placeholder": true,
+    "deductibleJPY": null,
+    "nocJPY": null,
+    "note": "免責・NOC は出典なし。画面ではプレースホルダとして表示する"
+  }
+}

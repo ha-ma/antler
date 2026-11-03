@@ -1,0 +1,33 @@
+# local_ci_checks.toml — A API（Hono）の検査の一覧。Amptech の hono stack は一覧を配らないので antler が持つ。
+# 案件のルートの local_ci_checks.toml から取り込まれる。cwd などの相対パスはこのフォルダからの相対。
+
+[stack]
+name = "api"
+
+[env]
+tool_probes = [
+  ["node", "--version"],
+  ["npm", "ls", "--depth=0", "--json"],
+]
+
+[[check]]
+name = "tsc"
+cmd = ["npx", "--no-install", "tsc", "--noEmit"]
+needs = "npx"
+needs_path = "node_modules"
+hint = "npm ci"
+
+[[check]]
+name = "eslint"
+cmd = ["npx", "--no-install", "eslint", "src/"]
+needs = "npx"
+needs_path = "node_modules"
+hint = "npm ci"
+
+[[check]]
+name = "vitest"
+cmd = ["npx", "--no-install", "vitest", "run"]
+needs = "npx"
+needs_path = "node_modules"
+hint = "npm ci"
+timeout = 1800

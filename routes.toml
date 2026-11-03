@@ -1,0 +1,114 @@
+# routes.toml — antler の stack の登録の正。
+# stack_routes.py・dispatcher（.claude/hooks/dispatch-architecture.py）・ci_arch_check.py・registry_check.py・local-ci.py が読む。
+# 規則は上から順に、最初に当たったものを採る。手順は Amptech_AI_docs/tools/HOWTO-monorepo.md。
+#
+# antler 固有の規則（色・統計の数字・Capture の個人情報・絵文字）は .claude/hooks/dispatch_local_rules.py にあり、
+# checker の有無に関係なく、名指しされた stack の編集に当たる。
+
+# A: 3D シミュレーション（Vite + React + R3F）。担当 人 A
+[stack.sim]
+dir = "apps/sim"
+ratchet = false
+checker = "check-react-architecture.py"
+
+# B: スマホ PWA。担当 人 B
+[stack.pwa]
+dir = "apps/pwa"
+ratchet = false
+checker = "check-react-architecture.py"
+
+# A API（Hono）。担当 人 A
+[stack.api]
+dir = "apps/api"
+ratchet = false
+checker = "check-hono-architecture.py"
+
+# 共有パッケージ（alert-ui / schema / zones）。担当 人 A。Day 1 午後に schema と alert-ui の API を凍結。
+# React の feature 構成でもHono の層構成でもないので stack のチェッカーは当てない。契約は alert-contract-guard と local rules。
+[stack.packages]
+dir = "packages"
+ratchet = false
+checker = ""
+
+# B: Mac Mini 上の検知パイプライン（Python）。担当 人 B。Amptech に該当 stack が無いのでチェッカーなし。
+# 遅延は edge-latency-reviewer、契約は alert-contract-guard。
+[stack.edge]
+dir = "edge"
+ratchet = false
+checker = ""
+
+# 匿名データセットと学習スクリプト。担当 人 B
+[stack.dataset]
+dir = "dataset"
+ratchet = false
+checker = ""
+
+[[route]]
+pattern = '^apps/sim/'
+stacks = ["sim"]
+
+[[route]]
+pattern = '^apps/pwa/'
+stacks = ["pwa"]
+
+[[route]]
+pattern = '^apps/api/'
+stacks = ["api"]
+
+[[route]]
+pattern = '^packages/'
+stacks = ["packages"]
+
+[[route]]
+pattern = '^edge/'
+stacks = ["edge"]
+
+[[route]]
+pattern = '^dataset/'
+stacks = ["dataset"]
+
+# 文書と要件・デザインの写しはどの stack も起こさない
+[[route]]
+pattern = '^(docs/|[^/]+\.md$)'
+stacks = []
+
+[[route]]
+pattern = '^\.github/'
+stacks = ["*"]
+
+# ci-arch-check の自己防衛: 必ず止まるはずの合成ファイル（実在しないパス）。
+[[ci_arch.probe]]
+label = "sim: feature 間の直接 import"
+path = "apps/sim/src/features/__arch_probe__/thing.ts"
+content = "import { x } from '@/features/other/internal'\n"
+expect = "barrel"
+
+[[ci_arch.probe]]
+label = "pwa: feature 間の直接 import"
+path = "apps/pwa/src/features/__arch_probe__/thing.ts"
+content = "import { x } from '@/features/other/internal'\n"
+expect = "barrel"
+
+[[ci_arch.probe]]
+label = "api: 汎用 Service レイヤ"
+path = "apps/api/src/services/__arch_probe__.ts"
+content = "export const probe = 1\n"
+expect = "is forbidden"
+
+[[ci_arch.probe]]
+label = "antler: alert-ui に色の直書き"
+path = "packages/alert-ui/src/__arch_probe__.tsx"
+content = "export const c = '#3FA98C'\n"
+expect = "tokens.json"
+
+[[ci_arch.probe]]
+label = "antler: 統計の実数をコードに埋める"
+path = "apps/sim/src/features/__arch_probe__/loss.ts"
+content = "export const accidents = 6705\n"
+expect = "stats.json"
+
+[[ci_arch.probe]]
+label = "antler: Capture に精密位置"
+path = "packages/schema/src/__arch_probe__/capture.ts"
+content = "export type Capture = { lat: number }\n"
+expect = "roadSegment"

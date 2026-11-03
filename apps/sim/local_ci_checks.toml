@@ -1,0 +1,57 @@
+# local_ci_checks.toml — React の検査の一覧（手元の local-ci.py と CI が同じこの一覧を読む）。
+#
+# 単一スタックの案件: このファイルが案件のルートの検査の一覧になる（そのまま使える）。
+# モノレポ: frontend/ などに配り、案件のルートの local_ci_checks.toml から取り込む:
+#     [local_ci]
+#     include = ["frontend/local_ci_checks.toml"]
+#   取り込まれたとき、cwd などの相対パスはこのファイルのフォルダからの相対になる。
+#
+# 検査の中身は .github/workflows/quality-check.yml と同じ（test_stack_local_ci_consistency.py が食い違いを検出する）。
+# パッケージ管理が pnpm / yarn の案件は、npx / npm の行を直す。
+# local-ci の部品が要る: python scripts/bootstrap.py --tools-only --dest <案件> --with-tools local-ci
+# 検査の実行に Python 3.11 以上が要る（local-ci 自体が Python で動く）。
+
+[local_ci]
+base = "origin/main"
+
+[stack]
+# routes.toml の stack 名に合わせる。取り込まれたとき stack を省いた検査はこの名前になる。
+name = "sim"
+
+[env]
+# 手元に実際に入っている版を確かめる。出力のハッシュが記録に残り、違えば push が止まる
+# （lockfile と食い違う古い node_modules で通すのを防ぐ）。
+tool_probes = [
+  ["node", "--version"],
+  ["npm", "ls", "--depth=0", "--json"],
+]
+
+# npx --no-install: 入っていない道具をネットワークから取りに行かない（無ければ失敗して見送りの hint が出る）。
+
+[[check]]
+name = "tsc"
+cmd = ["npx", "--no-install", "tsc", "--noEmit"]
+needs = "npx"
+needs_path = "node_modules"
+hint = "npm ci"
+
+[[check]]
+name = "eslint"
+cmd = ["npx", "--no-install", "eslint", "src/"]
+needs = "npx"
+needs_path = "node_modules"
+hint = "npm ci"
+
+[[check]]
+name = "vitest"
+cmd = ["npx", "--no-install", "vitest", "run"]
+needs = "npx"
+needs_path = "node_modules"
+hint = "npm ci"
+timeout = 1800
+
+[[check]]
+name = "feature boundaries"
+cmd = ["{PYTHON}", "scripts/check_react_boundaries.py"]
+needs_path = "scripts/check_react_boundaries.py"
+hint = "stacks/react/scripts/check_react_boundaries.py を配る（bootstrap で stack を配れば入る）"

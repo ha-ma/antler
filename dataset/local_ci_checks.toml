@@ -1,0 +1,12 @@
+# local_ci_checks.toml — 匿名データセットと学習スクリプトの検査の一覧。
+# 中身はまだ無い。学習スクリプトの /sfad cycle でテストができたら required = false を消す（既定は必須）。
+
+[stack]
+name = "dataset"
+
+[[check]]
+name = "pytest"
+cmd = ["{PYTHON}", "-m", "pytest", "-q"]
+needs_path = "tests"
+required = false
+hint = "dataset/tests を作る（学習スクリプトの cycle）"

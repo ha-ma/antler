@@ -1,0 +1,34 @@
+# 依存・ビルド
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# 秘密
+.env
+.env.*
+!.env.example
+
+# Claude Code（個人設定とログ）
+.claude/settings.local.json
+.claude/logs/
+
+# local-ci の記録（コミットしない）
+.claude/state/
+
+# B: モデルの重みと走行の生データ（同意・匿名化の前のものを公開リポジトリに入れない）
+edge/**/models/
+*.mlpackage/
+*.mlmodel
+*.pt
+edge/**/runs/
+dataset/raw/
+
+.DS_Store

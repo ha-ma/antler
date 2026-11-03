@@ -1,0 +1,21 @@
+# bootstrap.py が書く。手で編集しない（どの部品を AIdocs のどの版から取ったか）。
+
+[tool."ci-arch-check"]
+source_commit = "5f04126a5eba70cd8139b63c7cd5547b8d14026d"
+files_sha256 = "4dcbb53584031260cc2eb80913aec46f629439e7e06ddcf3325106abedc392fa"
+
+[tool."dispatcher"]
+source_commit = "5f04126a5eba70cd8139b63c7cd5547b8d14026d"
+files_sha256 = "9f660ac3193972f9730d6bcc78a69b7809cb86e27b005b30056d84a85860f21a"
+
+[tool."local-ci"]
+source_commit = "5f04126a5eba70cd8139b63c7cd5547b8d14026d"
+files_sha256 = "b9e4bbf444ddfaeb2ee762c382ef98e9630095fb8d2764f075e38019700c2179"
+
+[tool."stack-registry-check"]
+source_commit = "5f04126a5eba70cd8139b63c7cd5547b8d14026d"
+files_sha256 = "e743707113a178a1bea6c7b6588f55173c46000b531fcaae64b6d8456868faec"
+
+[tool."stack-routes"]
+source_commit = "5f04126a5eba70cd8139b63c7cd5547b8d14026d"
+files_sha256 = "937a7b540341448e0e2004b30da7de26b9fc920320344509a261dbdb04638ad0"

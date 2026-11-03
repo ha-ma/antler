@@ -1,0 +1,23 @@
+# local_ci_checks.toml — 共有パッケージ（alert-ui / schema / zones）の検査の一覧。
+# 中身はまだ無い。alert-ui の /sfad cycle で package.json とテストができたら、
+# 各検査の required = false を消し（既定は必須）、needs_path を実際の依存の置き場に合わせる。
+
+[stack]
+name = "packages"
+
+[[check]]
+name = "tsc"
+cmd = ["npx", "--no-install", "tsc", "--noEmit", "-b"]
+needs = "npx"
+needs_path = "node_modules"
+required = false
+hint = "npm ci（workspace の構成に合わせて needs_path を直す）"
+
+[[check]]
+name = "vitest"
+cmd = ["npx", "--no-install", "vitest", "run"]
+needs = "npx"
+needs_path = "node_modules"
+required = false
+hint = "npm ci"
+timeout = 1800

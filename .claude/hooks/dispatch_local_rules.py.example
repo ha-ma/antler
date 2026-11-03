@@ -1,0 +1,35 @@
+"""案件固有の規則の置き場の見本（有効にするには dispatch_local_rules.py に改名する）。
+
+stack のチェッカー（上流の物）は案件ごとに直さない約束なので、案件だけの決まりは dispatcher の
+横のこのファイルに置く。``dispatch-architecture.py`` が、**Write / Edit / MultiEdit のとき**
+（Bash / PowerShell では呼ばない）、名指しされた stack ごとに ``local_violations`` を呼ぶ。
+
+* ``tool_input``: Claude Code が渡す入力（``file_path``・``content``・``new_string``・``edits`` など）
+* ``relative``: 案件のルートからの ``/`` 区切りの相対パス（``routes.toml`` の規則に当てた表記）
+* ``stack``: ``routes.toml`` の stack 名
+
+返すのは**止める理由の文字列の配列**（空なら何もしない）。stack に ``ratchet = true`` があって編集先が
+既存ファイルなら、止めずに警告になる。例外を投げると dispatcher は終了コード 1（ブロックしない失敗）で
+落ちて、利用者の画面に出る。**黙って通す書き方（except: pass）にしない**こと。
+
+この見本は『置き場所が機械的に決まるものだけを止める』例: 管理画面の stack では、決まった
+ディレクトリの外にソースを作らせない。置き場所の境界が判断を要するもの（どの層に置くべきか）は、
+機械で止めずレビューに残す。
+"""
+from __future__ import annotations
+
+import re
+
+#: この見本が許す src 直下のディレクトリ（stack ごと）。案件に合わせて書き換える。
+ALLOWED_SRC_DIRS = {"web": {"app", "features", "shared", "test"}}
+_SRC_DIR = re.compile(r"(?:^|/)src/([^/]+)/")
+
+
+def local_violations(tool_input: dict, relative: str, stack: str) -> list[str]:
+    allowed = ALLOWED_SRC_DIRS.get(stack)
+    if not allowed:
+        return []
+    match = _SRC_DIR.search(relative)
+    if match and match.group(1) not in allowed:
+        return [f"`src/{match.group(1)}/` は置き場所として認めていません（{', '.join(sorted(allowed))} のどれかへ）。"]
+    return []

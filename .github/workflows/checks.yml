@@ -1,0 +1,42 @@
+# 検査（local-ci --ci）— 手動実行のみ（既定）。
+#
+# 検査の一覧は local_ci_checks.toml の 1 か所。ここには検査のコマンドを書かない
+# （手元の local-ci.py と同じ一覧を --ci で回す。二重に持つと食い違う）。
+# PR で自動実行したいときは checks-on-pr.yml.example を checks-on-pr.yml に改名する
+# （Actions の分数を使うので既定にはしていない）。docs/local-ci.md の「CI で回す」。
+#
+# ★ 手元の記録（local-ci の記録）の嘘は、この CI でしか止められない。
+#   手動実行を忘れると、止めるものは何も無い。
+name: Checks (local-ci --ci)
+
+on:
+  workflow_dispatch:
+    inputs:
+      stacks:
+        description: '回す stack（カンマ区切り。空なら一覧の全部）'
+        required: false
+        default: ''
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 比較元との差分を取る検査があるため
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # ↓ 案件に合わせる: 検査が使う道具を入れる（local_ci_checks.toml の needs / needs_probe が通るように）。
+      #   --ci では、道具が無くて見送られた検査は fail になる。
+      - run: pip install -e ".[dev]"
+      # Node の案件（react など）: 検査を回す local-ci 自体が Python で動くので setup-python は残し、
+      # 上の pip の行を依存の入れ方（npm ci など）に変えて、setup-node を足す:
+      # - uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 22
+      # - run: npm ci
+      - name: Run checks
+        env:
+          STACKS: ${{ inputs.stacks }}
+        run: python scripts/local-ci.py --ci ${STACKS:+--stacks "$STACKS"}

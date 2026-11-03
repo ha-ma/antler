@@ -1,0 +1,3 @@
+# sh で動くものは LF のまま（CRLF だと sh で動かない。Amptech HOWTO-monorepo 12）
+.githooks/* text eol=lf
+scripts/*.sh text eol=lf

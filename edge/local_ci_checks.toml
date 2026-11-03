@@ -1,0 +1,13 @@
+# local_ci_checks.toml — B の車載検知（Python）の検査の一覧。
+# 中身はまだ無い。edge-detector の /sfad cycle でテストができたら required = false を消す（既定は必須）。
+
+[stack]
+name = "edge"
+
+[[check]]
+name = "pytest"
+cwd = "detector"
+cmd = ["{PYTHON}", "-m", "pytest", "-q"]
+needs_path = "detector/tests"
+required = false
+hint = "edge/detector/tests を作る（edge-detector の cycle）。pytest は edge/detector の依存に入れる"

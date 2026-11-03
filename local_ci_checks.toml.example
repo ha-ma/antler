@@ -1,0 +1,32 @@
+# local_ci_checks.toml — 検査の一覧（案件のルートに置く）。
+# 手元の local-ci.py と（G-2 の雛形の）CI が、同じこの一覧を読む。二重に持たない。
+
+[local_ci]
+# 比較元。解決できなければ『差分なし』にせず止まる。追跡ブランチ（自分のブランチ）は指定しない。
+base = "origin/main"
+
+[env]
+# 手元に実際に入っている版を確かめるコマンド。出力のハッシュを記録に残し、--status / pre-push が
+# 今の値と比べて、違えば NG（push を止める）。ロックファイルと食い違う古い環境で通すのを防ぐ。
+# 道具が無い場合も『無い』という事実が指紋になる。stack ごとに必ず宣言すること。
+tool_probes = [
+  ["python", "--version"],
+  # ["pnpm", "--version"],
+  # ["python", "-m", "pip", "freeze"],
+]
+
+# --- 検査 -------------------------------------------------------------------
+# 欄の意味は docs/local-ci.md の『検査の定義』。{PYTHON} {BASE_SHA} {SLUG} {WORKERS} を差し込める。
+# hint は必ず書く（見送り・失敗のとき『どうすれば回せるか』。無いと止まった人が検査を外す方向へ行く）。
+
+[[check]]
+name = "unit"
+stack = "app"            # "common" は毎回回す
+cwd = "."
+cmd = ["{PYTHON}", "-m", "pytest", "-q"]
+needs_probe = ["{PYTHON}", "-c", "import pytest"]   # rc≠0 なら見送り（通ったことにしない）
+hint = "python -m pip install -r requirements.txt"
+timeout = 900            # 秒。超えたら木ごと止める
+# os = ["windows", "linux"]   # 外れたら out_of_scope
+# ci = false                  # 手元だけの検査
+# required = false            # 見送りを通す（件数は出る）

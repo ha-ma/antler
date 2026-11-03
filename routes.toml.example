@@ -1,0 +1,31 @@
+# routes.toml — 変更ファイルのパスから、検査を回す stack を決める規則。
+# 案件のルートに置く（この例を routes.toml にコピーして直す）。
+# stack_routes.py・（取り込んだなら）dispatcher・stack-registry-check が同じファイルを読む。
+
+# stack を宣言する。名前は小文字の英数字とハイフン。ディレクトリ名と同じでなくてよい。
+[stack.api]
+ratchet = true            # true: 既存ファイルは警告のみ・新規ファイルを強制（ラチェット）
+checker = "check-fastapi-architecture.py"   # 任意。dispatcher が呼ぶ検査スクリプトの名前
+
+[stack.web]
+ratchet = false
+
+# 規則。上から順に、最初に当たったものを採る。pattern は正規表現（パスは / 区切りに直してから当てる）。
+# どれにも当たらないパスは「全 stack」を起こす（迷ったら全部回す）。
+[[route]]
+pattern = '^api/'
+stacks = ["api"]
+
+[[route]]
+pattern = '^web/'
+stacks = ["web"]
+
+# 文書だけの変更はどの stack も起こさない。
+[[route]]
+pattern = '^docs/|^[^/]+\.md$'
+stacks = []
+
+# 全 stack を起こす共通の設定は ["*"]。
+[[route]]
+pattern = '^\.github/workflows/'
+stacks = ["*"]

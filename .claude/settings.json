@@ -1,0 +1,97 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/ch9-status.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"ch9-status.py が無いので第 9 章の判断を確かめていません: $f\" >&2; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch-architecture.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"dispatch-architecture.py が無いので規約の確認は動いていません: $f\" >&2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch-architecture.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"dispatch-architecture.py が無いので規約の確認は動いていません: $f\" >&2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch-architecture.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"dispatch-architecture.py が無いので規約の確認は動いていません: $f\" >&2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch-architecture.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"dispatch-architecture.py が無いので規約の確認は動いていません: $f\" >&2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch-architecture.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"dispatch-architecture.py が無いので規約の確認は動いていません: $f\" >&2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/dispatch-architecture.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"dispatch-architecture.py が無いので規約の確認は動いていません: $f\" >&2; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/sfad-guard.py"
+          }
+        ]
+      },
+      {
+        "matcher": "PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/sfad-guard.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/sfad-guard.py"
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+# local_ci_checks.toml — antler の検査の一覧（手元の scripts/local-ci.py と CI が同じこの一覧を読む）。
+# stack ごとの一覧は各フォルダにあり、ここから取り込む。packages / edge / dataset の一覧はまだ中身が無いので
+# required = false。その feature の /sfad cycle でテストができたら必須に戻す。
+
+[local_ci]
+base = "origin/main"
+include = [
+  "apps/sim/local_ci_checks.toml",
+  "apps/pwa/local_ci_checks.toml",
+  "apps/api/local_ci_checks.toml",
+  "packages/local_ci_checks.toml",
+  "edge/local_ci_checks.toml",
+  "dataset/local_ci_checks.toml",
+]
+
+[[check]]
+name = "stack registry"
+stack = "common"
+cmd = ["{PYTHON}", "scripts/registry_check.py"]
+hint = "routes.toml に stack と規則を足す"
+
+[[check]]
+name = "architecture"
+stack = "common"
+cmd = ["{PYTHON}", "scripts/ci_arch_check.py", "--base", "{BASE_SHA}"]
+hint = "python scripts/ci_arch_check.py --self-test で検査自体を確かめる"
+
+[[check]]
+name = "antler hooks"
+stack = "common"
+cmd = ["{PYTHON}", "scripts/tests/test_antler_hooks.py"]
+hint = ".claude/hooks/dispatch_local_rules.py か ch9-status.py を直す"
