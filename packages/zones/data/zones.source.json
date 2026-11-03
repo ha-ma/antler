@@ -23,7 +23,7 @@
     },
     "source": {
       "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）の 2025 年 月別・時間帯別の件数の図（図中の出典：北海道警察本部交通部交通企画課資料）を正規化して作成",
-      "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+      "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
       "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト"
     }
   },
@@ -50,7 +50,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -119,7 +119,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -188,14 +188,14 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
         },
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -257,7 +257,7 @@
       "sources": [
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -306,7 +306,7 @@
       "sources": [
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -398,7 +398,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -464,14 +464,14 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
         },
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -520,7 +520,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -566,7 +566,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -613,7 +613,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -656,7 +656,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -697,7 +697,7 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -766,7 +766,7 @@
       "sources": [
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -846,14 +846,14 @@
       "sources": [
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
         },
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -923,14 +923,14 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
         },
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -998,14 +998,14 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
         },
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
@@ -1056,14 +1056,14 @@
       "sources": [
         {
           "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true
         },
         {
           "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
-          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html",
           "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
           "period": "R3-R7",
           "modified": true

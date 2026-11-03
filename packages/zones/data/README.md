@@ -48,9 +48,10 @@ npm run build:zones -w @antler/zones                # 3. zones.source.json → z
 
 ## 区間の位置: 北海道開発局の地図（PDL1.0）
 
-- 全道版「エゾシカ衝突事故マップ」令和 8 年度版: https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf
+- 出典の URL は PDF の掲載ページにしている（PDF のファイル名は版の更新で変わるため。2026-11-03 にユーザー判断）
+- 全道版「エゾシカ衝突事故マップ」令和 8 年度版: https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x.html （ページ内の全道版 PDF）
   （段階 `hkd-r8`。4 = 100 件以上（要注意区間）、3 = 50 件以上、2 = 10 件以上、1 = 1〜10 件未満。R3〜R7 累計、概ね 10 km 区間）
-- 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」: https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf
+- 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」: https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o.html （ページ内の釧路・根室地域版 PDF）
   （段階 `kushiro-r3r7`。6 = 101 件以上 … 1 = 1〜20 件。R3〜R7 累計、概ね 5 km 区間）
 - 利用条件: 北海道開発局サイトの「著作権について」（https://www.hkd.mlit.go.jp/ky/ki/kouhou/ud49g7000000omnw.html 、2026-11-03 に確認）。
   権利表記が無い限り PDL1.0 準拠。出典「北海道開発局ウェブサイト（URL）」と、加工した場合はその旨を記載。シンボルマーク・ロゴ・キャラクターは対象外。
