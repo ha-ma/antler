@@ -9,6 +9,13 @@ updates:
     groups:
       dev-tools:
         dependency-type: development
+    # ESLint 10 と TypeScript 7 のメジャー更新は、プラグイン（eslint-plugin-import など）の対応がそろうまで除外する
+    # （2026-11-03 ユーザー判断。#5 は npm ci の ERESOLVE で失敗した）。マイナー・パッチの更新は今までどおり受ける
+    ignore:
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
   - package-ecosystem: pip
     directory: /edge/detector
     schedule:
