@@ -18,6 +18,7 @@ target_paths:
   - edge/detector/tests/test_l1_config.py
   - edge/detector/tests/test_fusion.py
   - edge/detector/tests/test_l1_hub.py
+  - edge/detector/tests/test_l1_authz.py
 spec_confirmed_at: draft
 tier: 2
 ---
@@ -288,6 +289,18 @@ UC-7 設定:
 - [x] CFG-1c: 範囲外（`override_conf` 0.89、`timeout_ms` 801、`rate_hz` 1.9）・型違い・空の `base_url`・`l2_route_conf` の順序違い・`[l2] enabled` の値違い → `ConfigError`（キー名つき）
 - [x] CFG-1d: `tracker.min_conf` > `judge.threshold` → `ConfigError`
 - [x] CFG-1e: `config.example.toml` が読め、既定値と一致する
+
+認可（threat.md の ❌ セル。[ADDED threat]）:
+
+- [x] AUTH-1: ループバックでない接続先（設定・環境変数のクラウドの URL）には送らない（`remote_not_allowed`）
+- [x] AUTH-2: local-jev の答え（false_positive 0.99）だけでは赤は下がらない（校正なし・前のエピソード・赤の候補でないトラック）
+- [x] AUTH-3: 端末の ack・label・flag の形のメッセージで赤は下がらない
+- [x] AUTH-4: 降格から赤に戻すとき、距離・方向・確信度は L0 の値（L1 は数値を変えない）
+- [x] AUTH-5: L0 が赤でないとき、L1 の danger 0.99 で赤にならない
+- [x] AUTH-6: 端末のメッセージで赤にならない
+- [x] AUTH-7: 答えに余分な項目（`override_conf`・`base_url` など）があっても、設定・閾値は変わらない
+- [x] AUTH-8: 端末のメッセージ（設定のような文字列）で設定・閾値・校正は変わらない
+- [x] AUTH-9: detector は `calibration.json` を読むだけ（走らせた後も中身が変わらない）
 
 状態パターン:
 

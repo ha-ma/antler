@@ -207,13 +207,15 @@ def test_run1h_失敗が続くと間隔が2倍ずつ延び成功で戻る():
     assert sleeps[4] == pytest.approx(0.4)
 
 
-def test_run1h_失敗が何千回続いても間隔は2秒で頭打ち():
+# RUN-1j（[ADDED review]）
+def test_run1j_失敗が何千回続いても間隔は2秒で頭打ち():
     assert backoff_s(0.4, 0) == pytest.approx(0.4)
     assert backoff_s(0.4, 1) == pytest.approx(0.8)
     assert backoff_s(0.4, 10_000) == MAX_BACKOFF_S  # OverflowError にならない
 
 
-def test_run1b_後始末のon_l1_failedが例外でもタスクは死なない(logbuf):
+# RUN-1j
+def test_run1j_後始末のon_l1_failedが例外でもタスクは死なない(logbuf):
     hub, _, _ = red_hub()
 
     def boom():
@@ -226,7 +228,8 @@ def test_run1b_後始末のon_l1_failedが例外でもタスクは死なない(l
     assert named(logbuf, "l1.release_failed")
 
 
-def test_run1g_backgroundが死んだらログに残し検知は続ける(logbuf):
+# RUN-1j
+def test_run1j_backgroundが死んだらログに残し検知は続ける(logbuf):
     async def dies():
         raise RuntimeError("boom")
 
