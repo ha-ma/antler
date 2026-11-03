@@ -29,9 +29,12 @@ FAIL_LOG_INTERVAL_S = 1.0
 class TrackerLike(Protocol):
     next_id: int
 
+    @property
+    def tracks(self) -> tuple[Track, ...]: ...
     def update(self, result: FrameResult) -> None: ...
     def primary(self) -> Track | None: ...
     def metrics(self, track: Track) -> TrackMetrics: ...
+    def track_points(self, track: Track) -> list[dict[str, object]]: ...
 
 
 class L0Stage:
@@ -74,6 +77,13 @@ class L0Stage:
             self._failed(exc, now)
             return None
 
+    def red_tracks(self, threshold: float) -> list[Track]:
+        """赤の候補: 生きているトラックのうち、最後の点の確信度が閾値以上のもの（edge-l1）。"""
+        try:
+            return [tr for tr in self.tracker.tracks if tr.last.conf >= threshold]
+        except Exception:  # noqa: BLE001  分からなければ候補なし（降格しない側）
+            return []
+
     def _failed(self, exc: Exception, now: float) -> None:
         """失敗を 1 秒に 1 回まで残し、トラッカーを作り直す。例外を外へ出さない（赤を止めない）。"""
         if self._last_fail_log is None or now - self._last_fail_log >= FAIL_LOG_INTERVAL_S:
@@ -91,6 +101,13 @@ class _NullTracker:
 
     def __init__(self, next_id: int) -> None:
         self.next_id = next_id
+
+    @property
+    def tracks(self) -> tuple[Track, ...]:
+        return ()
+
+    def track_points(self, track: Track) -> list[dict[str, object]]:
+        return []
 
     def update(self, result: FrameResult) -> None:
         msg = "トラッカーを作り直せていない"

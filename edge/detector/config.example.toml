@@ -1,5 +1,5 @@
 # edge/detector の設定の見本（既定値）。読み込みは detector.config.load_config。
-# 書かなかったキーは既定値になる。知らないセクション・キーはエラー（[l1]・[l2] は edge-l1 で足す）。
+# 書かなかったキーは既定値になる。知らないセクション・キーはエラー。
 
 [camera]
 source = "device"     # device | file
@@ -37,3 +37,21 @@ lane_half_width_m = 1.75
 host = "127.0.0.1"    # 車載では AP の LAN のアドレス
 port = 8765
 max_clients = 16
+
+# L1: Mac mini 上の local-jev（github.com/amithgc/local-jev @ 64a0b31、別に入れて動かす）に 4 問を聞く。
+#   local-jev serve --model llm-qwen2.5-1.5b --port 8766
+# 降格（赤 → 赤でない）にだけ使う。赤は L0 が鳴らす。L1 が止まっても L0 だけで動く（edge-l1）。
+# 接続先は環境変数 TYPESAFE_BASE_URL があればそちらが優先。ループバック以外には送らない。
+[l1]
+enabled = true
+base_url = "http://127.0.0.1:8766"   # local-jev の既定 8765 は WebSocket（[server] port）とぶつかるので 8766
+model = "jev-latest"                 # local-jev が既定のモデル（llm-qwen2.5-1.5b）に割り当てる
+rate_hz = 2.5                        # 2〜3
+timeout_ms = 800                     # 50〜800。リトライしない
+override_conf = 0.9                  # 校正後 conf がこれ以上のときだけ降格（0.9〜1。B2-5）
+l2_route_conf = [0.5, 0.9]           # この範囲は L2 の候補としてログ（L2 は未実装）
+wait_for_l1_before_red = false       # B2-8。true でも保留は 150 ms まで
+calibration_path = "calibration.json"  # 無ければ降格しない。相対パスはこのファイルのディレクトリから
+
+[l2]
+enabled = "auto"      # auto | off。L2 は未実装（Step 5）

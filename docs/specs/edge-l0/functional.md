@@ -198,7 +198,7 @@ UC-6 設定:
 - [x] CFG-1a: 空の TOML で `coreml.compute_units = cpu_and_ne` とトラッカーの既定値
 - [x] CFG-1b: 指定した値が読める
 - [x] CFG-1c: `compute_units` が一覧の外・型違い、トラッカーの値が範囲外 → `ConfigError`（キー名つき）
-- [x] CFG-1d: `[l1]`・`[l2]` は知らないセクションとして `ConfigError`
+- [x] CFG-1d: `[l1]`・`[l2]` は知らないセクションとして `ConfigError`（edge-l1 で `[l1]`・`[l2]` を足したので、テストは知らないセクション `[l3]` で確かめる）
 - [x] CFG-1e: `edge/detector/config.example.toml` が読め、既定値と一致する
 
 状態パターン:

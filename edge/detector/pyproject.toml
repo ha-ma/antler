@@ -14,6 +14,10 @@ dependencies = ["numpy>=1.26", "pydantic>=2.7", "websockets>=14"]
 [project.optional-dependencies]
 camera = ["opencv-python>=4.9"]
 coreml = ["ultralytics>=8.2", "coremltools>=7.2"]
+# L1（edge-l1）: local-jev（github.com/amithgc/local-jev @ 64a0b31、MIT）を呼ぶ公式 SDK（MIT）。
+# local-jev 自体は別プロセスのサーバーなので依存に入れない（Mac mini で別に入れる。torch と重みを引く）。
+# 無くても L0 は動く（起動時に l1_unavailable: sdk_missing）。
+l1 = ["typesafe-sdk==0.7.5"]
 # datamodel-code-generator は JSON Schema から pydantic を作る（scripts/generate_models.py）。出力が変わらないよう版を固定する。
 dev = [
   "pytest>=8",
@@ -21,6 +25,7 @@ dev = [
   "ruff>=0.6",
   "jsonschema>=4.18",
   "datamodel-code-generator==0.88.0",
+  "typesafe-sdk==0.7.5",  # L1 のクライアントを実物の SDK（httpx2.MockTransport）で確かめる
 ]
 
 [tool.setuptools.packages.find]

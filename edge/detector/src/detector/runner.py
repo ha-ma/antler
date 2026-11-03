@@ -8,7 +8,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Iterator
+    from collections.abc import Awaitable, Callable, Coroutine, Iterator, Sequence
 
     from detector.hub import AlertHub
     from detector.pipeline import FrameResult
@@ -24,12 +24,15 @@ async def pump(
     tick_s: float = TICK_S,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
     settle_ticks: int = 100,
+    background: Sequence[Coroutine[object, object, None]] = (),
 ) -> None:
     """結果を 1 件ずつスレッドで取り、ループの上で判定する。重い推論が配信と ping を止めない。
 
     入力が尽きたら、ON の鹿が expire で OFF になるまで（最大 settle_ticks 回）刻み続ける。
-    入力の例外は上へ出す（ticker は片付ける）。
+    入力の例外は上へ出す（ticker は片付ける）。background（L1 のタスクなど）は並べて動かし、
+    終わりに片付ける。
     """
+    others = [asyncio.create_task(coro) for coro in background]
 
     async def ticker() -> None:
         while True:
@@ -58,6 +61,8 @@ async def pump(
         if close is not None:
             with contextlib.suppress(ValueError, RuntimeError):
                 close()  # 生成器（カメラ）を解放する
-        task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await task
+        for t in (task, *others):
+            t.cancel()
+        for t in (task, *others):
+            with contextlib.suppress(asyncio.CancelledError):
+                await t

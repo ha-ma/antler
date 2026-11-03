@@ -13,7 +13,7 @@ target_paths:
   - edge/detector/tests/test_l1_questions.py
   - edge/detector/tests/test_l1_client.py
   - edge/detector/tests/test_l1_calibration.py
-  - edge/detector/tests/test_l1_request.py
+  - edge/detector/tests/l1_fakes.py
   - edge/detector/tests/test_l1_runner.py
   - edge/detector/tests/test_l1_config.py
   - edge/detector/tests/test_fusion.py
