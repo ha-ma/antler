@@ -1,0 +1,19 @@
+{
+  "type": "flag",
+  "v": 1,
+  "deer": true,
+  "conf": 0.94,
+  "distanceM": 58,
+  "side": "L",
+  "zone": "inside",
+  "zoneRemainingKm": 14.2,
+  "t_frame": "2027-02-15T16:31:08.120+09:00",
+  "t_sent": "2027-02-15T16:31:08.310+09:00",
+  "frameJpegB64": null,
+  "l1": {
+    "alert_level": "zone",
+    "conf": 0.93,
+    "overrode": "yes",
+    "latencyMs": 240
+  }
+}

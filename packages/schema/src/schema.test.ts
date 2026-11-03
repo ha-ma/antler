@@ -5,6 +5,7 @@ import { AlertFlagSchema } from './alert-flag'
 import { CaptureSchema } from './capture'
 import { ClientMessageSchema } from './client-message'
 import { IsoDateTime, toJst } from './common'
+import { JudgeRequestSchema } from './judge-request'
 import {
   JSON_SCHEMA_SOURCES,
   portablePattern,
@@ -18,6 +19,7 @@ const SCHEMAS = {
   'alert-flag': AlertFlagSchema,
   capture: CaptureSchema,
   'client-message': ClientMessageSchema,
+  'judge-request': JudgeRequestSchema,
   'trip-plan': TripPlanSchema,
 } as const
 

@@ -1,0 +1,250 @@
+{
+  "$id": "https://antler.local/schema/judge-request.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "model": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}(?!\\n)$"
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "speedKmh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "zone": {
+          "type": "string",
+          "enum": [
+            "inside",
+            "outside"
+          ]
+        },
+        "light": {
+          "type": "string",
+          "enum": [
+            "dawn",
+            "day",
+            "dusk",
+            "night"
+          ]
+        },
+        "headlight": {
+          "type": "string",
+          "enum": [
+            "off",
+            "low",
+            "high"
+          ]
+        },
+        "track": {
+          "minItems": 1,
+          "maxItems": 64,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "t": {
+                "type": "number",
+                "maximum": 0
+              },
+              "conf": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "distanceM": {
+                "type": "number",
+                "minimum": 0
+              },
+              "lateralMps": {
+                "type": "number"
+              },
+              "side": {
+                "type": "string",
+                "enum": [
+                  "L",
+                  "R"
+                ]
+              },
+              "pos": {
+                "type": "string",
+                "pattern": "^[a-z][a-z_]{0,31}(?!\\n)$"
+              }
+            },
+            "required": [
+              "t",
+              "conf",
+              "distanceM",
+              "lateralMps",
+              "side",
+              "pos"
+            ],
+            "additionalProperties": false,
+            "title": "TrackPoint"
+          }
+        },
+        "ttcSec": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recentAlerts30s": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "speedKmh",
+        "zone",
+        "light",
+        "headlight",
+        "track",
+        "ttcSec",
+        "recentAlerts30s"
+      ],
+      "additionalProperties": false,
+      "title": "JudgeState"
+    },
+    "questions": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "alert_level"
+            },
+            "type": {
+              "type": "string",
+              "const": "choice"
+            },
+            "text": {
+              "type": "string",
+              "const": "Which alert should the driver get now?"
+            },
+            "options": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "string",
+                  "const": "none"
+                },
+                {
+                  "type": "string",
+                  "const": "zone"
+                },
+                {
+                  "type": "string",
+                  "const": "danger"
+                }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "text",
+            "options"
+          ],
+          "additionalProperties": false,
+          "title": "AlertLevelQuestion"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "on_roadway"
+            },
+            "type": {
+              "type": "string",
+              "const": "noul"
+            },
+            "text": {
+              "type": "string",
+              "const": "The animal is moving into the driving lane."
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "text"
+          ],
+          "additionalProperties": false,
+          "title": "OnRoadwayQuestion"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "static_shoulder"
+            },
+            "type": {
+              "type": "string",
+              "const": "noul"
+            },
+            "text": {
+              "type": "string",
+              "const": "The animal is standing still on the road shoulder."
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "text"
+          ],
+          "additionalProperties": false,
+          "title": "StaticShoulderQuestion"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "false_positive"
+            },
+            "type": {
+              "type": "string",
+              "const": "noul"
+            },
+            "text": {
+              "type": "string",
+              "const": "The detection is not a real deer (sign, snow, post)."
+            }
+          },
+          "required": [
+            "id",
+            "type",
+            "text"
+          ],
+          "additionalProperties": false,
+          "title": "FalsePositiveQuestion"
+        }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    }
+  },
+  "required": [
+    "model",
+    "state",
+    "questions"
+  ],
+  "additionalProperties": false,
+  "title": "JudgeRequest"
+}

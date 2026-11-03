@@ -1,0 +1,15 @@
+{
+  "type": "flag",
+  "v": 1,
+  "deer": false,
+  "zone": "inside",
+  "t_frame": "2027-02-15T16:00:00.000+09:00",
+  "t_sent": "2027-02-15T16:00:00.020+09:00",
+  "zoneRemainingKm": 3.5,
+  "l1": {
+    "alert_level": "danger",
+    "conf": 1,
+    "overrode": true,
+    "latencyMs": 0
+  }
+}

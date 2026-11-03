@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { IsoDateTime, Side } from './common'
+import { L1ResultSchema } from './l1'
 
 // AlertFlag — B が WebSocket で送り、A がゲーム内で合成する共通メッセージ（ch7）。
 // 「deer:true なら距離と方向が要る」「inside は残り距離、outside は次のゾーンまでの距離」を
@@ -11,6 +12,8 @@ const base = {
   t_frame: IsoDateTime,
   t_sent: IsoDateTime,
   frameJpegB64: z.string().nullable().optional(),
+  /** L1 判断の結果（ログと評価用。PWA は読まない）。L1 が動いていないときは省く */
+  l1: L1ResultSchema.optional(),
 }
 
 const deerOn = {
@@ -87,7 +90,10 @@ export function readAlertFlag(input: unknown): ReadFlagResult {
   if (raw['type'] !== 'flag' || typeof raw['deer'] !== 'boolean') {
     return { flag: null, problem: 'not_flag' }
   }
-  const strict = AlertFlagSchema.safeParse(raw).success
+  // l1 は PWA が読まない欄。l1 だけが壊れたフラグを「厳しい検証に落ちた」扱いにすると、PWA が
+  // 壊れた deer:false を捨てて赤が解けなくなるので、strict は l1 を除いて判定する。
+  const withoutL1 = Object.fromEntries(Object.entries(raw).filter(([key]) => key !== 'l1'))
+  const strict = AlertFlagSchema.safeParse(withoutL1).success
   const flag: ReceivedFlag = { deer: raw['deer'], strict }
   const conf = finiteNonNegative(raw['conf'])
   if (conf !== undefined && conf <= 1) flag.conf = conf

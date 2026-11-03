@@ -1,11 +1,10 @@
 import { z } from 'zod'
-import { IsoDateTime, Side } from './common'
+import { IsoDateTime, Light, Side, Vocab } from './common'
+import { L1ProbsSchema } from './l1'
 
 // Capture — A の「見つけた」と B の検知フレームが共有する教師データ（ch7）。
 // 保存しないもの（ch5）: 氏名・メール・端末識別子・精密な位置。strict なので余分なキーは拒否する。
 // 位置は道路区間 ID（roadSegment）に丸める。英数字とハイフンだけなので座標（小数点・カンマ）を書けない。
-
-const Vocab = z.string().regex(/^[a-z][a-z_]*$/)
 
 export const CaptureSchema = z.strictObject({
   id: z.string().regex(/^cap_[A-Za-z0-9]+$/),
@@ -32,7 +31,7 @@ export const CaptureSchema = z.strictObject({
     month: z.number().int().min(1).max(12),
     weather: Vocab,
     surface: Vocab,
-    light: z.enum(['dawn', 'day', 'dusk', 'night']),
+    light: Light,
     fog: z.enum(['none', 'light', 'medium', 'heavy']),
     traffic: Vocab,
     vehicle: Vocab,
@@ -50,6 +49,8 @@ export const CaptureSchema = z.strictObject({
   /** 「提供する（匿名）」の同意。false でも保存はできる（ch5）。アップロードは isUploadable が判定する */
   consent: z.boolean(),
   createdAt: IsoDateTime,
+  /** L1 の質問ごとの確率（ソフトラベル。B2-9）。L1 が動いていないときは省く */
+  l1Probs: L1ProbsSchema.optional(),
 })
 export type Capture = z.infer<typeof CaptureSchema>
 

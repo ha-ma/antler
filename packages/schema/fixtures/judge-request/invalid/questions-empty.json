@@ -1,0 +1,30 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "speedKmh": 54,
+    "zone": "inside",
+    "light": "dusk",
+    "headlight": "high",
+    "track": [
+      {
+        "t": -0.8,
+        "conf": 0.71,
+        "distanceM": 64,
+        "lateralMps": 0.0,
+        "side": "L",
+        "pos": "shoulder"
+      },
+      {
+        "t": 0.0,
+        "conf": 0.86,
+        "distanceM": 58,
+        "lateralMps": 0.4,
+        "side": "L",
+        "pos": "shoulder"
+      }
+    ],
+    "ttcSec": 3.9,
+    "recentAlerts30s": 1
+  },
+  "questions": []
+}
