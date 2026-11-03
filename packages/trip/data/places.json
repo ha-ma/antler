@@ -1,0 +1,219 @@
+[
+  {
+    "id": "cts",
+    "kind": "gateway",
+    "area": null,
+    "lat": 42.7752,
+    "lon": 141.6923,
+    "name": {
+      "ja": "新千歳空港",
+      "en": "New Chitose Airport",
+      "zh": "新千歲機場",
+      "ko": "신치토세 공항"
+    }
+  },
+  {
+    "id": "kuh",
+    "kind": "gateway",
+    "area": null,
+    "lat": 43.041,
+    "lon": 144.193,
+    "name": { "ja": "釧路空港", "en": "Kushiro Airport", "zh": "釧路機場", "ko": "구시로 공항" }
+  },
+  {
+    "id": "sapporo",
+    "kind": "gateway",
+    "area": null,
+    "lat": 43.0687,
+    "lon": 141.3508,
+    "name": { "ja": "札幌駅", "en": "Sapporo Station", "zh": "札幌車站", "ko": "삿포로역" }
+  },
+  {
+    "id": "akj",
+    "kind": "gateway",
+    "area": null,
+    "lat": 43.6708,
+    "lon": 142.4475,
+    "name": {
+      "ja": "旭川空港",
+      "en": "Asahikawa Airport",
+      "zh": "旭川機場",
+      "ko": "아사히카와 공항"
+    }
+  },
+  {
+    "id": "hkd",
+    "kind": "gateway",
+    "area": null,
+    "lat": 41.77,
+    "lon": 140.8219,
+    "name": { "ja": "函館空港", "en": "Hakodate Airport", "zh": "函館機場", "ko": "하코다테 공항" }
+  },
+
+  {
+    "id": "kushiro",
+    "kind": "base",
+    "area": "doto",
+    "lat": 42.9849,
+    "lon": 144.3814,
+    "name": { "ja": "釧路", "en": "Kushiro", "zh": "釧路", "ko": "구시로" }
+  },
+  {
+    "id": "tsurui",
+    "kind": "base",
+    "area": "doto",
+    "lat": 43.2167,
+    "lon": 144.3167,
+    "name": { "ja": "鶴居村", "en": "Tsurui", "zh": "鶴居村", "ko": "쓰루이무라" }
+  },
+  {
+    "id": "akan",
+    "kind": "base",
+    "area": "doto",
+    "lat": 43.43,
+    "lon": 144.097,
+    "name": { "ja": "阿寒湖", "en": "Lake Akan", "zh": "阿寒湖", "ko": "아칸호" }
+  },
+  {
+    "id": "teshikaga",
+    "kind": "base",
+    "area": "doto",
+    "lat": 43.4833,
+    "lon": 144.4667,
+    "name": { "ja": "弟子屈", "en": "Teshikaga", "zh": "弟子屈", "ko": "데시카가" }
+  },
+  {
+    "id": "shiretoko",
+    "kind": "base",
+    "area": "doto",
+    "lat": 44.07,
+    "lon": 145.02,
+    "name": {
+      "ja": "知床（ウトロ）",
+      "en": "Shiretoko (Utoro)",
+      "zh": "知床（宇登呂）",
+      "ko": "시레토코(우토로)"
+    }
+  },
+  {
+    "id": "abashiri",
+    "kind": "base",
+    "area": "doto",
+    "lat": 44.0206,
+    "lon": 144.2733,
+    "name": { "ja": "網走", "en": "Abashiri", "zh": "網走", "ko": "아바시리" }
+  },
+  {
+    "id": "betsukai",
+    "kind": "base",
+    "area": "doto",
+    "lat": 43.39,
+    "lon": 145.12,
+    "name": { "ja": "別海", "en": "Betsukai", "zh": "別海", "ko": "벳카이" }
+  },
+  {
+    "id": "nemuro",
+    "kind": "base",
+    "area": "doto",
+    "lat": 43.33,
+    "lon": 145.5828,
+    "name": { "ja": "根室", "en": "Nemuro", "zh": "根室", "ko": "네무로" }
+  },
+  {
+    "id": "obihiro",
+    "kind": "base",
+    "area": "doto",
+    "lat": 42.9236,
+    "lon": 143.1961,
+    "name": { "ja": "帯広", "en": "Obihiro", "zh": "帶廣", "ko": "오비히로" }
+  },
+
+  {
+    "id": "sapporo-city",
+    "kind": "base",
+    "area": "doo",
+    "lat": 43.0618,
+    "lon": 141.3545,
+    "name": { "ja": "札幌", "en": "Sapporo", "zh": "札幌", "ko": "삿포로" }
+  },
+  {
+    "id": "jozankei",
+    "kind": "base",
+    "area": "doo",
+    "lat": 42.97,
+    "lon": 141.17,
+    "name": { "ja": "定山渓", "en": "Jozankei", "zh": "定山溪", "ko": "조잔케이" }
+  },
+  {
+    "id": "otaru",
+    "kind": "base",
+    "area": "doo",
+    "lat": 43.1907,
+    "lon": 140.9947,
+    "name": { "ja": "小樽", "en": "Otaru", "zh": "小樽", "ko": "오타루" }
+  },
+  {
+    "id": "shakotan",
+    "kind": "base",
+    "area": "doo",
+    "lat": 43.33,
+    "lon": 140.46,
+    "name": { "ja": "積丹", "en": "Shakotan", "zh": "積丹", "ko": "샤코탄" }
+  },
+  {
+    "id": "niseko",
+    "kind": "base",
+    "area": "doo",
+    "lat": 42.8048,
+    "lon": 140.6874,
+    "name": { "ja": "ニセコ", "en": "Niseko", "zh": "二世谷", "ko": "니세코" }
+  },
+  {
+    "id": "toya",
+    "kind": "base",
+    "area": "doo",
+    "lat": 42.56,
+    "lon": 140.82,
+    "name": { "ja": "洞爺湖", "en": "Lake Toya", "zh": "洞爺湖", "ko": "도야호" }
+  },
+  {
+    "id": "noboribetsu",
+    "kind": "base",
+    "area": "doo",
+    "lat": 42.412,
+    "lon": 141.145,
+    "name": { "ja": "登別", "en": "Noboribetsu", "zh": "登別", "ko": "노보리베쓰" }
+  },
+  {
+    "id": "shikotsu",
+    "kind": "base",
+    "area": "doo",
+    "lat": 42.763,
+    "lon": 141.399,
+    "name": { "ja": "支笏湖", "en": "Lake Shikotsu", "zh": "支笏湖", "ko": "시코쓰호" }
+  },
+  {
+    "id": "furano",
+    "kind": "base",
+    "area": "doo",
+    "lat": 43.342,
+    "lon": 142.383,
+    "name": { "ja": "富良野", "en": "Furano", "zh": "富良野", "ko": "후라노" }
+  },
+  {
+    "id": "biei",
+    "kind": "base",
+    "area": "doo",
+    "lat": 43.5886,
+    "lon": 142.4666,
+    "name": { "ja": "美瑛", "en": "Biei", "zh": "美瑛", "ko": "비에이" }
+  },
+  {
+    "id": "asahikawa",
+    "kind": "base",
+    "area": "doo",
+    "lat": 43.7706,
+    "lon": 142.365,
+    "name": { "ja": "旭川", "en": "Asahikawa", "zh": "旭川", "ko": "아사히카와" }
+  }
+]

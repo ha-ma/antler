@@ -4,7 +4,7 @@ target_paths:
   - packages/schema/
   - packages/alert-ui/
   - edge/detector/tests/test_schema_contract.py
-spec_confirmed_at: 9482f02
+spec_confirmed_at: c844672
 tier: 2
 ---
 
@@ -31,6 +31,7 @@ Story: A の車内スマホを見るプレイヤーと B の PWA を見るドラ
   - Capture に lat・lng・email・deviceId → 拒否 / consent が無い → 拒否 / consent:false → 通る
   - roadSegment に `43.1751,144.3` → 拒否（英数字とハイフンだけ）/ boxes 0 件 → 通る / xywh が 0〜1 の外 → 拒否 / reactionMs が負 → 拒否
   - TripPlan の ch7 の例 → 通る / pleasures 11 件 → 拒否 / weight 0・6 → 拒否 / drivers > size → 拒否
+  - 凍結後の追加（既存の型は変えない）: `TripDetails`（plan-trip の Claude の文。4 言語のタイトル・日ごとの説明・入りきらない楽しみ）。edge は使わないので JSON Schema には書き出さない。仕様は docs/specs/plan-trip/、形の検証は plan-trip の AC-1（2026-11-03、推奨で決定、alert-contract-guard Critical 0）
   - 時刻はタイムゾーン付きの ISO 8601。`Z` も `+09:00` も通り、JST に正規化できる。タイムゾーン無し → 拒否
   - クライアント → サーバーは ack（t_shown）と label だけ。クライアントが flag を送る形 → 拒否
   - edge（Python）は書き出した JSON Schema で同じ見本を検証して同じ結果になる
