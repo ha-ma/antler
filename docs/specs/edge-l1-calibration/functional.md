@@ -8,7 +8,7 @@ target_paths:
   - edge/detector/src/detector/l1/calibrate.py
   - edge/detector/tests/test_l1_calibrate.py
   - edge/detector/tests/l1_synth.py
-spec_confirmed_at: 01094ee
+spec_confirmed_at: 0125080
 tier: 2
 ---
 
