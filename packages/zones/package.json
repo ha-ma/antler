@@ -9,6 +9,7 @@
     "./zones.geojson": "./data/zones.geojson"
   },
   "scripts": {
+    "resolve:zones": "tsx scripts/resolve-centerlines.ts",
     "build:zones": "tsx scripts/build-zones.ts"
   },
   "dependencies": {

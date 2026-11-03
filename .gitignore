@@ -40,3 +40,6 @@ edge/**/runs/
 dataset/raw/
 
 .DS_Store
+
+# zones の生成に使う道路データ（国の配布サイトから取得。リポジトリに入れない）
+packages/zones/data/cache/

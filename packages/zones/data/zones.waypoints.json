@@ -1,0 +1,833 @@
+{
+  "$comment": "鹿ゾーンの元の置き場所。区間の始点・経由点・終点は国土地理院の地名検索 API で地名・IC 名・橋やトンネルの名前を引いた座標をそのまま置く（推測で埋めない）。scripts/resolve-centerlines.ts が国道の中心線（国土数値情報 N13）をたどって zones.source.json を書く。",
+  "version": 1,
+  "geocoder": {
+    "name": "国土地理院 地名検索 API（AddressSearch）",
+    "url": "https://msearch.gsi.go.jp/address-search/AddressSearch",
+    "accessed": "2026-11-03"
+  },
+  "centerlineSource": {
+    "title": "「国土数値情報（道路データ N13）令和6年度版」（国土交通省）をもとに EZO ROAD が作成（国道の中心線を区間の始点・終点の間でたどり、10 m で間引いて加工）。原典：数値地図（国土基本情報）、測量法に基づく国土地理院長承認（複製）R 6JHf503",
+    "url": "https://nlftp.mlit.go.jp/ksj/gml/datalist/KsjTmplt-N13-2024.html",
+    "license": "オープンデータ（CC BY 4.0）。国土数値情報ダウンロードサイト利用規約（PDL1.0 準拠）",
+    "period": "2024-09",
+    "modified": true
+  },
+  "factors": {
+    "$comment": "2025 年全道の月別件数を最大 1 に正規化（1〜12 月）。光の区分は時間帯別件数から 1 時間あたりの件数を出し最大 1 に正規化（dusk=16〜20 時、night=20〜4 時、dawn=4〜8 時、day=8〜16 時）。小数 3 桁。件数そのものはリポジトリに置かない。",
+    "months": [0.16, 0.101, 0.148, 0.277, 0.263, 0.286, 0.275, 0.253, 0.402, 1.0, 0.788, 0.427],
+    "periods": {
+      "dawn": 0.202,
+      "day": 0.092,
+      "dusk": 1.0,
+      "night": 0.282
+    },
+    "source": {
+      "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）の 2025 年 月別・時間帯別の件数の図（図中の出典：北海道警察本部交通部交通企画課資料）を正規化して作成",
+      "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+      "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト"
+    }
+  },
+  "zones": [
+    {
+      "id": "R12-kamuikotan-1",
+      "route": 12,
+      "roadName": {
+        "ja": "国道12号",
+        "en": "Route 12",
+        "zh": "12號國道",
+        "ko": "국도 12호"
+      },
+      "section": {
+        "ja": "旭川市 神居古潭〜春志内〜神居町台場付近",
+        "en": "Asahikawa, Kamuikotan – Harushinai – Kamui-cho Daiba"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "high",
+      "note": "全道版の要注意区間「一般国道12号 神居古潭、春志内付近」。神居古潭から春志内トンネルを経て神居町台場まで。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [142.206130868196, 43.7292510917451],
+          "name": "神居古潭",
+          "basis": "国土地理院 地名検索 API（q=神居古潭）の結果「神居古潭」（addressCode 1204）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [142.246353332778, 43.7506961697222],
+          "name": "春志内トンネル",
+          "basis": "国土地理院 地名検索 API（q=春志内）の結果「春志内トンネル」（addressCode 1204）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [142.293730676648, 43.7719686862169],
+          "name": "神居町台場",
+          "basis": "国土地理院 地名検索 API（q=神居町台場）の結果「神居町台場」（addressCode 1204）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R230-jozankei-1",
+      "route": 230,
+      "roadName": {
+        "ja": "国道230号",
+        "en": "Route 230",
+        "zh": "230號國道",
+        "ko": "국도 230호"
+      },
+      "section": {
+        "ja": "札幌市南区 小金湯〜定山渓温泉〜薄別付近",
+        "en": "Sapporo Minami-ku, Koganeyu – Jozankei Onsen – Usubetsu"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "high",
+      "note": "全道版の要注意区間「一般国道230号 定山渓温泉街付近」。温泉街をはさんで小金湯から薄別橋まで。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [141.209457, 42.970699],
+          "name": "小金湯",
+          "basis": "国土地理院 地名検索 API（q=小金湯）の結果「北海道札幌市南区小金湯」（住所の代表点）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [141.1639057, 42.95987289],
+          "name": "定山渓温泉",
+          "basis": "国土地理院 地名検索 API（q=定山渓温泉）の結果「定山溪温泉」（住所の代表点）の座標をそのまま使用。温泉地の代表点は国道から 400 m ほど離れている",
+          "maxSnapM": 500
+        },
+        {
+          "lonLat": [141.132707333333, 42.9442203055556],
+          "name": "薄別橋",
+          "basis": "国土地理院 地名検索 API（q=薄別）の結果「薄別橋」（addressCode 1106）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R36-eniwa-1",
+      "route": 36,
+      "roadName": {
+        "ja": "国道36号",
+        "en": "Route 36",
+        "zh": "36號國道",
+        "ko": "국도 36호"
+      },
+      "section": {
+        "ja": "恵庭市 恵み野〜道の駅 花ロードえにわ〜戸磯",
+        "en": "Eniwa, Megumino – Michi-no-Eki Hana Road Eniwa – Toiso"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "high",
+      "note": "全道版の要注意区間「一般国道36号 道の駅 花ロードえにわ付近」。道の駅をはさんで南北に置いた。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [141.574450777778, 42.90270975],
+          "name": "恵み野駅",
+          "basis": "国土地理院 地名検索 API（q=恵み野駅）の結果「恵み野駅」（addressCode 1231）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [141.5856753, 42.8972354],
+          "name": "道の駅「花ロードえにわ」",
+          "basis": "国土地理院 地名検索 API（q=花ロードえにわ）の結果「道の駅「花ロードえにわ」」（addressCode 1231）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [141.606348238537, 42.8739884166333],
+          "name": "戸磯",
+          "basis": "国土地理院 地名検索 API（q=戸磯）の結果「戸磯」（addressCode 1231）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R36-chitose-1",
+      "route": 36,
+      "roadName": {
+        "ja": "国道36号",
+        "en": "Route 36",
+        "zh": "36號國道",
+        "ko": "국도 36호"
+      },
+      "section": {
+        "ja": "千歳市 美々〜苫小牧市 植苗橋（新千歳空港・苫小牧市付近）",
+        "en": "Chitose Bibi – Tomakomai Uenae Bridge (New Chitose Airport – Tomakomai)"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "medium",
+      "note": "全道版の要注意区間「一般国道36・234・235・276号 新千歳空港・苫小牧市付近」のうち国道36号の空港東側。4 路線のどこが最も多いかは地図から読めないため medium。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [141.695938, 42.783916],
+          "name": "千歳市美々",
+          "basis": "国土地理院 地名検索 API（q=美々）の結果「北海道千歳市美々」（住所の代表点）の座標をそのまま使用。住所の代表点は国道から 400 m ほど離れている",
+          "maxSnapM": 500
+        },
+        {
+          "lonLat": [141.710457194444, 42.7232720277778],
+          "name": "植苗橋",
+          "basis": "国土地理院 地名検索 API（q=植苗橋）の結果「植苗橋」（addressCode 1213）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R36-tomakomai-1",
+      "route": 36,
+      "roadName": {
+        "ja": "国道36号",
+        "en": "Route 36",
+        "zh": "36號國道",
+        "ko": "국도 36호"
+      },
+      "section": {
+        "ja": "苫小牧市 錦岡〜白老町 社台",
+        "en": "Tomakomai Nishikioka – Shiraoi Shadai"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "medium",
+      "note": "全道版の要注意区間「一般国道36号 苫小牧市〜登別市付近」（約 40 km）のうち苫小牧側の一部。区間内のどこが多いかは地図から読めないため medium。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [141.487360108333, 42.6023583386111],
+          "name": "錦岡駅",
+          "basis": "国土地理院 地名検索 API（q=錦岡）の結果「錦岡駅」（addressCode 1213）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [141.4169723, 42.57768721],
+          "name": "社台郵便局",
+          "basis": "国土地理院 地名検索 API（q=社台）の結果「社台郵便局」（addressCode 1578）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R36-shiraoi-1",
+      "route": 36,
+      "roadName": {
+        "ja": "国道36号",
+        "en": "Route 36",
+        "zh": "36號國道",
+        "ko": "국도 36호"
+      },
+      "section": {
+        "ja": "白老町 竹浦〜虎杖浜",
+        "en": "Shiraoi, Takeura – Kojohama"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "medium",
+      "note": "全道版の要注意区間「一般国道36号 苫小牧市〜登別市付近」のうち登別側の一部。medium の理由は R36-tomakomai-1 と同じ。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [141.259677, 42.49135692],
+          "name": "竹浦郵便局",
+          "basis": "国土地理院 地名検索 API（q=竹浦）の結果「竹浦郵便局」（addressCode 1578）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [141.2131972, 42.46045278],
+          "name": "虎杖浜三区",
+          "basis": "国土地理院 地名検索 API（q=虎杖浜）の結果「虎杖浜三区」（addressCode 1578）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R38-takisato-1",
+      "route": 38,
+      "roadName": {
+        "ja": "国道38号",
+        "en": "Route 38",
+        "zh": "38號國道",
+        "ko": "국도 38호"
+      },
+      "section": {
+        "ja": "芦別市 野花南〜滝里湖〜滝富大橋",
+        "en": "Ashibetsu, Nokanan – Lake Takisato – Takitomi Bridge"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "high",
+      "note": "全道版の要注意区間「一般国道38号 滝里湖付近」。滝里湖の東岸をはさんで野花南から滝富大橋まで。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [142.277145195792, 43.4600421093417],
+          "name": "野花南町",
+          "basis": "国土地理院 地名検索 API（q=野花南）の結果「野花南町」（addressCode 1216）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [142.345534694444, 43.4015940555556],
+          "name": "滝富大橋",
+          "basis": "国土地理院 地名検索 API（q=滝富大橋）の結果「滝富大橋」（addressCode 1216）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R44-kushirocho-1",
+      "route": 44,
+      "roadName": {
+        "ja": "国道44号",
+        "en": "Route 44",
+        "zh": "44號國道",
+        "ko": "국도 44호"
+      },
+      "section": {
+        "ja": "釧路町 釧路別保IC〜深山付近",
+        "en": "Kushiro-cho, Kushiro-Beppo IC – Miyama"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "medium",
+      "note": "全道版の要注意区間「一般国道44号 釧路町〜浜中町」（約 55 km）の西端。釧路・根室地域版では厚岸〜釧路別保が 61〜80 件。区間内の位置は地図の円から大まかに選んだため medium。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        },
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [144.504199806389, 43.0047951044444],
+          "name": "釧路別保ＩＣ",
+          "basis": "国土地理院 地名検索 API（q=釧路別保）の結果「釧路別保ＩＣ」（addressCode 1661）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.531442822507, 42.9838666610995],
+          "name": "字深山",
+          "basis": "国土地理院 地名検索 API（q=深山）の結果「字深山」（addressCode 1661）の座標をそのまま使用。字の代表点は国道から離れているため、国道44号が深山地区で最も近づく点に落とす",
+          "maxSnapM": 600
+        }
+      ]
+    },
+    {
+      "id": "R44-akkeshi-1",
+      "route": 44,
+      "roadName": {
+        "ja": "国道44号",
+        "en": "Route 44",
+        "zh": "44號國道",
+        "ko": "국도 44호"
+      },
+      "section": {
+        "ja": "厚岸町 門静〜厚岸市街〜尾幌橋〜サンヌシ",
+        "en": "Akkeshi, Monshizu – Akkeshi town – Oboro Bridge – Sannushi"
+      },
+      "grade": {
+        "scale": "kushiro-r3r7",
+        "level": 6,
+        "label": "101件以上"
+      },
+      "confidence": "medium",
+      "note": "釧路・根室地域版で 101 件以上の円がある「国道44号の厚岸町付近」。円の正確な位置は読めないため、厚岸市街をはさんで門静駅からサンヌシまでを置いた。",
+      "sources": [
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        },
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [144.7827469975, 43.0574937944444],
+          "name": "門静駅",
+          "basis": "国土地理院 地名検索 API（q=門静駅）の結果「門静駅」（addressCode 1662）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.838311337222, 43.0763019927778],
+          "name": "尾幌橋",
+          "basis": "国土地理院 地名検索 API（q=尾幌橋）の結果「尾幌橋」（addressCode 1662）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.854031220107, 43.0983152906567],
+          "name": "サンヌシ",
+          "basis": "国土地理院 地名検索 API（q=サンヌシ）の結果「サンヌシ」（addressCode 1662）の座標をそのまま使用。字の代表点は国道から 600 m ほど離れているため、国道44号がサンヌシ地区で最も近づく点に落とす",
+          "maxSnapM": 700
+        }
+      ]
+    },
+    {
+      "id": "R44-hamanaka-1",
+      "route": 44,
+      "roadName": {
+        "ja": "国道44号",
+        "en": "Route 44",
+        "zh": "44號國道",
+        "ko": "국도 44호"
+      },
+      "section": {
+        "ja": "厚岸町 糸魚沢〜浜中町 茶内付近",
+        "en": "Akkeshi Itoizawa – Hamanaka Chanai"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "medium",
+      "note": "全道版の要注意区間「一般国道44号 釧路町〜浜中町」の東側。区間内の位置は大まかなため medium。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        },
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [144.9296389, 43.10452778],
+          "name": "糸魚沢簡易郵便局",
+          "basis": "国土地理院 地名検索 API（q=糸魚沢）の結果「糸魚沢簡易郵便局」（addressCode 1662）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [145.022217, 43.135422],
+          "name": "浜中町茶内橋北東",
+          "basis": "国土地理院 地名検索 API（q=浜中町茶内）の結果「北海道浜中町茶内橋北東」（住所の代表点）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R44-nemuro-1",
+      "route": 44,
+      "roadName": {
+        "ja": "国道44号",
+        "en": "Route 44",
+        "zh": "44號國道",
+        "ko": "국도 44호"
+      },
+      "section": {
+        "ja": "根室市 川口〜温根沼大橋付近",
+        "en": "Nemuro, Kawaguchi – Onnetō Bridge"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "high",
+      "note": "全道版の要注意区間「一般国道44号 根室市川口〜温根沼付近」（風蓮湖の南）。釧路・根室地域版でも根室方面に 81〜100 件の円。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        },
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [145.362381, 43.262951],
+          "name": "根室市川口",
+          "basis": "国土地理院 地名検索 API（q=根室市川口）の結果「北海道根室市川口」（住所の代表点）の座標をそのまま使用。住所の代表点は国道の北 700 m ほどにあるため、国道44号が川口地区で最も近づく点に落とす",
+          "maxSnapM": 900
+        },
+        {
+          "lonLat": [145.488512194444, 43.2667028333333],
+          "name": "温根沼大橋",
+          "basis": "国土地理院 地名検索 API（q=温根沼）の結果「温根沼大橋」（addressCode 1223）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R272-betsuho-1",
+      "route": 272,
+      "roadName": {
+        "ja": "国道272号",
+        "en": "Route 272",
+        "zh": "272號國道",
+        "ko": "국도 272호"
+      },
+      "section": {
+        "ja": "釧路町 釧路別保IC〜上別保原野〜阿歴内方面 10 km",
+        "en": "Kushiro-cho, Kushiro-Beppo IC – Kamibeppo-genya – 10 km toward Arekinai"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "high",
+      "note": "全道版の要注意区間「一般国道272号 道東自動車道 釧路別保IC付近」。IC から北東へ阿歴内に向かう国道272号を、始点から 10 km で切った（阿歴内の地名の代表点は国道から離れているため向きの目印に使う）。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "cutAtKm": 10,
+      "waypoints": [
+        {
+          "lonLat": [144.504199806389, 43.0047951044444],
+          "name": "釧路別保ＩＣ",
+          "basis": "国土地理院 地名検索 API（q=釧路別保）の結果「釧路別保ＩＣ」（addressCode 1661）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.523283706775, 43.0139152174654],
+          "name": "字上別保原野",
+          "basis": "国土地理院 地名検索 API（q=上別保）の結果「字上別保原野」（addressCode 1661）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.607120317864, 43.0716390540642],
+          "name": "標茶町字阿歴内",
+          "basis": "国土地理院 地名検索 API（q=阿歴内）の結果「標茶町字阿歴内」（addressCode 1664）の座標をそのまま使用。字の代表点は国道から離れているため、国道272号が阿歴内地区で最も近づく点に落とす",
+          "maxSnapM": 1500
+        }
+      ]
+    },
+    {
+      "id": "R272-nishishunbetsu-1",
+      "route": 272,
+      "roadName": {
+        "ja": "国道272号",
+        "en": "Route 272",
+        "zh": "272號國道",
+        "ko": "국도 272호"
+      },
+      "section": {
+        "ja": "別海町 上春別〜西春別（国道243号との交差）付近",
+        "en": "Betsukai, Kami-Shunbetsu – Nishi-Shunbetsu (crossing with Route 243)"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "medium",
+      "note": "全道版の要注意区間「一般国道272号 別海町 西春別付近」。釧路・根室地域版でも国道272号の別海町付近に 101 件以上の円。西春別の市街（西春別駅前）を通るのは国道243号で、国道272号は市街の南東で243号と交差する。272号沿いの交差点の南西側に地名が無いため、上春別の市街から南西の中チャンベツへ向かう国道272号を 10 km で切った（交差点は始点から約 6.5 km）。区間の中心が地図の要注意区間とずれている可能性があるため medium。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        },
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "cutAtKm": 10,
+      "waypoints": [
+        {
+          "lonLat": [144.901882340573, 43.4318600548006],
+          "name": "別海町上春別旭町",
+          "basis": "国土地理院 地名検索 API（q=上春別）の結果「別海町上春別旭町」（addressCode 1691）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.677734, 43.19381],
+          "name": "標茶町中チャンベツ（向きの目印）",
+          "basis": "国土地理院 地名検索 API（q=中チャンベツ）の結果「北海道標茶町中チャンベツ」（住所の代表点）の座標をそのまま使用。区間を切る向きの目印（切った後の区間には入らない）。住所の代表点は国道272号から 1.2 km ほど離れており、近くの国道は272号だけであることを地理院地図で確認",
+          "maxSnapM": 1300
+        }
+      ]
+    },
+    {
+      "id": "R240-akan-1",
+      "route": 240,
+      "roadName": {
+        "ja": "国道240号",
+        "en": "Route 240",
+        "zh": "240號國道",
+        "ko": "국도 240호"
+      },
+      "section": {
+        "ja": "釧路市 鶴丘〜阿寒IC〜阿寒町市街",
+        "en": "Kushiro, Tsuruoka – Akan IC – Akan town"
+      },
+      "grade": {
+        "scale": "hkd-r8",
+        "level": 4,
+        "label": "100件以上（要注意区間）"
+      },
+      "confidence": "high",
+      "note": "全道版の要注意区間「一般国道240号 道東自動車道 阿寒IC付近」。釧路・根室地域版でも阿寒IC〜釧路付近が 61〜80 件。",
+      "sources": [
+        {
+          "title": "北海道開発局「エゾシカ衝突事故マップ」令和8年度版（全道版）。要注意区間の名前と段階を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ky/kn/dou_iji/splaat0000003n3x-att/splaat0000003n61.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        },
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [144.210175, 43.047344],
+          "name": "釧路市鶴丘",
+          "basis": "国土地理院 地名検索 API（q=鶴丘）の結果「北海道釧路市鶴丘」（住所の代表点）の座標をそのまま使用。住所の代表点は国道から離れているため、国道240号が鶴丘地区で最も近づく点に落とす",
+          "maxSnapM": 900
+        },
+        {
+          "lonLat": [144.133134996944, 43.0858785641667],
+          "name": "阿寒ＩＣ",
+          "basis": "国土地理院 地名検索 API（q=阿寒IC）の結果「阿寒ＩＣ」（addressCode 1206）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.122986, 43.100388],
+          "name": "釧路市阿寒町仲町",
+          "basis": "国土地理院 地名検索 API（q=阿寒町仲町）の結果「北海道釧路市阿寒町仲町」（住所の代表点）の座標をそのまま使用。住所の代表点は国道から離れている",
+          "maxSnapM": 600
+        }
+      ]
+    },
+    {
+      "id": "R240-akan-2",
+      "route": 240,
+      "roadName": {
+        "ja": "国道240号",
+        "en": "Route 240",
+        "zh": "240號國道",
+        "ko": "국도 240호"
+      },
+      "section": {
+        "ja": "釧路市阿寒町 上徹別〜飽別（山間部）",
+        "en": "Akan-cho, Kami-Teshibetsu – Akubetsu (mountain section)"
+      },
+      "grade": {
+        "scale": "kushiro-r3r7",
+        "level": 3,
+        "label": "41〜60件"
+      },
+      "confidence": "medium",
+      "note": "釧路・根室地域版で国道240号の阿寒〜阿寒湖の山間部に 41〜60 件の円が連なる。そのうち上徹別から飽別まで。",
+      "sources": [
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [144.125986705312, 43.2527250137809],
+          "name": "阿寒町上徹別四十五線",
+          "basis": "国土地理院 地名検索 API（q=上徹別）の結果「阿寒町上徹別四十五線」（addressCode 1206）の座標をそのまま使用。線名の代表点は国道から離れている",
+          "maxSnapM": 600
+        },
+        {
+          "lonLat": [144.091682673396, 43.3040781028486],
+          "name": "阿寒町飽別五十六線",
+          "basis": "国土地理院 地名検索 API（q=飽別）の結果「阿寒町飽別五十六線」（addressCode 1206）の座標をそのまま使用"
+        }
+      ]
+    },
+    {
+      "id": "R241-akanko-1",
+      "route": 241,
+      "roadName": {
+        "ja": "国道241号",
+        "en": "Route 241",
+        "zh": "241號國道",
+        "ko": "국도 241호"
+      },
+      "section": {
+        "ja": "釧路市阿寒町 双湖台〜阿寒湖方面 7.8 km（国道240号との分岐の手前まで）",
+        "en": "Akan-cho, Sokodai – 7.8 km toward Lake Akan (up to the Route 240 junction)"
+      },
+      "grade": {
+        "scale": "kushiro-r3r7",
+        "level": 1,
+        "label": "1〜20件"
+      },
+      "confidence": "low",
+      "note": "釧路・根室地域版で国道241号（阿寒湖〜弟子屈）は 1〜20 件と 21〜40 件の円だけ（低い段階）。どの円が 21〜40 件かは読み取れないため 1〜20 件で入れ、low とした。阿寒湖温泉〜国道240号との分岐（約 4 km）は240号との重複区間で、240号の 41〜60 件の円と重なりうるため入れず、双湖台から阿寒湖温泉に向かう241号を 7.8 km で切り、幅 150 m の帯が分岐（240号）にかからない手前で止めた。",
+      "sources": [
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "cutAtKm": 7.8,
+      "waypoints": [
+        {
+          "lonLat": [144.203350681111, 43.4485599844444],
+          "name": "双湖台",
+          "basis": "国土地理院 地名検索 API（q=双湖台）の結果「双湖台」（addressCode 1206）の座標をそのまま使用"
+        },
+        {
+          "lonLat": [144.100498642617, 43.4345701666333],
+          "name": "阿寒町阿寒湖温泉一丁目（向きの目印）",
+          "basis": "国土地理院 地名検索 API（q=阿寒湖温泉）の結果「阿寒町阿寒湖温泉一丁目（向きの目印）」（addressCode 1206）の座標をそのまま使用。区間を切る向きの目印（切った後の区間には入らない）"
+        }
+      ]
+    },
+    {
+      "id": "R391-toro-1",
+      "route": 391,
+      "roadName": {
+        "ja": "国道391号",
+        "en": "Route 391",
+        "zh": "391號國道",
+        "ko": "국도 391호"
+      },
+      "section": {
+        "ja": "釧路町 達古武〜標茶町 塘路（塘路湖付近）",
+        "en": "Kushiro-cho Takkobu – Shibecha Toro (Lake Toro)"
+      },
+      "grade": {
+        "scale": "kushiro-r3r7",
+        "level": 3,
+        "label": "41〜60件"
+      },
+      "confidence": "low",
+      "note": "釧路・根室地域版で標茶町の塘路湖付近に 41〜60 件程度の円が 1 つ（色が橙寄りで段階の読み取りに自信なし）。全道版には名前が出ていない。",
+      "sources": [
+        {
+          "title": "北海道開発局 釧路開発建設部「エゾシカ注意報（釧路・根室地域版）」。概ね 5 km 区間の円の色（段階）を読み取り、EZO ROAD が国道の中心線上の区間に置いて加工して作成",
+          "url": "https://www.hkd.mlit.go.jp/ks/douro_keikaku/qgmend0000002q0o-att/c86hsb0000002s50.pdf",
+          "license": "公共データ利用規約 第1.0版（PDL1.0）。出典：北海道開発局ウェブサイト",
+          "period": "R3-R7",
+          "modified": true
+        }
+      ],
+      "waypoints": [
+        {
+          "lonLat": [144.500565, 43.089722],
+          "name": "釧路町達古武",
+          "basis": "国土地理院 地名検索 API（q=達古武）の結果「北海道釧路町達古武」（住所の代表点）の座標をそのまま使用。住所の代表点は国道から 400 m ほど離れている",
+          "maxSnapM": 600
+        },
+        {
+          "lonLat": [144.4975333, 43.149825],
+          "name": "塘路",
+          "basis": "国土地理院 地名検索 API（q=塘路）の結果「塘路」（addressCode 1664）の座標をそのまま使用"
+        }
+      ]
+    }
+  ]
+}
