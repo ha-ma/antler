@@ -5,6 +5,18 @@
   "description": "鹿ゾーン GeoJSON と生成スクリプト",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./zones.geojson": "./data/zones.geojson"
+  },
+  "scripts": {
+    "resolve:zones": "tsx scripts/resolve-centerlines.ts",
+    "build:zones": "tsx scripts/build-zones.ts"
+  },
+  "dependencies": {
+    "@antler/schema": "^0.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@antler/alert-ui": "^0.0.0"
   }
 }
