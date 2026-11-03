@@ -21,7 +21,7 @@ ch6-nfr.md「B 遅延」（推論 ≤ 100 ms、目標 ≤ 50 ms）、CLAUDE.md M
 ネットワークも使わない。同期の 1 本ループ）。Tier 判定は推奨で決定。
 
 **範囲外**（別 feature）: 2 フレーム連続・1.5 秒の判定と距離・方向（edge-judge）、WebSocket・フラグ送信（pwa-connect）、
-Capture の保存（edge-capture 以降）、二次確認 VLM（edge-vlm）、Wi-Fi AP、自動起動（B1-1）、起動用の CLI。
+Capture の保存（edge-capture 以降）、L1・L2（edge-l1・edge-l2。旧 B2-3 の二次確認 VLM は 2026-11-03 の変更指示で削除）、YOLO の CoreML の読み込み（edge-l0。`detector.l0`）、Wi-Fi AP、自動起動（B1-1）、起動用の CLI。
 
 ## Example Map
 

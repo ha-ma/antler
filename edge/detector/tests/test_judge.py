@@ -36,10 +36,10 @@ def test_uc1b_間に鹿なしが挟まると数え直す_閾値ちょうどは�
     judge = j()
     feed(judge, [(0, [deer()]), (100, []), (200, [deer()])])
     assert not judge.state.deer
-    feed(judge, [(300, [deer(conf=0.4)])])
+    feed(judge, [(300, [deer(conf=0.8)])])
     assert judge.state.deer
     j2 = j()
-    feed(j2, [(0, [deer(conf=0.39)]), (100, [deer(conf=0.39)])])
+    feed(j2, [(0, [deer(conf=0.79)]), (100, [deer(conf=0.79)])])
     assert not j2.state.deer
 
 
@@ -82,10 +82,10 @@ def test_uc1f_failedは連続を切らず数えない_続けばOFF():
 # UC-1g
 def test_uc1g_複数なら高さ最大の検出で決める():
     judge = j()
-    near, far = deer(conf=0.5, x=0.8, h=0.3), deer(conf=0.95, x=0.1, h=0.05)
+    near, far = deer(conf=0.85, x=0.8, h=0.3), deer(conf=0.95, x=0.1, h=0.05)
     feed(judge, [(0, [far, near]), (100, [far, near])])
     s = judge.state
-    assert (s.conf, s.side) == (0.5, "R")
+    assert (s.conf, s.side) == (0.85, "R")
     assert s.distance_m == estimate_distance_m(0.3, DEFAULT_DISTANCE_TABLE)
 
 

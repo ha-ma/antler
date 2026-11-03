@@ -85,7 +85,7 @@ def test_uc7g_UTF8でないファイルもConfigError(tmp_path):
 # UC-8a
 def test_uc8a_judgeとserverの既定値(tmp_path):
     c = load_config(write(tmp_path, ""))
-    assert (c.judge.threshold, c.judge.off_after_s, c.judge.stall_after_s) == (0.4, 1.5, 3.0)
+    assert (c.judge.threshold, c.judge.off_after_s, c.judge.stall_after_s) == (0.8, 1.5, 3.0)
     assert (c.server.host, c.server.port, c.server.max_clients) == ("127.0.0.1", 8765, 16)
     assert len(c.judge.distance_table) == 5
 
