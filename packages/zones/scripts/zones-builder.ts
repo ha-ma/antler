@@ -4,7 +4,7 @@
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { z } from 'zod'
-import { distanceToPolyline, polylineLengthM, bufferPolyline, type LonLat } from '../src/geo'
+import { polylineGapM, polylineLengthM, bufferPolyline, type LonLat } from '../src/geo'
 import {
   LocalizedRoad,
   ZONE_ID,
@@ -80,7 +80,8 @@ export function buildZoneCollection(input: ZoneSourceFile): ZoneCollection {
 
   const ids = new Set<string>()
   const features: ZoneFeature[] = []
-  for (const zone of [...zones].sort((a, b) => a.id.localeCompare(b.id))) {
+  // 並べ順は環境のロケールに依らない単純な比較で決める（毎回同じバイト列にするため）
+  for (const zone of [...zones].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
     if (ids.has(zone.id)) throw new ZoneBuildError(`${zone.id}: id が重複しています`)
     ids.add(zone.id)
     const centerline = zone.centerline as LonLat[]
@@ -126,14 +127,7 @@ export function buildZoneCollection(input: ZoneSourceFile): ZoneCollection {
   for (const a of features) {
     for (const b of features) {
       if (a === b || a.properties.route !== b.properties.route || a.id > b.id) continue
-      const gap = Math.min(
-        ...b.properties.centerline.map(
-          (p) => distanceToPolyline(p, a.properties.centerline).distanceM,
-        ),
-        ...a.properties.centerline.map(
-          (p) => distanceToPolyline(p, b.properties.centerline).distanceM,
-        ),
-      )
+      const gap = polylineGapM(a.properties.centerline, b.properties.centerline)
       if (gap <= MERGE_GAP_M + 2 * HALF_WIDTH_M) {
         throw new ZoneBuildError(
           `${b.id}: 同じ路線の ${a.id} と ${String(MERGE_GAP_M)} m 以内で続く・重なるので、元データで 1 つにまとめてください`,

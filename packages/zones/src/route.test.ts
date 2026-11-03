@@ -51,6 +51,31 @@ describe('UC-3 ルート沿いの距離', () => {
     expect(plan.intervals.filter((i) => i.zoneIds.includes('R240-test-1'))).toHaveLength(2)
   })
 
+  it('UC-3f: [ADDED code-reviewer] 往復の帰り道では、前回の位置を手がかりに帰り道の上に落とす（行き道と取り違えない）', () => {
+    const roundTrip: LonLat[] = [...ROUTE, ...[...ROUTE].reverse().slice(1)]
+    const plan = planRoute(roundTrip, TEST_ZONES)
+    const p = east(west, 1000)
+    const outbound = measureAlongRoute(plan, p)
+    const inbound = measureAlongRoute(plan, p, plan.totalKm - 4)
+    expect(inbound.positionKm).toBeGreaterThan(outbound.positionKm + 5)
+    expect(inbound.current?.remainingKm).toBeCloseTo(1.15, 1)
+    expect(inbound.next).toBeUndefined()
+  })
+
+  it('UC-3g: [ADDED code-reviewer] positionKm はルートの道のり（cumulativeM）と同じ物差し。頂点の上なら頂点までの道のりと一致する', () => {
+    const long: LonLat[] = [
+      [141.68, 42.79],
+      [142.5, 42.9],
+      [143.2, 42.95],
+      [144.38, 42.98],
+    ]
+    const plan = planRoute(long, TEST_ZONES)
+    for (let i = 0; i < long.length; i++) {
+      const m = measureAlongRoute(plan, long[i] as LonLat)
+      expect(m.positionKm * 1000).toBeCloseTo(plan.cumulativeM[i] ?? -1, 0)
+    }
+  })
+
   it('UC-3e: ルートがどのゾーンも通らない → 次のゾーンなし', () => {
     const far: LonLat[] = [north(west, 5000), north(eastEnd, 5000)]
     const m = measureAlongRoute(planRoute(far, TEST_ZONES), north(west, 5000))

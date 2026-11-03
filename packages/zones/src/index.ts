@@ -40,4 +40,4 @@ export {
   type ZoneFeature,
   type ZoneProperties,
 } from './zone-db'
-export { parseZoneCollection, ZONES_GEOJSON_URL } from './data'
+export { parseZoneCollection, verifyZoneHash, ZONES_GEOJSON_URL } from './data'

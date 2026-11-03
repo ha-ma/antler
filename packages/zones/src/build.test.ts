@@ -8,7 +8,8 @@ import {
   renderZoneCollection,
   ZoneBuildError,
 } from '../scripts/zones-builder'
-import { distanceToPolyline } from './geo'
+import { verifyZoneHash } from './data'
+import { bufferPolyline, distanceToPolyline, fromLocal } from './geo'
 import { ZoneCollectionSchema } from './zone-db'
 import { LINE_A, testSourceFile } from './test-zones'
 
@@ -81,6 +82,42 @@ describe('UC-1 ゾーン DB の生成', () => {
     )
   })
 
+  it('UC-3h: [ADDED code-reviewer] 同じ路線の 2 本が線分の途中で交わる（頂点どうしは遠い）ときも失敗する', () => {
+    const base = testSourceFile()
+    const zone0 = base.zones[0]
+    if (!zone0) throw new Error('見本が空')
+    const northSouth = {
+      ...zone0,
+      centerline: [
+        [144.0, 42.98],
+        [144.0, 43.02],
+      ] as [number, number][],
+    }
+    const eastWest = {
+      ...zone0,
+      id: 'R240-test-2',
+      centerline: [
+        [143.97, 43.0],
+        [144.03, 43.0],
+      ] as [number, number][],
+    }
+    expect(() => buildZoneCollection({ ...base, zones: [northSouth, eastWest] })).toThrow(
+      /R240-test-2.*200 m/,
+    )
+  })
+
+  it('UC-1f: [ADDED code-reviewer] 長さの違う線分の角でも、輪郭は中心線から 150 m を保つ（角の向きを二等分線にする）', () => {
+    const origin: [number, number] = [144.0, 43.0]
+    const line = [
+      [0, 0],
+      [1000, 0],
+      [1000 + 400 * Math.SQRT1_2, 400 * Math.SQRT1_2],
+    ].map((v) => fromLocal(origin, v as [number, number]))
+    for (const p of bufferPolyline(line, 150)) {
+      expect(distanceToPolyline(p, line).distanceM).toBeGreaterThan(148)
+    }
+  })
+
   it('UC-1c: 同じ元データから 2 回作ると同じバイト列。hash は features の sha256', () => {
     const a = renderZoneCollection(buildZoneCollection(testSourceFile()))
     const b = renderZoneCollection(buildZoneCollection(testSourceFile()))
@@ -97,5 +134,15 @@ describe('UC-1 ゾーン DB の生成', () => {
     const parsed = ZoneCollectionSchema.safeParse(JSON.parse(committed))
     expect(parsed.success).toBe(true)
     expect(Buffer.byteLength(committed)).toBeLessThan(500 * 1024)
+  })
+
+  it('UC-1e: [ADDED alert-contract-guard] verifyZoneHash は features から計算し直した sha256 と照合し、手で直したファイルを見つける', async () => {
+    const committed = readFileSync(path.resolve(here, '../data/zones.geojson'), 'utf-8')
+    expect(await verifyZoneHash(committed)).toBe(true)
+    const tampered = JSON.parse(committed) as { features: { properties: { lengthKm: number } }[] }
+    const first = tampered.features[0]
+    if (first) first.properties.lengthKm += 1
+    expect(await verifyZoneHash(tampered)).toBe(false)
+    expect(await verifyZoneHash('{}')).toBe(false)
   })
 })

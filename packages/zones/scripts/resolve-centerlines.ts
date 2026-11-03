@@ -13,13 +13,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
-import {
-  distanceToPolyline,
-  metersBetween,
-  polylineLengthM,
-  toLocal,
-  type LonLat,
-} from '../src/geo'
+import { metersBetween, polylineGapM, polylineLengthM, toLocal, type LonLat } from '../src/geo'
 import { LocalizedRoad, ZONE_ID, ZoneSourceRef } from '../src/zone-db'
 import { HALF_WIDTH_M, MERGE_GAP_M, type ZoneSourceFile } from './zones-builder'
 
@@ -512,10 +506,7 @@ export function sameRouteGaps(zones: ResolvedZone[]): { a: string; b: string; ga
       const a = zones[i] as ResolvedZone
       const b = zones[j] as ResolvedZone
       if (a.route !== b.route) continue
-      const gapM = Math.min(
-        ...b.centerline.map((p) => distanceToPolyline(p, a.centerline).distanceM),
-        ...a.centerline.map((p) => distanceToPolyline(p, b.centerline).distanceM),
-      )
+      const gapM = polylineGapM(a.centerline, b.centerline)
       out.push({ a: a.id, b: b.id, gapM })
     }
   }
@@ -525,7 +516,7 @@ export function sameRouteGaps(zones: ResolvedZone[]): { a: string; b: string; ga
 export function toSourceFile(file: WaypointFile, resolved: ResolvedZone[]): ZoneSourceFile {
   const byId = new Map(resolved.map((r) => [r.id, r]))
   const zones = [...file.zones]
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .flatMap((zone: WaypointZone) => {
       const r = byId.get(zone.id)
       if (!r) return []
@@ -566,7 +557,7 @@ function main() {
   const { resolved, failures } = resolveZones(file, network)
   log('')
   log('id                         長さ km  直線 km  比     点→国道 m')
-  for (const r of [...resolved].sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const r of [...resolved].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) {
     log(
       `${r.id.padEnd(26)} ${(r.lengthM / 1000).toFixed(2).padStart(7)}  ${(r.straightM / 1000).toFixed(2).padStart(7)}  ${r.ratio.toFixed(2).padStart(5)}  ${r.snapsM.map((d) => d.toFixed(0)).join(' / ')}`,
     )

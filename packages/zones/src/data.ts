@@ -13,3 +13,18 @@ export function parseZoneCollection(input: string | unknown): ZoneCollection {
   if (!parsed.success) throw new TypeError(`ゾーン DB の形が違います: ${parsed.error.message}`)
   return parsed.data
 }
+
+/**
+ * ファイルの `hash` が features から計算し直した sha256 と一致するか（手で直した・壊れたファイルを見つける）。
+ * A と B が同じファイルを使っているかの確認にも、この値（`hash`）を比べる。ブラウザと Node の Web Crypto を使う。
+ */
+export async function verifyZoneHash(input: string | unknown): Promise<boolean> {
+  const value: unknown = typeof input === 'string' ? JSON.parse(input) : input
+  if (!value || typeof value !== 'object') return false
+  const { hash, features } = value as { hash?: unknown; features?: unknown }
+  if (typeof hash !== 'string' || !Array.isArray(features)) return false
+  const bytes = new TextEncoder().encode(JSON.stringify(features))
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
+  const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+  return hex === hash
+}

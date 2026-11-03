@@ -15,6 +15,12 @@ export const POOR_ACCURACY_M = 100
 export const STALE_MS = 10_000
 /** 到達予定を出す最低の速さ（km/h） */
 export const ETA_MIN_KMH = 5
+/** 誤差がこれを超えた測位は使わない（m） */
+export const MAX_ACCURACY_M = 1000
+/** これより長い空白のあいだの直線は、通過に数えない（実際の道筋が分からない） */
+export const PASSAGE_MAX_GAP_MS = 120_000
+/** これより小さい動きでは、進む向きを変えない（止まっているときの GPS の揺れ） */
+const DIRECTION_MIN_M = 5
 
 export type Fix = {
   lon: number
@@ -47,6 +53,8 @@ export type ZoneJudgement = {
   passages: string[]
   /** 最後に inside だったゾーン（unknown のあいだも持ち越す。戻ったときに enterZone を立てない） */
   lastInsideZoneId?: string
+  /** inside のとき中心線のどちら向きに進んでいるか（止まって揺れても反転させないために持ち越す） */
+  direction?: 'forward' | 'backward'
   /** 次の呼び出しで使う、最後に使えた測位 */
   lastFix?: Fix
 }
@@ -80,14 +88,23 @@ export function judgeZone({
   previous: ZoneJudgement | null
   zones: ZoneCollection
 }): ZoneJudgement {
-  if (!fix || now - fix.timestamp > STALE_MS) return unknown(previous)
+  if (!fix || !usableFix(fix) || now - fix.timestamp > STALE_MS) return unknown(previous)
   const p: LonLat = [fix.lon, fix.lat]
   if (!inHokkaido(p)) return unknown(previous)
-  const nearest = nearestZone(p, zones)
-  if (!nearest) return unknown(previous)
+  const closest = nearestZone(p, zones)
+  if (!closest) return unknown(previous)
+
+  // 最後に inside だったゾーンがまだ出口側の猶予（200 m）の中なら、別のゾーンが近くてもそちらを続ける
+  // （隣り合うゾーンで zoneId が入れ替わって enterZone が立ち直さないように）。unknown を挟んでも同じ
+  const keptId =
+    previous?.status === 'inside' || previous?.status === 'unknown'
+      ? previous.lastInsideZoneId
+      : undefined
+  const kept = keptId ? zoneProjection(p, zones, keptId) : null
+  const nearest = kept && kept.distanceM <= EXIT_M ? kept : closest
+  const wasInside = nearest.zone.id === keptId
 
   const accuracy = fix.accuracyM ?? 0
-  const wasInside = previous?.status === 'inside' && previous.zoneId === nearest.zone.id
   // ちょうど 150 m を inside にするため、浮動小数の誤差ぶん（1 cm）だけ余裕を持たせる
   const limit = (wasInside ? EXIT_M : ENTER_M) + 0.01
   let inside: boolean
@@ -99,20 +116,23 @@ export function judgeZone({
     inside = nearest.distanceM <= limit
   }
 
-  const passages = crossedZones(previous, p, zones, inside ? nearest.zone.id : undefined)
+  const passages = crossedZones(previous, fix, p, zones, inside ? nearest.zone.id : undefined)
   const { zone } = nearest
   const base = { roadName: zone.properties.roadName, passages, lastFix: fix }
 
   if (inside) {
     const enterZone = previous?.status === 'outside' || previous?.lastInsideZoneId !== zone.id
-    return {
+    const direction = movingDirection(nearest, previous)
+    const j: ZoneJudgement = {
       status: 'inside',
       zoneId: zone.id,
-      remainingKm: remainingKm(nearest, previous),
+      remainingKm: remainingKm(nearest, direction),
       enterZone,
       lastInsideZoneId: zone.id,
       ...base,
     }
+    if (direction) j.direction = direction
+    return j
   }
 
   const distanceKm = Math.max(0, nearest.distanceM - ENTER_M) / 1000
@@ -130,36 +150,65 @@ export function judgeZone({
   return out
 }
 
-/** 進む向きは前回の測位を中心線に落とした位置との差で決める。分からなければ長い方（安全側）。 */
-function remainingKm(n: Nearest, previous: ZoneJudgement | null): number {
+function usableFix(fix: Fix): boolean {
+  const numbers = [fix.lon, fix.lat, fix.timestamp]
+  if (!numbers.every(Number.isFinite)) return false
+  if (
+    fix.accuracyM !== undefined &&
+    (!Number.isFinite(fix.accuracyM) || fix.accuracyM > MAX_ACCURACY_M)
+  ) {
+    return false
+  }
+  return true
+}
+
+function zoneProjection(p: LonLat, zones: ZoneCollection, id: string): Nearest | null {
+  const zone = zones.features.find((z) => z.id === id)
+  return zone ? { zone, ...distanceToPolyline(p, zone.properties.centerline) } : null
+}
+
+/** 進む向きは前回の測位を中心線に落とした位置との差で決める。5 m 未満の動きでは前回の向きを保つ。 */
+function movingDirection(
+  n: Nearest,
+  previous: ZoneJudgement | null,
+): 'forward' | 'backward' | undefined {
+  const prevFix = previous?.lastFix
+  const sameZone = previous?.lastInsideZoneId === n.zone.id
+  if (!prevFix || !sameZone) return undefined
+  const prevAlong = distanceToPolyline(
+    [prevFix.lon, prevFix.lat],
+    n.zone.properties.centerline,
+  ).alongM
+  if (n.alongM > prevAlong + DIRECTION_MIN_M) return 'forward'
+  if (n.alongM < prevAlong - DIRECTION_MIN_M) return 'backward'
+  return previous.direction
+}
+
+/** 向きが分からなければ長い方（安全側）。 */
+function remainingKm(n: Nearest, direction: 'forward' | 'backward' | undefined): number {
   const toEnd = n.totalM - n.alongM
   const toStart = n.alongM
-  const prevFix = previous?.lastFix
-  if (prevFix && previous?.lastInsideZoneId === n.zone.id) {
-    const prevAlong = distanceToPolyline(
-      [prevFix.lon, prevFix.lat],
-      n.zone.properties.centerline,
-    ).alongM
-    if (n.alongM > prevAlong + 1) return toEnd / 1000
-    if (n.alongM < prevAlong - 1) return toStart / 1000
-  }
+  if (direction === 'forward') return toEnd / 1000
+  if (direction === 'backward') return toStart / 1000
   return Math.max(toEnd, toStart) / 1000
 }
 
 /** 前回の測位から今回までの線分が、inside と判定しなかったゾーンを横切ったか（R4）。 */
 function crossedZones(
   previous: ZoneJudgement | null,
+  fix: Fix,
   p: LonLat,
   zones: ZoneCollection,
   insideZoneId: string | undefined,
 ): string[] {
   const prevFix = previous?.lastFix
-  if (!prevFix) return []
+  if (!prevFix || fix.timestamp - prevFix.timestamp > PASSAGE_MAX_GAP_MS) return []
   const q: LonLat = [prevFix.lon, prevFix.lat]
   const out: string[] = []
   for (const zone of zones.features) {
     if (zone.id === insideZoneId) continue
-    if (previous?.status === 'inside' && previous.zoneId === zone.id) continue
+    // 最後に inside だったゾーン（unknown を挟んでも）は、入ったときに数えているので通過にしない
+    if (previous?.lastInsideZoneId === zone.id) continue
     if (segmentDistanceToPolyline(q, p, zone.properties.centerline) <= ENTER_M) out.push(zone.id)
   }
   return out

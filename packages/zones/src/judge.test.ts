@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { judgeZone, toGpsZone, type Fix, type ZoneJudgement } from './judge'
-import { east, LINE_A, north, TEST_ZONES } from './test-zones'
+import { buildZoneCollection } from '../scripts/zones-builder'
+import { east, LINE_A, north, TEST_ZONES, testSourceFile } from './test-zones'
 
 const T = Date.parse('2027-02-15T16:00:00+09:00')
 const mid = LINE_A[1] as [number, number] // 区間 A の中ほど
@@ -35,6 +36,31 @@ describe('UC-2 ゾーンの内外（judgeZone）', () => {
       if (prev.enterZone) enters += 1
     }
     expect(enters).toBe(1)
+  })
+
+  it('UC-2i: [ADDED alert-contract-guard] inside → unknown（測位の欠け）→ 180 m でも inside のまま（出口側の猶予を保つ）', () => {
+    const inside = judge(fixAt(north(mid, 100)))
+    const lost = judge(null, inside)
+    expect(judge(fixAt(north(mid, 180)), lost).status).toBe('inside')
+    expect(judge(fixAt(north(mid, 201)), lost).status).toBe('outside')
+  })
+
+  it('UC-2l: [ADDED code-reviewer] 隣の別路線のゾーンの方が近くても、入っていたゾーンの出口側の猶予（200 m）を保ち、enterZone を立て直さない', () => {
+    const base = testSourceFile()
+    const [zoneA, zoneB] = base.zones
+    if (!zoneA || !zoneB) throw new Error('見本が足りない')
+    // A の 340 m 北を並行して走る別路線
+    const parallel = { ...zoneB, centerline: LINE_A.map((p) => north(p, 340)) }
+    const zones = buildZoneCollection({ ...base, zones: [zoneA, parallel] })
+    const step = (fix: Fix, previous: ZoneJudgement | null) =>
+      judgeZone({ fix, now: T, previous, zones })
+    const inside = step(fixAt(north(mid, 100)), null)
+    expect(inside.zoneId).toBe('R240-test-1')
+    // A から 180 m・隣から 160 m
+    const between = step(fixAt(north(mid, 180)), inside)
+    expect(between.status).toBe('inside')
+    expect(between.zoneId).toBe('R240-test-1')
+    expect(between.enterZone).toBe(false)
   })
 
   it('UC-2c: 東へ 150 m と北へ 150 m がどちらも inside（メートルで測る）', () => {
@@ -98,6 +124,39 @@ describe('UC-2 ゾーンの内外（judgeZone）', () => {
       distanceKm: expect.closeTo(2.0, 2) as unknown as number,
     })
     expect(toGpsZone(judge(null))).toEqual({ status: 'unknown' })
+  })
+})
+
+describe('レビューで足したもの（code-reviewer）', () => {
+  it('UC-4b: [ADDED code-reviewer] トンネルを抜けた直後（inside → unknown → 出口の先で outside）に、同じゾーンを通過にも数えない（二重計上しない）', () => {
+    const west = LINE_A[0] as [number, number]
+    const inside = judge(fixAt(east(west, 3000)))
+    const lost = judge(null, inside)
+    const after = judge(fixAt(east(west, 5000), { timestamp: T + 5000 }), lost, T + 5000)
+    expect(after.status).toBe('outside')
+    expect(after.passages).toEqual([])
+  })
+
+  it('UC-2j: [ADDED code-reviewer] 止まっていて GPS が揺れても、残り km の向きは反転しない（5 m 未満の動きでは向きを保つ）', () => {
+    const west = LINE_A[0] as [number, number]
+    const a = judge(fixAt(east(west, 1000)))
+    const b = judge(fixAt(east(west, 1500)), a)
+    expect(b.remainingKm).toBeCloseTo(2.57, 1)
+    const jitter = judge(fixAt(east(west, 1497)), b)
+    expect(jitter.remainingKm).toBeCloseTo(2.57, 1)
+  })
+
+  it('UC-2k: [ADDED code-reviewer] 誤差が 1 km を超える・時刻や誤差が NaN → unknown', () => {
+    expect(judge(fixAt(mid, { accuracyM: 1500 })).status).toBe('unknown')
+    expect(judge(fixAt(mid, { accuracyM: Number.NaN })).status).toBe('unknown')
+    expect(judge(fixAt(mid, { timestamp: Number.NaN })).status).toBe('unknown')
+  })
+
+  it('UC-4c: [ADDED code-reviewer] 2 分より長い空白のあいだの直線は通過に数えない（実際の道筋が分からない）', () => {
+    const before = judge(fixAt(north(mid, -1000)))
+    const later = T + 121_000
+    const after = judge(fixAt(north(mid, 1000), { timestamp: later }), before, later)
+    expect(after.passages).toEqual([])
   })
 })
 

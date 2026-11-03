@@ -38,7 +38,9 @@ describe('UC-5 光の区分（太陽の高さで決める）', () => {
     )
   })
 
-  it('読めない日時は例外', () => {
+  it('UC-5e: [ADDED code-reviewer] 読めない日時は例外（NaN を黙って dusk にしない）', () => {
     expect(() => lightPeriod('2026-11-16 15:45', KUSHIRO)).toThrow(RangeError)
+    expect(() => lightPeriod(Number.NaN, KUSHIRO)).toThrow(RangeError)
+    expect(() => lightPeriod(new Date('x'), KUSHIRO)).toThrow(RangeError)
   })
 })

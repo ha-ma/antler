@@ -87,6 +87,16 @@ export function segmentDistanceToPolyline(p: LonLat, q: LonLat, line: readonly L
   return best
 }
 
+/** 2 本の折れ線のいちばん近いところの距離 m（線分どうしで測る。途中で交われば 0）。 */
+export function polylineGapM(a: readonly LonLat[], b: readonly LonLat[]): number {
+  let best = Number.POSITIVE_INFINITY
+  for (let i = 0; i + 1 < a.length; i++) {
+    best = Math.min(best, segmentDistanceToPolyline(a[i] as LonLat, a[i + 1] as LonLat, b))
+    if (best === 0) return 0
+  }
+  return best
+}
+
 type V = readonly [number, number]
 
 function segmentSegmentDistance(p: V, q: V, a: V, b: V): number {
@@ -132,8 +142,12 @@ export function bufferPolyline(line: readonly LonLat[], radiusM: number, capStep
   for (let i = 0; i < pts.length; i++) {
     const prev = pts[Math.max(0, i - 1)] as V
     const next = pts[Math.min(pts.length - 1, i + 1)] as V
-    const dx = next[0] - prev[0]
-    const dy = next[1] - prev[1]
+    // 前後の線分の向きを長さ 1 にしてから足す（長さの違う線分で角の二等分線がずれないように）
+    const c0 = pts[i] as V
+    const u0 = i > 0 ? norm([c0[0] - prev[0], c0[1] - prev[1]]) : ([0, 0] as V)
+    const w0 = i < pts.length - 1 ? norm([next[0] - c0[0], next[1] - c0[1]]) : ([0, 0] as V)
+    const dx = u0[0] + w0[0]
+    const dy = u0[1] + w0[1]
     const len = Math.hypot(dx, dy) || 1
     const nx = -dy / len
     const ny = dx / len

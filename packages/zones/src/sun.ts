@@ -10,8 +10,11 @@ const RAD = Math.PI / 180
 
 /** タイムゾーン付きの ISO 8601 か ms を ms にする。タイムゾーンの無い文字列は拒否する（端末の TZ で解釈されるため）。 */
 export function toInstant(at: string | number | Date): number {
-  if (typeof at === 'number') return at
-  if (at instanceof Date) return at.getTime()
+  if (typeof at === 'number' || at instanceof Date) {
+    const ms = typeof at === 'number' ? at : at.getTime()
+    if (!Number.isFinite(ms)) throw new RangeError('日時を読めません')
+    return ms
+  }
   if (!/(?:Z|[+-][0-9]{2}:?[0-9]{2})$/.test(at)) {
     throw new RangeError(
       'タイムゾーン付きの ISO 8601 で渡してください（例 2027-02-15T16:30:00+09:00）',

@@ -1,4 +1,4 @@
-import { distanceToPolyline, metersBetween, type LonLat } from './geo'
+import { distanceToPolyline, metersBetween, toLocal, type LonLat } from './geo'
 import { ENTER_M } from './judge'
 import type { ZoneCollection } from './zone-db'
 
@@ -88,9 +88,49 @@ export type RouteMeasure = {
   next?: { zoneIds: string[]; distanceKm: number; entryKm: number }
 }
 
-/** 現在地をルートに落とし、いまの区間・次の区間までの道のりを返す。 */
-export function measureAlongRoute(plan: RoutePlan, position: LonLat): RouteMeasure {
-  const positionKm = distanceToPolyline(position, plan.route).alongM / 1000
+/** これだけ最短より遠くても、手がかり（前回の位置）に近い区間を選ぶ（往復で行き道と帰り道が重なるとき） */
+const HINT_TOLERANCE_M = 30
+
+/**
+ * 現在地をルートに落とした道のり（km）。道のりは planRoute の cumulativeM と同じ物差しで数える。
+ * hintKm（前回の positionKm）を渡すと、同じくらい近い区間が複数あるとき（往復）に hintKm に近い方を選ぶ。
+ */
+export function projectOnRoute(plan: RoutePlan, position: LonLat, hintKm?: number): number {
+  type Candidate = { distanceM: number; alongM: number }
+  const candidates: Candidate[] = []
+  for (let i = 0; i + 1 < plan.route.length; i++) {
+    const a = toLocal(position, plan.route[i] as LonLat)
+    const b = toLocal(position, plan.route[i + 1] as LonLat)
+    const dx = b[0] - a[0]
+    const dy = b[1] - a[1]
+    const len2 = dx * dx + dy * dy
+    const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, -(a[0] * dx + a[1] * dy) / len2))
+    const startM = plan.cumulativeM[i] ?? 0
+    const endM = plan.cumulativeM[i + 1] ?? startM
+    candidates.push({
+      distanceM: Math.hypot(a[0] + t * dx, a[1] + t * dy),
+      alongM: startM + t * (endM - startM),
+    })
+  }
+  if (candidates.length === 0) return 0
+  const best = Math.min(...candidates.map((c) => c.distanceM))
+  const near = candidates.filter((c) => c.distanceM <= best + HINT_TOLERANCE_M)
+  const pick =
+    hintKm === undefined
+      ? near.reduce((x, y) => (y.distanceM < x.distanceM ? y : x))
+      : near.reduce((x, y) =>
+          Math.abs(y.alongM - hintKm * 1000) < Math.abs(x.alongM - hintKm * 1000) ? y : x,
+        )
+  return pick.alongM / 1000
+}
+
+/** 現在地をルートに落とし、いまの区間・次の区間までの道のりを返す。hintKm は前回の positionKm（往復の取り違え防止）。 */
+export function measureAlongRoute(
+  plan: RoutePlan,
+  position: LonLat,
+  hintKm?: number,
+): RouteMeasure {
+  const positionKm = projectOnRoute(plan, position, hintKm)
   const out: RouteMeasure = { positionKm }
   const current = plan.intervals.find((i) => i.entryKm <= positionKm && positionKm <= i.exitKm)
   if (current) out.current = { zoneIds: current.zoneIds, remainingKm: current.exitKm - positionKm }
