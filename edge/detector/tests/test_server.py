@@ -123,7 +123,7 @@ def test_uc5d_変な入力は無視しサーバーは落ちず何も返さない
                 go_on(hub, clk)
                 assert (await recv_json(ws))["type"] == "flag"
             assert server._cfg.port == 0
-            assert hub._cfg.threshold == 0.4
+            assert hub._cfg.threshold == 0.8
         finally:
             await server.stop()
 

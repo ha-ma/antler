@@ -107,12 +107,13 @@ def test_rule1d_deer_trueのflag_sentにトラッカーの値_falseには付か�
 
 
 # RULE-1e
-def test_rule1e_閾値の既定は0_4_0_8にしてもトラッカーは0_79を追う():
+def test_rule1e_閾値の既定は0_8_0_79は赤にせずトラッカーは追う():
     hub, sent = make_hub()
-    hub.on_result(result(0, deer(conf=0.4)))
-    hub.on_result(result(100, deer(conf=0.4)))
-    assert sent[-1]["deer"] is True
-    l0 = L0Stage(JudgeConfig(threshold=0.8), TrackerConfig())
+    hub.on_result(result(0, deer(conf=0.8)))
+    hub.on_result(result(100, deer(conf=0.8)))
+    assert sent[-1]["deer"] is True  # 0.8 ちょうどは鹿あり
+    assert JudgeConfig().threshold == 0.8
+    l0 = L0Stage(JudgeConfig(), TrackerConfig())
     l0.update(result(0, deer(conf=0.79)), 0.0)
     l0.update(result(100, deer(conf=0.79)), 0.1)
     assert l0.state is not None and l0.state.deer is False

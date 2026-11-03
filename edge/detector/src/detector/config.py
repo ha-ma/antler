@@ -63,7 +63,7 @@ class InferConfig:
 
 @dataclass(frozen=True)
 class JudgeConfig:
-    threshold: float = 0.4
+    threshold: float = 0.8  # 赤の下限。2026-11-03 ユーザー判断（変更指示 B2-3 どおり。edge-l0）
     off_after_s: float = 1.5
     stall_after_s: float = 3.0
     distance_table: tuple[tuple[float, float], ...] = DEFAULT_DISTANCE_TABLE

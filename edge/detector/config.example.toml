@@ -20,7 +20,7 @@ budget_ms = 100
 compute_units = "cpu_and_ne"   # L0 は CPU と Neural Engine（B1-3）。cpu_only | cpu_and_gpu | cpu_and_ne | all
 
 [judge]
-threshold = 0.4       # 赤（2 フレーム連続）の確信度の下限
+threshold = 0.8       # 赤（2 フレーム連続）の確信度の下限。0.4〜0.8 は赤にしない（B2-3）
 off_after_s = 1.5
 stall_after_s = 3.0
 distance_table = [[0.03, 55.0], [0.05, 33.0], [0.10, 16.0], [0.20, 8.0], [0.40, 4.0]]
