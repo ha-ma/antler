@@ -24,11 +24,12 @@ ratchet = false
 checker = "check-hono-architecture.py"
 
 # 共有パッケージ（alert-ui / schema / zones）。担当 人 A。Day 1 午後に schema と alert-ui の API を凍結。
-# React の feature 構成でもHono の層構成でもないので stack のチェッカーは当てない。契約は alert-contract-guard と local rules。
+# alert-ui は React のコンポーネントなので React のチェッカーを流用する（Zustand の置き場所・useEffect 等の規約）。
+# A と B の契約は alert-contract-guard と local rules（dispatch_local_rules.py）が見る。
 [stack.packages]
 dir = "packages"
 ratchet = false
-checker = ""
+checker = "check-react-architecture.py"
 
 # B: Mac Mini 上の検知パイプライン（Python）。担当 人 B。Amptech に該当 stack が無いのでチェッカーなし。
 # 遅延は edge-latency-reviewer、契約は alert-contract-guard。

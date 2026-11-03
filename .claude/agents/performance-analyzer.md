@@ -2,7 +2,7 @@
 name: performance-analyzer
 description: "パフォーマンスボトルネックを特定する。N+1クエリ、メモリリーク、バンドルサイズ、レンダリング最適化の分析に使用。"
 model: sonnet
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Write
 color: orange
 memory: project
 ---
@@ -66,3 +66,9 @@ for user in users:          # クエリ 1
 - 改善効果の見積もりを含める
 - 計測方法も併せて提案する
 - premature optimization を避ける（ボトルネック優先）
+
+## antler: 報告の返し方
+
+結果の全文は `docs/reports/YYYY-MM-DD-<agent名>-<対象>.md` に書く（Write はこのフォルダにだけ使う）。
+呼び出したメインセッションには **レポートのパスと 10 行以内の要約**（Critical / 数値の結論 / 次の一手）だけを返す。
+全文をメッセージに貼らない（メインセッションのコンテキストを守るため。CLAUDE.md「エージェントチームの動かし方」）。
