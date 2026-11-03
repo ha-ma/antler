@@ -6,7 +6,8 @@ import { PERSONA_INPUT } from './input'
 import { buildItinerary } from './itinerary'
 import { formatBudget, initialLang } from './locale'
 import { pleasuresInArea } from './pleasures'
-import { assessRisk } from './risk'
+import { assessRisk, darkShare, monthText, riskLevel, sunsetMs } from './risk'
+import { jstDayIndex } from './dates'
 import { MONTH_FACTORS, STATS } from './stats'
 import type { TripInput } from './types'
 
@@ -63,6 +64,46 @@ describe('UC-4 リスクスコア（assessRisk）', () => {
       readFileSync(path.resolve(here, '../../zones/data/zones.source.json'), 'utf-8'),
     ) as { factors: { months: number[] } }
     expect(MONTH_FACTORS).toEqual(source.factors.months)
+  })
+})
+
+describe('UC-4 の境目（[ADDED code-reviewer]）', () => {
+  it('UC-4d: 「いちばん多い」は係数が最大の月（10 月）だけ。11 月は「多い時期」', () => {
+    const peak = MONTH_FACTORS.indexOf(Math.max(...MONTH_FACTORS)) + 1
+    expect(peak).toBe(10)
+    expect(monthText(10, MONTH_FACTORS[9] ?? 0).ja).toContain('いちばん多い')
+    const nov = monthText(11, MONTH_FACTORS[10] ?? 0)
+    expect(nov.ja).not.toContain('いちばん')
+    expect(nov.ja).toContain('多い時期')
+  })
+
+  it('UC-4e: 区分の境目は 0.6 で「高い」、0.4 で「注意」、それ未満は「低め」', () => {
+    expect(riskLevel(0.6)).toBe('high')
+    expect(riskLevel(0.59)).toBe('caution')
+    expect(riskLevel(0.4)).toBe('caution')
+    expect(riskLevel(0.39)).toBe('low')
+  })
+
+  it('UC-4f: 日没は太陽の高さが 0° を切る時刻（釧路 2/14 は 16:30〜17:00、札幌 7/10 は 19:00 以降）', () => {
+    const hourJst = (ms: number) => (((ms / 3_600_000 + 9) % 24) + 24) % 24
+    const feb = sunsetMs(jstDayIndex('2027-02-14T12:00:00+09:00'), 42.985, 144.381)
+    expect(hourJst(feb)).toBeGreaterThan(16.5)
+    expect(hourJst(feb)).toBeLessThan(17)
+    const jul = sunsetMs(jstDayIndex('2027-07-10T12:00:00+09:00'), 43.062, 141.354)
+    expect(hourJst(jul)).toBeGreaterThan(19)
+  })
+
+  it('UC-4g: 暗い時間の割合は時間で重み付け（暗い 1 時間 ＋ 明るい 3 時間 → 0.25）', () => {
+    const at = (iso: string) => Date.parse(iso)
+    const share = darkShare({
+      days: [],
+      skipped: [],
+      legs: [
+        { day: 1, from: 'cts', to: 'sapporo', startMs: at('2027-02-14T22:00:00+09:00'), hours: 1 },
+        { day: 2, from: 'sapporo', to: 'cts', startMs: at('2027-02-15T10:00:00+09:00'), hours: 3 },
+      ],
+    })
+    expect(share).toBeCloseTo(0.25, 2)
   })
 })
 

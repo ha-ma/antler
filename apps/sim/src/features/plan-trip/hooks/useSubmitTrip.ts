@@ -37,12 +37,13 @@ export function useSubmitTrip(preview: TripPreview): SubmitTrip {
       send(startAttempt(preview.input))
     },
     retry: () => {
-      if (createTrip.isPending) return
+      // いまの入力が不正なら送らない（失敗の前の古い入力を送り直さない）
+      if (createTrip.isPending || !preview.valid) return
       const attempt = pendingAttempt() ?? createTrip.variables
       // 入力が同じなら同じキーで送り直す（api は作り終えた旅を返す）。失敗のあとに入力を直していたら、新しい試みにする
       if (attempt && JSON.stringify(attempt.input) === JSON.stringify(preview.input)) {
         send(attempt)
-      } else if (preview.valid) {
+      } else {
         send(startAttempt(preview.input))
       }
     },

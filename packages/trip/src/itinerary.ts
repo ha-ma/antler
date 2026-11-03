@@ -1,5 +1,5 @@
 import { metersBetween, type LonLat } from '@antler/zones'
-import { jstDayIndex, tripDayCount } from './input'
+import { atHour, dayOf, HOUR_MS, jstDayIndex, tripDayCount } from './dates'
 import { AREA_CIRCUIT, DEPARTURE_PLACE_ID, placeById } from './places'
 import { pleasureById } from './pleasures'
 import type { Itinerary, Leg, Pleasure, TripInput } from './types'
@@ -18,10 +18,6 @@ const ACTIVITY_END_H = 18
 /** 車を受け取る・返す手続きの時間 */
 const HANDOVER_H = 1
 
-const HOUR_MS = 3_600_000
-const DAY_MS = 86_400_000
-const JST_MS = 9 * HOUR_MS
-
 type Chosen = { pleasure: Pleasure; weight: number; order: number }
 type Activity = { id: string; day: number }
 type Schedule = { legs: Leg[]; activities: Activity[]; feasible: boolean }
@@ -36,8 +32,15 @@ export function travelHours(from: string, to: string): number {
   return (km * ROAD_FACTOR) / SPEED_KMH
 }
 
-const dayOf = (ms: number) => Math.floor((ms + JST_MS) / DAY_MS)
-const atHour = (dayIndex: number, hour: number) => dayIndex * DAY_MS - JST_MS + hour * HOUR_MS
+/**
+ * 楽しみを 1 つも入れなくても、出発地から返却地へ返却の 1 時間前までに着けるか（R1）。
+ * 着けない旅（例: 新千歳 10:00 出発・釧路空港 11:30 返却）は入力エラーにする（2026-11-03、推奨で決定）。
+ */
+export function travelFits(input: TripInput): boolean {
+  const start = DEPARTURE_PLACE_ID[input.depart.place]
+  const end = DEPARTURE_PLACE_ID[input.return.place]
+  return simulate(input, [], start, end, jstDayIndex(input.depart.at)).feasible
+}
 
 export function buildItinerary(input: TripInput): Itinerary {
   const start = DEPARTURE_PLACE_ID[input.depart.place]
@@ -58,7 +61,7 @@ export function buildItinerary(input: TripInput): Itinerary {
   }
 
   return {
-    days: toDays(schedule, dayCount, firstDay, start, end),
+    days: toDays(schedule, dayCount, start, end),
     skipped,
     legs: schedule.legs,
   }
@@ -154,10 +157,10 @@ function simulate(
 function toDays(
   schedule: Schedule,
   dayCount: number,
-  firstDay: number,
   start: string,
   end: string,
 ): Itinerary['days'] {
+  // 日付の表示は使う側（sim）が input.depart.at から求める
   const placeAtEndOf = (day: number) =>
     schedule.legs.filter((l) => l.day <= day).reduce<string>((_, l) => l.to, start)
   return Array.from({ length: dayCount }, (_, i) => {
@@ -171,6 +174,4 @@ function toDays(
       stay: last ? null : placeAtEndOf(day),
     }
   })
-  // firstDay は日付の表示に使う側（sim）が input.depart.at から求める
-  void firstDay
 }

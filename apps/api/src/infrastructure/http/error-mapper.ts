@@ -5,6 +5,7 @@ import {
   IdempotencyMismatchError,
   TripInProgressError,
   TripInputError,
+  TripWriterBusyError,
   TripWriterError,
 } from '../../domain/trips/errors/trip-errors.js'
 import { IdempotencyKeyRequiredError } from './validation.js'
@@ -29,6 +30,9 @@ export function toHttpError(error: unknown): HttpError {
   }
   if (error instanceof DailyLimitError) {
     return { status: 429, code: 'DAILY_LIMIT', message: error.message }
+  }
+  if (error instanceof TripWriterBusyError) {
+    return { status: 503, code: 'WRITER_BUSY', message: error.message }
   }
   if (error instanceof TripWriterError) {
     return { status: 502, code: 'WRITER_FAILED', message: error.message }

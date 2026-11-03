@@ -1,5 +1,5 @@
 import type { ResultSet } from '@libsql/client'
-import { and, count, eq, gte } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core'
 import type {
   StoredTrip,
@@ -14,7 +14,7 @@ import * as schema from '../db/schema.js'
 
 type Db = BaseSQLiteDatabase<'async', ResultSet, typeof schema>
 
-const { trips, tripRequests } = schema
+const { trips, tripRequests, tripWriterCalls } = schema
 
 export class DrizzleTripRepository implements TripRepository {
   constructor(private readonly db: Db) {}
@@ -120,11 +120,18 @@ export class DrizzleTripRepository implements TripRepository {
     }
   }
 
-  async countTripsCreatedSince(sinceMs: number): Promise<number> {
+  async countWriterCall(dayStartMs: number): Promise<number> {
+    // 1 つの文（UPSERT ... RETURNING）で数えるので、同時に呼ばれても番号は重ならない
     const rows = await this.db
-      .select({ n: count() })
-      .from(trips)
-      .where(gte(trips.createdAt, sinceMs))
-    return rows[0]?.n ?? 0
+      .insert(tripWriterCalls)
+      .values({ dayStart: dayStartMs, calls: 1 })
+      .onConflictDoUpdate({
+        target: tripWriterCalls.dayStart,
+        set: { calls: sql`${tripWriterCalls.calls} + 1` },
+      })
+      .returning({ calls: tripWriterCalls.calls })
+    const calls = rows[0]?.calls
+    if (calls === undefined) throw new Error('呼び出しの数を数えられませんでした')
+    return calls
   }
 }

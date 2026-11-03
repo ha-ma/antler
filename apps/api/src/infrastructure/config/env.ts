@@ -20,7 +20,8 @@ const corsOrigins = z
   )
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  // 既定は production（付け忘れたときに、エラーの detail を出す側に倒さない）。開発は npm run dev が development を付ける
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
   PORT: z.coerce.number().int().min(1).max(65535).default(8787),
   LOG_LEVEL: z.enum(LOG_LEVELS).default('info'),
   CORS_ORIGINS: corsOrigins,
@@ -28,7 +29,11 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY が無いと旅のしおりを仕上げられない'),
   // 所有者トークン（HMAC）の秘密。変えると発行済みのトークンが全部使えなくなる（R7）
   OWNER_TOKEN_SECRET: z.string().min(32, 'OWNER_TOKEN_SECRET は 32 文字以上の乱数にする'),
-  TRIPS_DAILY_LIMIT: z.coerce.number().int().min(1).default(200),
+  // 1 日（日本時間の暦日）の Claude の呼び出しの上限。作り直しの 1 回・失敗した呼び出しも数える。
+  // 既定 400 は「旅 200 件 × 呼び出し 2 回（最初と作り直し）」
+  CLAUDE_DAILY_CALL_LIMIT: z.coerce.number().int().min(1).default(400),
+  // Claude の同時呼び出しの上限。超えたら 503 WRITER_BUSY
+  CLAUDE_MAX_CONCURRENT_CALLS: z.coerce.number().int().min(1).default(4),
   TRIPS_DB_URL: z.string().min(1).default('file:./data/trips.db'),
   // プロキシの X-Forwarded-For を信じるか。信じるときは右端（直前のプロキシが付けた値）を使う
   TRUST_PROXY: z

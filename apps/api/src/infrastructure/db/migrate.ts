@@ -20,6 +20,10 @@ const STATEMENTS = [
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS trip_writer_calls (
+    day_start INTEGER PRIMARY KEY NOT NULL,
+    calls INTEGER NOT NULL
+  )`,
 ]
 
 export async function ensureSchema(client: Client): Promise<void> {

@@ -22,6 +22,7 @@ import {
   NodeRandomSource,
   NodeSha256Hasher,
 } from '../../security/node-crypto.js'
+import { InProcessConcurrencyLimiter } from '../../system/in-process-concurrency-limiter.js'
 import { createApp } from '../app.js'
 
 // POST /api/trips の e2e（Hono の app.request ＋ 一時ファイルの SQLite。Claude はフェイク）。
@@ -41,7 +42,9 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-function setup(opts: { writer?: ScriptedWriter; dailyLimit?: number } = {}) {
+function setup(
+  opts: { writer?: ScriptedWriter; dailyCalls?: number; slots?: InProcessConcurrencyLimiter } = {},
+) {
   const writer = opts.writer ?? new ScriptedWriter()
   const repo = new DrizzleTripRepository(conn.db)
   const lines: Record<string, unknown>[] = []
@@ -52,12 +55,13 @@ function setup(opts: { writer?: ScriptedWriter; dailyLimit?: number } = {}) {
     trips: repo,
     uow: new DrizzleUnitOfWork(conn.db),
     writer,
+    writerSlots: opts.slots ?? new InProcessConcurrencyLimiter(4),
     random: new NodeRandomSource(),
     hasher: new NodeSha256Hasher(),
     ownerTokens: new HmacSha256TokenSigner('e2e-owner-token-secret-0123456789abcdef'),
     clock: new FixedClock(T0),
     log: new MemoryLog(),
-    dailyLimit: opts.dailyLimit ?? 200,
+    dailyWriterCallLimit: opts.dailyCalls ?? 400,
   })
   const app = createApp({
     logger,
@@ -194,6 +198,20 @@ describe('POST /api/trips', () => {
     expect(await errorCode(notUuid)).toBe('IDEMPOTENCY_KEY_REQUIRED')
   })
 
+  it('Idempotency-Key は UUID v4 だけ（v1・nil は 400）。crypto.randomUUID() は通る', async () => {
+    const { post } = setup()
+    for (const key of [
+      'c232ab00-9414-11ec-b3c8-9f6bdeced846', // v1（時刻由来）
+      '00000000-0000-0000-0000-000000000000',
+      '0b6f6f0e-4f7e-4b0e-1a57-2f1d8f3c9a01', // variant が違う
+    ]) {
+      const res = await post(PERSONA_INPUT, { 'Idempotency-Key': key })
+      expect(res.status).toBe(400)
+      expect(await errorCode(res)).toBe('IDEMPOTENCY_KEY_REQUIRED')
+    }
+    expect((await post(PERSONA_INPUT, { 'Idempotency-Key': crypto.randomUUID() })).status).toBe(201)
+  })
+
   it('IDEM-1: 同じキー・同じ body で 2 回 → 2 回目は同じ旅（Idempotent-Replayed）、Claude は 1 回だけ', async () => {
     const { post, writer } = setup()
     const first = (await (await post(PERSONA_INPUT)).json()) as Created
@@ -256,15 +274,34 @@ describe('POST /api/trips', () => {
     expect((await post(PERSONA_INPUT)).status).toBe(201)
   })
 
-  it('AUTH-2: 1 日の上限に達したあと → 429 DAILY_LIMIT「本日の生成上限に達しました」、Claude を呼ばない', async () => {
-    const { post, writer } = setup({ dailyLimit: 1 })
+  it('AUTH-2: 失敗した呼び出しも数え、1 日の上限に達したあと → 429 DAILY_LIMIT「本日の生成上限に達しました」、Claude を呼ばない', async () => {
+    // 上限 2 回。1 回目は時間切れ（502）、2 回目は成功（201）、3 回目は呼ばずに 429
+    const { post, writer } = setup({
+      writer: new ScriptedWriter([new TripWriterError('timeout')]),
+      dailyCalls: 2,
+    })
+    expect((await post(PERSONA_INPUT)).status).toBe(502)
     expect((await post(PERSONA_INPUT)).status).toBe(201)
     const res = await post(PERSONA_INPUT, { 'Idempotency-Key': KEY_B })
     expect(res.status).toBe(429)
     expect(await res.json()).toMatchObject({
       error: { code: 'DAILY_LIMIT', message: '本日の生成上限に達しました' },
     })
-    expect(writer.calls).toHaveLength(1)
+    expect(writer.calls).toHaveLength(2)
+    const rs = await conn.client.execute('SELECT calls FROM trip_writer_calls')
+    expect(Number(rs.rows[0]?.['calls'])).toBe(3)
+  })
+
+  it('Claude の同時呼び出しの枠が埋まっていたら 503 WRITER_BUSY、Claude を呼ばない', async () => {
+    const slots = new InProcessConcurrencyLimiter(1)
+    const held = slots.tryAcquire()
+    const { post, writer } = setup({ slots })
+    const res = await post(PERSONA_INPUT)
+    expect(res.status).toBe(503)
+    expect(await errorCode(res)).toBe('WRITER_BUSY')
+    expect(writer.calls).toHaveLength(0)
+    held?.()
+    expect((await post(PERSONA_INPUT)).status).toBe(201)
   })
 
   it('AUTH-3: 同じ IP から 1 分に 11 件目 → 429 RATE_LIMITED（別の IP は通る）', async () => {

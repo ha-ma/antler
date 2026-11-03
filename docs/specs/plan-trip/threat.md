@@ -52,7 +52,7 @@
 ## 横断的セキュリティチェック
 
 - [x] CORS: 許可オリジンを `CORS_ORIGINS` で明示（既存。`*` は起動で拒否）
-- [x] レートリミット: `POST /api/trips` に IP あたり 1 分 10 件と全体の 1 日の上限
+- [x] レートリミット: `POST /api/trips` に IP あたり 1 分 10 件（IPv6 は /64 で 1 枠）、全体の 1 日の Claude の呼び出しの上限（失敗も数える）、同時呼び出しの上限
 - [x] エラーメッセージ: 例外は error-mapper で code と短い文だけにする。Claude の応答・スタックトレースは返さない
 - [x] ログマスキング: ownerToken・冪等キー・API キー・Claude の本文を出さない
 - [x] secrets: `ANTHROPIC_API_KEY` は env（`z.string().min(1)`、既定値なし）

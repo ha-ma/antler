@@ -1,5 +1,7 @@
-import { DeparturePlace, IsoDateTime, Lang, Slug, toJst } from '@antler/schema'
+import { DeparturePlace, IsoDateTime, Lang, Slug } from '@antler/schema'
 import { z } from 'zod'
+import { isIsoDateTime, tripDayCount } from './dates'
+import { travelFits } from './itinerary'
 import { pleasureById } from './pleasures'
 import type { TripInput } from './types'
 
@@ -9,17 +11,7 @@ export const MAX_PLEASURES = 10
 export const MAX_TRIP_DAYS = 10
 export const MAX_BUDGET_JPY = 1_000_000
 
-const DAY_MS = 86_400_000
-
-/** JST の暦日の通し番号（1970-01-01 = 0）。 */
-export function jstDayIndex(iso: string): number {
-  return Math.floor(Date.parse(toJst(iso)) / DAY_MS + 9 / 24)
-}
-
-/** 旅の日数（JST の暦日、両端を含む）。 */
-export function tripDayCount(input: Pick<TripInput, 'depart' | 'return'>): number {
-  return jstDayIndex(input.return.at) - jstDayIndex(input.depart.at) + 1
-}
+export { jstDayIndex, tripDayCount } from './dates'
 
 const Endpoint = z.strictObject({ at: IsoDateTime, place: DeparturePlace })
 
@@ -47,6 +39,9 @@ export const TripInputSchema = z
         message: '運転できる人は人数以下',
       })
     }
+    // 日時が読めないときは形の検証が 400 にする。ここで toJst に渡して例外にしない
+    const datesReadable = isIsoDateTime(t.depart.at) && isIsoDateTime(t.return.at)
+    if (!datesReadable) return
     if (Date.parse(t.return.at) <= Date.parse(t.depart.at)) {
       ctx.addIssue({ code: 'custom', path: ['return', 'at'], message: '返却は出発より後' })
     } else if (tripDayCount(t) > MAX_TRIP_DAYS) {
@@ -54,6 +49,12 @@ export const TripInputSchema = z
         code: 'custom',
         path: ['return', 'at'],
         message: `旅は ${String(MAX_TRIP_DAYS)} 日まで`,
+      })
+    } else if (!travelFits(t)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['return', 'at'],
+        message: '返却の 1 時間前までに返却地へ着けない',
       })
     }
     const ids = t.pleasures.map((p) => p.id)

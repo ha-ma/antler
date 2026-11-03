@@ -17,6 +17,13 @@ export const trips = sqliteTable(
   (t) => [index('trips_created_at').on(t.createdAt)],
 )
 
+/** 日（日本時間の暦日）ごとの Claude の呼び出しの数（1 日の上限。作り直し・失敗も数える） */
+export const tripWriterCalls = sqliteTable('trip_writer_calls', {
+  /** 日本時間の暦日の始まり（ms） */
+  dayStart: integer('day_start').primaryKey(),
+  calls: integer('calls').notNull(),
+})
+
 export const tripRequests = sqliteTable('trip_requests', {
   /** 冪等キーのハッシュ（キーそのものは保存しない） */
   keyHash: text('key_hash').primaryKey(),

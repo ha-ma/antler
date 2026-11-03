@@ -13,12 +13,12 @@ describe('DailyLimitPolicy（R9）', () => {
     )
   })
 
-  it('AUTH-2: 当日の件数が上限に達していれば DailyLimitError', () => {
+  it('AUTH-2: 当日の呼び出しの通し番号が上限を超えたら DailyLimitError（上限ちょうどは呼べる）', () => {
     expect(() => {
-      ensureWithinDailyLimit(199, 200)
+      ensureWithinDailyLimit(400, 400)
     }).not.toThrow()
     expect(() => {
-      ensureWithinDailyLimit(200, 200)
+      ensureWithinDailyLimit(401, 400)
     }).toThrow(DailyLimitError)
   })
 })

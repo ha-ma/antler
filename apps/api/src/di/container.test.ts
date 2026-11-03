@@ -1,6 +1,8 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { PERSONA_INPUT } from '@antler/trip'
+import { KEY_A } from '../../tests/factories/trips.js'
 import { EnvError } from '../infrastructure/config/env.js'
 import { buildContainer } from './container.js'
 
@@ -31,8 +33,37 @@ describe('buildContainer', () => {
     const tables = await connection.client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     )
-    expect(tables.rows.map((r) => r['name'])).toEqual(['trip_requests', 'trips'])
+    expect(tables.rows.map((r) => r['name'])).toEqual([
+      'trip_requests',
+      'trip_writer_calls',
+      'trips',
+    ])
     connection.client.close()
+  })
+
+  it('W3: NODE_ENV の既定は production。エラーの detail は development のときだけ応答に出す', async () => {
+    // DB を閉じてから旅を作らせ、想定外の例外（500）を起こす
+    const internalError = async (nodeEnv: string | undefined, file: string) => {
+      const vars: Record<string, string | undefined> = { ...source(file), NODE_ENV: nodeEnv }
+      if (nodeEnv === undefined) delete vars['NODE_ENV']
+      const { app, env, connection } = await buildContainer(vars)
+      connection.client.close()
+      const res = await app.request('/api/trips', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Idempotency-Key': KEY_A },
+        body: JSON.stringify(PERSONA_INPUT),
+      })
+      expect(res.status).toBe(500)
+      const body = (await res.json()) as { error: { code: string; detail?: string } }
+      expect(body.error.code).toBe('INTERNAL_ERROR')
+      return { env, detail: body.error.detail }
+    }
+    const unset = await internalError(undefined, 'unset.db')
+    expect(unset.env.NODE_ENV).toBe('production')
+    expect(unset.detail).toBeUndefined()
+    expect((await internalError('production', 'prod.db')).detail).toBeUndefined()
+    expect((await internalError('test', 'test.db')).detail).toBeUndefined()
+    expect((await internalError('development', 'dev.db')).detail).toEqual(expect.any(String))
   })
 
   it('MIGR-1: 同じデータファイルで 2 回起動しても壊れない', async () => {

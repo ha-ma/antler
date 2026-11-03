@@ -69,6 +69,28 @@ describe('validateTripWriting（R5 出力の検証）', () => {
     expect(codes(w)).toEqual(['emoji@titles.zh'])
   })
 
+  it('UC-5b: 文字種 → ko はハングル・ja はかなか漢字・en は ASCII の英字を含み、zh はかなとハングルを含まない', () => {
+    const cases: [keyof TripWriting['titles'], string][] = [
+      ['ko', 'Eastern Hokkaido trip'], // 訳し忘れ（英語のまま）
+      ['ja', 'Eastern Hokkaido trip'],
+      ['en', '道東の旅'],
+      ['zh', '道東の旅'], // かなが混じる（日本語のまま）
+      ['zh', '도토 여행'],
+    ]
+    for (const [lang, text] of cases) {
+      const w = validWriting({ days })
+      w.titles[lang] = text
+      expect(codes(w)).toEqual([`script@titles.${lang}`])
+    }
+  })
+
+  it('文字種: 正しい言語なら通る（ja はカタカナだけ・漢字だけでもよい、zh は英字の地名を含んでよい）', () => {
+    const w = validWriting({ days })
+    w.titles = { ja: 'オホーツク', en: 'Okhotsk coast', zh: '鄂霍次克 Okhotsk', ko: '오호츠크' }
+    w.dayNotes[0] = { day: 1, note: { ...noteOf(w, 0), ja: '知床' } }
+    expect(codes(w)).toEqual([])
+  })
+
   it('タイトルは 200 字まで、説明は 400 字まで', () => {
     const w = validWriting({ days })
     w.titles.ja = 'あ'.repeat(200)

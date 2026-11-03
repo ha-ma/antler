@@ -71,7 +71,12 @@ function storage(): Storage | null {
 /** 押したときの新しい試み。キーを作り、入力と一緒に残す。 */
 export function startAttempt(input: TripInput): CreateTripAttempt {
   const attempt = { key: crypto.randomUUID(), input }
-  storage()?.setItem(PENDING_KEY, JSON.stringify(attempt))
+  try {
+    storage()?.setItem(PENDING_KEY, JSON.stringify(attempt))
+  } catch (error) {
+    // 容量超過など。残せなくても送信は続ける（同じタブの mutation の変数で再送する）
+    logger.error('plan-trip.session-storage', error)
+  }
   return attempt
 }
 

@@ -26,11 +26,19 @@ export class IdempotencyMismatchError extends TripError {
   }
 }
 
-/** 全体の 1 日の上限（R9） */
+/** 全体の 1 日の上限（R9）。Claude の呼び出しの数で数える */
 export class DailyLimitError extends TripError {
   override name = 'DailyLimitError'
   constructor() {
     super('本日の生成上限に達しました')
+  }
+}
+
+/** Claude の同時呼び出しが上限に達している（費用の濫用の抑え。しばらくして再試行できる） */
+export class TripWriterBusyError extends TripError {
+  override name = 'TripWriterBusyError'
+  constructor() {
+    super('混み合っています。しばらくしてからもう一度試してください')
   }
 }
 

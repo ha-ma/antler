@@ -8,16 +8,17 @@ const base = {
 }
 
 describe('loadEnv', () => {
-  it('既定値を補い、CORS_ORIGINS を配列にする', () => {
+  it('既定値を補い、CORS_ORIGINS を配列にする（NODE_ENV の既定は production）', () => {
     const env = loadEnv({ ...base, CORS_ORIGINS: 'http://localhost:5173, https://ezoroad.example' })
     expect(env).toEqual({
-      NODE_ENV: 'development',
+      NODE_ENV: 'production',
       PORT: 8787,
       LOG_LEVEL: 'info',
       CORS_ORIGINS: ['http://localhost:5173', 'https://ezoroad.example'],
       ANTHROPIC_API_KEY: 'test-key',
       OWNER_TOKEN_SECRET: SECRET,
-      TRIPS_DAILY_LIMIT: 200,
+      CLAUDE_DAILY_CALL_LIMIT: 400,
+      CLAUDE_MAX_CONCURRENT_CALLS: 4,
       TRIPS_DB_URL: 'file:./data/trips.db',
       TRUST_PROXY: false,
     })
@@ -40,20 +41,27 @@ describe('loadEnv', () => {
     ).toHaveLength(32)
   })
 
-  it('TRIPS_DAILY_LIMIT・TRIPS_DB_URL・TRUST_PROXY を読む', () => {
+  it('CLAUDE_DAILY_CALL_LIMIT・CLAUDE_MAX_CONCURRENT_CALLS・TRIPS_DB_URL・TRUST_PROXY を読む', () => {
     expect(
       loadEnv({
         ...base,
-        TRIPS_DAILY_LIMIT: '50',
+        CLAUDE_DAILY_CALL_LIMIT: '50',
+        CLAUDE_MAX_CONCURRENT_CALLS: '2',
         TRIPS_DB_URL: 'file:/var/lib/antler/trips.db',
         TRUST_PROXY: 'true',
       }),
     ).toMatchObject({
-      TRIPS_DAILY_LIMIT: 50,
+      CLAUDE_DAILY_CALL_LIMIT: 50,
+      CLAUDE_MAX_CONCURRENT_CALLS: 2,
       TRIPS_DB_URL: 'file:/var/lib/antler/trips.db',
       TRUST_PROXY: true,
     })
-    expect(() => loadEnv({ ...base, TRIPS_DAILY_LIMIT: '0' })).toThrow(/TRIPS_DAILY_LIMIT/)
+    expect(() => loadEnv({ ...base, CLAUDE_DAILY_CALL_LIMIT: '0' })).toThrow(
+      /CLAUDE_DAILY_CALL_LIMIT/,
+    )
+    expect(() => loadEnv({ ...base, CLAUDE_MAX_CONCURRENT_CALLS: '0' })).toThrow(
+      /CLAUDE_MAX_CONCURRENT_CALLS/,
+    )
     expect(() => loadEnv({ ...base, TRUST_PROXY: 'yes' })).toThrow(/TRUST_PROXY/)
   })
 

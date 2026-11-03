@@ -1,6 +1,6 @@
 import type { Lang } from '@antler/schema'
 import { sunAltitude } from '@antler/zones'
-import { jstDayIndex, tripDayCount } from './input'
+import { DAY_MS, HOUR_MS, JST_MS, jstDayIndex, tripDayCount } from './dates'
 import { AREA_CIRCUIT, placeById } from './places'
 import { pleasureById } from './pleasures'
 import { MONTH_FACTORS, STATS } from './stats'
@@ -34,9 +34,6 @@ const LATE_SUNSET_H = 19
 const DARK_ALTITUDE_DEG = 6
 const SAMPLE_MIN = 15
 
-const HOUR_MS = 3_600_000
-const DAY_MS = 86_400_000
-const JST_MS = 9 * HOUR_MS
 const ORDER: RiskFactor[] = [
   'area',
   'month',
@@ -116,8 +113,8 @@ export function sunsetMs(dayIndex: number, lat: number, lon: number): number {
   return Math.round(lo)
 }
 
-/** 移動を 15 分ごとに見て、太陽の高さが +6° 未満の時間の割合。移動が無ければ 0。 */
-function darkShare(itinerary: Itinerary): number {
+/** 移動を 15 分ごとに見て、太陽の高さが +6° 未満の時間の割合（時間で重み付け）。移動が無ければ 0。 */
+export function darkShare(itinerary: Itinerary): number {
   let total = 0
   let dark = 0
   for (const leg of itinerary.legs) {
@@ -130,8 +127,10 @@ function darkShare(itinerary: Itinerary): number {
       const lat = from.lat + (to.lat - from.lat) * t
       const lon = from.lon + (to.lon - from.lon) * t
       const at = leg.startMs + leg.hours * HOUR_MS * t
-      total += 1
-      if (sunAltitude(at, { lat, lon }) < DARK_ALTITUDE_DEG) dark += 1
+      // 1 つのサンプルが表す時間（移動ごとに区切りの数が違うので、件数でなく時間で足す）
+      const hours = leg.hours / steps
+      total += hours
+      if (sunAltitude(at, { lat, lon }) < DARK_ALTITUDE_DEG) dark += hours
     }
   }
   return total === 0 ? 0 : dark / total
@@ -160,14 +159,23 @@ function areaText(area: TripInput['area']): Localized {
   }
 }
 
-function monthText(month: number, factor: number): Localized {
+export function monthText(month: number, factor: number): Localized {
   const m = String(month)
-  if (factor >= 0.75) {
+  // 「いちばん多い」は係数が最大の月だけ（11 月は多いが最多ではない）
+  if (factor >= Math.max(...MONTH_FACTORS)) {
     return {
       ja: `${m} 月は鹿との事故が 1 年でいちばん多い時期です。`,
       en: `Month ${m} is the peak season for deer collisions.`,
       zh: `${m} 月是一年中鹿隻車禍最多的時期。`,
       ko: `${m}월은 사슴 충돌 사고가 1년 중 가장 많은 시기입니다.`,
+    }
+  }
+  if (factor >= 0.5) {
+    return {
+      ja: `${m} 月は鹿との事故が多い時期です。`,
+      en: `Month ${m} is a high season for deer collisions.`,
+      zh: `${m} 月是鹿隻車禍較多的時期。`,
+      ko: `${m}월은 사슴 충돌 사고가 많은 시기입니다.`,
     }
   }
   return {

@@ -14,6 +14,7 @@ import {
   DailyLimitError,
   IdempotencyMismatchError,
   TripInProgressError,
+  TripWriterBusyError,
   TripWriterError,
 } from '../../../domain/trips/errors/trip-errors.js'
 import {
@@ -26,6 +27,7 @@ import {
   HmacSha256TokenSigner,
   NodeSha256Hasher,
 } from '../../../infrastructure/security/node-crypto.js'
+import { InProcessConcurrencyLimiter } from '../../../infrastructure/system/in-process-concurrency-limiter.js'
 import { CreateTripUseCase } from './create-trip.usecase.js'
 
 const T0 = Date.parse('2026-11-03T12:00:00+09:00')
@@ -38,7 +40,8 @@ function setup(
   opts: {
     writer?: ScriptedWriter
     random?: ScriptedRandom
-    dailyLimit?: number
+    dailyCalls?: number
+    slots?: InProcessConcurrencyLimiter
     secret?: string
   } = {},
 ) {
@@ -46,20 +49,29 @@ function setup(
   const writer = opts.writer ?? new ScriptedWriter()
   const clock = new FixedClock(T0)
   const log = new MemoryLog()
+  const slots = opts.slots ?? new InProcessConcurrencyLimiter(4)
   const usecase = new CreateTripUseCase({
     trips: repo,
     uow: new InMemoryUnitOfWork(repo),
     writer,
+    writerSlots: slots,
     random: opts.random ?? new ScriptedRandom(),
     hasher,
     ownerTokens: new HmacSha256TokenSigner(opts.secret ?? SECRET),
     clock,
     log,
-    dailyLimit: opts.dailyLimit ?? 200,
+    dailyWriterCallLimit: opts.dailyCalls ?? 400,
   })
   const run = (trip: TripInput = PERSONA_INPUT, idempotencyKey = KEY_A) =>
     usecase.execute({ idempotencyKey, trip })
-  return { repo, writer, clock, log, usecase, run }
+  return { repo, writer, clock, log, usecase, run, slots }
+}
+
+const OTHER_KEY = '11111111-2222-4333-8444-555555555555'
+const koEmpty = (req: Parameters<ScriptedWriter['write']>[0]) => {
+  const w = validWriting(req.brief)
+  w.titles.ko = ''
+  return { kind: 'draft' as const, writing: w }
 }
 
 describe('CreateTripUseCase', () => {
@@ -214,12 +226,13 @@ describe('CreateTripUseCase', () => {
       trips: repo,
       uow: new InMemoryUnitOfWork(repo),
       writer: slow,
+      writerSlots: new InProcessConcurrencyLimiter(4),
       random: new ScriptedRandom(),
       hasher,
       ownerTokens,
       clock: new FixedClock(T0),
       log: new MemoryLog(),
-      dailyLimit: 200,
+      dailyWriterCallLimit: 400,
     })
     const first = usecase.execute({ idempotencyKey: KEY_A, trip: PERSONA_INPUT })
     await expect(usecase.execute({ idempotencyKey: KEY_A, trip: PERSONA_INPUT })).rejects.toThrow(
@@ -263,11 +276,6 @@ describe('CreateTripUseCase', () => {
   })
 
   it('UC-5b・FAIL-2: 1 言語だけ空 → 作り直し。2 回とも外れたら TripWriterError、保存しない', async () => {
-    const koEmpty = (req: Parameters<ScriptedWriter['write']>[0]) => {
-      const w = validWriting(req.brief)
-      w.titles.ko = ''
-      return { kind: 'draft' as const, writing: w }
-    }
     const writer = new ScriptedWriter([koEmpty, koEmpty])
     const { run, repo, log } = setup({ writer })
     await expect(run()).rejects.toMatchObject({ reason: 'invalid' })
@@ -291,6 +299,20 @@ describe('CreateTripUseCase', () => {
       'number@titles.ja',
       'forbidden-symbol@titles.ja',
     ])
+  })
+
+  it('UC-5b: 文字種が違う（ko が英語のまま）→ 1 回だけ作り直し、2 回目の結果で成功', async () => {
+    const untranslated = (req: Parameters<ScriptedWriter['write']>[0]) => {
+      const w = validWriting(req.brief)
+      w.titles.ko = w.titles.en
+      return { kind: 'draft' as const, writing: w }
+    }
+    const writer = new ScriptedWriter([untranslated])
+    const { run } = setup({ writer })
+    const out = await run()
+    expect(writer.calls).toHaveLength(2)
+    expect(writer.calls[1]?.previousProblems).toEqual(['script@titles.ko'])
+    expect(out.details.titles.ko).toBe(validWriting({ days: [] }).titles.ko)
   })
 
   it('UC-5: 説明が 1 日ぶん足りない → 外れ扱い', async () => {
@@ -321,27 +343,72 @@ describe('CreateTripUseCase', () => {
     expect(log.has('trip.save.failed')).toBe(true)
   })
 
-  it('AUTH-2・FAIL-5: 1 日の上限に達したら Claude を呼ばずに DailyLimitError、キーは failed', async () => {
-    const { run, writer, repo, log } = setup({ dailyLimit: 1 })
-    await run(PERSONA_INPUT, KEY_A)
-    const other = '11111111-2222-4333-8444-555555555555'
-    await expect(run(PERSONA_INPUT, other)).rejects.toThrow(DailyLimitError)
-    expect(writer.calls).toHaveLength(1)
-    expect(repo.requests.get(keyHash(other))?.status).toBe('failed')
+  it('AUTH-2・FAIL-5: 失敗した呼び出し（検証の外れ 2 回）も数え、上限に達したら Claude を呼ばずに DailyLimitError', async () => {
+    // 上限 2 回。1 つ目の旅は 2 回とも外れて失敗（保存した旅は 0 件）
+    const writer = new ScriptedWriter([koEmpty, koEmpty])
+    const { run, repo, log } = setup({ writer, dailyCalls: 2 })
+    await expect(run(PERSONA_INPUT, KEY_A)).rejects.toThrow(TripWriterError)
+    expect(repo.trips.size).toBe(0)
+    await expect(run(PERSONA_INPUT, OTHER_KEY)).rejects.toThrow(DailyLimitError)
+    expect(writer.calls).toHaveLength(2)
+    expect(repo.requests.get(keyHash(OTHER_KEY))?.status).toBe('failed')
     expect(log.has('trip.daily_limit')).toBe(true)
   })
 
+  it('FAIL-5: 時間切れの呼び出しも数える。failed のキーで作り直しても上限は越えられない', async () => {
+    const writer = new ScriptedWriter([
+      new TripWriterError('timeout'),
+      new TripWriterError('timeout'),
+    ])
+    const { run } = setup({ writer, dailyCalls: 2 })
+    await expect(run()).rejects.toThrow(TripWriterError)
+    await expect(run()).rejects.toThrow(TripWriterError)
+    await expect(run()).rejects.toThrow(DailyLimitError)
+    expect(writer.calls).toHaveLength(2)
+  })
+
+  it('FAIL-5: 作り直しの 1 回の前に上限に達したら、作り直さずに DailyLimitError', async () => {
+    const writer = new ScriptedWriter([koEmpty])
+    const { run, repo } = setup({ writer, dailyCalls: 1 })
+    await expect(run()).rejects.toThrow(DailyLimitError)
+    expect(writer.calls).toHaveLength(1)
+    expect(repo.writerCalls.get(Date.parse('2026-11-03T00:00:00+09:00'))).toBe(2)
+  })
+
   it('1 日の上限に達していても、作り終えた旅の再送は返す', async () => {
-    const { run } = setup({ dailyLimit: 1 })
+    const { run } = setup({ dailyCalls: 1 })
     await run()
     expect((await run()).replayed).toBe(true)
   })
 
   it('1 日の上限は日本時間の暦日で数える（翌日は作れる）', async () => {
-    const { run, clock } = setup({ dailyLimit: 1 })
+    const { run, clock } = setup({ dailyCalls: 1 })
     await run(PERSONA_INPUT, KEY_A)
+    await expect(run(PERSONA_INPUT, OTHER_KEY)).rejects.toThrow(DailyLimitError)
     clock.t = Date.parse('2026-11-04T00:00:00+09:00')
-    const out = await run(PERSONA_INPUT, '11111111-2222-4333-8444-555555555555')
+    const out = await run(PERSONA_INPUT, '22222222-3333-4444-8555-666666666666')
     expect(out.replayed).toBe(false)
+  })
+
+  it('同時呼び出しの枠が埋まっていたら、数えずに TripWriterBusyError（キーは failed）', async () => {
+    const slots = new InProcessConcurrencyLimiter(1)
+    const held = slots.tryAcquire()
+    const { run, writer, repo, log } = setup({ slots })
+    await expect(run()).rejects.toThrow(TripWriterBusyError)
+    expect(writer.calls).toHaveLength(0)
+    expect(repo.writerCalls.size).toBe(0)
+    expect(repo.requests.get(keyHash(KEY_A))?.status).toBe('failed')
+    expect(log.has('trip.writer.busy')).toBe(true)
+    held?.()
+    expect((await run()).replayed).toBe(false)
+  })
+
+  it('同時呼び出しの枠は、成功しても失敗しても返す', async () => {
+    const writer = new ScriptedWriter([new TripWriterError('upstream')])
+    const { run, slots } = setup({ writer, slots: new InProcessConcurrencyLimiter(1) })
+    await expect(run()).rejects.toThrow(TripWriterError)
+    expect(slots.inUse).toBe(0)
+    await run()
+    expect(slots.inUse).toBe(0)
   })
 })

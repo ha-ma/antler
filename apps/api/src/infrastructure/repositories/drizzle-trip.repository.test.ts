@@ -73,7 +73,11 @@ describe('ensureSchema', () => {
     const tables = await conn.client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     )
-    expect(tables.rows.map((r) => r['name'])).toEqual(['trip_requests', 'trips'])
+    expect(tables.rows.map((r) => r['name'])).toEqual([
+      'trip_requests',
+      'trip_writer_calls',
+      'trips',
+    ])
     expect(await repo.findTrip(plan.id)).not.toBeNull()
   })
 })
@@ -95,13 +99,13 @@ describe('DrizzleTripRepository', () => {
     )
   })
 
-  it('当日の件数は作成時刻で数える', async () => {
-    await repo.insertTrip(stored({ createdAtMs: T0 - 1 }))
-    await repo.insertTrip(
-      stored({ plan: { ...plan, id: 'Zz9yXx8w' }, details: { ...details, tripId: 'Zz9yXx8w' } }),
-    )
-    expect(await repo.countTripsCreatedSince(T0)).toBe(1)
-    expect(await repo.countTripsCreatedSince(T0 - 1)).toBe(2)
+  it('AUTH-2: Claude の呼び出しを日ごとに数え、同時に数えても番号が重ならない', async () => {
+    const day = T0
+    const numbers = await Promise.all(Array.from({ length: 10 }, () => repo.countWriterCall(day)))
+    expect([...numbers].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(await repo.countWriterCall(day)).toBe(11)
+    // 別の日は 1 から
+    expect(await repo.countWriterCall(day + 86_400_000)).toBe(1)
   })
 
   it('CONC-1: 同じキーの pending は片方だけが作れる', async () => {

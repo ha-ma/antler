@@ -126,3 +126,29 @@ describe('UC-3 しおりの組み立て（buildItinerary）', () => {
     expect(buildItinerary(PERSONA_INPUT)).toEqual(buildItinerary(structuredClone(PERSONA_INPUT)))
   })
 })
+
+describe('UC-1 の追加（[ADDED code-reviewer]）', () => {
+  it('UC-1e: 移動だけでも返却の 1 時間前に着けない旅（新千歳 10:00 出発・釧路空港 11:30 返却）は入力エラー', () => {
+    const tooShort = with_({
+      depart: { at: '2027-02-14T10:00:00+09:00', place: 'CTS' },
+      return: { at: '2027-02-14T11:30:00+09:00', place: 'KUH' },
+      pleasures: [],
+    })
+    const result = TripInputSchema.safeParse(tooShort)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues[0]?.path).toEqual(['return', 'at'])
+    // 同じ場所に返すなら移動が無いので、受け取り 1 時間＋返却 1 時間の 2 時間があれば通る
+    const sameAirport = with_({
+      depart: { at: '2027-02-14T10:00:00+09:00', place: 'CTS' },
+      return: { at: '2027-02-14T12:00:00+09:00', place: 'CTS' },
+      pleasures: [],
+    })
+    expect(TripInputSchema.safeParse(sameAirport).success).toBe(true)
+  })
+
+  it('UC-1f: 読めない日時は例外にせず入力エラー（api が 500 でなく 400 を返すため）', () => {
+    const bad = with_({ depart: { at: '2027-02-14 10:00', place: 'CTS' } })
+    expect(() => TripInputSchema.safeParse(bad)).not.toThrow()
+    expect(TripInputSchema.safeParse(bad).success).toBe(false)
+  })
+})

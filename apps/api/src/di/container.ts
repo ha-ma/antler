@@ -16,6 +16,7 @@ import {
   NodeRandomSource,
   NodeSha256Hasher,
 } from '../infrastructure/security/node-crypto.js'
+import { InProcessConcurrencyLimiter } from '../infrastructure/system/in-process-concurrency-limiter.js'
 import { SystemClock } from '../infrastructure/system/system-clock.js'
 
 // Composition Root。全層を組み立てる唯一の場所。
@@ -38,12 +39,13 @@ export async function buildContainer(
     trips,
     uow: new DrizzleUnitOfWork(connection.db),
     writer: new ClaudeTripWriterGateway(anthropic.messages, logger),
+    writerSlots: new InProcessConcurrencyLimiter(env.CLAUDE_MAX_CONCURRENT_CALLS),
     random: new NodeRandomSource(),
     hasher: new NodeSha256Hasher(),
     ownerTokens: new HmacSha256TokenSigner(env.OWNER_TOKEN_SECRET),
     clock: new SystemClock(),
     log: logger,
-    dailyLimit: env.TRIPS_DAILY_LIMIT,
+    dailyWriterCallLimit: env.CLAUDE_DAILY_CALL_LIMIT,
   })
 
   const app = createApp({
@@ -57,7 +59,8 @@ export async function buildContainer(
         },
       },
     ],
-    exposeErrorDetails: env.NODE_ENV !== 'production',
+    // 例外のメッセージ（detail）を応答に出すのは development だけ（test・production・未設定では出さない）
+    exposeErrorDetails: env.NODE_ENV === 'development',
     trips: {
       createTrip,
       rateLimitKey: clientIpKey({

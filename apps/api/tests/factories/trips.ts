@@ -105,6 +105,8 @@ export class MemoryLog implements EventLog {
 export class InMemoryTripRepository implements TripRepository {
   requests = new Map<string, TripRequest>()
   trips = new Map<string, StoredTrip>()
+  /** 日の始まり（ms）ごとの Claude の呼び出しの数 */
+  writerCalls = new Map<number, number>()
   failInsertTrip: Error | null = null
 
   insertPendingRequest(row: { keyHash: string; bodyHash: string; nowMs: number }) {
@@ -163,8 +165,10 @@ export class InMemoryTripRepository implements TripRepository {
   findTrip(id: string) {
     return Promise.resolve(this.trips.get(id) ?? null)
   }
-  countTripsCreatedSince(sinceMs: number) {
-    return Promise.resolve([...this.trips.values()].filter((t) => t.createdAtMs >= sinceMs).length)
+  countWriterCall(dayStartMs: number) {
+    const calls = (this.writerCalls.get(dayStartMs) ?? 0) + 1
+    this.writerCalls.set(dayStartMs, calls)
+    return Promise.resolve(calls)
   }
 }
 

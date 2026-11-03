@@ -28,6 +28,9 @@ export interface TripRepository {
   /** 旅を保存する。id が既存の旅と衝突したら TripIdCollisionError */
   insertTrip(trip: StoredTrip): Promise<void>
   findTrip(id: string): Promise<StoredTrip | null>
-  /** sinceMs 以降に作られた旅の件数（1 日の上限に使う） */
-  countTripsCreatedSince(sinceMs: number): Promise<number>
+  /**
+   * その日（dayStartMs で始まる日本時間の暦日）の Claude の呼び出しを 1 つ数え、
+   * 数えたあとの当日の通し番号（1 始まり）を返す。同時に呼ばれても番号は重ならない（1 日の上限に使う）
+   */
+  countWriterCall(dayStartMs: number): Promise<number>
 }

@@ -99,3 +99,14 @@ Claude の gateway: `claude-sonnet-5-5`、`max_tokens: 4000`、`thinking: {type:
 - `apps/api/CLAUDE.md` の「application は domain のみ」に対し、usecase が `@antler/trip`・`@antler/schema` を import している（仕様の Rule→語彙対応どおり。ESLint は通る）
 - SQLite の同時書き込み（別接続のトランザクション）で `SQLITE_BUSY` の待ちを設定していない。1 プロセス・少量の前提
 - 冪等キーの行と旅の行の削除（24 時間後・保持期間）は未実装（Deferred のまま）
+
+## 追記: PR 前のレビュー指摘への対応（docs/reports/2026-11-03-security-plan-trip.md）
+
+vitest 14 ファイル・125 件通過、tsc・eslint エラーなし。コミットしていない。
+
+- **W1（1 日の上限）**: 数えるのを「保存した旅」から「Claude の呼び出し」に変えた。新しい表 `trip_writer_calls(day_start, calls)` に、呼び出しのたびに `UPSERT ... RETURNING` で当日の通し番号を進める（同時でも重ならない）。作り直しの 1 回・時間切れ・検証で外れた呼び出しも数える。番号が上限を超えたら呼ばずに 429 DAILY_LIMIT（作り直しの直前でも）。env は `TRIPS_DAILY_LIMIT` を廃止し、`CLAUDE_DAILY_CALL_LIMIT`（既定 400 = 旅 200 件 × 2 回）にした。同時呼び出しは `CLAUDE_MAX_CONCURRENT_CALLS`（既定 4）で、空きが無ければ数えずに 503 `WRITER_BUSY`（`TripWriterBusyError`、port `ConcurrencyLimiter`、実装 `InProcessConcurrencyLimiter`）。repository の `countTripsCreatedSince` は削除。SDK の自動再試行（maxRetries 1）は 1 回の呼び出しの中なので数に入らない（実際の HTTP 呼び出しは最大で上限の 2 倍）
+- **W2**: レート制限の Map を窓ごとに掃除し、鍵の数に上限（既定 10,000、超えたら古いものから忘れる）。`rateLimitBucket` で IPv6 を /64 に、IPv4 を写した IPv6 を IPv4 にまとめる。`.env.example` に TRUST_PROXY の使い分け（プロキシの段数・偽装の危険・real_ip）を書いた
+- **W3**: `NODE_ENV` の既定を `production` に。`npm run dev` は `NODE_ENV=development tsx watch src/index.ts`。detail を出すのは `NODE_ENV === 'development'` だけで、未設定・test・production では出ないことを container のテストで確かめた（DB を閉じて 500 を起こす）
+- **Info**: `Idempotency-Key` を `z.uuidv4()` に（v1・nil・variant 違いは 400）
+- **契約 W-2**: `validateTripWriting` に文字種の検査（code `script`）。ko はハングル、ja はかなか漢字、en は ASCII の英字を含む。zh はかなとハングルを含まない。外れたら他の検証と同じく 1 回だけ作り直す
+- 仕様（functional.md R9・resilience.md・threat.md）の env 名と「呼び出しで数える」「503 WRITER_BUSY」の文言は未反映（コーディネーターが直す）

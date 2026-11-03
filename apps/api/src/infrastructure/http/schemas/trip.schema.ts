@@ -7,6 +7,7 @@ import { z } from 'zod'
 
 export const createTripBodySchema = TripInputSchema
 
+// 冪等キーは端末が crypto.randomUUID() で作る UUID v4 だけ（推測できない 122 ビットの乱数。v1 などの時刻由来は拒否）
 export const createTripHeadersSchema = z.object({
-  'idempotency-key': z.uuid(),
+  'idempotency-key': z.uuidv4(),
 })
