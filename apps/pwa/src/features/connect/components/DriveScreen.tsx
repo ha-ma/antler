@@ -73,9 +73,8 @@ export function DriveScreen({
     wake.failed && ['no-wake-lock', text.noWakeLock],
   ].filter((n): n is [string, string] => Array.isArray(n))
 
-  const j = view.judgement
-  const route = j?.status === 'inside' || j?.status === 'outside' ? j.roadName?.[lang] : undefined
-  const eta = j?.status === 'outside' && j.eta ? clockOf(j.eta) : undefined
+  const route = view.roadName?.[lang]
+  const eta = view.eta ? clockOf(view.eta) : undefined
 
   return (
     // 出発でボタンが消えるので、フォーカスをこの領域に移す（キーボード・スクリーンリーダーの位置が失われない）

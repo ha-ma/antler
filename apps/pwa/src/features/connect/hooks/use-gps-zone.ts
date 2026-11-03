@@ -6,6 +6,7 @@ import {
   toGpsZone,
   type Fix,
   type ZoneCollection,
+  type RoadName,
   type ZoneJudgement,
 } from '@antler/zones'
 import { useEffect, useState } from 'react'
@@ -14,7 +15,10 @@ import { watchFixes, type GeoWatch } from '../lib/gps'
 export type GpsView = {
   /** deriveAlertState に渡す GPS 側の判定 */
   gps: GpsZone
-  judgement: ZoneJudgement | null
+  /** 画面に出す路線名（4 言語）。座標を含む判定の結果そのものは返さない */
+  roadName: RoadName | undefined
+  /** outside のときの到達予定（JST の ISO 8601） */
+  eta: string | undefined
   /** 許可はあるが、10 秒たっても測位が無い・測位が古くなった */
   lost: boolean
   /** 誤差が 100 m を超えて inside（残り km を出さない） */
@@ -23,7 +27,7 @@ export type GpsView = {
   denied: boolean
 }
 
-type Track = { fix: Fix | null; denied: boolean }
+type Track = { fix: Fix | null; denied: boolean; startedAt: number }
 
 function sameJudgement(a: ZoneJudgement | null, b: ZoneJudgement | null): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
@@ -45,16 +49,19 @@ export function useGpsZone({
   zones: ZoneCollection | null
   now: number
 }): GpsView {
-  const [startedAt] = useState(() => Date.now())
-  const [track, setTrack] = useState<Track>({ fix: null, denied: false })
+  const [track, setTrack] = useState<Track>(() => ({
+    fix: null,
+    denied: false,
+    startedAt: Date.now(),
+  }))
   const [previous, setPrevious] = useState<ZoneJudgement | null>(null)
 
   // 位置の購読（外部の GPS との同期）
   // eslint-disable-next-line no-restricted-syntax -- 購読
   useEffect(() => {
     if (!enabled) return undefined
-    // 許可が戻って購読し直したとき、前の許可なしの記録を引きずらない
-    setTrack((t) => (t.denied ? { ...t, denied: false } : t))
+    // 購読を始める（許可が戻って始め直したときも）。前の許可なしの記録と、待ち始めの時刻を引きずらない
+    setTrack({ fix: null, denied: false, startedAt: Date.now() })
     return watchFixes(
       geo,
       (fix) => {
@@ -75,7 +82,7 @@ export function useGpsZone({
     enabled &&
     !track.denied &&
     (lastFix === null
-      ? now - startedAt > STALE_MS
+      ? now - track.startedAt > STALE_MS
       : now - lastFix.timestamp > STALE_MS || judgement?.status === 'unknown')
 
   const poorAccuracy =
@@ -85,5 +92,10 @@ export function useGpsZone({
   // 誤差が大きいときは残り km を出さない（zones W-3）。琥珀は保つ
   if (poorAccuracy) gps = { status: 'inside' }
 
-  return { gps, judgement, lost, poorAccuracy, denied: track.denied }
+  const roadName =
+    judgement?.status === 'inside' || judgement?.status === 'outside'
+      ? judgement.roadName
+      : undefined
+  const eta = judgement?.status === 'outside' ? judgement.eta : undefined
+  return { gps, roadName, eta, lost, poorAccuracy, denied: track.denied }
 }
