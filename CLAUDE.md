@@ -162,7 +162,7 @@ AMPTECH=../Amptech_AI_docs sh scripts/setup-from-amptech.sh   # ハーネスの�
 - コミット前に `.githooks/pre-commit` が、ステージしたファイルの Prettier・ESLint（workspace ごと）・ruff と、全体の型チェックを回す
 - PR と main への push で `.github/workflows/checks-on-pr.yml` が `local-ci.py --ci` を回す
 - ESLint の設定は `scripts/templates/eslint.*.config.js` が正（Amptech の設定は各 app の `eslint.amptech.config.js`。直接直さない）
-- `dataset/` の検査はまだテストが無いので `required = false`・`ci = false`。学習スクリプトの cycle でテストができたら消す
+- `dataset/` の検査（ruff・pytest）は edge-l1-calibration でテストができたので必須（CI でも回す）。`detector` を import するので `pip install -e "edge/detector[dev]"` が要る。sfad-done のテストにも入っている
 - ログの決まりは `docs/adr/001-logging-strategy.md`
 
 ## ブランチ運用

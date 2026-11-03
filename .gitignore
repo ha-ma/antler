@@ -45,3 +45,7 @@ dataset/raw/
 
 # zones の生成に使う道路データ（国の配布サイトから取得。リポジトリに入れない）
 packages/zones/data/cache/
+
+# L1 の校正の生成物（edge-l1-calibration）。合成で学んだ温度が実機に残ると偽の温度で赤が下がるので入れない
+dataset/out/
+edge/detector/calibration.json
