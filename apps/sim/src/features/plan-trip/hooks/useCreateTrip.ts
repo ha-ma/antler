@@ -47,9 +47,11 @@ export class CreateTripError extends Error {
     this.status = status
   }
 
-  /** 画面の文言の種類。429（IP あたり・全体の 1 日）は「本日の生成上限」。 */
+  /** 画面の文言の種類。429（IP あたり・全体の 1 日）は「本日の生成上限」、応答が無いのは「つながらない」。 */
   get failure(): CreateTripFailure {
-    return this.status === 429 ? 'limit' : 'failed'
+    if (this.status === 429) return 'limit'
+    if (this.status === null) return 'unreachable'
+    return 'failed'
   }
 }
 
