@@ -5,8 +5,8 @@
   "description": "EZO ROAD A API（Hono）",
   "type": "module",
   "scripts": {
-    "dev": "NODE_ENV=development tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "NODE_ENV=development tsx watch --env-file-if-exists=.env src/index.ts",
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
     "build": "tsc --noEmit",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
