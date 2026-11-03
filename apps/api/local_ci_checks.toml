@@ -14,20 +14,20 @@ tool_probes = [
 name = "tsc"
 cmd = ["npx", "--no-install", "tsc", "--noEmit"]
 needs = "npx"
-needs_path = "node_modules"
+needs_path = "../../node_modules"
 hint = "npm ci"
 
 [[check]]
 name = "eslint"
 cmd = ["npx", "--no-install", "eslint", "src/"]
 needs = "npx"
-needs_path = "node_modules"
+needs_path = "../../node_modules"
 hint = "npm ci"
 
 [[check]]
 name = "vitest"
 cmd = ["npx", "--no-install", "vitest", "run"]
 needs = "npx"
-needs_path = "node_modules"
+needs_path = "../../node_modules"
 hint = "npm ci"
 timeout = 1800

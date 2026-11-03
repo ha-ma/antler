@@ -1,0 +1,19 @@
+#!/bin/sh
+# コミット前の検査（/sfad init Phase 3）。clone ごとに `sh scripts/setup.sh` で core.hooksPath を .githooks にすると効く。
+# 1. ステージしたファイルだけ: Prettier → ESLint（workspace ごと）、Python は ruff（lint-staged、package.json の設定）
+# 2. 型チェックは全体（差分だけの型チェックはできないため）
+# 失敗したらコミットを止める。push 前の全検査は .githooks/pre-push（local-ci の記録）。
+set -eu
+root="$(git rev-parse --show-toplevel)"
+cd "$root"
+
+if [ ! -d node_modules ]; then
+  echo "pre-commit: node_modules がありません。案件のルートで npm ci を実行してください" >&2
+  exit 1
+fi
+
+npx --no-install lint-staged
+
+if git diff --cached --name-only | grep -Eq '\.(ts|tsx)$'; then
+  npm run --silent typecheck
+fi

@@ -1,0 +1,10 @@
+{
+  "name": "@antler/schema",
+  "private": true,
+  "version": "0.0.0",
+  "description": "TripPlan / AlertFlag / Capture の型と JSON Schema",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

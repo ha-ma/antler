@@ -1,0 +1,10 @@
+{
+  "name": "@antler/alert-ui",
+  "private": true,
+  "version": "0.0.0",
+  "description": "A と B が共有する 3 状態アラート（AlertState）・音源・トークン",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

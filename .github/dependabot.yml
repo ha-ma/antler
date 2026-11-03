@@ -1,0 +1,19 @@
+# 依存の脆弱性と更新を週 1 回確かめる（/sfad init Phase 11）。
+# npm は workspaces でルートの package-lock.json にまとまるので、ルート 1 か所で apps/* と packages/* を覆う。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-tools:
+        dependency-type: development
+  - package-ecosystem: pip
+    directory: /edge/detector
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

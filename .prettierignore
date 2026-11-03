@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+# 写し（原本を直して再エクスポートする）と Amptech 由来のファイルは整形しない
+docs/requirements/
+docs/design/
+.claude/
+apps/*/docs/
+apps/*/CLAUDE.md
+CLAUDE.md
+apps/*/eslint.amptech.config.js
+docs/local-ci.md
+local_ci_checks.toml.example
+routes.toml.example
+.github/workflows/checks.yml
+.github/workflows/checks-on-pr.yml.example

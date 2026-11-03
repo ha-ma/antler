@@ -30,3 +30,10 @@ name = "antler hooks"
 stack = "common"
 cmd = ["{PYTHON}", "scripts/tests/test_antler_hooks.py"]
 hint = ".claude/hooks/dispatch_local_rules.py か ch9-status.py を直す"
+
+# SFAD: 仕様とコードの乖離（STALE / THREAT GAP / COVERAGE GAP など）。/sfad init Phase 11.5
+[[check]]
+name = "sfad drift"
+stack = "common"
+cmd = ["{PYTHON}", ".claude/hooks/sfad-drift.py"]
+hint = "/sfad drift で中身を確かめ、仕様かコードを直す"
