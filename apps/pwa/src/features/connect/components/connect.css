@@ -183,6 +183,22 @@
   color: var(--ink-muted);
 }
 
+.drive__route {
+  flex: none;
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  text-align: center;
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: var(--label-weight);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+
+.drive__route[data-visible='false'] {
+  display: none;
+}
+
 .drive__alert {
   display: flex;
   flex: 1;

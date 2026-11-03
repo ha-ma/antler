@@ -2,6 +2,7 @@ import { resolveLang } from '@antler/alert-ui'
 import { useRef, useState } from 'react'
 import { useEdgeConnection } from '../hooks/use-edge-connection'
 import { useLocationState } from '../hooks/use-location-state'
+import { useZones } from '../hooks/use-zones'
 import { useNow } from '../hooks/use-now'
 import { useSoundLifecycle } from '../hooks/use-sound-lifecycle'
 import { CONNECT_TEXT } from '../i18n'
@@ -30,6 +31,7 @@ export function ConnectFlow({ services }: { services?: ConnectServices }) {
   const { snapshot, sendAck } = useEdgeConnection(svc.url, svc.createSocket)
   const now = useNow()
   const location = useLocationState(svc.location)
+  const { zones, failed: zonesFailed } = useZones(svc.loadZones)
   const lang = resolveLang(svc.languages)
   const text = CONNECT_TEXT[lang]
 
@@ -77,6 +79,10 @@ export function ConnectFlow({ services }: { services?: ConnectServices }) {
           sound={svc.sound}
           noSound={noSound}
           sendAck={sendAck}
+          geo={svc.geo}
+          wakeLock={svc.wakeLock}
+          zones={zones}
+          zonesFailed={zonesFailed}
         />
       )}
     </div>
