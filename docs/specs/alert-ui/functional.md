@@ -4,7 +4,7 @@ target_paths:
   - packages/schema/
   - packages/alert-ui/
   - edge/detector/tests/test_schema_contract.py
-spec_confirmed_at: a8ff5db
+spec_confirmed_at: f552526
 tier: 2
 ---
 
@@ -66,7 +66,9 @@ Story: A の車内スマホを見るプレイヤーと B の PWA を見るドラ
 - R10: 支援技術に状態を伝える
   - danger は割り込みで、入ったときの 1 回だけ「前方に鹿 左 58 メートル」のように伝える。距離が変わっても読み直させない
   - safe / zone は状態が変わったときだけ穏やかに伝える
-  - 文字のコントラストは 4.5:1 以上（on-alert-* と alert-* の組み合わせ）
+  - 文字のコントラストは safe / zone で 4.5:1 以上（on-alert-* と alert-* の組み合わせ）
+  - [ADDED 2026-11-03・仮採用・ユーザー確認待ち] danger（#E2492C × #FFFFFF）は計算すると 4.02:1 で、ch5 の「4.5:1 以上（確認済み）」に届かない。
+    トークンは変えず、danger の文字をすべて WCAG の「大きな文字」（24px 以上、または 19px 以上の太字）にして 3:1 以上で満たす
 - R11: 受信時はゆるく読む（契約テストは厳しく、受信は deer を最優先）
   - deer:true で他の項目が壊れている → danger として読む（距離は無し → 「--」）
   - JSON でない・type が flag でない → 無視（前の状態のまま）
@@ -189,126 +191,136 @@ Questions は全問決着（2026-11-03、ユーザー回答「全部推奨で」
 
 外側ループ（受け入れ）:
 
-- [ ] AC-1: ch7 の AlertFlag の例を `readAlertFlag` → `deriveAlertState` → `AlertState` に通すと、B と A（compact）の両方で danger・58 m・左矢印・「前方に鹿」が出て、ビープ 2 回のあと読み上げが 1 回鳴る
-- [ ] AC-2: フラグなし・GPS がゾーン内 → zone とチャイム 1 回。ゾーン外へ出る → safe。danger は一度も出ない（Mac Mini なし、B4-5）
+- [x] AC-1: ch7 の AlertFlag の例を `readAlertFlag` → `deriveAlertState` → `AlertState` に通すと、B と A（compact）の両方で danger・58 m・左矢印・「前方に鹿」が出て、ビープ 2 回のあと読み上げが 1 回鳴る
+- [x] AC-2: フラグなし・GPS がゾーン内 → zone とチャイム 1 回。ゾーン外へ出る → safe。danger は一度も出ない（Mac Mini なし、B4-5）
 
 UC-1 共通スキーマ:
 
-- [ ] UC-1a: ch7 の AlertFlag・TripPlan・Capture の例が通る
-- [ ] UC-1b: AlertFlag の `v:2`・deer:true で distanceM 無し・deer:true で side 無し・conf が 0〜1 の外 → 拒否
-- [ ] UC-1c: inside で zoneDistanceKm、outside で zoneRemainingKm → 拒否。outside で zoneDistanceKm 無し → 通る
-- [ ] UC-1d: Capture に lat / lng / email / deviceId を足す → 拒否。consent 無し → 拒否。consent:false → 通る
-- [ ] UC-1e: Capture の roadSegment に座標・空文字 → 拒否。boxes 0 件 → 通る。xywh が範囲外・reactionMs が負 → 拒否
-- [ ] UC-1f: TripPlan の pleasures 11 件・weight 0 と 6・drivers > size・重複した楽しみ → 拒否
-- [ ] UC-1g: 時刻は `Z` と `+09:00` が通り、タイムゾーン無しは拒否。`toJst` が +09:00 に正規化する
-- [ ] UC-1h: ClientMessage は ack と label だけ通り、flag の形 → 拒否
-- [ ] UC-1i: 書き出した JSON Schema（packages/schema/json/）が定義から作り直したものと一致する
-- [ ] UC-1j: edge（Python）が JSON Schema で共有の見本（packages/schema/fixtures/）を検証し、valid は通り invalid は落ちる
+- [x] UC-1a: ch7 の AlertFlag・TripPlan・Capture の例が通る
+- [x] UC-1b: AlertFlag の `v:2`・deer:true で distanceM 無し・deer:true で side 無し・conf が 0〜1 の外 → 拒否
+- [x] UC-1c: inside で zoneDistanceKm、outside で zoneRemainingKm → 拒否。outside で zoneDistanceKm 無し → 通る
+- [x] UC-1d: Capture に lat / lng / email / deviceId を足す → 拒否。consent 無し → 拒否。consent:false → 通る
+- [x] UC-1e: Capture の roadSegment に座標・空文字 → 拒否。boxes 0 件 → 通る。xywh が範囲外・reactionMs が負 → 拒否
+- [x] UC-1f: TripPlan の pleasures 11 件・weight 0 と 6・drivers > size・重複した楽しみ → 拒否
+- [x] UC-1g: 時刻は `Z` と `+09:00` が通り、タイムゾーン無しは拒否。`toJst` が +09:00 に正規化する
+- [x] UC-1h: ClientMessage は ack と label だけ通り、flag の形 → 拒否
+- [x] UC-1i: 書き出した JSON Schema（packages/schema/json/）が定義から作り直したものと一致する
+- [x] UC-1j: edge（Python）が JSON Schema で共有の見本（packages/schema/fixtures/）を検証し、valid は通り invalid は落ちる
+- [x] UC-1k: [ADDED code-reviewer] JSON Schema の正規表現を Python でも同じ意味にする（`\d`→`[0-9]`、末尾 `$` は改行の前に当たらない）。全角数字・末尾改行の見本で確かめる
 
 UC-2 表示状態の決定:
 
-- [ ] UC-2a: ゾーン外・フラグなし → safe、GPS の次ゾーン距離
-- [ ] UC-2b: GPS inside → zone、残り距離
-- [ ] UC-2c: 新しい deer:true → GPS が outside でも danger、距離 m と side
-- [ ] UC-2d: deer:false が届く → すぐ zone（inside）/ safe（outside）
-- [ ] UC-2e: 最後が deer:true のまま 5 秒以内 → danger のまま。5 秒を過ぎた → ゾーンの状態
-- [ ] UC-2f: フラグの zone が inside・GPS が outside → zone。逆も zone
-- [ ] UC-2g: GPS unknown で新しいフラグも無い → 前のゾーンの状態を保つ
-- [ ] UC-2h: フラグが 1 つも無い → danger にならない
+- [x] UC-2a: ゾーン外・フラグなし → safe、GPS の次ゾーン距離
+- [x] UC-2b: GPS inside → zone、残り距離
+- [x] UC-2c: 新しい deer:true → GPS が outside でも danger、距離 m と side
+- [x] UC-2d: deer:false が届く → すぐ zone（inside）/ safe（outside）
+- [x] UC-2e: 最後が deer:true のまま 5 秒以内 → danger のまま。5 秒を過ぎた → ゾーンの状態
+- [x] UC-2f: フラグの zone が inside・GPS が outside → zone。逆も zone
+- [x] UC-2g: GPS unknown で新しいフラグも無い → 前のゾーンの状態を保つ
+- [x] UC-2h: フラグが 1 つも無い → danger にならない
 
 UC-3 状態ごとの表示:
 
-- [ ] UC-3a: safe 38 → 円＋チェック、「38」「km」、主文「鹿ゾーンまで」、背景は --alert-safe
-- [ ] UC-3b: zone 14.2 → 三角＋鹿ピクト、「14」「km」、「鹿ゾーン走行中」「減速 50 km/h 以下に」、背景は --alert-zone
-- [ ] UC-3c: danger 58 L → 八角＋鹿ピクト、左矢印、「58」「m」、「前方に鹿」「ブレーキ」、背景は --alert-danger
-- [ ] UC-3d: danger で side 無し → 前方の矢印。side R → 右矢印
-- [ ] UC-3e: 背景色はトークンの alert-* を参照し、data-theme で変わらない
+- [x] UC-3a: safe 38 → 円＋チェック、「38」「km」、主文「鹿ゾーンまで」、背景は --alert-safe
+- [x] UC-3b: zone 14.2 → 三角＋鹿ピクト、「14」「km」、「鹿ゾーン走行中」「減速 50 km/h 以下に」、背景は --alert-zone
+- [x] UC-3c: danger 58 L → 八角＋鹿ピクト、左矢印、「58」「m」、「前方に鹿」「ブレーキ」、背景は --alert-danger
+- [x] UC-3d: danger で side 無し → 前方の矢印。side R → 右矢印
+- [x] UC-3e: 背景色はトークンの alert-* を参照し、data-theme で変わらない
 
 UC-4 点滅:
 
-- [ ] UC-4a: danger → 白枠が 0.5 秒ごとに切り替わる（1 秒に 1 周期）。safe / zone では点滅しない
-- [ ] UC-4b: 点滅は CSS アニメーションに頼らない（動きを減らす設定の全体指定で止まらない）
+- [x] UC-4a: danger → 白枠が 0.5 秒ごとに切り替わる（1 秒に 1 周期）。safe / zone では点滅しない
+- [x] UC-4b: 点滅は CSS アニメーションに頼らない（動きを減らす設定の全体指定で止まらない）
 
 UC-5 音:
 
-- [ ] UC-5a: safe → zone でチャイム 1 回。zone のまま更新しても鳴らない
-- [ ] UC-5b: 最初の状態が zone → チャイム 1 回
-- [ ] UC-5c: safe → danger → zone で 1 回。zone → danger → zone では 2 回目は鳴らない
-- [ ] UC-5d: zone を出て 30 秒以内に入り直す → 鳴らない。30 秒を過ぎて入る → 鳴る
-- [ ] UC-5e: `beepIntervalMs`: 不明 0.25 秒、120 m 以上 0.4 秒、30 m 以下 0.12 秒、75 m は直線上の値
-- [ ] UC-5f: danger の間ビープが間隔どおり繰り返し、danger が解けたら止まる
-- [ ] UC-5g: ビープ 2 回のあとに読み上げ 1 回（lang の文）。2 回目の前に解けたら読まない。同じ danger の間は 2 回目を読まない
-- [ ] UC-5h: muted ならチャイムもビープも読み上げも鳴らない。danger の途中で muted → 次から止まる
-- [ ] UC-5i: 解除前は何も鳴らさず canPlay=false。`unlock()` 後は canPlay=true
+- [x] UC-5a: safe → zone でチャイム 1 回。zone のまま更新しても鳴らない
+- [x] UC-5b: 最初の状態が zone → チャイム 1 回
+- [x] UC-5c: safe → danger → zone で 1 回。zone → danger → zone では 2 回目は鳴らない
+- [x] UC-5d: zone を出て 30 秒以内に入り直す → 鳴らない。30 秒を過ぎて入る → 鳴る
+- [x] UC-5e: `beepIntervalMs`: 不明 0.25 秒、120 m 以上 0.4 秒、30 m 以下 0.12 秒、75 m は直線上の値
+- [x] UC-5f: danger の間ビープが間隔どおり繰り返し、danger が解けたら止まる
+- [x] UC-5g: ビープ 2 回のあとに読み上げ 1 回（lang の文）。2 回目の前に解けたら読まない。同じ danger の間は 2 回目を読まない
+- [x] UC-5h: muted ならチャイムもビープも読み上げも鳴らない。danger の途中で muted → 次から止まる
+- [x] UC-5i: 解除前は何も鳴らさず canPlay=false。`unlock()` 後は canPlay=true
+- [x] UC-5l: [ADDED code-reviewer] danger の AlertState が画面から外れたら、ビープと発話が止まる
 
 UC-6 言語:
 
-- [ ] UC-6a: lang=ja danger → 主文「前方に鹿」、副文「DEER AHEAD ・ 前方有鹿 ・ 전방 사슴」
-- [ ] UC-6b: lang=en / zh / ko でも主文はその言語、副文は残り 3 言語（safe・zone も同じ）
-- [ ] UC-6c: `resolveLang`: ja-JP→ja、zh-TW・zh-Hant-TW→zh、ko-KR→ko、zh-CN・fr・空→en
+- [x] UC-6a: lang=ja danger → 主文「前方に鹿」、副文「DEER AHEAD ・ 前方有鹿 ・ 전방 사슴」
+- [x] UC-6b: lang=en / zh / ko でも主文はその言語、副文は残り 3 言語（safe・zone も同じ）
+- [x] UC-6c: `resolveLang`: ja-JP→ja、zh-TW・zh-Hant-TW→zh、ko-KR→ko、zh-CN・fr・空→en
 
 UC-7 compact:
 
-- [ ] UC-7a: compact → 形と数値と矢印だけ。主文・補助文・副文が無い
+- [x] UC-7a: compact → 形と数値と矢印だけ。主文・補助文・副文が無い
 
 UC-8 操作要素なし:
 
-- [ ] UC-8a: 3 状態とも button・a・input が無く、クリックしても表示が変わらない
+- [x] UC-8a: 3 状態とも button・a・input が無く、クリックしても表示が変わらない
 
 UC-9 トークン:
 
-- [ ] UC-9a: 生成スクリプトの出力が、リポジトリの tokens.css・tokens.ts と一致する
-- [ ] UC-9b: tokens.css で --alert-* は trip と night の両方で同じ値
+- [x] UC-9a: 生成スクリプトの出力が、リポジトリの tokens.css・tokens.ts と一致する
+- [x] UC-9b: tokens.css で --alert-* は trip と night の両方で同じ値
 
 UC-10 支援技術:
 
-- [ ] UC-10a: danger に入ると role="alert" に「前方に鹿 左 58 メートル」。距離が 40 に変わっても文は変わらない
-- [ ] UC-10b: safe / zone は role="status" で、状態が変わったときだけ文が変わる
-- [ ] UC-10c: on-alert-* と alert-* のコントラストが 4.5:1 以上（tokens.json から計算）
+- [x] UC-10a: danger に入ると role="alert" に「前方に鹿 左 58 メートル」。距離が 40 に変わっても文は変わらない
+- [x] UC-10b: safe / zone は role="status" で、状態が変わったときだけ文が変わる
+- [x] UC-10d: [ADDED accessibility-checker] alert と status の要素を常に置き、role を切り替えない（role の切替は読まれない SR が多い）
+- [x] UC-10e: [ADDED accessibility-checker] 読み上げ文に lang 属性。いまの距離はライブでない要素で読める（状態の変化時の通知と分ける）
+- [x] UC-10f: [ADDED code-reviewer] 距離が分からないときは距離の句を読ませない。言語が変わったら読み上げ文を作り直す
+- [x] UC-10c: safe / zone のコントラストが 4.5:1 以上、danger は 3:1 以上で文字はすべて大きな文字（tokens.json から計算。danger は仮採用・確認待ち）
 
 UC-11 ゆるい受信:
 
-- [ ] UC-11a: 正しいフラグ → そのまま読む
-- [ ] UC-11b: deer:true で distanceM が文字列・side が "X" → danger、距離・side は無し
-- [ ] UC-11c: JSON でない・type が ack → null
-- [ ] UC-11d: deer:true, conf 0.3 → deer:true のまま（間引かない）
+- [x] UC-11a: 正しいフラグ → そのまま読む
+- [x] UC-11b: deer:true で distanceM が文字列・side が "X" → danger、距離・side は無し
+- [x] UC-11c: JSON でない・type が ack → null
+- [x] UC-11d: deer:true, conf 0.3 → deer:true のまま（間引かない）
 
 UC-12 数値:
 
-- [ ] UC-12a: km: 9.44→「9.4」、10→「10」、38.6→「39」、0→「0.0」、無し→「--」
-- [ ] UC-12b: m: 58.4→「58」、0→「0」、負・NaN・無し→「--」
+- [x] UC-12a: km: 9.44→「9.4」、10→「10」、38.6→「39」、0→「0.0」、無し→「--」
+- [x] UC-12b: m: 58.4→「58」、0→「0」、負・NaN・無し→「--」
+- [x] UC-12c: [ADDED code-reviewer] 10,000 以上（壊れた値）は「--」。指数表記を出さない
 
 UC-13 鹿ピクト:
 
-- [ ] UC-13a: zone と danger で同じ DeerPictogram の SVG（同じ path）が描かれる
+- [x] UC-13a: zone と danger で同じ DeerPictogram の SVG（同じ path）が描かれる
 
 状態パターン:
 
-- [ ] S-1: safe の表示（UC-3a と同じテストで確かめる）
-- [ ] S-2: zone の表示（UC-3b と同じテストで確かめる）
-- [ ] S-3: danger の表示（UC-3c と同じテストで確かめる）
-- [ ] S-4: 音の解除前でも danger の画面は出る
+- [x] S-1: safe の表示（UC-3a と同じテストで確かめる）
+- [x] S-2: zone の表示（UC-3b と同じテストで確かめる）
+- [x] S-3: danger の表示（UC-3c と同じテストで確かめる）
+- [x] S-4: 音の解除前でも danger の画面は出る
 
 認可（threat.md）:
 
-- [ ] AUTH-1: PWA が flag の形をクライアント → サーバーで送ると ClientMessage の検証で拒否される
-- [ ] AUTH-2: edge が作る Capture に lat を入れると拒否される
-- [ ] AUTH-3: B の PWA が作る Capture に lng を入れると拒否される
-- [ ] AUTH-4: A が作る Capture に email を入れると拒否される
-- [ ] AUTH-5: API が受け取る Capture に deviceId があると拒否される
-- [ ] AUTH-6: consent:false の Capture は edge・A のどちらから来ても `isUploadable` が false
-- [ ] MASS-1: ClientMessage・Capture・TripPlan に余分なフィールドを足すと拒否される
+- [x] AUTH-1: PWA が flag の形をクライアント → サーバーで送ると ClientMessage の検証で拒否される
+- [x] AUTH-2: edge が作る Capture に lat を入れると拒否される
+- [x] AUTH-3: B の PWA が作る Capture に lng を入れると拒否される
+- [x] AUTH-4: A が作る Capture に email を入れると拒否される
+- [x] AUTH-5: API が受け取る Capture に deviceId があると拒否される
+- [x] AUTH-6: consent:false の Capture は edge・A のどちらから来ても `isUploadable` が false
+- [x] MASS-1: ClientMessage・Capture・TripPlan に余分なフィールドを足すと拒否される
 
 障害耐性（resilience.md）:
 
-- [ ] FAIL-1: JSON でない文字列を受けても状態が変わらず、logger.warn に本文が入らない
-- [ ] FAIL-2: v:2 で deer:true のフラグ → danger になる
-- [ ] FAIL-3: AudioContext の再生が例外を投げても AlertState の描画は続き、canPlay=false になる
-- [ ] FAIL-4: speechSynthesis が無くてもビープは続く
-- [ ] FAIL-5: 時計が後ろへ戻っても danger を早く解かない
-- [ ] IDEM-1: 同じ状態で update を 10 回呼んでもチャイムは 1 回
-- [ ] IDEM-2: unlock を 2 回呼んでも AudioContext は 1 つ
-- [ ] CONC-1: danger → zone → danger を 1 秒以内に繰り返しても、古いビープの予約が残らず、読み上げは各 danger で 1 回ずつ（前の発話は止まる）
+- [x] FAIL-1: JSON でない文字列を受けても状態が変わらず、logger.warn に本文が入らない
+- [x] FAIL-2: v:2 で deer:true のフラグ → danger になる
+- [x] FAIL-3: AudioContext の再生が例外を投げても AlertState の描画は続き、canPlay=false になる
+- [x] FAIL-4: speechSynthesis が無くてもビープは続く
+- [x] FAIL-5: 時計が後ろへ戻っても danger を早く解かない
+- [x] IDEM-1: 同じ状態で update を 10 回呼んでもチャイムは 1 回
+- [x] IDEM-2: unlock を 2 回呼んでも AudioContext は 1 つ
+- [x] CONC-1: danger → zone → danger を 1 秒以内に繰り返しても、古いビープの予約が残らず、読み上げは各 danger で 1 回ずつ（前の発話は止まる）
+- [x] CONC-2: [ADDED code-reviewer] 読み上げ済みの danger → zone → 消音のまま danger → 消音を解く と、新しい danger の読み上げが鳴る
+- [x] FAIL-6: [ADDED code-reviewer] 再生に失敗したあと unlock をやり直して成功すれば canPlay に戻る
+- [x] FAIL-7: [ADDED code-reviewer] 出力側の unlock が同期で例外を投げても（AudioContext の無い端末）、呼び出し元に漏らさず false を返す
+- [x] FAIL-8: [ADDED code-reviewer] danger が解けたら発話を止め、release でビープも発話も止まる
 
 ## Rule → ドメイン語彙対応（Tier 2 推奨）
 
@@ -328,7 +340,8 @@ UC-13 鹿ピクト:
 
 ## 非機能要件
 
-- [ ] アクセシビリティ: 4.5:1、操作要素なし、点滅 1 Hz 以下、状態を支援技術に伝える（UC-10）
+- [ ] アクセシビリティ: safe / zone 4.5:1・danger は大きな文字で 3:1（仮採用）、操作要素なし、点滅 1 Hz 以下、状態を支援技術に伝える（UC-10）
+- [ ] 点滅とビープは止める手段を AlertState の中に置かない（安全上必要な通知。WCAG 2.2.2 / 1.4.2 の essential 扱い）。音量・消音の手段は消費側（B-0、A の音トグル）が必ず持つ
 - [ ] 遅延: `deriveAlertState` と描画は同期で、フラグ受信から次の描画までに待ちを入れない（ch6 の描画 ≤ 50 ms の予算を alert-ui が食わない）
 - [ ] オフライン: 音源（wav）は同梱し、ネットワークを使わない（ch8 規約 4、B PWA）
 - [ ] 色の直書きなし（hook）、アイコンはインライン SVG（ch8 規約 7）

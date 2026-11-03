@@ -45,11 +45,11 @@ N/A: 永続化しない（Capture の保存は api と edge の feature）。
 
 ## 障害テスト（functional.md の Test List に追加）
 
-- [ ] FAIL-1: JSON でない文字列を受けても状態が変わらず、logger.warn に本文が入らない
-- [ ] FAIL-2: v:2 で deer:true のフラグ → danger になる
-- [ ] FAIL-3: AudioContext の再生が例外を投げても AlertState の描画は続き、canPlay=false になる
-- [ ] FAIL-4: speechSynthesis が無くてもビープは続く
-- [ ] FAIL-5: 時計が後ろへ戻っても danger を早く解かない
-- [ ] IDEM-1: 同じ状態で update を 10 回呼んでもチャイムは 1 回
-- [ ] IDEM-2: unlock を 2 回呼んでも AudioContext は 1 つ
-- [ ] CONC-1: danger → zone → danger を 1 秒以内に繰り返しても、古いビープの予約が残らず、読み上げは各 danger で 1 回ずつ（前の発話は止まる）
+- [x] FAIL-1: JSON でない文字列を受けても状態が変わらず、logger.warn に本文が入らない
+- [x] FAIL-2: v:2 で deer:true のフラグ → danger になる
+- [x] FAIL-3: AudioContext の再生が例外を投げても AlertState の描画は続き、canPlay=false になる
+- [x] FAIL-4: speechSynthesis が無くてもビープは続く
+- [x] FAIL-5: 時計が後ろへ戻っても danger を早く解かない
+- [x] IDEM-1: 同じ状態で update を 10 回呼んでもチャイムは 1 回
+- [x] IDEM-2: unlock を 2 回呼んでも AudioContext は 1 つ
+- [x] CONC-1: danger → zone → danger を 1 秒以内に繰り返しても、古いビープの予約が残らず、読み上げは各 danger で 1 回ずつ（前の発話は止まる）

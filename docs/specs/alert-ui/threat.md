@@ -64,10 +64,10 @@ edge-detector の feature、記録 API（レート制限 10/分/IP）は api の
 
 ## 認可テスト（functional.md の Test List に追加）
 
-- [ ] AUTH-1: PWA が flag の形をクライアント → サーバーで送ると ClientMessage の検証で拒否される
-- [ ] AUTH-2: edge が作る Capture に lat を入れると拒否される
-- [ ] AUTH-3: B の PWA が作る Capture に lng を入れると拒否される
-- [ ] AUTH-4: A が作る Capture に email を入れると拒否される
-- [ ] AUTH-5: API が受け取る Capture に deviceId があると拒否される
-- [ ] AUTH-6: consent:false の Capture は edge・A のどちらから来ても `isUploadable` が false（❌ 2 セル分）
-- [ ] MASS-1: ClientMessage・Capture・TripPlan に余分なフィールドを足すと拒否される
+- [x] AUTH-1: PWA が flag の形をクライアント → サーバーで送ると ClientMessage の検証で拒否される
+- [x] AUTH-2: edge が作る Capture に lat を入れると拒否される
+- [x] AUTH-3: B の PWA が作る Capture に lng を入れると拒否される
+- [x] AUTH-4: A が作る Capture に email を入れると拒否される
+- [x] AUTH-5: API が受け取る Capture に deviceId があると拒否される
+- [x] AUTH-6: consent:false の Capture は edge・A のどちらから来ても `isUploadable` が false（❌ 2 セル分）
+- [x] MASS-1: ClientMessage・Capture・TripPlan に余分なフィールドを足すと拒否される
