@@ -47,6 +47,11 @@ def test_cal1a_正しいcalibration_jsonを読める(tmp_path, logbuf):
         ('{"version": 1, "model": "m", "temperatures": {"alert_level": NaN}}', "invalid"),
         ([1, 2], "invalid"),
         ({**good(), "model": ""}, "invalid"),
+        (
+            json.dumps(good()).replace('"alert_level": 1.0', '"alert_level": 1' + "0" * 400),
+            "invalid",
+        ),
+        ("[" * 100_000 + "]" * 100_000, "invalid"),
     ],
 )
 def test_cal1b_無い壊れている範囲外は校正なし(tmp_path, logbuf, data, reason):

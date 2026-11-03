@@ -36,11 +36,12 @@ if TYPE_CHECKING:
     from detector.l1.calibration import Calibration
     from detector.l1.client import JudgeClient, L1Answer
 
-__all__ = ["MAX_BACKOFF_S", "make_verdict", "run_l1", "start_l1"]
+__all__ = ["MAX_BACKOFF_S", "backoff_s", "make_verdict", "run_l1", "start_l1"]
 
 logger = logging.getLogger("detector.l1")
 
 MAX_BACKOFF_S = 2.0
+MAX_BACKOFF_EXP = 8  # 2 ** n が大きくなりすぎない（何時間落ちていても OverflowError にしない）
 FAIL_LOG_INTERVAL_S = 1.0
 MISMATCH_LOG_INTERVAL_S = 1.0
 
@@ -100,34 +101,17 @@ async def run_l1(
     """キャンセルされるまで回る。例外を外へ出さない（検知を止めない）。"""
     interval = 1.0 / config.rate_hz
     failures = 0
-    last_fail_log: float | None = None
-    last_mismatch_log: float | None = None
-    timeout_s = config.timeout_ms / 1000.0
+    fail_log = _Throttle(FAIL_LOG_INTERVAL_S, clock)
+    mismatch_log = _Throttle(MISMATCH_LOG_INTERVAL_S, clock)
     while True:
         started = clock()
         stale = False
         try:
-            picked = hub.l1_target()
-            if picked is not None:
-                target, recent = picked
-                request = build_request(target, recent, config.model)
-                async with asyncio.timeout(timeout_s):  # どのクライアントでも 800 ms で打ち切る
-                    answer = await client.judge(request)
-                latency_ms = (clock() - started) * 1000.0
-                # 聞いているあいだに赤のエピソードが変わった: 降格に使えないので、すぐ聞き直す
-                stale = hub.fusion is not None and target.episode != hub.fusion.episode
-                verdict = make_verdict(
-                    answer, target, started, latency_ms, calibration, config.override_conf
-                )
-                if calibration is not None and not verdict.calibrated:
-                    now = clock()
-                    if (
-                        last_mismatch_log is None
-                        or now - last_mismatch_log >= MISMATCH_LOG_INTERVAL_S
-                    ):
-                        last_mismatch_log = now
-                        logger.warning("l1.calibration_mismatch", extra={"model": answer.model})
-                hub.on_l1(verdict)
+            outcome = await _ask_once(hub, client, config, calibration, started, clock)
+            if outcome is not None:
+                verdict, stale = outcome
+                if calibration is not None and not verdict.calibrated and mismatch_log.ready():
+                    logger.warning("l1.calibration_mismatch", extra={"model": verdict.model})
                 if failures:
                     logger.info("l1.recovered", extra={"after_failures": failures})
                 failures = 0
@@ -135,23 +119,76 @@ async def run_l1(
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001  失敗しても検知は止めない（L0 だけで動く）
-            if isinstance(exc, L1Unavailable):
-                reason, error_type = exc.reason, exc.error_type
-            else:
-                reason = "timeout" if isinstance(exc, TimeoutError) else "error"
-                error_type = type(exc).__name__
             failures += 1
-            hub.l1_healthy = False
-            hub.on_l1_failed()
-            now = clock()
-            if last_fail_log is None or now - last_fail_log >= FAIL_LOG_INTERVAL_S:
-                last_fail_log = now
-                logger.warning(
-                    "l1_unavailable",
-                    extra={"reason": reason, "error_type": error_type, "failures": failures},
-                )
-        delay = min(MAX_BACKOFF_S, interval * 2**failures) if failures else interval
+            _failed(hub, exc, failures, fail_log)
+        delay = backoff_s(interval, failures)
         await _wait(hub, 0.0 if stale else delay - (clock() - started), sleep)
+
+
+def backoff_s(interval: float, failures: int) -> float:
+    """次の問い合わせまでの秒。失敗が n 回続いたら min(2 秒, 間隔 × 2^n)。指数は 8 で頭打ち。"""
+    if not failures:
+        return interval
+    return min(MAX_BACKOFF_S, interval * 2 ** min(failures, MAX_BACKOFF_EXP))
+
+
+async def _ask_once(
+    hub: AlertHub,
+    client: JudgeClient,
+    config: L1Config,
+    calibration: Calibration | None,
+    started: float,
+    clock: Callable[[], float],
+) -> tuple[L1Verdict, bool] | None:
+    """1 回聞いて hub に渡す。聞く対象が無ければ None。(答え, エピソードが変わったか) を返す。"""
+    picked = hub.l1_target()
+    if picked is None:
+        return None
+    target, recent = picked
+    request = build_request(target, recent, config.model)
+    async with asyncio.timeout(config.timeout_ms / 1000.0):  # どのクライアントでも打ち切る
+        answer = await client.judge(request)
+    latency_ms = (clock() - started) * 1000.0
+    # 聞いているあいだに赤のエピソードが変わった: 降格に使えないので、すぐ聞き直す
+    stale = hub.fusion is not None and target.episode != hub.fusion.episode
+    verdict = make_verdict(answer, target, started, latency_ms, calibration, config.override_conf)
+    hub.on_l1(verdict)
+    return verdict, stale
+
+
+def _failed(hub: AlertHub, exc: Exception, failures: int, log: _Throttle) -> None:
+    """失敗の後始末。ここでも例外を外へ出さない（タスクが黙って死なない）。"""
+    if isinstance(exc, L1Unavailable):
+        reason, error_type = exc.reason, exc.error_type
+    else:
+        reason = "timeout" if isinstance(exc, TimeoutError) else "error"
+        error_type = type(exc).__name__
+    hub.l1_healthy = False
+    try:
+        hub.on_l1_failed()
+    except Exception as inner:  # noqa: BLE001  降格の解除に失敗しても回り続ける
+        logger.error("l1.release_failed", extra={"error_type": type(inner).__name__})
+    if log.ready():
+        logger.warning(
+            "l1_unavailable",
+            extra={"reason": reason, "error_type": error_type, "failures": failures},
+        )
+
+
+class _Throttle:
+    """ログを interval 秒に 1 回までにする。"""
+
+    def __init__(self, interval: float, clock: Callable[[], float]) -> None:
+        self._interval = interval
+        self._clock = clock
+        self._last: float | None = None
+
+    def ready(self) -> bool:
+        now = self._clock()
+        if self._last is not None and now - self._last < self._interval:
+            return False
+        self._last = now
+        return True
 
 
 def start_l1(

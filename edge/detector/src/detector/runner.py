@@ -18,6 +18,15 @@ logger = logging.getLogger("detector.runner")
 TICK_S = 0.1
 
 
+def _report_background(task: asyncio.Task[None]) -> None:
+    """background のタスク（L1 など）が途中で死んだら残す。検知は続ける（L0 だけで動く）。"""
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.critical("background.died", extra={"error_type": type(exc).__name__})
+
+
 async def pump(
     results: Iterator[FrameResult],
     hub: AlertHub,
@@ -33,6 +42,8 @@ async def pump(
     終わりに片付ける。
     """
     others = [asyncio.create_task(coro) for coro in background]
+    for other in others:
+        other.add_done_callback(_report_background)
 
     async def ticker() -> None:
         while True:
@@ -63,6 +74,9 @@ async def pump(
                 close()  # 生成器（カメラ）を解放する
         for t in (task, *others):
             t.cancel()
-        for t in (task, *others):
-            with contextlib.suppress(asyncio.CancelledError):
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+        for t in others:
+            # 死んだ background の例外は _report_background が残した。ここで上へ出さない
+            with contextlib.suppress(asyncio.CancelledError, Exception):
                 await t

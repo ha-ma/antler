@@ -80,7 +80,7 @@ def _parse(raw: object) -> Calibration:
     if not isinstance(raw, dict) or raw.get("version") != VERSION:
         raise _Invalid
     model = raw.get("model")
-    if not isinstance(model, str) or not model.strip() or model in MODEL_ALIASES:
+    if not isinstance(model, str) or not model or model != model.strip() or model in MODEL_ALIASES:
         raise _Invalid
     temps = raw.get("temperatures")
     if not isinstance(temps, dict) or set(temps) != set(QUESTION_IDS):
@@ -110,7 +110,7 @@ def load_calibration(path: Path) -> Calibration | None:
         return None
     try:
         calibration = _parse(json.loads(text, parse_constant=_reject_constant))
-    except (ValueError, _Invalid):
+    except (ValueError, OverflowError, RecursionError, _Invalid):
         logger.warning("l1.calibration_unavailable", extra={"reason": "invalid"})
         return None
     logger.info("l1.calibration_loaded", extra={"model": calibration.model})

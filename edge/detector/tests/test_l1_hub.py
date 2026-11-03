@@ -152,9 +152,35 @@ def test_hub1g_NaNをJSONに書かず赤は止めない(logbuf):
     hub.on_result(result(0, deer(float("nan"))))  # 壊れた conf（不正として捨てられる）
     red(hub, clock, ms0=100)
     assert all("NaN" not in t for t in raw)
-    assert AlertHub._dumps({"a": 1.0}) == '{"a": 1.0}'
-    assert "NaN" in AlertHub._dumps({"deer": True, "conf": float("nan"), "l1": {}})
+    assert raw[-1] and json.loads(raw[-1])["deer"] is True
+    broken = {"deer": True, "conf": float("nan"), "distanceM": float("inf"), "l1": {"conf": 1.0}}
+    text = AlertHub.dumps_finite(broken)
+    assert "NaN" not in text and "Infinity" not in text
+    assert json.loads(text) == {"deer": True, "conf": 0.0, "distanceM": 0.0}  # deer は届く
     assert named(logbuf, "flag.non_finite")
+
+
+class BrokenFusion:
+    episode = 1
+
+    def __getattr__(self, name):
+        def boom(*args, **kw):
+            raise RuntimeError("boom")
+
+        return boom
+
+
+# HUB-1j: [ADDED review] fusion が壊れても赤は L0 のまま出る
+def test_hub1j_fusionが例外を出しても赤は送られる(logbuf):
+    hub, sent, clock = make_hub()
+    hub.fusion = BrokenFusion()
+    red(hub, clock)
+    assert sent[-1]["deer"] is True and "l1" not in sent[-1]
+    clock.advance(1.0)
+    hub.tick()
+    assert sent[-1]["deer"] is True
+    assert json.loads(hub.snapshot())["deer"] is True
+    assert named(logbuf, "fusion.failed")
 
 
 # HUB-1h

@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import math
 from datetime import UTC, datetime
 from time import monotonic
 from typing import TYPE_CHECKING
@@ -60,6 +61,7 @@ class AlertHub:
         self.l1_healthy = False  # L1 のタスクが直前の問い合わせに成功したか（保留の条件）
         self.l1_wake = asyncio.Event()  # 赤の保留のとき L1 のタスクをすぐ起こす
         self._hold_until: float | None = None
+        self._fusion_fail_log: float | None = None
         self.sender: Callable[[str], int] = lambda _text: 0
         self._last_sent = 0.0
         self._last_ok: float | None = None
@@ -80,7 +82,7 @@ class AlertHub:
             self._last_ok = now
             self._stalled = False
         changed = self._l0.update(result, now)  # 同期。await を入れない
-        started = self.fusion is not None and self.fusion.after_l0(now)
+        started = self._after_l0(now)
         if started and self._wait and self.l1_healthy:
             self._hold_until = now + HOLD_MAX_S  # B2-8: 150 ms まで。期限は tick が見る
             self.l1_wake.set()
@@ -93,8 +95,7 @@ class AlertHub:
         """
         now = self._clock()
         expired = self._l0.expire(now)
-        if self.fusion is not None:
-            self.fusion.after_l0(now)
+        self._after_l0(now)
         held = self._hold_until is not None
         if self._sync(now, "change" if expired or held else "l1", l0_changed=expired):
             return
@@ -117,11 +118,35 @@ class AlertHub:
                 self._hold_until = None
             else:
                 return JudgeState(False, state.t_frame)  # 保留中は保留前の「赤でない」のまま
-        if self.fusion is not None and state.deer and self.fusion.refresh(now):
-            return JudgeState(
-                False, state.t_frame
-            )  # 降格。conf・距離は付けない（deer: false の形）
+        if state.deer and self._demoted(now):
+            # 降格。conf・距離は付けない（deer: false の形）
+            return JudgeState(False, state.t_frame)
         return state
+
+    def _after_l0(self, now: float) -> bool:
+        """fusion にエピソードの開け閉めを知らせる。fusion が壊れても赤は止めない。"""
+        if self.fusion is None:
+            return False
+        try:
+            return self.fusion.after_l0(now)
+        except Exception as exc:  # noqa: BLE001  赤の経路。壊れたら降格しない側に倒す
+            self._fusion_failed(exc, now)
+            return False
+
+    def _demoted(self, now: float) -> bool:
+        """降格しているか。fusion が壊れたら降格しない（L0 の赤をそのまま出す）。"""
+        if self.fusion is None:
+            return False
+        try:
+            return self.fusion.refresh(now)
+        except Exception as exc:  # noqa: BLE001  赤の経路。壊れたら降格しない側に倒す
+            self._fusion_failed(exc, now)
+            return False
+
+    def _fusion_failed(self, exc: Exception, now: float) -> None:
+        if self._fusion_fail_log is None or now - self._fusion_fail_log >= HEARTBEAT_S:
+            self._fusion_fail_log = now
+            logger.error("fusion.failed", extra={"error_type": type(exc).__name__})
 
     def _sync(self, now: float, reason: str, l0_changed: bool) -> bool:
         """出力が変わった（または L0 が変わってそのまま出す）ときに送る。送ったら True。"""
@@ -196,14 +221,13 @@ class AlertHub:
         """新しくつないだクライアントへ送る直近の判定。まだ判定が無ければ None。"""
         now = self._clock()
         if self._l0.expire(now):
-            if self.fusion is not None:
-                self.fusion.after_l0(now)
+            self._after_l0(now)
             self._emit("change", now)  # 入力が止まったままの鹿を、新しい接続に配らない
         state = self._output(now)
         if state is None or self._is_stalled(now):
             return None  # 見えていないのに「鹿なし」も「鹿あり」も配らない
         wall = self._wall()
-        flag, l1 = self._flag(state, wall)
+        text, l1 = self._serialize(state, wall, now)
         logger.info(
             "flag.sent",
             extra={
@@ -216,26 +240,39 @@ class AlertHub:
                 **({"l1": l1} if l1 else {}),
             },
         )
-        return self._dumps(flag)
+        return text
 
-    def _flag(self, state: JudgeState, wall: datetime) -> tuple[dict[str, object], dict | None]:
+    def _serialize(
+        self, state: JudgeState, wall: datetime, now: float
+    ) -> tuple[str, dict[str, object] | None]:
+        """AlertFlag の JSON と、実際に付けた l1（付けなければ None）。"""
         flag = build_flag(state, wall)
         l1 = None
         if self.fusion is not None and self.deer_on:
-            l1 = self.fusion.l1_field()
+            try:
+                l1 = self.fusion.l1_field()
+            except Exception as exc:  # noqa: BLE001  l1 はログ用。壊れても赤は送る
+                self._fusion_failed(exc, now)
             if l1 is not None:
                 flag["l1"] = l1
-        return flag, l1
+        try:
+            return json.dumps(flag, allow_nan=False), l1
+        except ValueError:
+            return self.dumps_finite(flag), None
 
     @staticmethod
-    def _dumps(flag: dict[str, object]) -> str:
-        """NaN・無限大を JSON に書かない（schema-judge R3）。書けないときも赤は止めない。"""
-        try:
-            return json.dumps(flag, allow_nan=False)
-        except ValueError:
-            logger.error("flag.non_finite")
-            flag.pop("l1", None)
-            return json.dumps(flag)  # L0 の値が壊れていても、deer は届ける（従来どおり）
+    def dumps_finite(flag: dict[str, object]) -> str:
+        """NaN・無限大を JSON に書かない（schema-judge R3）。l1 を外し、壊れた数は 0 にする。
+
+        PWA の JSON.parse は NaN で落ち、deer ごと失われる。0 にしても deer は届く（赤は止めない）。
+        """
+        logger.error("flag.non_finite")
+        clean = {
+            k: (0.0 if isinstance(v, float) and not math.isfinite(v) else v)
+            for k, v in flag.items()
+            if k != "l1"
+        }
+        return json.dumps(clean, allow_nan=False)
 
     def _track_fields(self, state: JudgeState, now: float) -> dict[str, object]:
         """deer: true の flag.sent に足す L0 のトラッカーの値（ログだけ。AlertFlag は変えない）。"""
@@ -295,8 +332,8 @@ class AlertHub:
             self._ack_t_frame = state.t_frame  # 最後に送った deer:true（出力）の最初の t_frame
         self._was_on = state.deer
         self._out_deer = state.deer
-        flag, l1 = self._flag(state, wall)
-        sent = self.sender(self._dumps(flag))
+        text, l1 = self._serialize(state, wall, now)
+        sent = self.sender(text)
         self._last_sent = self._clock()
         logger.info(
             "flag.sent",

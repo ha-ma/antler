@@ -207,91 +207,93 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 外側ループ（受け入れ。§4 Step 3）:
 
-- [ ] AC-a: L1 の接続先にサーバーがいない（空きポートを閉じたもの）構成で、鹿 6 フレームを `pump` に流すと、本物の WebSocket クライアントが LAC-1 と同じ ON（同じ `t_frame`・距離・L/R）と OFF を受け、`l1_unavailable`（`connect`）が残る。フラグに `l1` は付かない
-- [ ] AC-b: `calibration.json` が無い構成で、L1 が false_positive 0.99 を返しても、赤は L0 の解除まで続き（`deer: false` は解除の 1 回だけ）、`l1` は付かず、`l1.result` は `route=uncalibrated`
-- [ ] AC-c: 温度 1.0 の `calibration.json` があり、L1 が false_positive 0.95 を返すと、赤のあと `deer: false`・`l1 = {alert_level: zone, conf: 0.95, overrode: true, latencyMs}` のフラグが `reason=l1` で送られ、JSON Schema に通る
+- [x] AC-a: L1 の接続先にサーバーがいない（空きポートを閉じたもの）構成で、鹿 6 フレームを `pump` に流すと、本物の WebSocket クライアントが LAC-1 と同じ ON（同じ `t_frame`・距離・L/R）と OFF を受け、`l1_unavailable`（`connect`）が残る。フラグに `l1` は付かない
+- [x] AC-b: `calibration.json` が無い構成で、L1 が false_positive 0.99 を返しても、赤は L0 の解除まで続き（`deer: false` は解除の 1 回だけ）、`l1` は付かず、`l1.result` は `route=uncalibrated`
+- [x] AC-c: 温度 1.0 の `calibration.json` があり、L1 が false_positive 0.95 を返すと、赤のあと `deer: false`・`l1 = {alert_level: zone, conf: 0.95, overrode: true, latencyMs}` のフラグが `reason=l1` で送られ、JSON Schema に通る
 
 UC-1 4 問と状態:
 
-- [ ] Q-1a: `wire_questions()` は `JUDGE_QUESTIONS` の順の 4 つの名前で、`instructions` が質問文と同じ、alert_level だけ `criteria = {none, zone, danger}`（値は None）
-- [ ] Q-1b: `detector/l1/` のソースに質問文の文字列が書かれていない（import だけ）
-- [ ] REQ-1a: 主トラックがあると、`JudgeRequest` に通る問い合わせができる（track は `track_points`、ttcSec、recentAlerts30s、固定の車の状態、model）
-- [ ] REQ-1b: 主トラックが無い → 作らない（None）
-- [ ] REQ-1c: TTC が無い → `ttcSec: null`
-- [ ] REQ-1d: `JudgeRequest` に通らない（model の字種違いなど）→ `L1Unavailable(invalid_request)`
-- [ ] REQ-1e: [ADDED adversary] 赤のあいだは、主トラック（0.45 の高い看板）ではなく赤の候補（0.85 の鹿）について聞く
+- [x] Q-1a: `wire_questions()` は `JUDGE_QUESTIONS` の順の 4 つの名前で、`instructions` が質問文と同じ、alert_level だけ `criteria = {none, zone, danger}`（値は None）
+- [x] Q-1b: `detector/l1/` のソースに質問文の文字列が書かれていない（import だけ）
+- [x] REQ-1a: 主トラックがあると、`JudgeRequest` に通る問い合わせができる（track は `track_points`、ttcSec、recentAlerts30s、固定の車の状態、model）
+- [x] REQ-1b: 主トラックが無い → 作らない（None）
+- [x] REQ-1c: TTC が無い → `ttcSec: null`
+- [x] REQ-1d: `JudgeRequest` に通らない（model の字種違いなど）→ `L1Unavailable(invalid_request)`
+- [x] REQ-1e: [ADDED adversary] 赤のあいだは、主トラック（0.45 の高い看板）ではなく赤の候補（0.85 の鹿）について聞く
 
 UC-2 クライアント:
 
-- [ ] CL-1a: 1 回の `POST /v1/systemone` に、model・状態・4 問が入る。リトライしない（500 で 1 回だけ）
-- [ ] CL-1b: 答えの読み取り（choice の確率 3 つ・noul 3 つ・答えたモデル名）
-- [ ] CL-1c: 答えの欠落・型違い・確率の範囲外・choice の選択肢の不足 → `L1Unavailable(bad_response)`
-- [ ] CL-1d: HTTP のエラー → `http`、接続できない → `connect`、`timeout_ms` を超える → `timeout`
-- [ ] CL-1e: 接続先は `TYPESAFE_BASE_URL` が設定の `base_url` より優先、空白だけの環境変数は無視。API キーは `TYPESAFE_API_KEY`、無ければ `local`
-- [ ] CL-1f: SDK が import できない → `make_client` が `L1Unavailable(sdk_missing)`
+- [x] CL-1a: 1 回の `POST /v1/systemone` に、model・状態・4 問が入る。リトライしない（500 で 1 回だけ）
+- [x] CL-1b: 答えの読み取り（choice の確率 3 つ・noul 3 つ・答えたモデル名）
+- [x] CL-1c: 答えの欠落・型違い・確率の範囲外・choice の選択肢の不足 → `L1Unavailable(bad_response)`
+- [x] CL-1d: HTTP のエラー → `http`、接続できない → `connect`、`timeout_ms` を超える → `timeout`
+- [x] CL-1e: 接続先は `TYPESAFE_BASE_URL` が設定の `base_url` より優先、空白だけの環境変数は無視。API キーは `TYPESAFE_API_KEY`、無ければ `local`
+- [x] CL-1f: SDK が import できない → `make_client` が `L1Unavailable(sdk_missing)`
 
 UC-3 校正:
 
-- [ ] CAL-1a: 正しい `calibration.json` を読める
-- [ ] CAL-1b: 無い・JSON でない・version 違い・温度の欠落・範囲外・NaN → 校正なし（理由つき）
-- [ ] CAL-1c: 温度 1 では確率が変わらず、温度 2 では 0.5 に寄る（noul・choice とも）。0 と 1 の確率も有限に収まる
-- [ ] CAL-1d: 答えたモデルが違う → 校正なし
-- [ ] CAL-1e: [ADDED adversary] `calibration.json` の `model` が別名（`jev-latest`）→ 形が違う。応答の `model` が別名・空 → 校正なし。`l1.calibration_mismatch` は 1 秒に 1 回まで
+- [x] CAL-1a: 正しい `calibration.json` を読める
+- [x] CAL-1b: 無い・JSON でない・version 違い・温度の欠落・範囲外・NaN → 校正なし（理由つき）
+- [x] CAL-1c: 温度 1 では確率が変わらず、温度 2 では 0.5 に寄る（noul・choice とも）。0 と 1 の確率も有限に収まる
+- [x] CAL-1d: 答えたモデルが違う → 校正なし
+- [x] CAL-1e: [ADDED adversary] `calibration.json` の `model` が別名（`jev-latest`）→ 形が違う。応答の `model` が別名・空 → 校正なし。`l1.calibration_mismatch` は 1 秒に 1 回まで
 
 UC-4 fusion:
 
-- [ ] FU-1a: 校正後の false_positive ≥ 0.9 で、今のエピソード・同じトラック → 降格（結論 zone、理由 false_positive）
-- [ ] FU-1b: alert_level の `zone`（または `none`）が校正後 ≥ 0.9 → 降格（結論はその値）
-- [ ] FU-1c: 0.9 未満・`danger` → 降格しない。0.5〜0.9 は `l2_candidate`、0.5 未満は `log`
-- [ ] FU-1d: 校正なし → 降格しない（`uncalibrated`）、`l1` を付けない
-- [ ] FU-1e: エピソードより前に作った問い合わせ・前のエピソードの答え → 降格しない
-- [ ] FU-1f: 問い合わせたトラックが赤の候補でない・赤の候補が 2 つ → 降格しない。降格中に 2 頭目が閾値を超える → 赤に戻る
-- [ ] FU-1k: [ADDED adversary] 理由が alert_level で、トラックの今の `pos` が `lane` → 降格しない。降格中に `lane` に入る → 赤に戻る。false_positive は `lane` でも降格する
-- [ ] FU-1l: [ADDED adversary] 答えが古くなる（開始から 2.0 秒）→ 赤に戻る（tick で確かめ直す）
-- [ ] FU-1m: [ADDED adversary] 降格を解いて赤に戻してから 1 秒は再び降格しない。1 秒を過ぎた条件を満たす答えでは降格する
-- [ ] FU-1g: L0 が赤でないときの `danger` → 何もしない（上げない）
-- [ ] FU-1h: 降格中に、条件を満たさない答え → 赤に戻る。L1 の失敗 → 赤に戻る
-- [ ] FU-1i: L0 の赤が解ける → エピソードが閉じ、`l1` が付かなくなる
-- [ ] FU-1j: `recentAlerts30s` は直近 30 秒の赤の回数（30 秒より古いものは数えない）
+- [x] FU-1a: 校正後の false_positive ≥ 0.9 で、今のエピソード・同じトラック → 降格（結論 zone、理由 false_positive）
+- [x] FU-1b: alert_level の `zone`（または `none`）が校正後 ≥ 0.9 → 降格（結論はその値）
+- [x] FU-1c: 0.9 未満・`danger` → 降格しない。0.5〜0.9 は `l2_candidate`、0.5 未満は `log`
+- [x] FU-1d: 校正なし → 降格しない（`uncalibrated`）、`l1` を付けない
+- [x] FU-1e: エピソードより前に作った問い合わせ・前のエピソードの答え → 降格しない
+- [x] FU-1f: 問い合わせたトラックが赤の候補でない・赤の候補が 2 つ → 降格しない。降格中に 2 頭目が閾値を超える → 赤に戻る
+- [x] FU-1k: [ADDED adversary] 理由が alert_level で、トラックの今の `pos` が `lane` → 降格しない。降格中に `lane` に入る → 赤に戻る。false_positive は `lane` でも降格する
+- [x] FU-1l: [ADDED adversary] 答えが古くなる（開始から 2.0 秒）→ 赤に戻る（tick で確かめ直す）
+- [x] FU-1m: [ADDED adversary] 降格を解いて赤に戻してから 1 秒は再び降格しない。1 秒を過ぎた条件を満たす答えでは降格する
+- [x] FU-1g: L0 が赤でないときの `danger` → 何もしない（上げない）
+- [x] FU-1h: 降格中に、条件を満たさない答え → 赤に戻る。L1 の失敗 → 赤に戻る
+- [x] FU-1i: L0 の赤が解ける → エピソードが閉じ、`l1` が付かなくなる
+- [x] FU-1j: `recentAlerts30s` は直近 30 秒の赤の回数（30 秒より古いものは数えない）
 
 UC-5 配信:
 
-- [ ] HUB-1a: 降格で `deer: false`・`reason=l1`・`l1.overrode=true` が再送され、JSON Schema に通る。`conf`・`distanceM` は付かない（deer: false の形）
-- [ ] HUB-1b: 出力が変わらない答えでは再送しない。次のハートビートに `l1` が付く
-- [ ] HUB-1c: 降格中のハートビートと新しい接続への snapshot も `deer: false` と `l1` を運ぶ
-- [ ] HUB-1d: `flag.sent` のログに `l1` が入れ子で入る
-- [ ] HUB-1e: fusion を渡さない `AlertHub` は従来どおり（既存のテストが Green）
-- [ ] HUB-1f: `wait_for_l1_before_red = true` で L1 が健全 → 赤を保留し（150 ms まで）、期限までに答えが来れば答えで決めた出力、来なければ期限の tick で赤。L1 が失敗中 → 保留しない
-- [ ] HUB-1g: フラグの JSON に NaN を書かない（`allow_nan=False`）
-- [ ] HUB-1h: [ADDED adversary] 入力が止まっている（stalled）あいだに答えが来ても何も送らない
-- [ ] HUB-1i: [ADDED adversary] 降格から赤に戻すフラグは今の L0 の値で、ack の基準はその赤のフレーム
-- [ ] LOG-1a: [ADDED adversary] ログに API キー・URL のパス・track の点・質問文が出ない。`l1.endpoint` は scheme・host・port だけ
+- [x] HUB-1a: 降格で `deer: false`・`reason=l1`・`l1.overrode=true` が再送され、JSON Schema に通る。`conf`・`distanceM` は付かない（deer: false の形）
+- [x] HUB-1b: 出力が変わらない答えでは再送しない。次のハートビートに `l1` が付く
+- [x] HUB-1c: 降格中のハートビートと新しい接続への snapshot も `deer: false` と `l1` を運ぶ
+- [x] HUB-1d: `flag.sent` のログに `l1` が入れ子で入る
+- [x] HUB-1e: fusion を渡さない `AlertHub` は従来どおり（既存のテストが Green）
+- [x] HUB-1f: `wait_for_l1_before_red = true` で L1 が健全 → 赤を保留し（150 ms まで）、期限までに答えが来れば答えで決めた出力、来なければ期限の tick で赤。L1 が失敗中 → 保留しない
+- [x] HUB-1g: フラグの JSON に NaN を書かない（`allow_nan=False`）
+- [x] HUB-1h: [ADDED adversary] 入力が止まっている（stalled）あいだに答えが来ても何も送らない
+- [x] HUB-1i: [ADDED adversary] 降格から赤に戻すフラグは今の L0 の値で、ack の基準はその赤のフレーム
+- [x] LOG-1a: [ADDED adversary] ログに API キー・URL のパス・track の点・質問文が出ない。`l1.endpoint` は scheme・host・port だけ
+- [x] HUB-1j: [ADDED review] fusion が例外を出しても、赤（変化・ハートビート・snapshot）は L0 のまま送られ、`fusion.failed` が残る。NaN の退避は `l1` を外し数を 0 にして `deer` を届ける
 
 UC-6 L1 のタスク:
 
-- [ ] RUN-1a: 成功した答えが `hub.on_l1` に渡り、`l1.result` が残る
-- [ ] RUN-1b: タイムアウト・`L1Unavailable`・予期しない例外が続いてもタスクは死なず、`l1_unavailable` は 1 秒に 1 回まで、回復で `l1.recovered`
-- [ ] RUN-1c: 問い合わせは同時に 1 つまで、開始から `1 / rate_hz` 秒ごと
-- [ ] RUN-1d: 主トラックが無いティックは送らない
-- [ ] RUN-1e: `wake` で次のティックを待たずに聞く（保留の設定）
-- [ ] RUN-1f: `start_l1` は `enabled = false` で None、SDK が無ければ `l1_unavailable(sdk_missing)` を残して None
-- [ ] RUN-1g: `pump(..., background=[...])` は入力が尽きたらバックグラウンドのタスクを片付ける
-- [ ] RUN-1h: [ADDED adversary] 失敗が続くと間隔が 2 倍ずつ延び（2 秒まで）、成功で戻る
-- [ ] RUN-1i: [ADDED adversary] 接続先がループバックでない（環境変数のクラウドの URL）→ `start_l1` が `remote_not_allowed` を残して None
+- [x] RUN-1a: 成功した答えが `hub.on_l1` に渡り、`l1.result` が残る
+- [x] RUN-1b: タイムアウト・`L1Unavailable`・予期しない例外が続いてもタスクは死なず、`l1_unavailable` は 1 秒に 1 回まで、回復で `l1.recovered`
+- [x] RUN-1c: 問い合わせは同時に 1 つまで、開始から `1 / rate_hz` 秒ごと
+- [x] RUN-1d: 主トラックが無いティックは送らない
+- [x] RUN-1e: `wake` で次のティックを待たずに聞く（保留の設定）
+- [x] RUN-1f: `start_l1` は `enabled = false` で None、SDK が無ければ `l1_unavailable(sdk_missing)` を残して None
+- [x] RUN-1g: `pump(..., background=[...])` は入力が尽きたらバックグラウンドのタスクを片付ける
+- [x] RUN-1h: [ADDED adversary] 失敗が続くと間隔が 2 倍ずつ延び（2 秒まで）、成功で戻る
+- [x] RUN-1i: [ADDED adversary] 接続先がループバックでない（環境変数のクラウドの URL）→ `start_l1` が `remote_not_allowed` を残して None
+- [x] RUN-1j: [ADDED review] 失敗が何千回続いても間隔は 2 秒で頭打ち（OverflowError にしない）。後始末（`on_l1_failed`）が例外でもタスクは死なない（`l1.release_failed`）。background が死んだら `pump` が `background.died` を残し、検知は続ける
 
 UC-7 設定:
 
-- [ ] CFG-1a: 空の TOML で `[l1]`・`[l2]` の既定値（base_url の既定は 8766）
-- [ ] CFG-1b: 指定した値が読める。`calibration_path` の相対パスは設定ファイルのディレクトリから
-- [ ] CFG-1c: 範囲外（`override_conf` 0.89、`timeout_ms` 801、`rate_hz` 1.9）・型違い・空の `base_url`・`l2_route_conf` の順序違い・`[l2] enabled` の値違い → `ConfigError`（キー名つき）
-- [ ] CFG-1d: `tracker.min_conf` > `judge.threshold` → `ConfigError`
-- [ ] CFG-1e: `config.example.toml` が読め、既定値と一致する
+- [x] CFG-1a: 空の TOML で `[l1]`・`[l2]` の既定値（base_url の既定は 8766）
+- [x] CFG-1b: 指定した値が読める。`calibration_path` の相対パスは設定ファイルのディレクトリから
+- [x] CFG-1c: 範囲外（`override_conf` 0.89、`timeout_ms` 801、`rate_hz` 1.9）・型違い・空の `base_url`・`l2_route_conf` の順序違い・`[l2] enabled` の値違い → `ConfigError`（キー名つき）
+- [x] CFG-1d: `tracker.min_conf` > `judge.threshold` → `ConfigError`
+- [x] CFG-1e: `config.example.toml` が読め、既定値と一致する
 
 状態パターン:
 
-- [ ] S-1: L1 が止まっている（AC-a と同じテストで確かめる）
-- [ ] S-2: 校正が無い（AC-b と同じテストで確かめる）
-- [ ] S-3: L1 が遅い（CL-1d と RUN-1b で確かめる）
+- [x] S-1: L1 が止まっている（AC-a と同じテストで確かめる）
+- [x] S-2: 校正が無い（AC-b と同じテストで確かめる）
+- [x] S-3: L1 が遅い（CL-1d と RUN-1b で確かめる）
 
 ## Rule → ドメイン語彙対応（Tier 2 推奨）
 
@@ -308,15 +310,15 @@ UC-7 設定:
 
 ## 非機能要件
 
-- [ ] 遅延: 赤の送信経路（`on_result`）に await を足さない。fusion の計算は同期で 1 ms 未満
-- [ ] L1 の 1 問い合わせは `timeout_ms`（800 ms）で必ず打ち切る。リトライしない
-- [ ] 決定性: 乱数を使わない。同じ答えの列で同じ出力
-- [ ] ruff と pytest のカバレッジ 70% 以上。既存の 242 件が Green のまま
+- [x] 遅延: 赤の送信経路（`on_result`）に await を足さない。fusion の計算は同期で 1 ms 未満
+- [x] L1 の 1 問い合わせは `timeout_ms`（800 ms）で必ず打ち切る。リトライしない
+- [x] 決定性: 乱数を使わない。同じ答えの列で同じ出力
+- [x] ruff と pytest のカバレッジ 70% 以上。既存の 242 件が Green のまま（edge-l0 の CFG-1d は `[l1]`・`[l2]` を足したので `[l3]` で確かめるよう書き換えた）
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-a・AC-b・AC-c が Green
-- [ ] 全 UC / 全状態パターンのテストが Green、既存テストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（ruff check・ruff format）
-- [ ] edge-latency-reviewer・code-reviewer・alert-contract-guard の Critical 0
+- [x] 受け入れテスト AC-a・AC-b・AC-c が Green
+- [x] 全 UC / 全状態パターンのテストが Green、既存テストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（ruff check・ruff format）
+- [x] edge-latency-reviewer・code-reviewer・alert-contract-guard の Critical 0

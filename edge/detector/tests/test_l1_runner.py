@@ -11,7 +11,7 @@ from detector.config import Config, JudgeConfig, L1Config
 from detector.hub import AlertHub
 from detector.l1 import start_l1
 from detector.l1.calibration import Calibration
-from detector.l1.runner import MAX_BACKOFF_S, make_verdict, run_l1
+from detector.l1.runner import MAX_BACKOFF_S, backoff_s, make_verdict, run_l1
 from detector.runner import pump
 
 from .conftest import Clock, deer, named, result
@@ -205,6 +205,38 @@ def test_run1h_失敗が続くと間隔が2倍ずつ延び成功で戻る():
     sleeps = spin(hub, FakeClient([*fails, answer()]), 6, rate_hz=2.5)
     assert sleeps[:4] == [pytest.approx(0.8), pytest.approx(1.6), MAX_BACKOFF_S, MAX_BACKOFF_S]
     assert sleeps[4] == pytest.approx(0.4)
+
+
+def test_run1h_失敗が何千回続いても間隔は2秒で頭打ち():
+    assert backoff_s(0.4, 0) == pytest.approx(0.4)
+    assert backoff_s(0.4, 1) == pytest.approx(0.8)
+    assert backoff_s(0.4, 10_000) == MAX_BACKOFF_S  # OverflowError にならない
+
+
+def test_run1b_後始末のon_l1_failedが例外でもタスクは死なない(logbuf):
+    hub, _, _ = red_hub()
+
+    def boom():
+        raise RuntimeError("boom")
+
+    hub.on_l1_failed = boom
+    client = FakeClient([unavailable()])
+    spin(hub, client, 3)
+    assert len(client.requests) >= 3
+    assert named(logbuf, "l1.release_failed")
+
+
+def test_run1g_backgroundが死んだらログに残し検知は続ける(logbuf):
+    async def dies():
+        raise RuntimeError("boom")
+
+    hub = AlertHub(JudgeConfig())
+
+    async def main():
+        await pump(iter([result(0), result(100)]), hub, settle_ticks=1, background=[dies()])
+
+    asyncio.run(asyncio.wait_for(main(), 5))
+    assert named(logbuf, "background.died")[0]["error_type"] == "RuntimeError"
 
 
 def test_失敗で降格が解けて赤に戻る():

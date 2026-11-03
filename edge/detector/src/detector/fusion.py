@@ -121,6 +121,8 @@ class Fusion:
             self._active = False
             return True
         if not on and self.episode is not None:
+            if self._active:
+                self._released_at = now  # 降格のまま閉じても、次の降格まで 1 秒あける
             self.episode = None
             self._verdict = None
             self._active = False

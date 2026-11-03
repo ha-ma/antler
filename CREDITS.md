@@ -30,9 +30,13 @@ EZO ROAD（antler）が使うデータ・素材の出典と利用条件。アセ
 
 ## ライブラリ（ライセンスの表示が要るもの）
 
-| 何             | ライセンス   | 使い方                                           |
-| -------------- | ------------ | ------------------------------------------------ |
-| MapLibre GL JS | BSD-3-Clause | A-2 の地図の背景（apps/sim、遅延読込のチャンク） |
+| 何                                                                                           | ライセンス   | 使い方                                                                                                                               |
+| -------------------------------------------------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| MapLibre GL JS                                                                               | BSD-3-Clause | A-2 の地図の背景（apps/sim、遅延読込のチャンク）                                                                                     |
+| typesafe-sdk 0.7.5（github.com/typesafe-ai/typesafe-sdk-python）                             | MIT          | B の L1 のクライアント（edge/detector の extra `l1`）。local-jev の `POST /v1/systemone` を呼ぶ                                      |
+| httpx2（github.com/pydantic/httpx2、typesafe-sdk の依存）                                    | BSD-3-Clause | typesafe-sdk の HTTP                                                                                                                 |
+| local-jev（github.com/amithgc/local-jev、コミット 64a0b31ff343dca32142496cf9edca5a0174a18d） | MIT          | B の L1 のサーバー。detector の依存には入れず、Mac mini で別に入れて `local-jev serve --model llm-qwen2.5-1.5b --port 8766` で動かす |
+| Qwen/Qwen2.5-1.5B-Instruct（Hugging Face。local-jev が初回に取得）                           | Apache-2.0   | L1 のモデルの重み。リポジトリには入れない                                                                                            |
 
 ## 開発ハーネス
 

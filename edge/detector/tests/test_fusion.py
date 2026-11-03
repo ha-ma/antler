@@ -258,6 +258,20 @@ def test_fu1m_赤に戻して1秒は再び降格しない():
     assert r.fu.refresh(r.now + FLIP_GUARD_S) is True
 
 
+def test_fu1m_降格のままエピソードが閉じても次の降格まで1秒あける():
+    r = Rig()
+    r.red()
+    r.fu.apply(r.verdict())
+    assert r.fu.refresh(r.now)
+    r.frame(dt=1.6)  # 降格のまま L0 の赤が解ける
+    assert r.fu.episode is None
+    r.red()  # 0.2 秒後にまた赤
+    r.fu.apply(r.verdict())
+    assert r.fu.refresh(r.now) is False
+    r.fu.apply(replace(r.verdict(), started=r.now + 1.0))
+    assert r.fu.refresh(r.now + 1.0) is True
+
+
 def test_l1_fieldは範囲に収める():
     r = Rig()
     r.red()
