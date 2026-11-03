@@ -5,7 +5,7 @@
   --on-alert-safe: #0E1512;
   --alert-zone: #E8A64A;
   --on-alert-zone: #0E1512;
-  --alert-danger: #E2492C;
+  --alert-danger: #D83B1E;
   --on-alert-danger: #FFFFFF;
   --font-sans: "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -63,7 +63,7 @@
   --radius-pill: 999px;
   --shadow-card: 0 12px 40px rgba(0,0,0,0.25);
   --shadow-press: 0 6px 0 #164F43;
-  --shadow-danger: 0 0 40px 10px rgba(226,73,44,0.6);
+  --shadow-danger: 0 0 40px 10px rgba(216,59,30,0.6);
 }
 
 :root,

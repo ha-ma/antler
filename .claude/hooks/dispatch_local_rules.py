@@ -8,7 +8,7 @@ AlertState の props が README どおりか、など）は alert-contract-guard
 
 1. 色の直書き禁止（ch8 規約 1・3）: UI のソースに 16 進色・rgb()/hsl() を書かない。tokens.json から生成した
    CSS 変数 / TS 定数を使う。例外は生成物（tokens.css / tokens.ts）と 3D シーンの配色表（scene/palette.ts）。
-   ただし alert-danger の赤（#E2492C）は配色表にも書けない（検知以外に使わない）。
+   ただし alert-danger の赤（#D83B1E。2026-11-03 までの #E2492C も）は配色表にも書けない（検知以外に使わない）。
 2. 統計の数字の直書き禁止（A6-3）: 事故件数・保険金の実数はコードに埋めず stats.json から読む。
 3. Capture に個人情報・精密位置を入れない（ch5「保存しない」）: パスに capture を含むファイルで、
    氏名・メール・電話・端末識別子・緯度経度のキーを書かない（B は道路区間 ID に丸める）。
@@ -33,7 +33,7 @@ _TOKEN_OUTPUT = re.compile(r"(?:^|/)tokens\.(?:css|ts)$")
 _SCENE_PALETTE = re.compile(r"^apps/sim/src/.*/scene/palette\.ts$")
 _HEX = re.compile(r"(?<![\w&])#(?:[0-9a-fA-F]{8}|[0-9a-fA-F]{6}|[0-9a-fA-F]{3,4})\b")
 _FUNC_COLOR = re.compile(r"\b(?:rgba?|hsla?)\(\s*\d")
-_DANGER_RED = re.compile(r"#e2492c\b", re.IGNORECASE)
+_DANGER_RED = re.compile(r"#(?:d83b1e|e2492c)\b", re.IGNORECASE)
 
 # 規則 2: 統計の実数（6,705 件・5,460 件・1,751 件・1,229 件・7.56 億円・61.5 万円・890 万円）
 _STATS = re.compile(

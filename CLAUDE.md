@@ -83,7 +83,7 @@
 
 `.claude/hooks/dispatch_local_rules.py` が Write / Edit / MultiEdit のときに止める（`python scripts/ci_arch_check.py` が PR でも同じ検査を当てる）:
 
-- UI（apps/sim/src・apps/pwa/src・packages/alert-ui/src）に色を直書きしない。tokens.json から生成した CSS 変数 / TS 定数を使う。3D シーンの配色だけは `apps/sim/src/**/scene/palette.ts` にまとめてよい。`#E2492C`（alert-danger）はどこにも直書きしない
+- UI（apps/sim/src・apps/pwa/src・packages/alert-ui/src）に色を直書きしない。tokens.json から生成した CSS 変数 / TS 定数を使う。3D シーンの配色だけは `apps/sim/src/**/scene/palette.ts` にまとめてよい。`#D83B1E`（alert-danger。旧 `#E2492C` も）はどこにも直書きしない
 - 統計の実数（6,705 件・61.5 万円など）をコードに埋めない。`stats.json` から読み、出典を画面に出す
 - Capture まわり（パスに capture を含むファイル）に氏名・メール・電話・端末識別子・緯度経度を書かない。位置は `roadSegment` に丸める
 - UI に絵文字を使わない。アイコンはインライン SVG（stroke）

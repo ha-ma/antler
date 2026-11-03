@@ -19,7 +19,7 @@ export const tokens = {
       "on-alert-safe": "#0E1512",
       "alert-zone": "#E8A64A",
       "on-alert-zone": "#0E1512",
-      "alert-danger": "#E2492C",
+      "alert-danger": "#D83B1E",
       "on-alert-danger": "#FFFFFF",
       "map-water": "#CFE0F2",
       "map-land": "#EEF0EA",
@@ -42,7 +42,7 @@ export const tokens = {
       "on-alert-safe": "#0E1512",
       "alert-zone": "#E8A64A",
       "on-alert-zone": "#0E1512",
-      "alert-danger": "#E2492C",
+      "alert-danger": "#D83B1E",
       "on-alert-danger": "#FFFFFF",
       "map-water": "#2A3448",
       "map-land": "#1B2538",
@@ -153,7 +153,7 @@ export const tokens = {
   "shadow": {
     "shadow-card": "0 12px 40px rgba(0,0,0,0.25)",
     "shadow-press": "0 6px 0 #164F43",
-    "shadow-danger": "0 0 40px 10px rgba(226,73,44,0.6)"
+    "shadow-danger": "0 0 40px 10px rgba(216,59,30,0.6)"
   }
 } as const
 

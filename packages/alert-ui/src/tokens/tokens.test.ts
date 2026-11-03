@@ -33,7 +33,7 @@ describe('UC-9 トークン', () => {
       expect(t.value.trip, t.name).toBe(t.value.night)
     }
     const css = committed('tokens.css')
-    expect(css).toContain('--alert-danger: #E2492C;')
+    expect(css).toContain('--alert-danger: #D83B1E;')
     // alert-* はテーマごとのブロックではなく :root に 1 回だけ出す
     expect(css.match(/--alert-danger:/g)).toHaveLength(1)
   })

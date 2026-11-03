@@ -23,15 +23,15 @@ const color = (name: string) => {
 }
 
 describe('UC-10c コントラスト', () => {
-  it('safe / zone は 4.5:1 以上', () => {
+  it('safe / zone / danger とも 4.5:1 以上', () => {
     expect(contrast(color('alert-safe'), color('on-alert-safe'))).toBeGreaterThanOrEqual(4.5)
     expect(contrast(color('alert-zone'), color('on-alert-zone'))).toBeGreaterThanOrEqual(4.5)
+    // 2026-11-03 にユーザー判断で #E2492C（4.02:1）→ #D83B1E（4.6:1）
+    expect(contrast(color('alert-danger'), color('on-alert-danger'))).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('danger は 3:1 以上（4.02:1。文字をすべて大きな文字＝24px 以上か 19px 以上の太字にして WCAG の大きな文字の基準で満たす）', () => {
-    // ch5 の「4.5:1 以上（赤底×白文字で確認済み）」とは食い違う。確認待ち（PR に記載）
-    const ratio = contrast(color('alert-danger'), color('on-alert-danger'))
-    // 赤を濃くして 4.5:1 に届かせる案もあり、そのときもこのテストは通る（下限だけを確かめる）
-    expect(ratio).toBeGreaterThanOrEqual(3)
+  it('[ADDED] 赤と緑は明度でも区別できる（ch5「赤・緑を形と明度でも区別」。輝度比 1.5 以上を目安）', () => {
+    const l = (name: string) => luminance(color(name)) + 0.05
+    expect(l('alert-safe') / l('alert-danger')).toBeGreaterThanOrEqual(1.5)
   })
 })

@@ -47,6 +47,8 @@ check("生成物 tokens.css は通す", denied("packages/alert-ui/src/tokens.css
 check("3D の配色表は通す", denied("apps/sim/src/features/drive/scene/palette.ts", "snow: '#F4F6F8'") == [])
 check("配色表でも alert-danger の赤は止める",
       any("alert-danger" in m for m in denied("apps/sim/src/features/drive/scene/palette.ts", "bad: '#e2492c'")))
+check("配色表でも新しい alert-danger の赤（#D83B1E）は止める",
+      any("alert-danger" in m for m in denied("apps/sim/src/features/drive/scene/palette.ts", "bad: '#D83B1E'")))
 check("api の色は対象外", denied("apps/api/src/og.ts", "fill: '#1E6F5C'", "api") == [])
 check("テストは対象外", denied("apps/pwa/src/features/drive/View.test.tsx", "'#E2492C'") == [])
 check("HTML 実体参照 &#123; は色にしない", denied("apps/sim/src/x.tsx", "&#123;") == [])

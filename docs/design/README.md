@@ -2,6 +2,7 @@
 > - **UI キャンバス v2（画面の正）: https://claude.ai/artifact/92Ho3c3gpV3CdNwmLvUS5F**
 > - 画面名 A-1〜A-7 / B-0〜B-3 は要件 ID（docs/requirements/ch3-sim.md・ch4-edge.md）と対応する。アートボード名は下の「対応表」。
 > - 本文は Claude Design からの写し（2026-11-03）。パッケージ名 `@ezoroad/alert-ui` は本リポジトリでは `@antler/alert-ui`。
+> - `alert-danger` と `shadow-danger` の赤を、白文字と 4.6:1 になるよう濃くした（2026-11-03、ユーザー判断。元は 4.02:1 で ch5 の 4.5:1 に届かなかった）。デザインシステムの原本（v8）にも反映済み。UI キャンバス v2 のモックは古い赤のまま。
 
 # EZO ROAD Design System
 
