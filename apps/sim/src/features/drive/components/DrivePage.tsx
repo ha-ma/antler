@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, type ReactNode } from 'react'
+import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
 import { ZONES } from '../domain/zones-data'
@@ -71,6 +71,17 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2 }: Prop
     void sound.start()
   }
 
+  // 一時停止・終了・音トグル OFF ではビープと読み上げを止める（R7）
+  const muted = !soundOn || snapshot.playback.paused || snapshot.outcome !== 'driving'
+  // スマホの中身は自分で購読するので、ここは変わったときだけ作り直す（memo(DriveCanvas) を 10 Hz で破らない）
+  const phone = useMemo(
+    () =>
+      snapshot.alertEnabled ? (
+        <PhoneScreen engine={engine} controller={sound.controller} muted={muted} />
+      ) : null,
+    [snapshot.alertEnabled, engine, sound.controller, muted],
+  )
+
   if (!supported) {
     return (
       <main className="drive" data-theme="night">
@@ -81,16 +92,15 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2 }: Prop
     )
   }
 
-  // 一時停止・終了・音トグル OFF ではビープと読み上げを止める（R7）
-  const muted = !soundOn || snapshot.playback.paused || snapshot.outcome !== 'driving'
-  const phone = snapshot.alertEnabled ? (
-    <PhoneScreen engine={engine} controller={sound.controller} muted={muted} />
-  ) : null
-  const sceneProps = { world, phone, onFrame }
-
   return (
     <main className="drive" data-theme="night">
-      <div className="drive__scene">{canvas ? canvas(sceneProps) : <Scene {...sceneProps} />}</div>
+      <div className="drive__scene">
+        {canvas ? (
+          canvas({ world, phone, onFrame })
+        ) : (
+          <Scene world={world} phone={phone} onFrame={onFrame} />
+        )}
+      </div>
       {started && (
         <div className="drive-hud">
           <ZoneStatusPanel snapshot={snapshot} />

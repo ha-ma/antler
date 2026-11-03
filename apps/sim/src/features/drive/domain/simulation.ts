@@ -1,5 +1,5 @@
 import { deriveAlertState } from '@antler/alert-ui'
-import type { ReceivedFlag } from '@antler/schema'
+import { readAlertFlag, type ReceivedFlag } from '@antler/schema'
 import { lightPeriod, planRoute, toInstant, type ZoneCollection } from '@antler/zones'
 import type { DriveInput, DriveScenario, Encounter, PlaybackRate, World } from '../types'
 import { NO_INPUT } from '../types'
@@ -19,6 +19,7 @@ import {
 import { INITIAL_PLAYBACK, requestRate, scaledDt, setInZone, setPaused } from './playback'
 import { createRng, deriveSeed } from './rng'
 import { createRoadFrame, lonLatAt, poseAt } from './road'
+import { buildSimFlag } from './sim-flag'
 import { firstEntryBetween, intervalAt, zoneStatusAt } from './zone-status'
 import { initialVehicle, stepVehicle } from './vehicle'
 
@@ -226,7 +227,9 @@ function tick(world: World, events: SimEvent[]): void {
   const { internal, vehicle, scenario } = world
   const t = world.t
   const position = lonLatAt(internal.frame, vehicle.s, vehicle.d)
-  world.zone = zoneStatusAt(world.plan, position, world.zone.positionKm)
+  // 手がかりは車の道のり s（真値）。前回の positionKm を渡すと、measureAlongRoute が近くの線分の端（最短 + 30 m 以内）
+  // から手がかりに近いものを選ぶので、まっすぐな道でも最大 30 m 遅れ、出口で琥珀が残る（UC-6j）
+  world.zone = zoneStatusAt(world.plan, position, vehicle.s / 1000)
   world.light = lightPeriod(internal.startMs + t, { lon: position[0], lat: position[1] })
 
   const car = poseAt(internal.frame, vehicle.s, vehicle.d)
@@ -293,25 +296,9 @@ function tick(world: World, events: SimEvent[]): void {
   }
 }
 
-/** シミュレーターが作るフラグ（B と同じ ReceivedFlag の形） */
-function makeFlag(world: World, sighting: Sighting | null): ReceivedFlag {
-  const gps = world.zone.gps
-  const zone: Partial<ReceivedFlag> =
-    gps.status === 'inside'
-      ? {
-          zone: 'inside',
-          ...(gps.remainingKm !== undefined && { zoneRemainingKm: gps.remainingKm }),
-        }
-      : { zone: 'outside', ...(gps.distanceKm !== undefined && { zoneDistanceKm: gps.distanceKm }) }
-  if (!sighting) return { deer: false, strict: true, ...zone }
-  return {
-    deer: true,
-    strict: true,
-    conf: 0.9,
-    distanceM: Math.round(sighting.distanceM),
-    side: sighting.side,
-    ...zone,
-  }
+/** シミュレーターが作るフラグを、B のフラグを受けるときと同じ readAlertFlag で読む（sim-flag.ts） */
+function makeFlag(world: World, sighting: Sighting | null): ReceivedFlag | null {
+  return readAlertFlag(buildSimFlag(world.internal.startMs + world.t, sighting)).flag
 }
 
 function encounterFor(world: World, deerId: string, pattern: Encounter['pattern']): Encounter {

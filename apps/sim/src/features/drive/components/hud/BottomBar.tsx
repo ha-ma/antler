@@ -1,4 +1,5 @@
 import { HUD_TEXT } from './hud-text'
+import { releaseFocusAfterPointer } from './pointer-focus'
 
 type Props = {
   speedKmh: number
@@ -28,7 +29,10 @@ export function BottomBar({ speedKmh, soundOn, onSound }: Props) {
         type="button"
         className="drive-hud__button"
         aria-pressed={soundOn}
-        onClick={() => onSound(!soundOn)}
+        onClick={(e) => {
+          releaseFocusAfterPointer(e)
+          onSound(!soundOn)
+        }}
       >
         {soundOn ? HUD_TEXT.sound.on : HUD_TEXT.sound.off}
       </button>

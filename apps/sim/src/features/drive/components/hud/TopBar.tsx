@@ -3,6 +3,7 @@ import type { DriveSnapshot } from '../../domain/engine'
 import { PLAYBACK_RATES } from '../../domain/playback'
 import type { PlaybackRate } from '../../types'
 import { HUD_TEXT, SURFACE_TEXT, WEATHER_TEXT } from './hud-text'
+import { releaseFocusAfterPointer } from './pointer-focus'
 
 type Props = {
   snapshot: DriveSnapshot
@@ -35,7 +36,10 @@ export function TopBar({ snapshot, onRate, onPause }: Props) {
             aria-pressed={playback.rate === rate}
             disabled={playback.locked && rate !== 1}
             aria-describedby={playback.locked ? 'drive-playback-locked' : undefined}
-            onClick={() => onRate(rate)}
+            onClick={(e) => {
+              releaseFocusAfterPointer(e)
+              onRate(rate)
+            }}
           >
             {rate}×
           </button>
@@ -44,7 +48,10 @@ export function TopBar({ snapshot, onRate, onPause }: Props) {
           type="button"
           className="drive-hud__button"
           aria-pressed={playback.paused}
-          onClick={() => onPause(!playback.paused)}
+          onClick={(e) => {
+            releaseFocusAfterPointer(e)
+            onPause(!playback.paused)
+          }}
         >
           {playback.paused ? p.resume : p.pause}
         </button>

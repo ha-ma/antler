@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   BackSide,
   Color,
@@ -30,7 +30,9 @@ export function Atmosphere({ weather }: Props) {
   const hemi = useRef<HemisphereLight>(null)
   const sun = useRef<DirectionalLight>(null)
   const dome = useRef<Mesh>(null)
-  const start = SKY[scene.current.world.light]
+  // 初期値は最初の 1 回だけ読む（再描画で読み直すと、なじませの途中の値と args が作り直されて 3 秒のなじませが飛ぶ）。
+  // 光の区分の変化は useFrame の中だけで寄せる
+  const [start] = useState(() => SKY[scene.current.world.light])
 
   const domeGeometry = useMemo(() => {
     const g = new SphereGeometry(DOME_R, 16, 10)

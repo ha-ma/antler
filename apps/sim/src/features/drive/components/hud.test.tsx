@@ -65,7 +65,7 @@ describe('アラートの見せ方（R7）', () => {
   it('UC-7a: danger でビネットと中央上のバナー「前方に鹿 左 42 m」、スマホの AlertState が赤', () => {
     render(<DangerOverlay alert={danger} lang="ja" />)
     expect(screen.getByTestId('danger-vignette')).toBeInTheDocument()
-    expect(screen.getByTestId('danger-banner')).toHaveTextContent('前方に鹿 左 42 m')
+    expect(screen.getByTestId('danger-banner')).toHaveTextContent('前方に鹿 左 42 m ブレーキ')
     const { engine } = fakeEngine({ ...base, alert: danger })
     render(<PhoneScreen engine={engine} controller={null} muted={false} />)
     const phone = document.querySelector('[data-alert-state]')
@@ -75,7 +75,7 @@ describe('アラートの見せ方（R7）', () => {
 
   it('UC-7a: 旅程の言語でバナーを出す（en）。danger でなければ何も描かない', () => {
     const { container, rerender } = render(<DangerOverlay alert={danger} lang="en" />)
-    expect(screen.getByTestId('danger-banner')).toHaveTextContent('DEER AHEAD LEFT 42 m')
+    expect(screen.getByTestId('danger-banner')).toHaveTextContent('DEER AHEAD LEFT 42 m BRAKE')
     rerender(<DangerOverlay alert={{ state: 'zone', distance: 3, inZone: true }} lang="en" />)
     expect(container).toBeEmptyDOMElement()
   })

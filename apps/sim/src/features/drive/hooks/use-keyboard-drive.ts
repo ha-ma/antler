@@ -33,12 +33,20 @@ export function useKeyboardDrive(engine: DriveEngine, enabled: boolean): void {
       input[key] = pressed
       engine.setInput({ ...input })
     }
-    const down = (e: KeyboardEvent) => apply(e.code, true, e)
-    const up = (e: KeyboardEvent) => apply(e.code, false, e)
     // フォーカスが外れたら離したことにする（押しっぱなしで走り続けない）
     const blur = () => {
       Object.assign(input, NO_INPUT)
       engine.setInput({ ...NO_INPUT })
+    }
+    // Cmd / Ctrl / Alt つきはブラウザのショートカットに任せる（Cmd+A などで運転しない）
+    const down = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      apply(e.code, true, e)
+    }
+    const up = (e: KeyboardEvent) => {
+      // macOS は Cmd を押している間ほかのキーの keyup を出さないので、Cmd を離したら全部離したことにする
+      if (e.key === 'Meta') blur()
+      else apply(e.code, false, e)
     }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)

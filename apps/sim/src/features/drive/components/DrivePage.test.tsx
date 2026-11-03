@@ -75,6 +75,39 @@ describe('drive の画面（R7・R8・R12）', () => {
     expect(screen.queryByRole('heading', { name: '完走しました' })).toBeNull()
   })
 
+  it('[component-guard W3・W4] Cmd つきのキーでは運転しない。Cmd を離すと全部離したことにする。マウスで押したボタンはフォーカスを外す', async () => {
+    const { engine } = setup()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', metaKey: true }))
+    })
+    expect(engine.world.input.left).toBe(false)
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' }))
+    })
+    expect(engine.world.input.throttle).toBe(true)
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keyup', { key: 'Meta', code: 'MetaLeft' }))
+    })
+    expect(engine.world.input.throttle).toBe(false)
+    const fast = screen.getByRole('button', { name: '4×' })
+    await userEvent.click(fast)
+    expect(document.activeElement).not.toBe(fast)
+  })
+
+  it('UC-7b: 音トグル OFF・一時停止で、スマホの AlertState から音のコントローラへ muted を渡す', async () => {
+    const update = vi.spyOn(AlertSoundController.prototype, 'update')
+    setup()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ muted: false }))
+    await userEvent.click(screen.getByRole('button', { name: '音 ON' }))
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ muted: true }))
+    await userEvent.click(screen.getByRole('button', { name: '音 OFF' }))
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ muted: false }))
+    await userEvent.click(screen.getByRole('button', { name: '一時停止' }))
+    expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ muted: true }))
+  })
+
   it('UC-7h: WebGL2 が使えなければ 3D を出さずに案内を出す', () => {
     render(<DrivePage webgl2={() => false} canvas={() => <div data-testid="scene" />} />)
     expect(screen.getByRole('alert')).toHaveTextContent('WebGL2 が必要です')

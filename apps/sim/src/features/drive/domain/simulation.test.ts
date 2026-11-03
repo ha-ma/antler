@@ -1,4 +1,6 @@
+import { AlertFlagSchema, readAlertFlag } from '@antler/schema'
 import { describe, expect, it } from 'vitest'
+import { buildSimFlag } from './sim-flag'
 import type { Deer, DriveInput, World } from '../types'
 import { NO_INPUT } from '../types'
 import { DriveEngine } from './engine'
@@ -167,6 +169,37 @@ describe('遭遇の記録（R9）', () => {
     expect(roadside?.alertToBrakeMs).toBeNull()
     expect(roadside?.outcome).toBe('pending')
     expect(w.encounters.find((x) => x.deerId === 't1')?.outcome).toBe('collided')
+  })
+})
+
+describe('フラグの形（R6）', () => {
+  it('UC-6i: シミュレーターのフラグは AlertFlagSchema を通り（B と同じく zone は outside）、readAlertFlag で strict になる', () => {
+    const at = Date.parse('2027-02-15T16:45+09:00')
+    const on = buildSimFlag(at, { deerId: 'a', distanceM: 41.6, side: 'L' })
+    const off = buildSimFlag(at, null)
+    expect(AlertFlagSchema.safeParse(on).success).toBe(true)
+    expect(AlertFlagSchema.safeParse(off).success).toBe(true)
+    expect(readAlertFlag(on).flag).toMatchObject({
+      deer: true,
+      strict: true,
+      distanceM: 42,
+      side: 'L',
+      zone: 'outside',
+    })
+    expect(on.t_frame).toBe('2027-02-15T16:45:00.000+09:00')
+  })
+
+  it('UC-6j: 解除の直後に出口を越えても、出口で safe になる（琥珀が 5 秒残らない）', () => {
+    const w = inZoneWith([])
+    const exit = (w.plan.intervals[0]?.exitKm ?? 0) * 1000
+    w.vehicle = { ...w.vehicle, s: exit - 20, speed: 60 / 3.6 }
+    w.flag = readAlertFlag(buildSimFlag(w.internal.startMs + w.t, null)).flag
+    w.flagAt = w.t
+    run(w, 2500, { ...NO_INPUT, throttle: true })
+    expect(w.vehicle.s).toBeGreaterThan(exit + 10)
+    expect(w.t - (w.flagAt ?? 0)).toBeLessThan(5000)
+    expect(w.zone.positionKm * 1000).toBeCloseTo(w.vehicle.s, -1)
+    expect(w.alert.state).toBe('safe')
   })
 })
 
