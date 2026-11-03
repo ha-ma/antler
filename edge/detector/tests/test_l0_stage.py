@@ -153,6 +153,28 @@ def test_rule1g_隠れてトラックが消えたらハートビートの3つは
     assert (beat["track_id"], beat["ttc_s"], beat["lateral_mps"]) == (None, None, None)
 
 
+# RULE-1i
+def test_rule1i_作り直しも失敗しても赤は送られ_次のフレームで作り直す(logbuf):
+    calls = []
+
+    def factory(first_id):
+        calls.append(first_id)
+        if len(calls) == 1:
+            return Boom(first_id)
+        if len(calls) == 2:
+            raise OSError("作り直せない")
+        return Boom(first_id)
+
+    clock = Clock()
+    hub, sent = make_hub(clock, l0=L0Stage(JudgeConfig(), tracker_factory=factory))
+    hub.on_result(result(0, deer()))
+    hub.on_result(result(100, deer()))
+    assert [f["deer"] for f in sent] == [False, True]
+    assert len(calls) >= 3  # 1 回目の作り直しが失敗しても、次で作り直す
+    on = [e for e in named(logbuf, "flag.sent") if e["deer"]]
+    assert on[0]["track_id"] is None
+
+
 # RULE-1h
 def test_rule1h_トラッカーの例外が続いてもログは1秒に1回まで_IDは続きから(logbuf):
     made = []

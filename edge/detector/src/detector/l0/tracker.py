@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("detector.l0")
 
 __all__ = [
+    "MAX_DETECTIONS",
     "MAX_POINTS",
     "MIN_CLOSING_MPS",
     "MIN_SPAN_S",
@@ -40,6 +41,7 @@ MIN_SPAN_S = 0.2  # 速度を出す最短の時間差（5 fps の 1 間隔）。
 MIN_CLOSING_MPS = 0.5  # これ以下の接近は「近づいていない」→ TTC は None
 MAX_POINTS = 64  # JudgeRequest の track の上限
 RESET_BACK_S = 1.0  # t_frame がこれより大きく戻ったら作り直す
+MAX_DETECTIONS = 16  # 1 フレームでトラッカーに入れる検出の上限（計算量を抑える）
 
 Box = tuple[float, float, float, float]
 Table = tuple[tuple[float, float], ...]
@@ -133,6 +135,10 @@ class Tracker:
         max_age = timedelta(seconds=self._cfg.max_age_s)
         self._tracks = [tr for tr in self._tracks if t - tr.last.t <= max_age]
         dets = [d for d in result.detections if _usable(d, self._cfg.min_conf)]
+        if len(dets) > MAX_DETECTIONS:
+            # 送信の前に走るので件数に上限を置く。確信度の高いものを残し、検出の順は保つ
+            keep = sorted(range(len(dets)), key=lambda i: -dets[i].conf)[:MAX_DETECTIONS]
+            dets = [dets[i] for i in sorted(keep)]
         pairs = sorted(
             (
                 (iou(tr.last.xywh, d.xywh), tr.id, j)

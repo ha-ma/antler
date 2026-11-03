@@ -97,9 +97,12 @@ def test_cu1b_設定どおりのcompute_unitsが渡る(monkeypatch, units, expec
 
 
 # CU-1c
-def test_cu1c_モデルのパスが空ならConfigError():
+def test_cu1c_モデルのパスが空ならConfigError(monkeypatch):
     with pytest.raises(ConfigError, match=r"infer\.model_path"):
         load_coreml_detector(config(path=""), loader=lambda *_: pytest.fail("読まない"))
+    monkeypatch.setitem(sys.modules, "coremltools", None)  # 任意の依存が入っていない
+    with pytest.raises(ConfigError, match="coremltools が無い"):
+        load_coreml_detector(config())
 
 
 def test_画像の入力が無いモデルはConfigError(monkeypatch):
@@ -150,7 +153,8 @@ def test_cu2b_形の違う出力は例外でパイプラインはinfer_failedに
 # CU-2c
 def test_cu2c_メタデータのnamesを読む():
     assert parse_names("{0: 'deer', 1: 'car'}") == ("deer", "car")
-    for bad in [None, "", "deer", "[0, 1]", "{1: 'deer'}", "{0: 1}", "{0: 'deer'", "x" * 10_001]:
+    bad_names = [None, "", "deer", "[0, 1]", "{1: 'deer'}", "{0: 1}", "{0: 'deer'", "x" * 10_001]
+    for bad in [*bad_names, "{0: 'deer', '1': 'car'}", "{True: 'deer'}"]:
         with pytest.raises(ConfigError, match="names"):
             parse_names(bad)
 

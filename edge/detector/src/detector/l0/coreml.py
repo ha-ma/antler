@@ -69,6 +69,7 @@ def parse_names(raw: object) -> tuple[str, ...]:
         raise ConfigError(msg) from exc
     if (
         not isinstance(value, dict)
+        or not all(isinstance(k, int) and not isinstance(k, bool) for k in value)
         or sorted(value) != list(range(len(value)))
         or not all(isinstance(v, str) for v in value.values())
     ):
@@ -140,7 +141,11 @@ class CoreMLDetector:
 
 def load_with_coremltools(path: str, compute_units: str) -> LoadedModel:
     """coremltools で読み込む。compute units は MLModel の引数で固定する（B1-3）。"""
-    import coremltools as ct  # 任意の依存（pyproject の coreml）。無ければ ImportError
+    try:
+        import coremltools as ct  # 任意の依存（pyproject の coreml）
+    except ImportError as exc:
+        msg = "coremltools が無い（pip install -e 'edge/detector[coreml]'）"
+        raise ConfigError(msg) from exc
 
     unit = getattr(ct.ComputeUnit, COMPUTE_UNIT_NAMES[compute_units])
     model = ct.models.MLModel(path, compute_units=unit)

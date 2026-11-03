@@ -6,7 +6,7 @@ import math
 import pytest
 
 from detector.config import DEFAULT_DISTANCE_TABLE, TrackerConfig
-from detector.l0.tracker import MAX_POINTS, Tracker, iou, track_distance_m
+from detector.l0.tracker import MAX_DETECTIONS, MAX_POINTS, Tracker, iou, track_distance_m
 from detector.ports import Detection
 from detector.schema.judge_request import TrackPoint
 
@@ -57,6 +57,12 @@ def test_trk1b_IoUの大きい組から結び_同じ入力で同じ割り当て(
     first = run()
     assert first == [(1, 0.42), (2, 0.50)]
     assert all(run() == first for _ in range(5))
+    # 取り合い: 検出 A（0.45）は ID1 とも閾値以上で重なるが、ID2 との IoU のほうが大きい。
+    # 順に結ぶと ID1 が A を取り、B は ID2 と閾値未満で新しいトラックになる。貪欲なら ID1←B、ID2←A
+    tr = feed(tracker(), [(0, [box(0.40, w=0.1), box(0.46, w=0.1)])])
+    assert iou(tr.tracks[0].last.xywh, (0.45, 0.5, 0.1, 0.1)) >= 0.3
+    feed(tr, [(100, [box(0.45, w=0.1), box(0.40, w=0.1)])])
+    assert [(t.id, t.last.xywh[0]) for t in tr.tracks] == [(1, 0.40), (2, 0.45)]
     # 同点（同じ箱が 2 つ）は ID の小さいトラックに、検出の順で
     tr = feed(tracker(), [(0, [box(0.4), box(0.4)]), (100, [box(0.4, conf=0.5)])])
     assert tr.tracks[0].last.conf == 0.5 and len(tr.tracks[1].points) == 1
@@ -113,6 +119,15 @@ def test_trk1g_1秒より大きく戻ったら作り直し_IDは再利用しな�
     feed(tr, [(3000, [box()])])
     assert ids(tr) == [3] and len(tr.tracks[0].points) == 1
     assert named(logbuf, "l0.tracker_reset")[0]["back_s"] == 2.1
+
+
+# TRK-1h
+def test_trk1h_1フレームの検出は16件まで_確信度の高いものを残す():
+    dets = [box(0.02 + 0.05 * i, w=0.02, conf=0.5 + 0.02 * i) for i in range(20)]
+    tr = feed(tracker(), [(0, dets)])
+    assert len(tr.tracks) == MAX_DETECTIONS == 16
+    assert min(t.last.conf for t in tr.tracks) == pytest.approx(0.58)
+    assert [t.last.xywh[0] for t in tr.tracks] == sorted(t.last.xywh[0] for t in tr.tracks)
 
 
 # TRK-2a

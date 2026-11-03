@@ -75,7 +75,30 @@ class L0Stage:
             return None
 
     def _failed(self, exc: Exception, now: float) -> None:
+        """失敗を 1 秒に 1 回まで残し、トラッカーを作り直す。例外を外へ出さない（赤を止めない）。"""
         if self._last_fail_log is None or now - self._last_fail_log >= FAIL_LOG_INTERVAL_S:
             self._last_fail_log = now
             logger.warning("l0.tracker_failed", extra={"error_type": type(exc).__name__})
-        self.tracker = self._factory(self.tracker.next_id)  # ID は続きから（再利用しない）
+        next_id = getattr(self.tracker, "next_id", 1)
+        try:
+            self.tracker = self._factory(next_id)  # ID は続きから（再利用しない）
+        except Exception:  # noqa: BLE001  作り直しの失敗でも判定は続ける。次のフレームで再挑戦
+            self.tracker = _NullTracker(next_id)
+
+
+class _NullTracker:
+    """作り直しに失敗したあいだの代わり。何も追わない（トラッカーの値は null になる）。"""
+
+    def __init__(self, next_id: int) -> None:
+        self.next_id = next_id
+
+    def update(self, result: FrameResult) -> None:
+        msg = "トラッカーを作り直せていない"
+        raise RuntimeError(msg)
+
+    def primary(self) -> Track | None:
+        return None
+
+    def metrics(self, track: Track) -> TrackMetrics:
+        msg = "トラッカーを作り直せていない"
+        raise RuntimeError(msg)
