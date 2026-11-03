@@ -2,10 +2,11 @@ import { Hono } from 'hono'
 import { clientIpKey, type ClientIpOptions } from './client-ip.js'
 
 async function keyFor(options: ClientIpOptions, headers: Record<string, string> = {}) {
-  const app = new Hono()
+  // 変数名を app にしない（sfad-drift が `app.get(` をルートとして数えるため。試験だけのルート）
+  const probe = new Hono()
   const key = clientIpKey(options)
-  app.get('/', (c) => c.text(key(c)))
-  const res = await app.request('/', { headers })
+  probe.get('/', (c) => c.text(key(c)))
+  const res = await probe.request('/', { headers })
   return res.text()
 }
 

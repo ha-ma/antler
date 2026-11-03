@@ -113,6 +113,20 @@ async function postTrip({ key, input }: CreateTripAttempt): Promise<CreatedTrip>
   if (!plan.success || !details.success || typeof ownerToken !== 'string') {
     throw new CreateTripError(response.status, 'POST /api/trips の応答の形が違う')
   }
+  // 型では表せない対応（TripDetails の約束）: 同じ旅で、タイトルは表示中の言語のもの、日ごとの説明は days と同じ数・順
+  const { data: p } = plan
+  const { data: d } = details
+  const consistent =
+    d.tripId === p.id &&
+    d.titles[p.lang] === p.title &&
+    d.dayNotes.length === p.days.length &&
+    d.dayNotes.every((note, i) => note.day === p.days[i]?.day)
+  if (!consistent) {
+    throw new CreateTripError(
+      response.status,
+      'POST /api/trips の plan と details が対応していない',
+    )
+  }
   return { plan: plan.data, details: details.data, ownerToken }
 }
 

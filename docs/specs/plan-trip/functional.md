@@ -142,78 +142,78 @@ R1〜R10 のとおり。しおりの組み立て（R3）とリスク（R4）は 
 
 外側ループ（受け入れ）:
 
-- [ ] AC-1: ペルソナの入力で `POST /api/trips`（Claude はフェイク）→ 201。plan は TripPlanSchema を通り、days は 5 日、riskScore は端末の計算と小数 2 桁で一致、details の 4 言語がそろう。保存した旅を repository から読める
-- [ ] AC-2: A-1 の画面をペルソナの初期値で開くと、右パネルに D1〜D5 と「高い」が出て、楽しみを 1 つ外すとその場でしおりが変わる。「この旅を守りに行く」で api を呼び、成功で `/trip/:id/brief` に移る
+- [x] AC-1: ペルソナの入力で `POST /api/trips`（Claude はフェイク）→ 201。plan は TripPlanSchema を通り、days は 5 日、riskScore は端末の計算と小数 2 桁で一致、details の 4 言語がそろう。保存した旅を repository から読める
+- [x] AC-2: A-1 の画面をペルソナの初期値で開くと、右パネルに D1〜D5 と「高い」が出て、楽しみを 1 つ外すとその場でしおりが変わる。「この旅を守りに行く」で api を呼び、成功で `/trip/:id/brief` に移る
 
 UC-1 入力:
 
-- [ ] UC-1a: 運転できる人が人数より多い・返却が出発以前・11 日 → エラー。10 日は通る
-- [ ] UC-1b: 予算 0 は通り、1,000,001 はエラー
-- [ ] UC-1c: `+08:00` の出発は JST に直して暦日を数える（23:30+08:00 → 翌日）
-- [ ] UC-1d: api は知らない欄（id・seed・title・days・riskScore）を含む body を 400 で拒否する
+- [x] UC-1a: 運転できる人が人数より多い・返却が出発以前・11 日 → エラー。10 日は通る
+- [x] UC-1b: 予算 0 は通り、1,000,001 はエラー
+- [x] UC-1c: `+08:00` の出発は JST に直して暦日を数える（23:30+08:00 → 翌日）
+- [x] UC-1d: api は知らない欄（id・seed・title・days・riskScore）を含む body を 400 で拒否する
 
 UC-2 楽しみ:
 
-- [ ] UC-2a: マスターは道東・道央とも 12 件以上で、4 言語の名称と補足がそろい、id が重複しない
-- [ ] UC-2b: 10 件選択済みで 11 件目は選べない。外すと重さも消える
-- [ ] UC-2c: 選択はエリアごとに保持し、カウンターは表示中のエリアの数
-- [ ] UC-2d: api はエリアのマスターに無い id を 400 で拒否する
+- [x] UC-2a: マスターは道東・道央とも 12 件以上で、4 言語の名称と補足がそろい、id が重複しない
+- [x] UC-2b: 10 件選択済みで 11 件目は選べない。外すと重さも消える
+- [x] UC-2c: 選択はエリアごとに保持し、カウンターは表示中のエリアの数
+- [x] UC-2d: api はエリアのマスターに無い id を 400 で拒否する
 
 UC-3 しおり:
 
-- [ ] UC-3a: ペルソナ → D1〜D5、`day` は 1〜5 の連番、流氷ウォーク（重さ 5）は 1 日を占める
-- [ ] UC-3b: 楽しみ 0 件 → 移動だけの days と決まった形のタイトル
-- [ ] UC-3c: 入りきらない → 重さの小さいものから外れ、skipped に入る
-- [ ] UC-3d: 函館空港発で道東 → D1 は移動だけ。出発地と返却地が違ってもよい
-- [ ] UC-3e: 1 日の旅 → days は 1 件
-- [ ] UC-3f: 同じ入力 → 同じ days（決定的）
+- [x] UC-3a: ペルソナ → D1〜D5、`day` は 1〜5 の連番、流氷ウォーク（重さ 5）は 1 日を占める
+- [x] UC-3b: 楽しみ 0 件 → 移動だけの days と決まった形のタイトル
+- [x] UC-3c: 入りきらない → 重さの小さいものから外れ、skipped に入る
+- [x] UC-3d: 函館空港発で道東 → D1 は移動だけ。出発地と返却地が違ってもよい
+- [x] UC-3e: 1 日の旅 → days は 1 件
+- [x] UC-3f: 同じ入力 → 同じ days（決定的）
 
 UC-4 リスク:
 
-- [ ] UC-4a: ペルソナ → 0.6 以上「高い」。7 月・道央・慣れている・夜の楽しみなし → 0.4 未満「低め」
-- [ ] UC-4b: 根拠文は 3 行以下、4 言語、統計の数字は stats.json の値と一致
-- [ ] UC-4c: 夜・早朝の楽しみを足すとスコアが上がる。経験が上がると下がる
+- [x] UC-4a: ペルソナ → 0.6 以上「高い」。7 月・道央・慣れている・夜の楽しみなし → 0.4 未満「低め」
+- [x] UC-4b: 根拠文は 3 行以下、4 言語、統計の数字は stats.json の値と一致
+- [x] UC-4c: 夜・早朝の楽しみを足すとスコアが上がる。経験が上がると下がる
 
 UC-5 Claude の文:
 
-- [ ] UC-5a: 正常 → titles 4 言語、dayNotes の数 = days の数、plan.title = titles[lang]
-- [ ] UC-5b: 1 言語だけ空 → 再試行。2 回とも外れたら TripWriterError、保存しない
-- [ ] UC-5c: 3 桁以上の数・%・件・円・絵文字を含む → 外れとして扱う
-- [ ] UC-5d: Claude に渡す内容に自由入力の文字列が無い（入力はすべて選択肢由来）
+- [x] UC-5a: 正常 → titles 4 言語、dayNotes の数 = days の数、plan.title = titles[lang]
+- [x] UC-5b: 1 言語だけ空 → 再試行。2 回とも外れたら TripWriterError、保存しない
+- [x] UC-5c: 3 桁以上の数・%・件・円・絵文字を含む → 外れとして扱う
+- [x] UC-5d: Claude に渡す内容に自由入力の文字列が無い（入力はすべて選択肢由来）
 
 UC-6 言語と通貨:
 
-- [ ] UC-6a: ブラウザの言語から初期言語を決める（zh-TW → zh、fr → ja）
-- [ ] UC-6b: 予算の USD 併記は設定のレートで 10 ドル単位
+- [x] UC-6a: ブラウザの言語から初期言語を決める（zh-TW → zh、fr → ja）
+- [x] UC-6b: 予算の USD 併記は設定のレートで 10 ドル単位
 
 UC-7 ID:
 
-- [ ] UC-7a: id は英数 8 文字、seed は 0〜2³²−1
-- [ ] UC-7b: id が衝突したら作り直す
-- [ ] UC-7c: ownerToken はレスポンスにだけあり、保存されるのはハッシュ
+- [x] UC-7a: id は英数 8 文字、seed は 0〜2³²−1
+- [x] UC-7b: id が衝突したら作り直す
+- [x] UC-7c: ownerToken はレスポンスにだけあり、保存されるのはハッシュ
 
 認可（threat.md）:
 
-- [ ] AUTH-1: 未認証で `POST /api/trips` → 201（意図的な公開が塞がれていない）
-- [ ] AUTH-2: 1 日の上限に達したあと `POST /api/trips` → 429 DAILY_LIMIT、Claude を呼ばない
-- [ ] AUTH-3: 同じ IP から 1 分に 11 件目 → 429 RATE_LIMITED
-- [ ] AUTH-4: 同じ冪等キーで body を変えて送る → 409 IDEMPOTENCY_MISMATCH、最初の旅を返さない
-- [ ] MASS-1: body に id・seed・title・days・riskScore・alertEnabled・ownerToken を混ぜる → 400、保存しない
+- [x] AUTH-1: 未認証で `POST /api/trips` → 201（意図的な公開が塞がれていない）
+- [x] AUTH-2: 1 日の上限に達したあと `POST /api/trips` → 429 DAILY_LIMIT、Claude を呼ばない
+- [x] AUTH-3: 同じ IP から 1 分に 11 件目 → 429 RATE_LIMITED
+- [x] AUTH-4: 同じ冪等キーで body を変えて送る → 409 IDEMPOTENCY_MISMATCH、最初の旅を返さない
+- [x] MASS-1: body に id・seed・title・days・riskScore・alertEnabled・ownerToken を混ぜる → 400、保存しない
 
 障害・冪等・並行（resilience.md）:
 
-- [ ] FAIL-1: Claude が時間切れ → 502 WRITER_FAILED、旅も詳細も保存しない、冪等キーは failed
-- [ ] FAIL-2: Claude の応答が 2 回とも検証で外れる → 502、保存しない（1 回目だけ外れたら 2 回目の結果で 201）
-- [ ] FAIL-3: max_tokens で切れた応答 → 外れとして扱う
-- [ ] FAIL-4: 保存のトランザクションが失敗 → 500、旅の行が残らない
-- [ ] FAIL-5: 1 日の上限に達したら Claude を呼ばずに 429
-- [ ] FAIL-6: `ANTHROPIC_API_KEY` が無いと api が起動しない（env の検証）
-- [ ] IDEM-1: 同じキー・同じ body で 2 回 → 2 回目は同じ旅を返し、Claude は 1 回だけ
-- [ ] IDEM-2: 1 回目が失敗（failed）→ 同じキーで再送すると作り直して 201
-- [ ] IDEM-3: pending が 2 分を過ぎた → 同じキーで作り直せる
-- [ ] CONC-1: 同じキーの要求が処理中に 2 つ目が来る → 409 IN_PROGRESS
-- [ ] CONC-2: id の衝突 → 作り直して 201
-- [ ] MIGR-1: 空のデータファイルから起動すると表が作られ、2 回目の起動でも壊れない
+- [x] FAIL-1: Claude が時間切れ → 502 WRITER_FAILED、旅も詳細も保存しない、冪等キーは failed
+- [x] FAIL-2: Claude の応答が 2 回とも検証で外れる → 502、保存しない（1 回目だけ外れたら 2 回目の結果で 201）
+- [x] FAIL-3: max_tokens で切れた応答 → 外れとして扱う
+- [x] FAIL-4: 保存のトランザクションが失敗 → 500、旅の行が残らない
+- [x] FAIL-5: 1 日の上限に達したら Claude を呼ばずに 429
+- [x] FAIL-6: `ANTHROPIC_API_KEY` が無いと api が起動しない（env の検証）
+- [x] IDEM-1: 同じキー・同じ body で 2 回 → 2 回目は同じ旅を返し、Claude は 1 回だけ
+- [x] IDEM-2: 1 回目が失敗（failed）→ 同じキーで再送すると作り直して 201
+- [x] IDEM-3: pending が 2 分を過ぎた → 同じキーで作り直せる
+- [x] CONC-1: 同じキーの要求が処理中に 2 つ目が来る → 409 IN_PROGRESS
+- [x] CONC-2: id の衝突 → 作り直して 201
+- [x] MIGR-1: 空のデータファイルから起動すると表が作られ、2 回目の起動でも壊れない
 
 ## Rule → ドメイン語彙対応
 
@@ -231,8 +231,8 @@ UC-7 ID:
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-1・AC-2 が Green
-- [ ] 全 UC / 全エラーパターンのテストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（lint / format / 型 / 依存方向）
-- [ ] alert-contract-guard Critical 0（schema に TripDetails を追加するため）
+- [x] 受け入れテスト AC-1・AC-2 が Green
+- [x] 全 UC / 全エラーパターンのテストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（lint / format / 型 / 依存方向）
+- [x] alert-contract-guard Critical 0（schema に TripDetails を追加するため）

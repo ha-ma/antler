@@ -21,8 +21,9 @@ export type TripRoutesDeps = {
 }
 
 export function tripRoutes({ createTrip, rateLimitKey, now }: TripRoutesDeps): Hono {
-  const routes = new Hono()
-  routes.post(
+  // 変数名は app（sfad-drift が `app.post(` で threat.md の操作と突き合わせる）
+  const app = new Hono()
+  app.post(
     '/api/trips',
     rateLimit({
       limit: TRIPS_PER_MINUTE_PER_IP,
@@ -49,5 +50,5 @@ export function tripRoutes({ createTrip, rateLimitKey, now }: TripRoutesDeps): H
       )
     },
   )
-  return routes
+  return app
 }
