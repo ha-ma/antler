@@ -160,6 +160,24 @@ describe('PlanPage（A-1 旅をつくる）', () => {
     expect(calls[1]?.body).toEqual(calls[0]?.body)
   })
 
+  it('R8 api につながらない（通信の失敗）ときは「サーバーにつながりません」と出し、「もう一度」で送り直せる', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    renderPlan()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('Failed to fetch'))),
+    )
+    await user.click(screen.getByRole('button', SUBMIT))
+    expect(
+      await screen.findByText('サーバーにつながりませんでした。', { exact: false }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('しおりを仕上げられませんでした。', { exact: false })).toBeNull()
+    expect(
+      within(screen.getByRole('alert')).getByRole('button', { name: 'もう一度' }),
+    ).toBeEnabled()
+  })
+
   it('R8 失敗のあとに入力を直してから「もう一度」を押すと、新しいキーと新しい入力で送る', async () => {
     const user = userEvent.setup()
     vi.spyOn(console, 'error').mockImplementation(() => undefined)

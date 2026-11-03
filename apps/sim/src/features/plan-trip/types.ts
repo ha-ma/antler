@@ -33,4 +33,5 @@ export type UiText = Record<Lang, string>
 export type BriefLocationState = { titles: Record<Lang, string> }
 
 /** 作成の失敗の種類（画面の文言を分ける）。 */
-export type CreateTripFailure = 'limit' | 'failed'
+/** limit: 429（本日の上限）／ unreachable: api につながらない（応答が無い）／ failed: それ以外（Claude の失敗など） */
+export type CreateTripFailure = 'limit' | 'unreachable' | 'failed'

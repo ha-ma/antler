@@ -186,6 +186,12 @@ export const PLAN_TEXT = {
     zh: '無法完成旅遊手冊。',
     ko: '여행 일정표를 완성하지 못했습니다.',
   },
+  errorUnreachable: {
+    ja: 'サーバーにつながりませんでした。通信を確かめてください。',
+    en: "We couldn't reach the server. Please check your connection.",
+    zh: '無法連線到伺服器。請確認網路連線。',
+    ko: '서버에 연결하지 못했습니다. 연결 상태를 확인해 주세요.',
+  },
   retry: { ja: 'もう一度', en: 'Try again', zh: '再試一次', ko: '다시 시도' },
   errorLimit: {
     ja: '本日の生成上限に達しました。',
