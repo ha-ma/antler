@@ -1,9 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src", "vitest.config.ts"]
+  "include": ["src", "tests", "vitest.config.ts"]
 }

@@ -19,6 +19,7 @@ export { CaptureSchema, isUploadable, type Capture } from './capture'
 export { L1ProbsSchema, L1ResultSchema, type L1Probs, type L1Result } from './l1'
 export { JUDGE_QUESTIONS, JudgeRequestSchema, type JudgeRequest } from './judge-request'
 export { DeparturePlace, TripPlanSchema, type TripPlan } from './trip-plan'
+export { LocalizedText, TripDetailsSchema, type TripDetails } from './trip-details'
 export {
   buildJsonSchema,
   JSON_SCHEMA_SOURCES,

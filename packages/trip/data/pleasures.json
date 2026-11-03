@@ -1,0 +1,448 @@
+[
+  {
+    "id": "drift-ice-walk",
+    "area": "doto",
+    "base": "shiretoko",
+    "timeOfDay": "day",
+    "months": [2],
+    "verified": false,
+    "name": { "ja": "流氷ウォーク", "en": "Drift ice walk", "zh": "流冰漫步", "ko": "유빙 워크" },
+    "note": {
+      "ja": "知床ウトロ ・ 2月限定",
+      "en": "Utoro, Shiretoko ・ February only",
+      "zh": "知床宇登呂 ・ 僅限2月",
+      "ko": "시레토코 우토로 ・ 2월 한정"
+    }
+  },
+  {
+    "id": "red-crowned-crane",
+    "area": "doto",
+    "base": "tsurui",
+    "timeOfDay": "day",
+    "months": [12, 1, 2, 3],
+    "verified": false,
+    "name": { "ja": "タンチョウ", "en": "Red-crowned cranes", "zh": "丹頂鶴", "ko": "두루미" },
+    "note": {
+      "ja": "鶴居村 ・ 給餌 9:00 / 14:00",
+      "en": "Tsurui ・ feeding 9:00 / 14:00",
+      "zh": "鶴居村 ・ 餵食 9:00 / 14:00",
+      "ko": "쓰루이무라 ・ 먹이주기 9:00 / 14:00"
+    }
+  },
+  {
+    "id": "akan-onsen-snow",
+    "area": "doto",
+    "base": "akan",
+    "timeOfDay": "day",
+    "months": [12, 1, 2, 3],
+    "verified": false,
+    "name": {
+      "ja": "阿寒湖温泉・雪見",
+      "en": "Akan hot spring in the snow",
+      "zh": "阿寒湖溫泉・賞雪",
+      "ko": "아칸호 온천・설경"
+    },
+    "note": {
+      "ja": "阿寒湖 ・ 夕食付き宿",
+      "en": "Lake Akan ・ inn with dinner",
+      "zh": "阿寒湖 ・ 附晚餐的旅館",
+      "ko": "아칸호 ・ 저녁 식사 포함 숙소"
+    }
+  },
+  {
+    "id": "washo-market-donburi",
+    "area": "doto",
+    "base": "kushiro",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "和商市場の勝手丼",
+      "en": "Washo Market build-your-own bowl",
+      "zh": "和商市場的自選海鮮丼",
+      "ko": "와쇼 시장 가쓰테동"
+    },
+    "note": {
+      "ja": "釧路 ・ 朝食",
+      "en": "Kushiro ・ breakfast",
+      "zh": "釧路 ・ 早餐",
+      "ko": "구시로 ・ 아침 식사"
+    }
+  },
+  {
+    "id": "mashu-iozan",
+    "area": "doto",
+    "base": "teshikaga",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "摩周湖・硫黄山",
+      "en": "Lake Mashu and Mt. Iozan",
+      "zh": "摩周湖・硫磺山",
+      "ko": "마슈호・이오산"
+    },
+    "note": {
+      "ja": "弟子屈 ・ 展望台",
+      "en": "Teshikaga ・ observation deck",
+      "zh": "弟子屈 ・ 展望台",
+      "ko": "데시카가 ・ 전망대"
+    }
+  },
+  {
+    "id": "obihiro-butadon",
+    "area": "doto",
+    "base": "obihiro",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "帯広 豚丼・スイーツ",
+      "en": "Obihiro pork bowl and sweets",
+      "zh": "帶廣豬肉丼・甜點",
+      "ko": "오비히로 부타동・디저트"
+    },
+    "note": {
+      "ja": "十勝 ・ 帰路の寄り道",
+      "en": "Tokachi ・ stop on the way back",
+      "zh": "十勝 ・ 返程順道",
+      "ko": "도카치 ・ 귀로에 들르기"
+    }
+  },
+  {
+    "id": "kushiro-marsh",
+    "area": "doto",
+    "base": "kushiro",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "釧路湿原 展望・ノロッコ号",
+      "en": "Kushiro Marsh view and Norokko train",
+      "zh": "釧路濕原展望・諾洛科號",
+      "ko": "구시로 습원 전망・노롯코호"
+    },
+    "note": {
+      "ja": "細岡展望台 ・ 半日",
+      "en": "Hosooka Observatory ・ half day",
+      "zh": "細岡展望台 ・ 半天",
+      "ko": "호소오카 전망대 ・ 반나절"
+    }
+  },
+  {
+    "id": "nosappu-sunrise",
+    "area": "doto",
+    "base": "nemuro",
+    "timeOfDay": "dawn",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "納沙布岬の日の出",
+      "en": "Cape Nosappu sunrise",
+      "zh": "納沙布岬日出",
+      "ko": "노샷푸곶 일출"
+    },
+    "note": {
+      "ja": "根室 ・ 早朝出発（暗い時間の運転）",
+      "en": "Nemuro ・ early start (driving in the dark)",
+      "zh": "根室 ・ 清晨出發（摸黑開車）",
+      "ko": "네무로 ・ 이른 아침 출발(어두운 시간 운전)"
+    }
+  },
+  {
+    "id": "shiretoko-goko",
+    "area": "doto",
+    "base": "shiretoko",
+    "timeOfDay": "day",
+    "months": [1, 2, 3],
+    "verified": false,
+    "name": {
+      "ja": "知床五湖・フレペの滝",
+      "en": "Shiretoko Five Lakes and Furepe Falls",
+      "zh": "知床五湖・夢幻瀑布",
+      "ko": "시레토코 고코・후레페 폭포"
+    },
+    "note": {
+      "ja": "ウトロ ・ スノーシュー",
+      "en": "Utoro ・ snowshoeing",
+      "zh": "宇登呂 ・ 雪鞋健行",
+      "ko": "우토로 ・ 스노슈"
+    }
+  },
+  {
+    "id": "akan-ainu-kotan",
+    "area": "doto",
+    "base": "akan",
+    "timeOfDay": "night",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "阿寒湖アイヌコタン",
+      "en": "Akan Ainu Kotan",
+      "zh": "阿寒湖愛努科坦",
+      "ko": "아칸호 아이누 코탄"
+    },
+    "note": {
+      "ja": "阿寒湖 ・ 夜の舞踊公演",
+      "en": "Lake Akan ・ evening dance performance",
+      "zh": "阿寒湖 ・ 夜間舞蹈表演",
+      "ko": "아칸호 ・ 야간 무용 공연"
+    }
+  },
+  {
+    "id": "notsuke-hyoheisen",
+    "area": "doto",
+    "base": "betsukai",
+    "timeOfDay": "day",
+    "months": [1, 2, 3],
+    "verified": false,
+    "name": {
+      "ja": "野付半島・氷平線",
+      "en": "Notsuke Peninsula and the ice horizon",
+      "zh": "野付半島・冰平線",
+      "ko": "노쓰케 반도・빙평선"
+    },
+    "note": {
+      "ja": "別海 ・ 鹿が最も多い町のひとつ",
+      "en": "Betsukai ・ one of the towns with the most deer",
+      "zh": "別海 ・ 鹿最多的城鎮之一",
+      "ko": "벳카이 ・ 사슴이 가장 많은 마을 중 하나"
+    }
+  },
+  {
+    "id": "kawayu-onsen",
+    "area": "doto",
+    "base": "teshikaga",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": { "ja": "川湯温泉", "en": "Kawayu hot spring", "zh": "川湯溫泉", "ko": "가와유 온천" },
+    "note": {
+      "ja": "弟子屈 ・ 強酸性の湯",
+      "en": "Teshikaga ・ strongly acidic water",
+      "zh": "弟子屈 ・ 強酸性泉水",
+      "ko": "데시카가 ・ 강산성 온천수"
+    }
+  },
+
+  {
+    "id": "sapporo-jingisukan",
+    "area": "doo",
+    "base": "sapporo-city",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "札幌ジンギスカン",
+      "en": "Sapporo Genghis Khan lamb",
+      "zh": "札幌成吉思汗烤羊肉",
+      "ko": "삿포로 징기스칸"
+    },
+    "note": {
+      "ja": "札幌 ・ 夕食",
+      "en": "Sapporo ・ dinner",
+      "zh": "札幌 ・ 晚餐",
+      "ko": "삿포로 ・ 저녁 식사"
+    }
+  },
+  {
+    "id": "otaru-canal-sushi",
+    "area": "doo",
+    "base": "otaru",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "小樽運河と寿司",
+      "en": "Otaru Canal and sushi",
+      "zh": "小樽運河與壽司",
+      "ko": "오타루 운하와 스시"
+    },
+    "note": {
+      "ja": "小樽 ・ 半日",
+      "en": "Otaru ・ half day",
+      "zh": "小樽 ・ 半天",
+      "ko": "오타루 ・ 반나절"
+    }
+  },
+  {
+    "id": "niseko-powder",
+    "area": "doo",
+    "base": "niseko",
+    "timeOfDay": "day",
+    "months": [12, 1, 2, 3],
+    "verified": false,
+    "name": {
+      "ja": "ニセコのパウダー",
+      "en": "Niseko powder snow",
+      "zh": "二世谷粉雪",
+      "ko": "니세코 파우더 스노"
+    },
+    "note": {
+      "ja": "ニセコ ・ スキー・スノーボード 1日",
+      "en": "Niseko ・ skiing or snowboarding, full day",
+      "zh": "二世谷 ・ 滑雪或單板一整天",
+      "ko": "니세코 ・ 스키・스노보드 하루"
+    }
+  },
+  {
+    "id": "biei-hills",
+    "area": "doo",
+    "base": "biei",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": { "ja": "美瑛の丘", "en": "Biei hills", "zh": "美瑛之丘", "ko": "비에이의 언덕" },
+    "note": {
+      "ja": "美瑛 ・ 半日",
+      "en": "Biei ・ half day",
+      "zh": "美瑛 ・ 半天",
+      "ko": "비에이 ・ 반나절"
+    }
+  },
+  {
+    "id": "furano",
+    "area": "doo",
+    "base": "furano",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": { "ja": "富良野", "en": "Furano", "zh": "富良野", "ko": "후라노" },
+    "note": {
+      "ja": "富良野 ・ 半日",
+      "en": "Furano ・ half day",
+      "zh": "富良野 ・ 半天",
+      "ko": "후라노 ・ 반나절"
+    }
+  },
+  {
+    "id": "asahiyama-zoo",
+    "area": "doo",
+    "base": "asahikawa",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "旭山動物園",
+      "en": "Asahiyama Zoo",
+      "zh": "旭山動物園",
+      "ko": "아사히야마 동물원"
+    },
+    "note": {
+      "ja": "旭川 ・ 半日",
+      "en": "Asahikawa ・ half day",
+      "zh": "旭川 ・ 半天",
+      "ko": "아사히카와 ・ 반나절"
+    }
+  },
+  {
+    "id": "noboribetsu-onsen",
+    "area": "doo",
+    "base": "noboribetsu",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": {
+      "ja": "登別温泉",
+      "en": "Noboribetsu hot spring",
+      "zh": "登別溫泉",
+      "ko": "노보리베쓰 온천"
+    },
+    "note": {
+      "ja": "登別 ・ 地獄谷と温泉",
+      "en": "Noboribetsu ・ Hell Valley and hot spring",
+      "zh": "登別 ・ 地獄谷與溫泉",
+      "ko": "노보리베쓰 ・ 지옥계곡과 온천"
+    }
+  },
+  {
+    "id": "lake-toya",
+    "area": "doo",
+    "base": "toya",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": { "ja": "洞爺湖", "en": "Lake Toya", "zh": "洞爺湖", "ko": "도야호" },
+    "note": {
+      "ja": "洞爺湖 ・ 湖畔の散策",
+      "en": "Lake Toya ・ lakeside walk",
+      "zh": "洞爺湖 ・ 湖畔散步",
+      "ko": "도야호 ・ 호숫가 산책"
+    }
+  },
+  {
+    "id": "shikotsu-hyoto",
+    "area": "doo",
+    "base": "shikotsu",
+    "timeOfDay": "night",
+    "months": [1, 2],
+    "verified": false,
+    "name": {
+      "ja": "支笏湖氷濤まつり",
+      "en": "Lake Shikotsu Ice Festival",
+      "zh": "支笏湖冰濤祭",
+      "ko": "시코쓰호 효토 축제"
+    },
+    "note": {
+      "ja": "支笏湖 ・ 夜のライトアップ",
+      "en": "Lake Shikotsu ・ evening illumination",
+      "zh": "支笏湖 ・ 夜間點燈",
+      "ko": "시코쓰호 ・ 야간 라이트업"
+    }
+  },
+  {
+    "id": "jozankei-onsen",
+    "area": "doo",
+    "base": "jozankei",
+    "timeOfDay": "day",
+    "months": [],
+    "verified": false,
+    "name": { "ja": "定山渓", "en": "Jozankei", "zh": "定山溪", "ko": "조잔케이" },
+    "note": {
+      "ja": "定山渓 ・ 札幌から近い温泉",
+      "en": "Jozankei ・ hot spring close to Sapporo",
+      "zh": "定山溪 ・ 離札幌近的溫泉",
+      "ko": "조잔케이 ・ 삿포로에서 가까운 온천"
+    }
+  },
+  {
+    "id": "sapporo-snow-festival",
+    "area": "doo",
+    "base": "sapporo-city",
+    "timeOfDay": "night",
+    "months": [2],
+    "verified": false,
+    "name": {
+      "ja": "さっぽろ雪まつり",
+      "en": "Sapporo Snow Festival",
+      "zh": "札幌雪祭",
+      "ko": "삿포로 눈 축제"
+    },
+    "note": {
+      "ja": "札幌 ・ 2月 ・ 夜のライトアップ",
+      "en": "Sapporo ・ February ・ evening illumination",
+      "zh": "札幌 ・ 2月 ・ 夜間點燈",
+      "ko": "삿포로 ・ 2월 ・ 야간 라이트업"
+    }
+  },
+  {
+    "id": "shakotan-uni",
+    "area": "doo",
+    "base": "shakotan",
+    "timeOfDay": "day",
+    "months": [6, 7, 8],
+    "verified": false,
+    "name": {
+      "ja": "積丹のウニ",
+      "en": "Shakotan sea urchin",
+      "zh": "積丹海膽",
+      "ko": "샤코탄 성게"
+    },
+    "note": {
+      "ja": "積丹 ・ 夏 ・ 昼食",
+      "en": "Shakotan ・ summer ・ lunch",
+      "zh": "積丹 ・ 夏季 ・ 午餐",
+      "ko": "샤코탄 ・ 여름 ・ 점심"
+    }
+  }
+]

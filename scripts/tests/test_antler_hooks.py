@@ -60,7 +60,7 @@ check("61.5万 → 止める", bool(denied("apps/sim/src/features/loss/Loss.tsx"
 check("edge の Python も見る", bool(denied("edge/detector/report.py", "TOTAL = 6705", "edge")))
 check("緯度 43.1751 は数字の一部として扱わない", denied("packages/zones/src/build.ts", "const p = [144.1, 43.1751]", "packages") == [])
 check("167051 は別の数", denied("apps/sim/src/x.ts", "const id = 167051") == [])
-check("stats.json 自体は対象外", denied("apps/sim/src/shared/config/stats.json", '"total": 6705') == [])
+check("stats.json 自体は対象外", denied("packages/trip/data/stats.json", '"total": 6705') == [])
 
 # 規則 3: Capture の個人情報
 check("Capture に lat → 止める", any("roadSegment" in m for m in denied("packages/schema/src/capture.ts", "lat: number", "packages")))

@@ -1,0 +1,684 @@
+/* A-1 旅をつくる（/plan）。色・文字・余白は tokens.css の CSS 変数だけを使う（ch8 規約 1・4）。 */
+
+.plan,
+.plan-brief {
+  min-height: 100vh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--body-size);
+  line-height: var(--body-line);
+}
+
+.plan-num {
+  font-family: var(--font-mono);
+}
+
+.plan-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.plan :focus-visible,
+.plan-brief :focus-visible {
+  outline: 3px solid var(--spruce);
+  outline-offset: 2px;
+}
+
+/* ヘッダー */
+.plan-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.plan-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--heading-size);
+  font-weight: 900;
+  letter-spacing: var(--eyebrow-tracking);
+}
+
+.plan-brand__logo path {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.plan-brand__ridge {
+  stroke: var(--spruce);
+}
+
+.plan-brand__road {
+  stroke: var(--clay);
+}
+
+.plan-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-step {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: var(--label-weight);
+}
+
+.plan-step--current {
+  background: var(--spruce);
+  color: var(--on-spruce);
+}
+
+.plan-lang {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--label-size);
+  color: var(--ink-muted);
+}
+
+/* 本文（2 カラム。狭いと右が下に折り返す） */
+.plan-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 32px var(--space-6) var(--space-6);
+}
+
+.plan-main {
+  flex: 1 1 640px;
+  min-width: 0;
+}
+
+.plan-aside {
+  flex: 0 1 380px;
+  min-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.plan-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--display-l-size);
+  line-height: var(--display-l-line);
+  font-weight: var(--display-l-weight);
+}
+
+.plan-lead {
+  margin: 0 0 var(--space-5);
+  color: var(--ink-muted);
+}
+
+.plan-heading {
+  margin: 0;
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+  font-weight: var(--heading-weight);
+}
+
+.plan-caption,
+.plan-fine {
+  margin: 0;
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+.plan-label {
+  margin: 0;
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: 700;
+}
+
+.plan-eyebrow {
+  margin: 0;
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-line);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  color: var(--ink-muted);
+}
+
+/* 入力 */
+.plan-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-6);
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.plan-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.plan-field__label {
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  font-weight: var(--label-weight);
+  color: var(--ink-muted);
+}
+
+.plan-input,
+.plan-select {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--ink-faint);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.plan-input--num {
+  font-family: var(--font-mono);
+}
+
+.plan-input[aria-invalid='true'],
+.plan-select[aria-invalid='true'] {
+  border-color: var(--clay-deep);
+  border-width: 2px;
+}
+
+.plan-field__error {
+  margin: 0;
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--clay-deep);
+}
+
+.plan-inputs__status {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--caption-size);
+  color: var(--clay-deep);
+}
+
+/* 楽しみ */
+.plan-pleasures__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.plan-tabs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.plan-tab {
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--label-size);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.plan-tab--selected {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.plan-counter {
+  margin: 0 0 var(--space-3);
+  font-size: var(--label-size);
+  color: var(--ink-muted);
+}
+
+.plan-counter__num {
+  font-size: var(--num-m-size);
+  line-height: var(--num-m-line);
+  font-weight: var(--num-m-weight);
+  color: var(--ink);
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+
+.plan-card--selected {
+  border: 2px solid var(--spruce);
+}
+
+.plan-card__toggle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0 0 var(--space-1);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* カードは overflow: hidden なので、フォーカスの輪を内側に描く */
+.plan-card__toggle:focus-visible {
+  outline-offset: -3px;
+}
+
+.plan-card__toggle[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+
+.plan-card__toggle[aria-disabled='true'] .plan-card__photo,
+.plan-card__toggle[aria-disabled='true'] .plan-badge {
+  opacity: 0.55;
+}
+
+.plan-card__photo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 104px;
+  padding: var(--space-3);
+  background: var(--photo-placeholder);
+}
+
+.plan-card__photo-text {
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+.plan-badge {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
+.plan-badge__disc {
+  fill: var(--surface);
+  stroke: var(--line);
+}
+
+.plan-badge__mark {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.plan-badge--selected .plan-badge__disc {
+  fill: var(--spruce);
+  stroke: var(--spruce);
+}
+
+.plan-badge--selected .plan-badge__mark {
+  stroke: var(--on-spruce);
+}
+
+.plan-card__name {
+  padding: 0 var(--space-3);
+  font-weight: 700;
+}
+
+.plan-card__note {
+  padding: 0 var(--space-3) var(--space-3);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+.plan-weight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-2);
+  font-size: var(--caption-size);
+  color: var(--ink-muted);
+}
+
+/* 押せるのは 44 x 44px の「−」「＋」。5 段のバーは見た目だけ */
+.plan-weight__button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--ink-faint);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.plan-weight__button path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.plan-weight__button[aria-disabled='true'] {
+  cursor: not-allowed;
+  color: var(--ink-faint);
+}
+
+.plan-weight__steps {
+  display: flex;
+  gap: 2px;
+}
+
+.plan-weight__step {
+  width: 10px;
+  height: 14px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 3px;
+  background: var(--surface-sunken);
+}
+
+.plan-weight__step--on {
+  border-color: var(--spruce);
+  background: var(--spruce);
+}
+
+.plan-weight__value {
+  font-size: var(--label-size);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* 右パネル */
+.plan-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+.plan-panel__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan-panel__span {
+  font-size: var(--num-s-size);
+  color: var(--ink-muted);
+}
+
+.plan-panel__title {
+  margin: 0;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.plan-alloc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.plan-alloc__bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+}
+
+.plan-alloc__seg {
+  flex-basis: 0;
+  background: var(--spruce);
+}
+
+.plan-alloc__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--caption-size);
+  color: var(--ink-muted);
+}
+
+.plan-alloc__item--skipped {
+  text-decoration: line-through;
+}
+
+.plan-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.plan-day {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+}
+
+.plan-day__num {
+  flex: 0 0 auto;
+  font-weight: 600;
+  color: var(--spruce);
+}
+
+.plan-day__body {
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-day__stops {
+  color: var(--ink-muted);
+}
+
+.plan-skipped__list {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+  font-size: var(--caption-size);
+  color: var(--clay-deep);
+}
+
+.plan-risk {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 calc(-1 * var(--space-5));
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px dashed var(--line);
+  background: var(--ground);
+}
+
+.plan-risk__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.plan-risk__level {
+  font-size: var(--label-size);
+  font-weight: 700;
+  color: var(--clay-deep);
+}
+
+.plan-risk__track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+}
+
+.plan-risk__fill {
+  display: block;
+  height: 100%;
+  background: var(--clay);
+}
+
+.plan-risk__reasons {
+  margin: 0;
+  padding-left: var(--space-4);
+  font-size: var(--caption-size);
+  line-height: 1.7;
+  color: var(--ink-muted);
+}
+
+.plan-budget {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.plan-budget dd {
+  margin: 0;
+  font-size: var(--label-size);
+}
+
+.plan-submit {
+  min-height: 56px;
+  border: 0;
+  border-radius: var(--radius-l);
+  background: var(--spruce);
+  color: var(--on-spruce);
+  font: inherit;
+  font-size: var(--heading-size);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.plan-submit:hover {
+  background: var(--spruce-deep);
+}
+
+.plan-submit[aria-disabled='true'] {
+  cursor: progress;
+  background: var(--spruce-deep);
+}
+
+.plan-status {
+  font-size: var(--label-size);
+  color: var(--clay-deep);
+}
+
+.plan-status p {
+  margin: 0;
+}
+
+.plan-retry,
+.plan-link {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--spruce);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--spruce);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.plan-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.plan-footnote {
+  margin: 0;
+  text-align: center;
+  font-size: var(--caption-size);
+  color: var(--ink-muted);
+}
+
+/* /trip/:id/brief（仮） */
+.plan-brief {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-7) var(--space-6);
+}
+
+.plan-brief__title {
+  margin: 0;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+@media (max-width: 640px) {
+  .plan-header,
+  .plan-body,
+  .plan-brief {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .plan-aside {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  .plan-title {
+    font-size: var(--title-size);
+    line-height: var(--title-line);
+  }
+}
