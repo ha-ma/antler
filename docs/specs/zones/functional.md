@@ -2,7 +2,7 @@
 feature: zones
 target_paths:
   - packages/zones/
-spec_confirmed_at: 01a3e1b
+spec_confirmed_at: 2d7c4a7
 tier: 1
 ---
 
