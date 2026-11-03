@@ -2,12 +2,16 @@ import { AlertSoundController, SOUND_URLS, WebAudioPort } from '@antler/alert-ui
 import { logger } from '@/shared/utils/logger'
 import type { SocketLike } from './lib/edge-client'
 import { resolveEdgeUrl } from './lib/edge-url'
+import { alertSoundEnabled, SilentAudioPort } from './lib/silent-audio'
 import { browserLocationDeps } from './lib/location'
+import { loadBundledZones } from './lib/zones-loader'
+import { browserWakeLockDeps } from './lib/wake-lock'
 import type { ConnectServices } from './types'
 
 /** ブラウザの実物。接続先は本番では固定、開発ビルドだけ ?edge= で変えられる。 */
 export function createBrowserServices(): ConnectServices {
-  const port = new WebAudioPort(SOUND_URLS)
+  const soundOn = alertSoundEnabled(import.meta.env)
+  const port = soundOn ? new WebAudioPort(SOUND_URLS) : new SilentAudioPort()
   const sound = new AlertSoundController(port, {
     onError: (event, error) => {
       logger.error(event, error)
@@ -18,11 +22,15 @@ export function createBrowserServices(): ConnectServices {
     // ブラウザの WebSocket は SocketLike の上位互換（ハンドラの引数を使わないだけ）
     createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
     location: browserLocationDeps(),
+    geo: globalThis.navigator.geolocation as unknown as ConnectServices['geo'],
+    loadZones: () => loadBundledZones(),
+    wakeLock: browserWakeLockDeps(),
     sound,
     playTestSound: () => {
       port.playChime()
     },
     primeSpeech: () => {
+      if (!soundOn) return
       try {
         globalThis.speechSynthesis?.speak(new SpeechSynthesisUtterance(''))
       } catch {

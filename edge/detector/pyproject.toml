@@ -9,7 +9,7 @@ name = "antler-detector"
 version = "0.0.0"
 description = "EZO ROAD B: 車載カメラの鹿検知とスマホ通知"
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26", "pydantic>=2.7"]
+dependencies = ["numpy>=1.26", "pydantic>=2.7", "websockets>=14"]
 
 [project.optional-dependencies]
 camera = ["opencv-python>=4.9"]

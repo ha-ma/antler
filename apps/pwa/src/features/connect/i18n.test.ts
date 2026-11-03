@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { CONNECT_TEXT } from './i18n'
 
 describe('UC-5 文言', () => {
-  it('UC-5d: 固定文言の辞書は ja / en / zh / ko の全キーが空でない（#9）', () => {
+  it('UC-5d / UC-6d: 固定文言の辞書は ja / en / zh / ko の全キーが空でない（#9）', () => {
     const keys = Object.keys(CONNECT_TEXT.ja)
     for (const lang of LANGS) {
       expect(Object.keys(CONNECT_TEXT[lang]).sort()).toEqual([...keys].sort())
