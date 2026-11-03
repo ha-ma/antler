@@ -16,7 +16,7 @@
 | デザインの原則・コンポーネント・アートボード→ルート対応表 | `docs/design/README.md` |
 | `AlertState` の props と規約 | `docs/design/AlertState.md` |
 | 画面 | UI キャンバス v2 https://claude.ai/artifact/92Ho3c3gpV3CdNwmLvUS5F（画面名 A-1〜A-7 / B-0〜B-3 は要件 ID と対応） |
-| 統計の実数 | `apps/sim/src/shared/config/stats.json`（出典・照合状態つき） |
+| 統計の実数 | `packages/trip/data/stats.json`（出典・照合状態つき。sim と api が `@antler/trip` の `STATS` で読む） |
 | stack の登録 | `routes.toml` |
 | feature の順番（ch10 ＋ 付録 A の改善リスト） | `docs/roadmap.md` |
 | 背景（ビジネス・プレゼン・開発の全体像） | 統合ドキュメント https://claude.ai/artifact/EWgkjzMEFsTKozahPeT4pg（文脈。要件の正ではない） |

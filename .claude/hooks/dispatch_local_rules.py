@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import re
 
-STATS_FILE = "apps/sim/src/shared/config/stats.json"
+STATS_FILE = "packages/trip/data/stats.json"
 
 _CODE_EXT = re.compile(r"\.(?:tsx?|jsx?|mjs|cjs|css|scss)$")
 _PY_OR_CODE_EXT = re.compile(r"\.(?:tsx?|jsx?|mjs|cjs|py)$")

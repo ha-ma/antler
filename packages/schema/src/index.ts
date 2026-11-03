@@ -17,6 +17,7 @@ export {
 } from './client-message'
 export { CaptureSchema, isUploadable, type Capture } from './capture'
 export { DeparturePlace, TripPlanSchema, type TripPlan } from './trip-plan'
+export { LocalizedText, TripDetailsSchema, type TripDetails } from './trip-details'
 export {
   buildJsonSchema,
   JSON_SCHEMA_SOURCES,

@@ -1,0 +1,7 @@
+{
+  "note": "予算の概算 USD 表示（A1-6）に使う固定レート。出典と日付の確認は Deferred（docs/specs/plan-trip/functional.md）。画面は「概算」と書く",
+  "jpyPerUsd": 150,
+  "asOf": "2026-11-03",
+  "source": null,
+  "verified": false
+}
