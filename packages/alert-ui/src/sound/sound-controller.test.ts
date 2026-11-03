@@ -74,6 +74,15 @@ describe('UC-5 音（AlertSoundController）', () => {
     expect(port.count('chime')).toBe(1)
   })
 
+  it('UC-5j: [ADDED alert-contract-guard] 起動直後で位置が不明（距離「--」の zone）→ チャイム 1 回。不明のあいだ更新しても鳴らず、outside と分かって safe になっても鳴らない', async () => {
+    const { c, port } = await ready()
+    const unknownZone: SoundUpdate = { ...zone, distance: undefined }
+    c.update(unknownZone)
+    c.update(unknownZone)
+    c.update(safe)
+    expect(port.count('chime')).toBe(1)
+  })
+
   it('UC-5c: safe → danger → zone で 1 回。zone → danger → zone では 2 回目は鳴らない', async () => {
     const a = await ready()
     a.c.update(safe)

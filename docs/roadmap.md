@@ -44,3 +44,9 @@ ch10-plan.md の 1 週間の計画に、付録 A（ch11-appendix-a.md）の改�
 - #9「4 言語が全画面で欠けない」: AlertState の文言は 4 言語とも全状態ぶん埋めてある（UC-6b）。zh-TW と ko のネイティブ確認は Deferred のまま（期日 Day 5）
 - #4 ペルソナは台湾から: 主文が zh になる経路（`resolveLang` が zh-TW → zh）は UC-6c で確かめる
 - #3「同じ音」がデモの主役: チャイム・ビープの wav を A と B で同じファイルにする（plan.md #5 のとおり）
+
+## 後の feature に持ち越す決まり（レビューから）
+
+- **drive-3d**: `deriveAlertState` に渡す GPS 相当の判定は、最初のフレームから inside / outside を明示する。`unknown` を渡すと起動直後扱いで琥珀とチャイムが出る（alert-ui C-1、2026-11-03）
+- **pwa-connect / pwa-drive**: 位置の許可が無い・GPS が取れない間は琥珀のまま緑にならない。B-0 で位置の許可を案内し、取れないことを画面で示す（`docs/reports/2026-11-03-alert-contract-guard-alert-ui-c1.md` W-2）
+- **pwa-drive**: zones の `verifyZoneHash` で同梱した zones.geojson を起動時に照合する。誤差 100 m 超で inside のときの残り km の表示を決める（`docs/reports/2026-11-03-alert-contract-guard-zones.md` W-3）

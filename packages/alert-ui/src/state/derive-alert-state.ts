@@ -71,11 +71,14 @@ export function deriveAlertState({
   }
 }
 
-/** フラグと GPS のどちらかが inside なら内側。どちらも分からなければ前の状態を保つ。 */
+/**
+ * フラグと GPS のどちらかが inside なら内側。どちらも分からなければ前の状態を保つ。
+ * 起動してから一度も分かっていなければ内側（緑はゾーン外と分かったときだけ出す。C-1）。
+ */
 function resolveInZone(fresh: ReceivedFlag | null, gps: GpsZone, previous: DerivedAlert | null) {
   if (gps.status === 'inside' || fresh?.zone === 'inside') return true
   if (gps.status === 'outside' || fresh?.zone === 'outside') return false
-  return previous?.inZone ?? false
+  return previous?.inZone ?? true
 }
 
 /** GPS が分からないときだけ、同じ状態の前の距離を持ち越す。 */

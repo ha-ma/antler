@@ -97,8 +97,20 @@ describe('UC-2 表示状態の決定（deriveAlertState）', () => {
     const prev = deriveAlertState(inputs({ gps: { status: 'inside', remainingKm: 6 } }))
     const kept = deriveAlertState(inputs({ gps: { status: 'unknown' }, previous: prev }))
     expect(kept).toEqual({ state: 'zone', distance: 6, inZone: true })
-    const fresh = deriveAlertState(inputs({ gps: { status: 'unknown' }, previous: null }))
-    expect(fresh).toEqual({ state: 'safe', distance: undefined, inZone: false })
+    const outside = deriveAlertState(inputs({ gps: { status: 'outside', distanceKm: 9 } }))
+    const keptOutside = deriveAlertState(inputs({ gps: { status: 'unknown' }, previous: outside }))
+    expect(keptOutside).toEqual({ state: 'safe', distance: 9, inZone: false })
+  })
+
+  it('UC-2i: [ADDED alert-contract-guard] 起動直後で GPS が unknown・前の状態なし → zone（緑はゾーン外と分かったときだけ）', () => {
+    const first = deriveAlertState(inputs({ gps: { status: 'unknown' }, previous: null }))
+    expect(first).toEqual({ state: 'zone', distance: undefined, inZone: true })
+    const still = deriveAlertState(inputs({ gps: { status: 'unknown' }, previous: first }))
+    expect(still.state).toBe('zone')
+    const known = deriveAlertState(
+      inputs({ gps: { status: 'outside', distanceKm: 12 }, previous: still }),
+    )
+    expect(known).toEqual({ state: 'safe', distance: 12, inZone: false })
   })
 
   it('UC-2h: フラグが 1 つも無い → GPS の出入りだけで safe / zone になり、danger にならない', () => {
