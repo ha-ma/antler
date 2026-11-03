@@ -29,6 +29,11 @@ export type ConnectText = {
   departNote: string
   noSound: string
   noLocation: string
+  gpsLost: string
+  poorAccuracy: string
+  zonesUnavailable: string
+  noWakeLock: string
+  etaLabel: string
 }
 
 export const CONNECT_TEXT: Record<Lang, ConnectText> = {
@@ -60,6 +65,11 @@ export const CONNECT_TEXT: Record<Lang, ConnectText> = {
     departNote: '車載とつながっていなくても出発できます（鹿の検知は出ません）',
     noSound: '音が出ません',
     noLocation: '位置情報なし',
+    gpsLost: '位置を取得できません',
+    poorAccuracy: '位置の誤差が大きい',
+    zonesUnavailable: '鹿ゾーンのデータを読めません',
+    noWakeLock: '画面が消えることがあります',
+    etaLabel: '到達予定',
   },
   en: {
     title: 'EZO ROAD Deer Alert',
@@ -89,6 +99,11 @@ export const CONNECT_TEXT: Record<Lang, ConnectText> = {
     departNote: 'You can start without the car unit (no deer detection)',
     noSound: 'No sound',
     noLocation: 'No location',
+    gpsLost: 'Cannot get location',
+    poorAccuracy: 'Location accuracy is low',
+    zonesUnavailable: 'Cannot read deer zone data',
+    noWakeLock: 'The screen may turn off',
+    etaLabel: 'ETA',
   },
   zh: {
     title: 'EZO ROAD 鹿警示',
@@ -116,6 +131,11 @@ export const CONNECT_TEXT: Record<Lang, ConnectText> = {
     departNote: '即使未連上車載裝置也能出發（不會偵測到鹿）',
     noSound: '沒有聲音',
     noLocation: '沒有定位',
+    gpsLost: '無法取得定位',
+    poorAccuracy: '定位誤差大',
+    zonesUnavailable: '無法讀取鹿區資料',
+    noWakeLock: '畫面可能會關閉',
+    etaLabel: '預計抵達',
   },
   ko: {
     title: 'EZO ROAD 사슴 경보',
@@ -145,5 +165,10 @@ export const CONNECT_TEXT: Record<Lang, ConnectText> = {
     departNote: '차량 장치에 연결되지 않아도 출발할 수 있습니다 (사슴 감지는 표시되지 않음)',
     noSound: '소리가 나지 않습니다',
     noLocation: '위치 없음',
+    gpsLost: '위치를 가져올 수 없습니다',
+    poorAccuracy: '위치 오차가 큽니다',
+    zonesUnavailable: '사슴 구역 데이터를 읽을 수 없습니다',
+    noWakeLock: '화면이 꺼질 수 있습니다',
+    etaLabel: '도착 예정',
   },
 }

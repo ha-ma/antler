@@ -1,12 +1,13 @@
 import { AlertSoundController, type AudioPort } from '@antler/alert-ui'
 import { ClientMessageSchema } from '@antler/schema'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, screen } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { logger } from '@/shared/utils/logger'
 import { FakeSocket } from '@/test/fake-socket'
+import { renderWithProviders as render } from '@/test/render'
 import type { LocationDeps, PermissionStatusLike } from '../lib/location'
 import type { ConnectServices } from '../types'
 import { ConnectFlow } from './ConnectFlow'
@@ -58,6 +59,9 @@ function rig(
       permissions: { query: () => Promise.resolve(status) },
       ...over.location,
     },
+    geo: undefined,
+    loadZones: () => new Promise(() => undefined),
+    wakeLock: { wakeLock: undefined, orientation: undefined },
     sound,
     playTestSound: () => {
       port.playChime()
@@ -332,7 +336,7 @@ describe('UC-4 表示と S パターン', () => {
     expect(screen.getByTestId('alert-value').textContent).toBe('58')
   })
 
-  it('UC-4d / S-3: 切断しても最後の inside / outside を保つ', async () => {
+  it('UC-4d / S-3: 切断しても、edge のフラグが新しいあいだ（5 秒）は inside / outside を保つ。GPS が使えず 5 秒を超えたら琥珀に倒す（pwa-drive R4）', async () => {
     await drive()
     act(() => {
       FakeSocket.last.serverOpen()
@@ -340,10 +344,14 @@ describe('UC-4 表示と S パターン', () => {
     })
     act(() => FakeSocket.last.serverClose())
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(6000)
+      await vi.advanceTimersByTimeAsync(3000)
     })
     expect(alertState()).toBe('safe')
     expect(screen.getByTestId('band').textContent).toBe('未接続')
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000)
+    })
+    expect(alertState()).toBe('zone')
   })
 
   it('UC-4e: 最後が deer:true のまま切れても受信から 5 秒は赤、超えたら解ける', async () => {
@@ -493,7 +501,9 @@ describe('UC-2f StrictMode', () => {
     act(() => FakeSocket.last.serverOpen())
     unmount()
     expect(FakeSocket.last.closeCalls).toBe(1)
-    expect(vi.getTimerCount()).toBe(0)
+    const count = FakeSocket.instances.length
+    vi.advanceTimersByTime(60_000)
+    expect(FakeSocket.instances).toHaveLength(count)
   })
 })
 

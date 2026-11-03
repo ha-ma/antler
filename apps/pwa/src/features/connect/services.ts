@@ -3,6 +3,8 @@ import { logger } from '@/shared/utils/logger'
 import type { SocketLike } from './lib/edge-client'
 import { resolveEdgeUrl } from './lib/edge-url'
 import { browserLocationDeps } from './lib/location'
+import { loadBundledZones } from './lib/zones-loader'
+import { browserWakeLockDeps } from './lib/wake-lock'
 import type { ConnectServices } from './types'
 
 /** ブラウザの実物。接続先は本番では固定、開発ビルドだけ ?edge= で変えられる。 */
@@ -18,6 +20,9 @@ export function createBrowserServices(): ConnectServices {
     // ブラウザの WebSocket は SocketLike の上位互換（ハンドラの引数を使わないだけ）
     createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
     location: browserLocationDeps(),
+    geo: globalThis.navigator.geolocation as unknown as ConnectServices['geo'],
+    loadZones: () => loadBundledZones(),
+    wakeLock: browserWakeLockDeps(),
     sound,
     playTestSound: () => {
       port.playChime()
