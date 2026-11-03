@@ -52,6 +52,9 @@ ch10-plan.md の 1 週間の計画に、付録 A（ch11-appendix-a.md）の改�
 - **pwa-drive**: zones の `verifyZoneHash` で同梱した zones.geojson を起動時に照合する。誤差 100 m 超で inside のときの残り km の表示を決める（`docs/reports/2026-11-03-alert-contract-guard-zones.md` W-3）
 - **zones（drive-3d のレビューから）**: `measureAlongRoute` に前回の位置を手がかりに渡すと、近くの線分の端（最短 + 30 m 以内）から手がかりに近いものを選ぶため、まっすぐな道でも位置が最大 30 m 遅れる（A は車の道のり s を手がかりに渡して回避済み）。あわせて `projectOnRoute` が毎回ルートの全線分を走査し、`Math.min(...配列)` で展開している（plan-trip の長いルートで遅く、十数万点でスタック超過）。手がかり ±300 m の窓とループへの置き換えを zones の担当で検討する。B も使うので「挙動は同じ・探す範囲だけ狭める」として PR に書く（`docs/reports/2026-11-03-alert-contract-guard-drive-3d.md`・`2026-11-03-performance-analyzer-drive-3d.md` W-1）
 - **performance（Day 5）**: drive-3d の 60 fps は開発機の M2 でしか測っていない。内蔵 GPU（dpr 1.5 で 2.9 MP）とスマホの 30 fps を実機で測る
+- **drive（brief-map から）**: A-2 は `/drive?trip={id}&day={n}(&alert=off)` で渡す。drive が `GET /api/trips/:id/day/:n` の `DayPlan`（ルート・ゾーン区間・`conditions` の天候と路面）で走る形にし、条件の型は `@antler/trip` の `Weather`・`Surface` に差し替える。1 日の移動は 200〜450 km あるので、3D で走る範囲（ゾーン区間の前後など）を決める。A-2 中の `/drive` のチャンクの先読み（ch6）もここで（`docs/specs/brief-map/functional.md` の Deferred）
+- **performance / api（brief-map の security M1）**: `GET /api/trips/:id/day/:n` は毎回ルートを計算する（ペルソナで数十 ms）。公開して負荷が気になったら、同じ旅・同じ日の結果の再利用か同時計算の上限を入れる（`docs/reports/2026-11-03-security-auditor-brief-map.md`）
+- **地図の背景（Day 6）**: OpenFreeMap が止まったときの代わり（自前の PMTiles など）。いまは背景なしの表示に縮退する
 
 ## B の判断の 3 層化（2026-11-03 の変更指示）
 
