@@ -251,7 +251,7 @@ describe('UC-6 出発', () => {
     expect(screen.getByTestId('note-no-sound')).toBeInTheDocument()
   })
 
-  it('UC-6j: unlock が 3 秒たっても決着しなければ「音が出ません」を出す', async () => {
+  it('UC-6k: unlock が 3 秒たっても決着しなければ「音が出ません」を出す', async () => {
     const r = rig({ unlock: () => new Promise<void>(() => undefined) })
     render(<ConnectFlow services={r.services} />)
     await flush()
@@ -263,7 +263,7 @@ describe('UC-6 出発', () => {
     expect(screen.getByTestId('note-no-sound')).toBeInTheDocument()
   })
 
-  it('UC-5c: プレビューは支援技術に読ませず（aria-hidden・inert）、出発のあとフォーカスは走行画面へ移る', async () => {
+  it('UC-5f: プレビューは支援技術に読ませず（aria-hidden・inert）、出発のあとフォーカスは走行画面へ移る', async () => {
     render(<ConnectFlow services={rig().services} />)
     await flush()
     for (const face of document.querySelectorAll('[data-preview]')) {
