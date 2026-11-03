@@ -94,3 +94,28 @@ def fake_cv2(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     monkeypatch.setitem(sys.modules, "cv2", module)
     state.module = module
     return state
+
+
+class Clock:
+    """注入する単調時計（秒）。advance で進める。"""
+
+    def __init__(self, t: float = 100.0) -> None:
+        self.t = t
+
+    def __call__(self) -> float:
+        return self.t
+
+    def advance(self, seconds: float) -> None:
+        self.t += seconds
+
+
+def deer(conf: float = 0.9, x: float = 0.4, h: float = 0.1):
+    from detector.ports import Detection
+
+    return Detection("deer", conf, (x, 0.5, 0.05, h))
+
+
+def result(ms: float, *dets, seq: int = 0, failed: bool = False):
+    from detector.pipeline import FrameResult
+
+    return FrameResult(seq, T0 + timedelta(milliseconds=ms), list(dets), 5.0, failed=failed)

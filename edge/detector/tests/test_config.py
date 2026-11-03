@@ -80,3 +80,49 @@ def test_uc7g_UTF8でないファイルもConfigError(tmp_path):
     p.write_bytes(b"\xff\xfe\x00bad")
     with pytest.raises(ConfigError):
         load_config(p)
+
+
+# UC-8a
+def test_uc8a_judgeとserverの既定値(tmp_path):
+    c = load_config(write(tmp_path, ""))
+    assert (c.judge.threshold, c.judge.off_after_s, c.judge.stall_after_s) == (0.4, 1.5, 3.0)
+    assert (c.server.host, c.server.port, c.server.max_clients) == ("127.0.0.1", 8765, 16)
+    assert len(c.judge.distance_table) == 5
+
+
+# UC-8b
+def test_uc8b_指定した値と距離表(tmp_path):
+    c = load_config(
+        write(
+            tmp_path,
+            "[judge]\nthreshold=0.5\noff_after_s=2\ndistance_table=[[0.1, 20], [0.3, 5.5]]\n"
+            '[server]\nhost="0.0.0.0"\nport=9000\nmax_clients=4\n',
+        )
+    )
+    assert (c.judge.threshold, c.judge.off_after_s) == (0.5, 2.0)
+    assert c.judge.distance_table == ((0.1, 20.0), (0.3, 5.5))
+    assert (c.server.host, c.server.port, c.server.max_clients) == ("0.0.0.0", 9000, 4)  # noqa: S104
+
+
+# UC-8c
+@pytest.mark.parametrize(
+    ("text", "key"),
+    [
+        ("[judge]\nthreshold=1.5\n", "threshold"),
+        ('[judge]\nthreshold="a"\n', "threshold"),
+        ("[judge]\noff_after_s=0.1\n", "off_after_s"),
+        ("[judge]\ndistance_table=[[0.1, 20]]\n", "distance_table"),
+        ("[judge]\ndistance_table=[[0.1, 5], [0.3, 20]]\n", "distance_table"),
+        ('[judge]\ndistance_table=[[0.1, "x"], [0.3, 2]]\n', "distance_table"),
+        ("[judge]\nnope=1\n", "nope"),
+        ("[server]\nport=0\n", "port"),
+        ("[server]\nport=70000\n", "port"),
+        ("[server]\nmax_clients=100\n", "max_clients"),
+        ("[server]\nhost=1\n", "host"),
+        ('[server]\nhost=""\n', "host"),
+        ("[judge]\nstall_after_s=11\n", "stall_after_s"),
+    ],
+)
+def test_uc8c_不正はキー名つき(tmp_path, text, key):
+    with pytest.raises(ConfigError, match=key):
+        load_config(write(tmp_path, text))
