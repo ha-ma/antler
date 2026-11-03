@@ -1,14 +1,26 @@
 # local_ci_checks.toml — 匿名データセットと学習スクリプトの検査の一覧。
-# 中身はまだ無い。学習スクリプトの /sfad cycle でテストができたら required = false と ci = false を消す。
-# （--ci では見送りが fail になるので、テストが無いあいだは CI で回さない）
+# 案件のルートの local_ci_checks.toml から取り込まれる。cwd・needs_path はこのフォルダからの相対。
+# 道具は edge/detector の dev 依存: pip install -e "edge/detector[dev]"（スクリプトが detector を import する）
+# edge-l1-calibration でテスト（tests/）ができたので、required = false・ci = false を外した（推奨で決定）。
 
 [stack]
 name = "dataset"
 
 [[check]]
+name = "ruff"
+cmd = ["{PYTHON}", "-m", "ruff", "check", "."]
+needs_probe = ["{PYTHON}", "-m", "ruff", "--version"]
+hint = "pip install -e \"edge/detector[dev]\""
+
+[[check]]
+name = "ruff format"
+cmd = ["{PYTHON}", "-m", "ruff", "format", "--check", "."]
+needs_probe = ["{PYTHON}", "-m", "ruff", "--version"]
+hint = "python -m ruff format dataset"
+
+[[check]]
 name = "pytest"
 cmd = ["{PYTHON}", "-m", "pytest", "-q"]
 needs_path = "tests"
-required = false
-ci = false
-hint = "dataset/tests を作る（学習スクリプトの cycle）"
+needs_probe = ["{PYTHON}", "-c", "import detector"]
+hint = "pip install -e \"edge/detector[dev]\""

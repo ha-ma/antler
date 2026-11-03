@@ -193,91 +193,91 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 外側ループ（受け入れ。§4 Step 4）:
 
-- [ ] AC-1: 合成 240 件（seed 7）を書き出すと、全行の request が `JudgeRequest` に通り、車の状態が `VehicleContext()` の固定値、全行が赤の候補の場面（track の最後の点の conf ≥ 0.8、窓 1 秒）、1 問あたり 240 件（100〜300）、noul の 3 問は正と負が各 10 件以上、alert_level は zone と danger が各 10 件以上
-- [ ] AC-2: 合成の過信した答え（真の確率の logit を 2.5 倍、2,000 件、シード付き）で温度を学び、`calibration.json` を書くと、`load_calibration` が同じモデル・同じ温度で読み、各問の T が 2.5 ± 0.3、ECE が下がる
-- [ ] AC-3: 書き出したラベル → ラベルから作った偽の L1 の過信した答え（シード付きの雑音で、ときどき外す）→ `fit`（`--allow-synthetic`）→ 書き出し → edge-l1 の `load_calibration` が読め、`matches(答えのモデル)` が真で、検証用で正解 danger の降格が 0 件
+- [x] AC-1: 合成 240 件（seed 7）を書き出すと、全行の request が `JudgeRequest` に通り、車の状態が `VehicleContext()` の固定値、全行が赤の候補の場面（track の最後の点の conf ≥ 0.8、窓 1 秒）、1 問あたり 240 件（100〜300）、noul の 3 問は正と負が各 10 件以上、alert_level は zone と danger が各 10 件以上
+- [x] AC-2: 合成の過信した答え（真の確率の logit を 2.5 倍、2,000 件、シード付き）で温度を学び、`calibration.json` を書くと、`load_calibration` が同じモデル・同じ温度で読み、各問の T が 2.5 ± 0.3、ECE が下がる
+- [x] AC-3: 書き出したラベル → ラベルから作った偽の L1 の過信した答え（シード付きの雑音で、ときどき外す）→ `fit`（`--allow-synthetic`）→ 書き出し → edge-l1 の `load_calibration` が読め、`matches(答えのモデル)` が真で、検証用で正解 danger の降格が 0 件
 
 UC-1 トレース:
 
-- [ ] TR-1a: 正しいトレース（鹿・鹿でない物、`conf` あり・なし）が読める
-- [ ] TR-1b: 形式名・版の違い・語彙の外（kind・pattern・light・zone・pose）・NaN や無限大・`t` が昇順でない・tick が 0・欄の欠落・`id` の重複 → 行番号つきで全体を拒否
+- [x] TR-1a: 正しいトレース（鹿・鹿でない物、`conf` あり・なし）が読める
+- [x] TR-1b: 形式名・版の違い・語彙の外（kind・pattern・light・zone・pose）・NaN や無限大・`t` が昇順でない・tick が 0・欄の欠落・`id` の重複 → 行番号つきで全体を拒否
 
 UC-2 合成トレース:
 
-- [ ] GEN-1a: 同じシードで同じトレース、違うシードで違うトレース
-- [ ] GEN-1b: 2,000 件で、鹿でない物が 25% 前後、鹿の 5 パターンが sim の割合の前後で出る。eyeshine は遮蔽されている
-- [ ] GEN-1c: 横断の鹿は動き出す距離の手前で静止し、そのあと反対側へ渡る。群れの 2 頭目は 1 秒ほど遅れる。立ちすくみは車線の中央で止まる
+- [x] GEN-1a: 同じシードで同じトレース、違うシードで違うトレース
+- [x] GEN-1b: 2,000 件で、鹿でない物が 25% 前後、鹿の 5 パターンが sim の割合の前後で出る。eyeshine は遮蔽されている
+- [x] GEN-1c: 横断の鹿は動き出す距離の手前で静止し、そのあと反対側へ渡る。群れの 2 頭目は 1 秒ほど遅れる。立ちすくみは車線の中央で止まる
 
 UC-3 問い合わせの場面:
 
-- [ ] TRK-1a: 遮蔽・カメラの後ろ・120 m 超・画角 35° 超の tick は点にならない
-- [ ] TRK-1b: 点の `t` は 0 以下の昇順、窓 1 秒（64 点まで）。`pos` は 1.75 m で lane / shoulder、`side` は左が L
-- [ ] TRK-1c: `lateralMps` は進路へ近づく向きが正（左右とも）。`ttcSec` は edge-l0 の式、近づかない・0.2 秒未満は null
-- [ ] TRK-1d: 問い合わせは `JudgeRequest` に通り、既定の車の状態は固定値、`--context actual` では sim の速さ・光・ゾーンとヘッドライト（day は off）
-- [ ] TRK-1e: 確信度はトレースの値があればそれ、無ければ式（0.40〜0.99、同じシードで同じ値）
-- [ ] TRK-1f: [ADDED adversary] 問い合わせの時刻は、赤の候補が 2 つ続いた tick と、そこから 0.4 秒ごとの赤の候補の tick だけ。conf 0.8 未満の tick・赤の候補が続かないトレースからは作らない
-- [ ] TRK-1g: [ADDED adversary] 1 秒以下の見えない間はトラックが続き、1 秒を超えると新しいトラックになる。窓の外の点は入らない
+- [x] TRK-1a: 遮蔽・カメラの後ろ・120 m 超・画角 35° 超の tick は点にならない
+- [x] TRK-1b: 点の `t` は 0 以下の昇順、窓 1 秒（64 点まで）。`pos` は 1.75 m で lane / shoulder、`side` は左が L
+- [x] TRK-1c: `lateralMps` は進路へ近づく向きが正（左右とも）。`ttcSec` は edge-l0 の式、近づかない・0.2 秒未満は null
+- [x] TRK-1d: 問い合わせは `JudgeRequest` に通り、既定の車の状態は固定値、`--context actual` では sim の速さ・光・ゾーンとヘッドライト（day は off）
+- [x] TRK-1e: 確信度はトレースの値があればそれ、無ければ式（0.40〜0.99、同じシードで同じ値）
+- [x] TRK-1f: [ADDED adversary] 問い合わせの時刻は、赤の候補が 2 つ続いた tick と、そこから 0.4 秒ごとの赤の候補の tick だけ。conf 0.8 未満の tick・赤の候補が続かないトレースからは作らない
+- [x] TRK-1g: [ADDED adversary] 1 秒以下の見えない間はトラックが続き、1 秒を超えると新しいトラックになる。窓の外の点は入らない
 
 UC-4 正解ラベル:
 
-- [ ] LBL-1a: 鹿でない物 → false_positive、ほかは偽、alert_level は zone（ゾーン外の実値なら none）
-- [ ] LBL-1b: 路肩で静止した鹿（この先も車線に入らない）→ static_shoulder、on_roadway 偽、zone
-- [ ] LBL-1c: 車線へ渡ってくる鹿（前方 100 m 以内）→ on_roadway・danger。100 m より先 → on_roadway・zone
-- [ ] LBL-1d: 車線で立ちすくむ鹿 → on_roadway・danger、static_shoulder 偽（車線の中）
-- [ ] LBL-1e: 渡りきって車線から離れていく鹿 → on_roadway 偽、static_shoulder 偽（動いている）
-- [ ] LBL-1f: [ADDED adversary] 動き出す前の横断の鹿（路肩で静止、6 秒以内に車線へ入る）→ on_roadway・danger、static_shoulder 偽
-- [ ] LBL-1g: [ADDED adversary] 待っている群れの 2 頭目・出始めの立ちすくみ（横の速さ 0.5 m/s 未満）も、6 秒以内に車線へ入るなら on_roadway
-- [ ] LBL-1h: [ADDED adversary] danger の時間は問い合わせの速さ（固定の 60 km/h）で割る。トレースの車が 30 km/h でも、90 m 先なら danger
+- [x] LBL-1a: 鹿でない物 → false_positive、ほかは偽、alert_level は zone（ゾーン外の実値なら none）
+- [x] LBL-1b: 路肩で静止した鹿（この先も車線に入らない）→ static_shoulder、on_roadway 偽、zone
+- [x] LBL-1c: 車線へ渡ってくる鹿（前方 100 m 以内）→ on_roadway・danger。100 m より先 → on_roadway・zone
+- [x] LBL-1d: 車線で立ちすくむ鹿 → on_roadway・danger、static_shoulder 偽（車線の中）
+- [x] LBL-1e: 渡りきって車線から離れていく鹿 → on_roadway 偽、static_shoulder 偽（動いている）
+- [x] LBL-1f: [ADDED adversary] 動き出す前の横断の鹿（路肩で静止、6 秒以内に車線へ入る）→ on_roadway・danger、static_shoulder 偽
+- [x] LBL-1g: [ADDED adversary] 待っている群れの 2 頭目・出始めの立ちすくみ（横の速さ 0.5 m/s 未満）も、6 秒以内に車線へ入るなら on_roadway
+- [x] LBL-1h: [ADDED adversary] danger の時間は問い合わせの速さ（固定の 60 km/h）で割る。トレースの車が 30 km/h でも、90 m 先なら danger
 
 UC-5 出力:
 
-- [ ] OUT-1a: 行の形（id・request・labels・meta）と件数の要約（別々のトレース・問ごと・クラスごと・捨てたトレース）
-- [ ] OUT-1b: 別々のトレースの数が `--min-per-question` 未満 → 書かずに exit 1（`--per-trace` を増やしても件数にならない）。トレースの誤り → exit 2
-- [ ] OUT-1c: `--traces` で読んだトレースからも同じ形で書ける
+- [x] OUT-1a: 行の形（id・request・labels・meta）と件数の要約（別々のトレース・問ごと・クラスごと・捨てたトレース）
+- [x] OUT-1b: 別々のトレースの数が `--min-per-question` 未満 → 書かずに exit 1（`--per-trace` を増やしても件数にならない）。トレースの誤り → exit 2
+- [x] OUT-1c: `--traces` で読んだトレースからも同じ形で書ける
 
 UC-6 学習:
 
-- [ ] FIT-1a: noul・choice とも、過信（k = 2.5）と過小（k = 0.5）の答えから T ≈ k を取り戻し、NLL が下がる
-- [ ] FIT-1b: 学んだ T で `Calibration.apply` した NLL が、学習の NLL と一致する（式が読み込み側と同じ）
-- [ ] FIT-1c: 学習用の件数不足・検証用の件数不足・片クラス・alert_level のクラス不足 → 理由つきで書かない
-- [ ] FIT-1d: 分離できるデータ（T が 0.25 未満）→ 書かない。上限に張り付く → 書いて `l1.calibrate.bound` を残す
-- [ ] FIT-1e: モデル名の混在・空・前後の空白・別名（jev-latest）→ 書かない。`source=synthetic` → `--allow-synthetic` なしでは書かない
-- [ ] FIT-1f: 答えの行の誤り（確率の欠落・範囲外・NaN・選択肢の不足・ラベルの型違い・語彙の外・meta の欠落・id の重複）→ 行番号つきで全体を拒否
-- [ ] FIT-1g: [ADDED adversary] 構造的に間違う偽 L1（動き出す前の横断の鹿に false_positive 0.97）→ 検証用で危険な鹿を降格するので書かない
-- [ ] FIT-1h: [ADDED adversary] 学習用と検証用はトレースの id のハッシュで分かれ、同じトレースは必ず同じ側。温度は学習用だけで決まる
+- [x] FIT-1a: noul・choice とも、過信（k = 2.5）と過小（k = 0.5）の答えから T ≈ k を取り戻し、NLL が下がる
+- [x] FIT-1b: 学んだ T で `Calibration.apply` した NLL が、学習の NLL と一致する（式が読み込み側と同じ）
+- [x] FIT-1c: 学習用の件数不足・検証用の件数不足・片クラス・alert_level のクラス不足 → 理由つきで書かない
+- [x] FIT-1d: 分離できるデータ（T が 0.25 未満）→ 書かない。上限に張り付く → 書いて `l1.calibrate.bound` を残す
+- [x] FIT-1e: モデル名の混在・空・前後の空白・別名（jev-latest）→ 書かない。`source=synthetic` → `--allow-synthetic` なしでは書かない
+- [x] FIT-1f: 答えの行の誤り（確率の欠落・範囲外・NaN・選択肢の不足・ラベルの型違い・語彙の外・meta の欠落・id の重複）→ 行番号つきで全体を拒否
+- [x] FIT-1g: [ADDED adversary] 構造的に間違う偽 L1（動き出す前の横断の鹿に false_positive 0.97）→ 検証用で危険な鹿を降格するので書かない
+- [x] FIT-1h: [ADDED adversary] 学習用と検証用はトレースの id のハッシュで分かれ、同じトレースは必ず同じ側。温度は学習用だけで決まる
 
 UC-7 書き出し:
 
-- [ ] WR-1a: 書いたファイルは version・model・temperatures の 3 つだけで、`load_calibration` が同じ値で読む
-- [ ] WR-1b: 書き出しの検証に失敗すると、前の `calibration.json` は残り、一時ファイルも残らない
+- [x] WR-1a: 書いたファイルは version・model・temperatures の 3 つだけで、`load_calibration` が同じ値で読む
+- [x] WR-1b: 書き出しの検証に失敗すると、前の `calibration.json` は残り、一時ファイルも残らない
 
 UC-8 評価:
 
-- [ ] EV-1a: ECE は既知の値になる（全問正解・確信度 1 で 0、確信度 0.9 で正解率 0.5 なら 0.4）
-- [ ] EV-1b: 降格の指標: 降格した件数・精度・Wilson の下限・正解 danger を降格した件数（pattern 別）・none ≥ 0.9 の件数
-- [ ] EV-1c: `evaluate` が校正なし・校正ありの指標を出す
+- [x] EV-1a: ECE は既知の値になる（全問正解・確信度 1 で 0、確信度 0.9 で正解率 0.5 なら 0.4）
+- [x] EV-1b: 降格の指標: 降格した件数・精度・Wilson の下限・正解 danger を降格した件数（pattern 別）・none ≥ 0.9 の件数
+- [x] EV-1c: `evaluate` が校正なし・校正ありの指標を出す
 
 実行の口:
 
-- [ ] CLI-1a: `fit` と `evaluate` の exit（成功 0・書かない 1・入力の誤り 2）と標準出力の JSON の要約
-- [ ] CLI-1b: `export_l1_labels.py` の CLI が合成で書き、要約を出す
+- [x] CLI-1a: `fit` と `evaluate` の exit（成功 0・書かない 1・入力の誤り 2）と標準出力の JSON の要約
+- [x] CLI-1b: `export_l1_labels.py` の CLI が合成で書き、要約を出す
 
 認可（threat.md の ❌ セル。[ADDED threat]）:
 
-- [ ] AUTH-1: 壊れたトレースからはラベルを 1 行も書かない（exit 2）
-- [ ] AUTH-2: 書かない条件に当たる答えからは `calibration.json` を書かない（前のファイルも変えない）
-- [ ] AUTH-3: `evaluate` は `calibration.json` を読むだけ（走らせた後も中身が変わらない）
-- [ ] AUTH-4: `source=synthetic` の答えは `--allow-synthetic` なしでは書かない
-- [ ] AUTH-5: `fit` の CLI にモデル名を渡す口が無い（`--model` は拒否）。書くモデル名は答えの `model`
-- [ ] AUTH-6: 温度の下限 0.25・範囲 0.05〜20 を CLI の引数で変えられない
-- [ ] AUTH-7: 学んだ T が 0.25 未満なら書かない
-- [ ] AUTH-8: 0.05〜20 の外の温度の `calibration.json` は読み込み側が拒否する（書く側の値は必ずその中）
-- [ ] AUTH-9: 答えの行の余分な項目（`temperatures`・`override_conf`・`model_override` など）で閾値・温度・モデル名は変わらない
+- [x] AUTH-1: 壊れたトレースからはラベルを 1 行も書かない（exit 2）
+- [x] AUTH-2: 書かない条件に当たる答えからは `calibration.json` を書かない（前のファイルも変えない）
+- [x] AUTH-3: `evaluate` は `calibration.json` を読むだけ（走らせた後も中身が変わらない）
+- [x] AUTH-4: `source=synthetic` の答えは `--allow-synthetic` なしでは書かない
+- [x] AUTH-5: `fit` の CLI にモデル名を渡す口が無い（`--model` は拒否）。書くモデル名は答えの `model`
+- [x] AUTH-6: 温度の下限 0.25・範囲 0.05〜20 を CLI の引数で変えられない
+- [x] AUTH-7: 学んだ T が 0.25 未満なら書かない
+- [x] AUTH-8: 0.05〜20 の外の温度の `calibration.json` は読み込み側が拒否する（書く側の値は必ずその中）
+- [x] AUTH-9: 答えの行の余分な項目（`temperatures`・`override_conf`・`model_override` など）で閾値・温度・モデル名は変わらない
 
 状態パターン:
 
-- [ ] S-1: 校正の前提が崩れたデータでは書かない（FIT-1c〜FIT-1g で確かめる）
-- [ ] S-2: 書き出しの失敗で前のファイルが残る（WR-1b で確かめる）
+- [x] S-1: 校正の前提が崩れたデータでは書かない（FIT-1c〜FIT-1g で確かめる）
+- [x] S-2: 書き出しの失敗で前のファイルが残る（WR-1b で確かめる）
 
 ## Rule → ドメイン語彙対応（Tier 2 推奨）
 
@@ -294,15 +294,15 @@ UC-8 評価:
 
 ## 非機能要件
 
-- [ ] 決定性: 乱数は `numpy.random.default_rng(seed)` だけ。同じシード・同じ引数で同じ出力（バイト列）。学習と検証の分割は乱数を使わない
-- [ ] 依存を足さない（numpy と標準ライブラリ）。240 件の書き出しと 2,000 件の学習がそれぞれ 2 秒以内
-- [ ] 個人情報を扱わない: トレースは道の座標（s・d）だけで、緯度経度・端末識別子を持たない
-- [ ] ruff と pytest のカバレッジ 70% 以上。既存の 367 件が Green のまま
+- [x] 決定性: 乱数は `numpy.random.default_rng(seed)` だけ。同じシード・同じ引数で同じ出力（バイト列）。学習と検証の分割は乱数を使わない
+- [x] 依存を足さない（numpy と標準ライブラリ）。240 件の書き出しと 2,000 件の学習がそれぞれ 2 秒以内（手元の計測で 0.16 秒・0.02 秒）
+- [x] 個人情報を扱わない: トレースは道の座標（s・d）だけで、緯度経度・端末識別子を持たない
+- [x] ruff と pytest のカバレッジ 70% 以上。既存の 367 件が Green のまま
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-1・AC-2・AC-3 が Green
-- [ ] 全 UC / 全状態パターンのテストが Green、既存テストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（ruff check・ruff format、edge と dataset）
+- [x] 受け入れテスト AC-1・AC-2・AC-3 が Green
+- [x] 全 UC / 全状態パターンのテストが Green、既存テストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（ruff check・ruff format、edge と dataset）
 - [ ] code-reviewer・edge-latency-reviewer の Critical 0
