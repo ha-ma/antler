@@ -1,0 +1,206 @@
+/* B-0 / B-1 の見た目。色・文字・余白はトークンの CSS 変数だけ（ch8 規約 1・4）。night テーマ（車載）。 */
+
+.connect-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--body-size);
+  line-height: var(--body-line);
+}
+
+.connect {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.connect__title {
+  margin: 0;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.connect__card {
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+}
+
+.connect__heading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: var(--label-weight);
+  color: var(--ink-muted);
+}
+
+.connect__body {
+  margin: 0;
+  color: var(--ink);
+}
+
+.connect__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+  font-weight: var(--heading-weight);
+}
+
+.connect__status[data-link-status='open'] {
+  color: var(--spruce);
+}
+
+.connect__stats {
+  display: flex;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+.connect__stats dt {
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+.connect__stats dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--num-l-size);
+  line-height: var(--num-l-line);
+  font-weight: var(--num-l-weight);
+}
+
+.connect__previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.connect__preview {
+  display: flex;
+  flex: 1 1 96px;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  text-align: center;
+}
+
+.connect__preview-face {
+  min-height: 176px;
+  overflow: hidden;
+  border-radius: var(--radius-m);
+}
+
+.connect__preview-label {
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+.connect__depart-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+}
+
+.connect__depart {
+  min-height: 56px;
+  padding: var(--space-3) var(--space-5);
+  font: inherit;
+  font-size: var(--heading-size);
+  font-weight: var(--heading-weight);
+  color: var(--on-spruce);
+  background: var(--spruce);
+  border: 0;
+  border-radius: var(--radius-l);
+  box-shadow: 0 6px 0 var(--spruce-deep);
+  cursor: pointer;
+}
+
+.connect__depart:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.connect__depart:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--spruce-deep);
+}
+
+/* B-1 */
+.drive:focus {
+  outline: none;
+}
+
+.drive {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  height: 100dvh;
+}
+
+.drive__band {
+  flex: none;
+  text-align: center;
+  font-weight: var(--heading-weight);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+
+.drive__band[data-visible='true'] {
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.drive__notes[data-visible='false'] {
+  display: none;
+}
+
+.drive__notes {
+  display: flex;
+  flex: none;
+  gap: var(--space-3);
+  justify-content: center;
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  list-style: none;
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+
+.drive__route {
+  flex: none;
+  margin: 0;
+  padding: var(--space-1) var(--space-4);
+  text-align: center;
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: var(--label-weight);
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+}
+
+.drive__route[data-visible='false'] {
+  display: none;
+}
+
+.drive__alert {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
