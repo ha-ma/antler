@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { lazy, memo, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
 import { ZONES } from '../domain/zones-data'
@@ -7,7 +7,6 @@ import { useAutoPause } from '../hooks/use-auto-pause'
 import { useDriveSnapshot } from '../hooks/use-drive-snapshot'
 import { useKeyboardDrive } from '../hooks/use-keyboard-drive'
 import { useWebGL2 } from '../hooks/use-webgl2'
-import { DriveCanvas } from '../scene/DriveCanvas'
 import type { World } from '../types'
 import { BottomBar } from './hud/BottomBar'
 import { DangerOverlay } from './hud/DangerOverlay'
@@ -28,7 +27,11 @@ import './drive.css'
 // - Form / URL state: URL の ?alert=off（場面を作るときに 1 回読む）
 // - useEffect: キー入力・タブの表示・音のコントローラの片づけ（外部の購読。hooks/ に隔離）
 
-const Scene = memo(DriveCanvas)
+// 3D（three・R3F、gzip 約 300 KB）だけを遅れて読む。出発の案内・HUD・エンジンは three なしで先に出す
+// （performance-analyzer W-2。出発を押すまでに届けばよい）
+const Scene = memo(
+  lazy(() => import('../scene/DriveCanvas').then((m) => ({ default: m.DriveCanvas }))),
+)
 
 type Props = {
   /** テストで差し替える（既定は固定の場面） */
@@ -98,7 +101,9 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2 }: Prop
         {canvas ? (
           canvas({ world, phone, onFrame })
         ) : (
-          <Scene world={world} phone={phone} onFrame={onFrame} />
+          <Suspense fallback={null}>
+            <Scene world={world} phone={phone} onFrame={onFrame} />
+          </Suspense>
         )}
       </div>
       {started && (

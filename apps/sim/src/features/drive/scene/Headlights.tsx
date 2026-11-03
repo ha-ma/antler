@@ -32,8 +32,9 @@ export function Headlights() {
     const { car, world } = scene.current
     const goal = SKY[world.light].headlight
     level.current += (goal - level.current) * (1 - Math.exp(-Math.min(delta, 0.1) / BLEND_S))
-    spot.intensity = INTENSITY * level.current
-    spot.visible = level.current > 0.01
+    // 昼も visible のまま強さだけ 0 にする（ライトの数が変わると、ライトを受ける全マテリアルのシェーダーが
+    // 作り直されて止まる。performance-analyzer W-3）
+    spot.intensity = level.current > 0.01 ? INTENSITY * level.current : 0
     spot.position.set(...carToWorld(car, LAMP))
     target.position.set(...carToWorld(car, AIM))
     target.updateMatrixWorld()
