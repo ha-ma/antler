@@ -69,6 +69,12 @@ export const BRIEF_TEXT = {
     ko: '사슴 구역 {km}km ・ {light}에 통과',
   },
   legendRoute: { ja: 'ルート', en: 'Route', zh: '路線', ko: '경로' },
+  legendZoneRoute: {
+    ja: '鹿ゾーンの中（破線）',
+    en: 'Inside a deer zone (dashed)',
+    zh: '鹿區內（虛線）',
+    ko: '사슴 구역 안（점선）',
+  },
   legendZone: {
     ja: '鹿多発ゾーン（事故データ）',
     en: 'Frequent-deer zone (collision data)',

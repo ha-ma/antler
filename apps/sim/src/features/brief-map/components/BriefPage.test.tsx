@@ -59,7 +59,7 @@ const heading = () =>
   screen.findByRole('heading', { level: 1, name: '今日のルートと、鹿の多い区間' })
 
 describe('BriefPage（A-2）', () => {
-  it('AC-2: 要約・ゾーン通過・条件・凡例 3 つ・操作説明が出て、OFF にすると行き先に alert=off が付く', async () => {
+  it('AC-2 / UC-8a: 要約・ゾーン通過・条件・凡例 3 つ・操作説明が出て、OFF にすると行き先に alert=off が付く', async () => {
     const zoneDay = personaZoneDay()
     stubApi((d) => ok(d))
     const router = renderBrief(`/trip/${TRIP_ID}/brief?day=${String(zoneDay)}`)

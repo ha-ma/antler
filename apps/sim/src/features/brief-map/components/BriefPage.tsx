@@ -27,7 +27,8 @@ export function BriefPage() {
   if (query.isPending) {
     return (
       <main className="brief brief--status" aria-busy="true">
-        <p>{BRIEF_TEXT.loading.ja}</p>
+        <title>{`${BRIEF_TEXT.loading.ja} | ${BRIEF_TEXT.brand.ja}`}</title>
+        <p role="status">{BRIEF_TEXT.loading.ja}</p>
       </main>
     )
   }
@@ -62,6 +63,7 @@ function BriefError({ error, onRetry, id }: { error: Error; onRetry: () => void;
             : t.failed[lang]
   return (
     <main className="brief brief--status">
+      <title>{`${message} | ${t.brand[lang]}`}</title>
       <h1 className="brief-title" tabIndex={-1} ref={focusOnMount}>
         {message}
       </h1>
@@ -108,7 +110,7 @@ function BriefContent({ data, alertOn, setAlertOn }: ContentProps) {
 
   return (
     <div className="brief" lang={htmlLang(lang)}>
-      <title>{`${t.stepBrief[lang]} | ${t.brand[lang]}`}</title>
+      <title>{`${fillText(t.dayN[lang], { n: day.day })} ${t.stepBrief[lang]} | ${t.brand[lang]}`}</title>
       <BriefHeader
         lang={lang}
         tripId={plan.id}
@@ -139,13 +141,12 @@ function BriefContent({ data, alertOn, setAlertOn }: ContentProps) {
           <AlertToggleCard lang={lang} alertOn={alertOn} onChange={setAlertOn} />
           <ConditionsCard conditions={day.conditions} lang={lang} />
           {day.legs.length > 0 ? (
-            // drive（/drive）は react-router の外の画面なので、ページを移るリンクにする
-            <a className="brief-button brief-start" href={driveHref(plan.id, day.day, alertOn)}>
+            <Link className="brief-button brief-start" to={driveHref(plan.id, day.day, alertOn)}>
               {t.start[lang]}
               <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
                 <path d="M3 8 H13 M9 4 L13 8 L9 12" />
               </svg>
-            </a>
+            </Link>
           ) : (
             <div className="brief-card">
               <p>

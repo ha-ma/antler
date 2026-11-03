@@ -153,6 +153,10 @@ export function ZoneMap({ day, lang }: Props) {
             {t.legendRoute[lang]}
           </li>
           <li>
+            <span className="brief-swatch brief-swatch--dash" aria-hidden="true" />
+            {t.legendZoneRoute[lang]}
+          </li>
+          <li>
             <span className="brief-swatch brief-swatch--zone" aria-hidden="true" />
             {t.legendZone[lang]}
           </li>

@@ -184,92 +184,98 @@ Questions は 2026-11-03 にすべて推奨で決定（CLAUDE.md の方針「推
 
 外側ループ（受け入れ）:
 
-- [ ] AC-1: 保存したペルソナの旅で `GET /api/trips/:id/day/n` を全日ぶん呼ぶ → 200。どの日も DayPlanSchema を通り、ゾーンを通る日が 1 日以上あり、各区間の時刻は移動の出発〜到着の間、移動は重ならない（`arriveAt(i) ≤ departAt(i+1)`）、条件は 2 回呼んでも同じ
-- [ ] AC-2: A-2 の画面をペルソナの旅（api はフェイク）で開くと、要約・ゾーン通過の一覧・条件・凡例 3 つ・操作説明が出て、トグルを OFF にすると「エンジンをかける」の行き先に `alert=off` が付く
+- [x] AC-1: 保存したペルソナの旅で `GET /api/trips/:id/day/n` を全日ぶん呼ぶ → 200。どの日も DayPlanSchema を通り、ゾーンを通る日が 1 日以上あり、各区間の時刻は移動の出発〜到着の間、移動は重ならない（`arriveAt(i) ≤ departAt(i+1)`）、条件は 2 回呼んでも同じ
+- [x] AC-2: A-2 の画面をペルソナの旅（api はフェイク）で開くと、要約・ゾーン通過の一覧・条件・凡例 3 つ・操作説明が出て、トグルを OFF にすると「エンジンをかける」の行き先に `alert=off` が付く
 
 UC-1 ルートのデータ:
 
-- [ ] UC-1a: encoded polyline を読み戻すと元の点（精度 5）に戻る
-- [ ] UC-1b: 全てのエリアの組（玄関口 ＋ エリアの拠点）が routes.json にある。距離・所要が正
-- [ ] UC-1c: 逆向きの組は同じ線を逆にたどり、距離・所要は同じ
-- [ ] UC-1d: 無い組は直線・`source: "straight"`・所要は直線 × 1.3 ÷ 50 km/h
-- [ ] UC-1e: 所要は OSRM の秒 × 1.2
-- [ ] UC-1f: Douglas–Peucker は端点を残し、許容 15 m を超える点を落とさない（取得スクリプトの部品）
-- [ ] UC-1g: [ADDED spec-adversary] どの線も知床峠（`WINTER_CLOSURES`）の 2 km 以内を通らない。線の端点は地点の 5 km 以内
-- [ ] UC-1h: [ADDED spec-adversary] 全ての組で OSRM × 1.2 の所要と plan-trip の目安の比が 0.4〜2.5 の間。直線 10 km 未満の近い組（札幌駅 → 札幌市内など）は差が 20 分以内（しおりの出発と A-2 の到着が大きく食い違わない）
+- [x] UC-1a: encoded polyline を読み戻すと元の点（精度 5）に戻る
+- [x] UC-1b: 全てのエリアの組（玄関口 ＋ エリアの拠点）が routes.json にある。距離・所要が正
+- [x] UC-1c: 逆向きの組は同じ線を逆にたどり、距離・所要は同じ
+- [x] UC-1d: 無い組は直線・`source: "straight"`・所要は直線 × 1.3 ÷ 50 km/h
+- [x] UC-1e: 所要は OSRM の秒 × 1.2
+- [x] UC-1f: Douglas–Peucker は端点を残し、許容 15 m を超える点を落とさない（取得スクリプトの部品）
+- [x] UC-1g: [ADDED spec-adversary] どの線も知床峠（`WINTER_CLOSURES`）の 2 km 以内を通らない。線の端点は地点の 5 km 以内
+- [x] UC-1h: [ADDED spec-adversary] 全ての組で OSRM × 1.2 の所要と plan-trip の目安の比が 0.4〜2.5 の間。直線 10 km 未満の近い組（札幌駅 → 札幌市内など）は差が 20 分以内（しおりの出発と A-2 の到着が大きく食い違わない）
 
 UC-2 その日の行程:
 
-- [ ] UC-2a: ペルソナの旅の各日の移動が `buildItinerary` の legs と同じ順・同じ出発で、到着 = 出発 ＋ 所要
-- [ ] UC-2b: 移動の無い日は legs が空で stayAt がその日の滞在地
-- [ ] UC-2c: 保存した days が作り直しと違う → `ItineraryChangedError`
-- [ ] UC-2d: 日付は JST（23:30+08:00 の出発でも JST の暦日）、stops はその日の楽しみと拠点
-- [ ] UC-2e: [ADDED spec-adversary] その日の 2 本目以降の出発は、しおりの出発と前の到着の遅い方（移動が重ならない）
-- [ ] UC-2f: [ADDED spec-adversary] 直線でつないだ移動（組が無い）はゾーンを出さない
-- [ ] UC-2g: [ADDED spec-adversary] `data` に routes の取得日・zones の hash・条件の版がある
+- [x] UC-2a: ペルソナの旅の各日の移動が `buildItinerary` の legs と同じ順・同じ出発で、到着 = 出発 ＋ 所要
+- [x] UC-2b: 移動の無い日は legs が空で stayAt がその日の滞在地
+- [x] UC-2c: 保存した days が作り直しと違う → `ItineraryChangedError`
+- [x] UC-2d: 日付は JST（23:30+08:00 の出発でも JST の暦日）、stops はその日の楽しみと拠点
+- [x] UC-2e: [ADDED spec-adversary] その日の 2 本目以降の出発は、しおりの出発と前の到着の遅い方（移動が重ならない）
+- [x] UC-2f: [ADDED spec-adversary] 直線でつないだ移動（組が無い）はゾーンを出さない
+- [x] UC-2g: [ADDED spec-adversary] `data` に routes の取得日・zones の hash・条件の版がある
 
 UC-3 ゾーンと光:
 
-- [ ] UC-3a: ゾーンの区間の入口 < 出口、時刻は移動の中で道のりに比例、区間の名前は道路名の 4 言語
-- [ ] UC-3b: 光は入口の地点と、分に切り捨てた入口の時刻の `lightPeriod`
-- [ ] UC-3d: [ADDED spec-adversary] 区間の名前は入口に最も近いゾーンの道路名（辞書順の先頭ではない）
-- [ ] UC-3c: 2 月の釧路の日没は 16 時台、薄暮の始まり < 日没 < 薄暮の終わり
+- [x] UC-3a: ゾーンの区間の入口 < 出口、時刻は移動の中で道のりに比例、区間の名前は道路名の 4 言語
+- [x] UC-3b: 光は入口の地点と、分に切り捨てた入口の時刻の `lightPeriod`
+- [x] UC-3d: [ADDED spec-adversary] 区間の名前は入口に最も近いゾーンの道路名（辞書順の先頭ではない）
+- [x] UC-3c: 2 月の釧路の日没は 16 時台、薄暮の始まり < 日没 < 薄暮の終わり
 
 UC-4 当日の条件:
 
-- [ ] UC-4a: 同じ (seed, n) → 同じ条件、n が違えば違う列（200 シードで少なくとも 1 つの欄が違う）
-- [ ] UC-4b: 車種は人数で、出発の月が 11〜4 月なら 4WD。10/31〜11/2 の旅は全日同じ車
-- [ ] UC-4f: [ADDED spec-adversary] 雪の日に路面 dry が出ない（200 シード）
-- [ ] UC-4c: 窓の曇りは人数の段で、雪か霧の日は 1 段上（上限 heavy）
-- [ ] UC-4d: 2 月の 200 シードで snow が最多の天候、packed-snow が最多の路面。8 月は snow・ice が出ない
-- [ ] UC-4e: 運転者は 1〜drivers。`packages/trip/src/day/` に `Math.random` が無い
+- [x] UC-4a: 同じ (seed, n) → 同じ条件、n が違えば違う列（200 シードで少なくとも 1 つの欄が違う）
+- [x] UC-4b: 車種は人数で、出発の月が 11〜4 月なら 4WD。10/31〜11/2 の旅は全日同じ車
+- [x] UC-4f: [ADDED spec-adversary] 雪の日に路面 dry が出ない（200 シード）
+- [x] UC-4c: 窓の曇りは人数の段で、雪か霧の日は 1 段上（上限 heavy）
+- [x] UC-4d: 2 月の 200 シードで snow が最多の天候、packed-snow が最多の路面。8 月は snow・ice が出ない
+- [x] UC-4e: 運転者は 1〜drivers。`packages/trip/src/day/` に `Math.random` が無い
 
 UC-5 API:
 
-- [ ] UC-5a: 保存した旅の n 日目 → 200 `{ plan, details, day }`。応答に `ownerTokenHash` が無い
-- [ ] UC-5b: `n=0`・`1.5`・`abc` → 400 `INVALID_INPUT`
-- [ ] UC-5c: 日数を超える n → 404 `DAY_NOT_FOUND`、無い id・形の違う id → 404 `TRIP_NOT_FOUND`
-- [ ] UC-5d: 作り直しが違う旅 → 409 `ITINERARY_CHANGED`
-- [ ] UC-5e: IP ごとに 1 分 60 件を超える → 429
+- [x] UC-5a: 保存した旅の n 日目 → 200 `{ plan, details, day }`。応答に `ownerTokenHash` が無い
+- [x] UC-5b: `n=0`・`1.5`・`abc` → 400 `INVALID_INPUT`
+- [x] UC-5c: 日数を超える n → 404 `DAY_NOT_FOUND`、無い id・形の違う id → 404 `TRIP_NOT_FOUND`
+- [x] UC-5d: 作り直しが違う旅 → 409 `ITINERARY_CHANGED`
+- [x] UC-5e: IP ごとに 1 分 60 件を超える → 429
 
 UC-6 画面の骨組み:
 
-- [ ] UC-6a: `?day=2` で D2 の要約、`?day=x` は D1、D1〜Dn の切り替えがリンク
-- [ ] UC-6b: 読み込み中・404（A-1 へのリンク）・500（もう一度で読み直す）
-- [ ] UC-6c: 言語は `plan.lang`。文言の表は 4 言語とも空欄が無い
-- [ ] UC-6d: 移動の無い日は「この日は運転しません」と滞在地
-- [ ] UC-6e: [ADDED spec-adversary] 翌日に着く時刻は「翌」を付けて出す
+- [x] UC-6a: `?day=2` で D2 の要約、`?day=x` は D1、D1〜Dn の切り替えがリンク
+- [x] UC-6b: 読み込み中・404（A-1 へのリンク）・500（もう一度で読み直す）
+- [x] UC-6c: 言語は `plan.lang`。文言の表は 4 言語とも空欄が無い
+- [x] UC-6d: 移動の無い日は「この日は運転しません」と滞在地
+- [x] UC-6e: [ADDED spec-adversary] 翌日に着く時刻は「翌」を付けて出す
 
 UC-7 アラート:
 
-- [ ] UC-7a: 初期 ON、押すと OFF で URL に `alert=off`、`?alert=off` で開くと OFF
-- [ ] UC-7b: 凡例は AlertState（compact・muted）の safe・zone・danger と、形の名前と一言
+- [x] UC-7a: 初期 ON、押すと OFF で URL に `alert=off`、`?alert=off` で開くと OFF
+- [x] UC-7b: 凡例は AlertState（compact・muted）の safe・zone・danger と、形の名前と一言
 
 UC-8 開始と操作:
 
-- [ ] UC-8a: 「エンジンをかける」の行き先が `/drive?trip={id}&day={n}`（OFF なら `&alert=off`）
-- [ ] UC-8b: 移動の無い日は次の日へのリンク（最終日は出さない）
-- [ ] UC-8c: PC とスマホの操作説明が両方ある
+- [x] UC-8a: 「エンジンをかける」の行き先が `/drive?trip={id}&day={n}`（OFF なら `&alert=off`）
+- [x] UC-8b: 移動の無い日は次の日へのリンク（最終日は出さない）
+- [x] UC-8c: PC とスマホの操作説明が両方ある
 
 UC-9 地図:
 
-- [ ] UC-9a: 背景を出せない環境で、注記と SVG（ルート・ゾーンの帯が区間の数だけ）
-- [ ] UC-9b: 帰属表示（OSRM・OSM の著作権リンク）が常にある
-- [ ] UC-9c: 地図の `aria-label` にゾーンの名前と通過の時刻
-- [ ] UC-9d: 投影（背景なしのとき）はルートの範囲を枠に収め、北が上
-- [ ] UC-9e: [ADDED spec-adversary] 一度背景なしにしたら、後から `load` が来ても背景なしのまま。MapLibre は `interactive: false` で作る
-- [ ] UC-9f: [ADDED spec-adversary] sim の HTML に `referrer` の meta（strict-origin）
+- [x] UC-9a: 背景を出せない環境で、注記と SVG（ルート・ゾーンの帯が区間の数だけ）
+- [x] UC-9b: 帰属表示（OSRM・OSM の著作権リンク）が常にある
+- [x] UC-9c: 地図の `aria-label` にゾーンの名前と通過の時刻
+- [x] UC-9d: 投影（背景なしのとき）はルートの範囲を枠に収め、北が上
+- [x] UC-9e: [ADDED spec-adversary] 一度背景なしにしたら、後から `load` が来ても背景なしのまま。MapLibre は `interactive: false` で作る
+- [x] UC-9f: [ADDED spec-adversary] sim の HTML に `referrer` の meta（strict-origin）
 
 ## Rule → ドメイン語彙対応
 
-| Rule   | 語彙（コード上の名前）                                                        | 置き場所                                                                                                    |
-| ------ | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| R1     | `RoadCatalog`、`roadBetween`、`decodePolyline`、`simplify`、`DURATION_FACTOR` | `packages/trip/src/day/roads.ts`、`packages/trip/scripts/fetch-routes.ts`                                   |
-| R2     | `buildDayPlan`、`DayPlan`、`ItineraryChangedError`                            | `packages/trip/src/day/day-plan.ts`                                                                         |
-| R3     | `zonePassages`、`sunTimes`                                                    | `packages/trip/src/day/passages.ts`、`packages/trip/src/day/sun-times.ts`                                   |
-| R4     | `dayConditions`、`DayConditions`、`CONDITIONS_VERSION`                        | `packages/trip/src/day/conditions.ts`                                                                       |
-| R5     | `GetTripDayUseCase`、`tripDayRoutes`                                          | `apps/api/src/application/usecases/trip-day/`、`apps/api/src/infrastructure/http/routes/trip-day.routes.ts` |
-| R6〜R9 | `BriefPage`、`AlertToggleCard`、`ConditionsCard`、`ZoneMap`、`useBaseMap`     | `apps/sim/src/features/brief-map/`                                                                          |
+| Rule   | 語彙（コード上の名前）                                                           | 置き場所                                                             |
+| ------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| R1     | `RoadCatalog`、`roadBetween`                                                     | `packages/trip/src/day/roads.ts`                                     |
+| R1     | `roadPairs`、`roadKey`、`WINTER_CLOSURES`                                        | `packages/trip/src/day/road-pairs.ts`                                |
+| R1     | `decodePolyline`、`encodePolyline`、`simplify`                                   | `packages/trip/src/day/polyline.ts`                                  |
+| R1     | 取得スクリプト（OSRM・冬の迂回・間引き・係数 1.2）                               | `packages/trip/scripts/fetch-routes.ts`                              |
+| R2・R3 | `buildDayPlan`、`ItineraryChangedError`、`pointAtKm`（ゾーンの通過と光も）       | `packages/trip/src/day/day-plan.ts`                                  |
+| R3     | `sunTimes`                                                                       | `packages/trip/src/day/sun-times.ts`                                 |
+| R4     | `dayConditions`、`DayConditions`、`CONDITIONS_VERSION`                           | `packages/trip/src/day/conditions.ts`                                |
+| R5     | `DayPlanSchema`                                                                  | `packages/trip/src/day/schema.ts`                                    |
+| R5     | `GetTripDayUseCase`                                                              | `apps/api/src/application/usecases/trip-day/get-trip-day.usecase.ts` |
+| R5     | `tripDayRoutes`                                                                  | `apps/api/src/infrastructure/http/routes/trip-day.routes.ts`         |
+| R6〜R8 | `BriefPage`、`AlertToggleCard`、`ConditionsCard`、`useBriefParams`、`useTripDay` | `apps/sim/src/features/brief-map/`                                   |
+| R9     | `ZoneMap`、`useBaseMap`、`buildOverlay`、`fitProjection`                         | `apps/sim/src/features/brief-map/map/`                               |
 
 ## 受け入れ基準
 

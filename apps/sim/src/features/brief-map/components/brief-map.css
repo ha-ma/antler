@@ -352,6 +352,14 @@
 
 .brief-swatch--zone {
   background: var(--alert-zone);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.brief-swatch--dash {
+  width: 22px;
+  height: 0;
+  border-top: 3px dashed var(--spruce);
+  border-radius: 0;
 }
 
 .brief-map__note {
@@ -478,6 +486,8 @@
   height: 32px;
   border-radius: var(--radius-pill);
   background: var(--line);
+  /* OFF でも輪郭が面に対して 3:1 以上（WCAG 1.4.11） */
+  box-shadow: inset 0 0 0 2px var(--ink-faint);
 }
 
 .brief-switch[aria-checked='true'] .brief-switch__track {
@@ -536,6 +546,11 @@
   height: 380px;
   transform: scale(0.4);
   transform-origin: top left;
+}
+
+/* 凡例の赤は見本なので点滅させない（ページを開いている間ずっと動くものを置かない。WCAG 2.2.2）。白枠は付けたままにする */
+.brief-legend__screen .antler-alert[data-alert-state='danger'] {
+  border-color: var(--on-alert-danger);
 }
 
 .brief-legend__text {

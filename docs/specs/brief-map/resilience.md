@@ -49,9 +49,9 @@
 
 ## Test List への追加
 
-- [ ] FAIL-1: 背景を出せない（`supported()` が false）→ 背景なしの注記と SVG、logger の warn
-- [ ] FAIL-2: MapLibre が `load` の前に `error` を出す → 背景なしに切り替え、`map.remove()` を呼ぶ
-- [ ] FAIL-3: 8 秒で `load` が来ない → 背景なしに切り替え
-- [ ] FAIL-4: api が 500 → 「もう一度」で読み直して成功すれば画面が出る
-- [ ] FAIL-5: 応答の形が違う → 失敗の表示（白い画面にならない）
-- [ ] IDEM-1: 同じ旅・同じ日の GET を 2 回 → 本文が同じ（DB に書き込まない）
+- [x] FAIL-1: 背景を出せない（`supported()` が false）→ 背景なしの注記と SVG、logger の warn
+- [x] FAIL-2: MapLibre が `load` の前に `error` を出す → 背景なしに切り替え、`map.remove()` を呼ぶ
+- [x] FAIL-3: 8 秒で `load` が来ない → 背景なしに切り替え
+- [x] FAIL-4: api が 500 → 「もう一度」で読み直して成功すれば画面が出る
+- [x] FAIL-5: 応答の形が違う → 失敗の表示（白い画面にならない）
+- [x] IDEM-1: 同じ旅・同じ日の GET を 2 回 → 本文が同じ（DB に書き込まない）
