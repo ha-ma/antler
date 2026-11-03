@@ -84,25 +84,26 @@ Story: B の開発者として、A のシミュレーションで正解の分か
   - 入力（答えのファイル）: JSONL。1 行 = `{"id", "model", "probs": Capture.l1Probs と同じ形, "labels": R6 と同じ形, "meta": {"traceId", "source", ...R6 の meta}}`。`model` は L1 が実際に答えたモデル名（local-jev の応答の `model`）。ラベルの行に `model` と `probs` を足したもの（足す道具は Deferred の bench_l1.py）
   - 検証: 4 問の確率は有限の 0〜1、alert_level は none・zone・danger の 3 つ、ラベルの型と語彙、`meta.traceId`・`meta.source` がある、`id` の重複なし。1 行でも違えば全体を拒否（行番号つき）
   - 全行の `model` が同じで、空でなく、前後に空白が無く、別名（`MODEL_ALIASES`）でない。違えば書かない（edge-l1 R4: 実体のモデル名だけが校正の相手）
-  - `source` に `synthetic` を含む → `--allow-synthetic` が無ければ書かない（合成で学んだ温度に実体のモデル名を書いて実機に置くと、偽の温度で本物の赤が下がる。spec-adversary W3）
+  - `source` は許可リスト: `sim` だけ（`--allow-synthetic` のときだけ `synthetic` も）。表記ゆれ（`Synthetic`・`synth`）や不明な値は書かない（code-reviewer C3）
+  - `synthetic` を含む答えから書くときは、モデル名を `synthetic:<答えのモデル名>` にする。実行時の答えのモデル名と一致しないので、手違いで実機に置いても当たらない（合成で学んだ温度で本物の赤が下がらない。spec-adversary W3、edge-latency-reviewer W2）
   - **学習用と検証用に分ける**: `sha256(traceId)` の先頭 8 桁 ÷ 2^32 < `--holdout`（既定 0.3）のトレースを検証用（乱数を使わず、同じトレースは必ず同じ側。spec-adversary C3）。温度は学習用だけで学ぶ
   - 問ごとに β = 1/T を `[1/20, 1/0.05]`（読み込み側の範囲）で、NLL を最小にする（log β の黄金分割探索、120 回。NLL は β について凸）。確率は `Calibration` と同じく 1e-6〜1−1e-6 に切り詰める
   - 学びの式は `Calibration.noul`・`Calibration.choice` と同じ（noul は `sigmoid(logit(p)/T)`、choice は `softmax(log(p_i)/T)`）。テストで `Calibration.apply` と突き合わせる
   - **書かない条件**（推奨で決定）:
-    1. 学習用の別々のトレースが `--min-samples`（既定 100）未満、または検証用が 30 未満
-    2. 学習用で noul の正か負が 10 件未満、alert_level で 10 件以上あるクラスが 2 つ未満
+    1. 学習用の別々のトレースが `--min-samples`（既定 100。100 より下げられない）未満、または検証用が 30 未満
+    2. 学習用で noul の正か負が 10 件未満、alert_level で 10 件以上あるクラスが 2 つ未満。**学習用・検証用それぞれで正解 danger の別々のトレースが 10 未満**（4 の「降格 0 件」が空振りで通らないように。code-reviewer C2・edge-latency-reviewer C1）
     3. 学んだ T が 0.25 未満（生の 0.63 が校正後 0.9 になるほど鋭くする。分離できるデータでは T が下限へ張り付く。1.5B の LLM をそこまで鋭くする根拠は合成・シミュレーションのデータからは出ない。spec-adversary W1）
-    4. **検証用で、正解が `danger` の答えを降格する**（校正後の false_positive ≥ `--override-conf`、または alert_level の最大が none か zone で ≥ `--override-conf`。edge-l1 R5 の結論 `fusion.conclude` をそのまま使う。条件 4 の車線の判定は数えず厳しい側に倒す）ものが 1 件でもある
-    - 降格の誤りは「正解が danger の答えの降格」だけなので、4 は「検証用の降格の精度 1.0」と同じで、敵対レビューの案（精度 0.9 以上）より厳しい。精度と Wilson の下限は要約に出す。降格が 0 件の校正は書く（降格しない校正は安全側）
-  - `--override-conf` の既定は `L1Config().override_conf`（0.9）
+    4. **検証用で、正解が `danger` の答えを降格する**（校正後の false_positive ≥ 0.9、または alert_level の最大が none か zone で ≥ 0.9。edge-l1 R5 の結論 `fusion.conclude` をそのまま使う。条件 4 の車線の判定は数えず厳しい側に倒す）ものが 1 件でもある
+    - 降格の誤りは「正解が danger の答えの降格」だけなので、4 は「検証用の降格の精度 1.0」と同じで、敵対レビューの案（精度 0.9 以上）より厳しい。精度と Wilson の下限、danger の件数と「danger を降格する割合」の Wilson の上限は要約に出す。降格が 0 件の校正は書く（降格しない校正は安全側）
+  - 4 の閾値は、実行時に選べるいちばん低い `override_conf`（0.9）に固定する。`fit` には閾値を変える引数を持たない（上げると判定が甘くなる。code-reviewer C1）。`min_samples`・`holdout` の範囲はライブラリの口（`calibrate()`）でも検査する
   - T が上限 20 に張り付くのは書く（確率を 0.5 に寄せる向きで、降格を減らす。安全側）。ただし `l1.calibrate.bound` を残す
 - R8: 書き出し
   - `{"version": 1, "model": <答えのモデル名>, "temperatures": {4 問: T}}` の 3 キーだけ。T は 6 桁に丸めて有限の 0.05〜20
   - 書き先と同じディレクトリの一時ファイルに書き、`load_calibration` で読み戻して同じ温度・同じモデルであることを確かめてから `os.replace` で置き換える（失敗したら前のファイルを残し、一時ファイルを消す）
-  - ECE・NLL・降格の精度の前後を `--report`（任意）に JSON で書き、要約を標準出力に出す
+  - ECE・NLL・降格の精度の前後を `--report`（任意）に JSON で書き、要約を標準出力に出す。報告は `calibration.json` より先に書く（報告が書けなければ校正も置き換えない）
 - R9: 評価
   - ECE: 10 等幅 bin、上位ラベル（noul は `max(q, 1−q)` と「0.5 以上を正と言って当たったか」、choice は最大の確率と「最大が正解か」）
-  - 降格の指標（`--override-conf` で R7 の 4 と同じ判定）: 降格した件数・その精度（正解が danger でない割合）と Wilson の 95% 下限・**正解が danger の答えを降格した件数**（全体と pattern 別）・alert_level の none が ≥ 0.9 になった件数（none は正解に出ないので過信を別に数える。spec-adversary W2）
+  - 降格の指標（`evaluate` は `--override-conf`、0.9〜1、既定 0.9。`fit` の検証は 0.9 固定）: 降格した件数・その精度（正解が danger でない割合）と Wilson の 95% 下限・**正解が danger の答えを降格した件数**（全体と pattern 別）・alert_level の none が ≥ 0.9 になった件数（none は正解に出ないので過信を別に数える。spec-adversary W2）
   - `evaluate` サブコマンド: 答えのファイルと `calibration.json` から、校正なし・校正ありの指標を出す（分割しない）
 - R10: 実行の口と CI
   - `python dataset/export_l1_labels.py --synthetic --seed 7 --out ...`、`python -m detector.l1.calibrate fit ANSWERS --out calibration.json`、`python -m detector.l1.calibrate evaluate ANSWERS --calibration calibration.json`
@@ -184,7 +185,7 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 - [Deferred: 担当=人 A（sim のログの書き出し。sim は編集しない指示）/ 期日=2026-11-06 / 暫定挙動=合成トレース（R2）で学ぶ。形（R1）は決めたので、sim が同じ JSONL を書けば `--traces` でそのまま読める。合成の車はブレーキをかけないので、赤のあとに減速する track は sim のトレースで補う] sim が 0.1 秒ごとのトレースを書き出す（`drive-harness.ts` の頭なしの走行から 1 物体ずつ）
 - [Deferred: 担当=人 A / 期日=2026-11-06 / 暫定挙動=確信度は R3 の式、鹿でない物（看板・杭・雪）は合成だけで全体の 25%] sim に検出の確信度と、鹿でない物を足す。実行時の赤の候補に占める誤検知の割合（調査走行で測る）
-- [Deferred: 担当=ユーザー（Mac mini 実機、§4 Step 0・Step 6）/ 期日=2026-11-05 / 暫定挙動=`calibration.json` は置かない → edge-l1 は降格しない。ラベルの request を local-jev に送り、`model`・`probs` を足した答えの JSONL を書く道具は `bench_l1.py` で作る] 実機の L1 の生の確率の収集と学習
+- [Deferred: 担当=人 B（`scripts/bench_l1.py` を書く。ラベルの request を local-jev に送り、`model`・`probs` を足した答えの JSONL と所要時間を書く）＋ユーザー（Mac mini 実機で回す、§4 Step 0・Step 6）/ 期日=2026-11-05 / 暫定挙動=`calibration.json` は置かない → edge-l1 は降格しない。合成で学んだ温度は `synthetic:` のモデル名なので置いても当たらない] 実機の L1 の生の確率の収集と学習。Step 6 で測るもの: L1 の p50/p95（`timeout_ms` 800 の内側か）、YOLO と併走したときの L0 の fps 低下（20% 以内、§6）、実機の答えでの `fit` の結果（書けたか・理由）、走行ログでの上書きの件数と正誤（edge-latency-reviewer W3）
 - [Deferred: 担当=人 B（Step 6 の比較のあと）/ 期日=2026-11-07 / 暫定挙動=選択肢の説明文は足さない（質問を変えると凍結した schema と校正が両方変わる）] choice の選択肢の説明文（edge-l1 から持ち越し）
 - [Deferred: 担当=人 B（PWA から速度・ゾーンを返す feature、未起票）/ 期日=2026-11-06 / 暫定挙動=固定値で学ぶ。`--context actual` で sim の実値の問い合わせも作れるので、Step 6 で固定値との差を測る] 車の状態の実値（edge-l1 から持ち越し）
 - [Deferred: 担当=人 B（edge-capture、未起票）/ 期日=2026-11-06 / 暫定挙動=答えのファイルの `probs` を `Capture.l1Probs` と同じ形にしたので、Capture ができたらソフトラベルとして同じ値を残せる] Capture へのソフトラベル（B2-9）
@@ -195,7 +196,7 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 - [x] AC-1: 合成 240 件（seed 7）を書き出すと、全行の request が `JudgeRequest` に通り、車の状態が `VehicleContext()` の固定値、全行が赤の候補の場面（track の最後の点の conf ≥ 0.8、窓 1 秒）、1 問あたり 240 件（100〜300）、noul の 3 問は正と負が各 10 件以上、alert_level は zone と danger が各 10 件以上
 - [x] AC-2: 合成の過信した答え（真の確率の logit を 2.5 倍、2,000 件、シード付き）で温度を学び、`calibration.json` を書くと、`load_calibration` が同じモデル・同じ温度で読み、各問の T が 2.5 ± 0.3、ECE が下がる
-- [x] AC-3: 書き出したラベル → ラベルから作った偽の L1 の過信した答え（シード付きの雑音で、ときどき外す）→ `fit`（`--allow-synthetic`）→ 書き出し → edge-l1 の `load_calibration` が読め、`matches(答えのモデル)` が真で、検証用で正解 danger の降格が 0 件
+- [x] AC-3: 書き出したラベル → ラベルから作った偽の L1 の過信した答え（シード付きの雑音で、ときどき外す）→ `fit`（`--allow-synthetic`）→ 書き出し → edge-l1 の `load_calibration` が読め、検証用で正解 danger の降格が 0 件（danger は 10 件以上）。合成なのでモデル名は `synthetic:<答えのモデル>` で、`matches(答えのモデル)` は偽（実機では当たらない）
 
 UC-1 トレース:
 
@@ -241,10 +242,12 @@ UC-6 学習:
 - [x] FIT-1b: 学んだ T で `Calibration.apply` した NLL が、学習の NLL と一致する（式が読み込み側と同じ）
 - [x] FIT-1c: 学習用の件数不足・検証用の件数不足・片クラス・alert_level のクラス不足 → 理由つきで書かない
 - [x] FIT-1d: 分離できるデータ（T が 0.25 未満）→ 書かない。上限に張り付く → 書いて `l1.calibrate.bound` を残す
-- [x] FIT-1e: モデル名の混在・空・前後の空白・別名（jev-latest）→ 書かない。`source=synthetic` → `--allow-synthetic` なしでは書かない
+- [x] FIT-1e: モデル名の混在・空・前後の空白・別名（jev-latest）→ 書かない。`source=synthetic` → `--allow-synthetic` なしでは書かない。付ければ `synthetic:` のモデル名で書く。許可リストの外（`Synthetic`・`synth`・`local-jev`）は書かない
 - [x] FIT-1f: 答えの行の誤り（確率の欠落・範囲外・NaN・選択肢の不足・ラベルの型違い・語彙の外・meta の欠落・id の重複）→ 行番号つきで全体を拒否
 - [x] FIT-1g: [ADDED adversary] 構造的に間違う偽 L1（動き出す前の横断の鹿に false_positive 0.97）→ 検証用で危険な鹿を降格するので書かない
 - [x] FIT-1h: [ADDED adversary] 学習用と検証用はトレースの id のハッシュで分かれ、同じトレースは必ず同じ側。温度は学習用だけで決まる
+- [x] FIT-1i: [ADDED review] 検証用か学習用の正解 danger の別々のトレースが 10 未満 → 書かない（降格 0 件の空振りを防ぐ）
+- [x] FIT-1j: [ADDED review] ライブラリの口（`calibrate()`）でも `min_samples` 100 未満・`holdout` の範囲外は ValueError。`fit` に `--override-conf` は無い（1.0 も拒否）
 
 UC-7 書き出し:
 
@@ -305,4 +308,4 @@ UC-8 評価:
 - [x] 全 UC / 全状態パターンのテストが Green、既存テストが Green
 - [x] Test List の全項目にチェック
 - [x] 静的解析ゲート通過（ruff check・ruff format、edge と dataset）
-- [ ] code-reviewer・edge-latency-reviewer の Critical 0
+- [x] code-reviewer・edge-latency-reviewer の Critical 0（C1〜C3・C1 を直した。docs/reports/2026-11-03-{code-reviewer,edge-latency-reviewer}-edge-l1-calibration.md）

@@ -169,10 +169,50 @@ def test_fit1e_モデル名の混在と_合成は_allow_synthetic_なしでは�
     mixed = [*samples[:-1], replace(samples[-1], answer=replace(samples[-1].answer, model="x"))]
     with pytest.raises(CalibrationRefused, match="混在"):
         calibrate(mixed, allow_synthetic=True)
-    with pytest.raises(CalibrationRefused, match="合成"):
+    with pytest.raises(CalibrationRefused, match="source が synthetic"):
         calibrate(samples)
-    real = [replace(s, source="local-jev") for s in samples]
+    real = [replace(s, source="sim") for s in samples]
     assert calibrate(real).calibration.model == MODEL
+    # 合成で学んだ温度は synthetic: を付けて書く（実行時の答えのモデル名と一致しない）
+    written = calibrate(samples, allow_synthetic=True).calibration
+    assert written.model == "synthetic:" + MODEL
+    assert not written.matches(MODEL)
+    assert written.temperatures == calibrate(real).calibration.temperatures
+    # 許可リストの外（表記ゆれ・不明）は allow_synthetic でも書かない
+    for source in ("Synthetic", "synth", "local-jev"):
+        odd = [replace(s, source=source) for s in samples]
+        with pytest.raises(CalibrationRefused, match=f"source が {source}"):
+            calibrate(odd, allow_synthetic=True)
+
+
+# FIT-1i [ADDED review]
+def test_fit1i_学習用か検証用の正解_danger_が少ないと書かない():
+    samples = [replace(s, source="sim") for s in scenario(400, 5)]
+    no_valid_danger = [
+        s
+        for s in samples
+        if not (is_validation(s.trace_id, 0.3) and s.labels.alert_level == "danger")
+    ]
+    with pytest.raises(CalibrationRefused, match="検証用の正解 danger"):
+        calibrate(no_valid_danger)
+    # 学習用の danger を none に付け替える（alert_level のクラスの判定は none と zone で通る）
+    no_train_danger = [
+        replace(s, labels=replace(s.labels, alert_level="none"))
+        if not is_validation(s.trace_id, 0.3) and s.labels.alert_level == "danger"
+        else s
+        for s in samples
+    ]
+    with pytest.raises(CalibrationRefused, match="学習用の正解 danger"):
+        calibrate(no_train_danger)
+
+
+# FIT-1j [ADDED review]
+def test_fit1j_ライブラリの口でも件数の下限と分割の範囲は下げられない():
+    samples = scenario(400, 5)
+    with pytest.raises(ValueError, match="min_samples"):
+        calibrate(samples, allow_synthetic=True, min_samples=10)
+    with pytest.raises(ValueError, match="holdout"):
+        calibrate(samples, allow_synthetic=True, holdout=0.9)
 
 
 # FIT-1f
@@ -247,7 +287,7 @@ def test_fit1h_学習用と検証用はトレースの_id_で決まり_温度は
 
 # WR-1a
 def test_wr1a_書いたファイルは3つのキーだけで読み込み側が同じ値で読む(tmp_path):
-    result = calibrate(scenario(400, 5), allow_synthetic=True)
+    result = calibrate(scenario(400, 5, source="sim"))
     out = tmp_path / "calibration.json"
     write_calibration(out, result.calibration)
     raw = json.loads(out.read_text(encoding="utf-8"))
@@ -336,24 +376,36 @@ def test_ev1c_evaluate_は校正なしと_モデルが合うときだけ校正�
 
 # CLI-1a / AUTH-4
 def test_cli1a_fit_と_evaluate_の_exit_と要約(tmp_path, capsys):
-    answers = jsonl(tmp_path / "answers.jsonl", scenario(400, 5))
+    answers = jsonl(tmp_path / "answers.jsonl", scenario(400, 5, source="sim"))
     out = tmp_path / "calibration.json"
     report = tmp_path / "report.json"
-    assert (
-        main(["fit", str(answers), "--out", str(out), "--allow-synthetic", "--report", str(report)])
-        == 0
-    )
+    assert main(["fit", str(answers), "--out", str(out), "--report", str(report)]) == 0
     summary = json.loads(capsys.readouterr().out)
     assert summary["model"] == MODEL
     assert set(summary["temperatures"]) == set(IDS)
-    assert summary["validation"]["after"]["override"]["dangerDowngraded"] == 0
+    gate = summary["validation"]["after"]["override"]
+    assert gate["dangerDowngraded"] == 0
+    assert gate["dangerRows"] >= 10
+    assert 0.0 < gate["dangerDowngradeRateWilsonHigh"] < 1.0
     assert json.loads(report.read_text(encoding="utf-8")) == summary
     assert load_calibration(out) is not None
 
-    # 合成を --allow-synthetic なしで → 1、書かない
+    # 合成を --allow-synthetic なしで → 1、書かない。付ければ synthetic: のモデル名で書く
+    synthetic = jsonl(tmp_path / "synthetic.jsonl", scenario(400, 5))
     out2 = tmp_path / "c2.json"
-    assert main(["fit", str(answers), "--out", str(out2)]) == 1
-    assert "合成" in capsys.readouterr().err
+    assert main(["fit", str(synthetic), "--out", str(out2)]) == 1
+    assert "source が synthetic" in capsys.readouterr().err
+    assert not out2.exists()
+    assert main(["fit", str(synthetic), "--out", str(out2), "--allow-synthetic"]) == 0
+    capsys.readouterr()
+    assert load_calibration(out2).model == "synthetic:" + MODEL
+    out2.unlink()
+
+    # 報告が書けなければ校正も置き換えない
+    assert (
+        main(["fit", str(answers), "--out", str(out2), "--report", str(tmp_path / "no" / "r")]) == 2
+    )
+    capsys.readouterr()
     assert not out2.exists()
 
     # 入力の誤り → 2
@@ -400,6 +452,7 @@ def test_auth3_evaluate_は_calibration_json_を読むだけ(tmp_path, capsys):
         ["--min-t", "0.05"],
         ["--max-t", "50"],
         ["--override-conf", "0.8"],
+        ["--override-conf", "1.0"],  # [ADDED review] 判定の閾値は 0.9 固定（上げて甘くできない）
         ["--min-samples", "10"],
         ["--holdout", "0.9"],
     ],

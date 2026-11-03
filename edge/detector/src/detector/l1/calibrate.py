@@ -85,7 +85,10 @@ DIGITS: Final = 6
 BOUND_RTOL: Final = 1e-3
 WILSON_Z: Final = 1.96
 OVERRIDE_CONF_RANGE: Final = (0.9, 1.0)  # B2-5 の MUST（0.9 より下げられない。L1Config と同じ）
+SIM: Final = "sim"
 SYNTHETIC: Final = "synthetic"
+SYNTHETIC_PREFIX: Final = "synthetic:"  # 合成で学んだ温度のモデル名（実行時の答えと一致しない）
+GATE_CONF: Final = OVERRIDE_CONF_RANGE[0]  # 検証の降格は実行時に選べるいちばん低い 0.9 で数える
 EXIT_OK, EXIT_REFUSED, EXIT_INPUT = 0, 1, 2
 
 _GOLDEN: Final = (math.sqrt(5.0) - 1.0) / 2.0
@@ -363,12 +366,19 @@ def wilson_lower(hits: int, n: int, z: float = WILSON_Z) -> float | None:
     return round((centre - margin) / denom, 4)
 
 
+def wilson_upper(hits: int, n: int, z: float = WILSON_Z) -> float | None:
+    """hits / n の Wilson の上限（0 件の降格でも、件数が少なければ上限は高い）。"""
+    low = wilson_lower(n - hits, n, z)
+    return None if low is None else round(1.0 - low, 4)
+
+
 @dataclass(frozen=True)
 class OverrideStats:
     """降格の指標（R9）。正しい降格 = 正解が danger でない答えの降格。"""
 
     downgraded: int
     right: int
+    danger_rows: int
     danger_downgraded: int
     danger_by_pattern: dict[str, int]
     none_over: int
@@ -382,7 +392,9 @@ class OverrideStats:
             "downgraded": self.downgraded,
             "precision": self.precision,
             "precisionWilsonLow": wilson_lower(self.right, self.downgraded),
+            "dangerRows": self.danger_rows,
             "dangerDowngraded": self.danger_downgraded,
+            "dangerDowngradeRateWilsonHigh": wilson_upper(self.danger_downgraded, self.danger_rows),
             "dangerDowngradedByPattern": dict(sorted(self.danger_by_pattern.items())),
             "noneOver": self.none_over,
         }
@@ -397,6 +409,7 @@ def override_metrics(
     """
     downgraded = right = danger = none_over = 0
     by_pattern: dict[str, int] = {}
+    danger_rows = sum(1 for s in samples if s.labels.alert_level == "danger")
     for answer, sample in zip(answers, samples, strict=True):
         if answer.alert_level["none"] >= override_conf:
             none_over += 1
@@ -410,7 +423,7 @@ def override_metrics(
             danger += 1
             key = sample.pattern or "unknown"
             by_pattern[key] = by_pattern.get(key, 0) + 1
-    return OverrideStats(downgraded, right, danger, by_pattern, none_over)
+    return OverrideStats(downgraded, right, danger_rows, danger, by_pattern, none_over)
 
 
 def _applied(samples: Sequence[Sample], calibration: Calibration | None) -> list[Sample]:
@@ -506,19 +519,46 @@ def _check_classes(samples: Sequence[Sample]) -> None:
         raise CalibrationRefused(msg)
 
 
+def _check_danger(samples: Sequence[Sample], where: str) -> None:
+    """正解 danger の別々のトレースが MIN_CLASS 未満なら、降格 0 件の判定が空振りになる。"""
+    n = len({s.trace_id for s in samples if s.labels.alert_level == "danger"})
+    if n < MIN_CLASS:
+        msg = f"{where}の正解 danger の別々のトレースが {n}（{MIN_CLASS} 以上が要る）"
+        raise CalibrationRefused(msg)
+
+
+def _check_sources(samples: Sequence[Sample], allow_synthetic: bool) -> bool:
+    """許すのは sim（と、allow_synthetic のときだけ synthetic）。合成を含めば True。"""
+    allowed = {SIM, SYNTHETIC} if allow_synthetic else {SIM}
+    bad = sorted({s.source for s in samples} - allowed)
+    if bad:
+        msg = (
+            f"source が {', '.join(bad)}（許すのは {', '.join(sorted(allowed))}）。"
+            "実機に置く温度は sim の場面への実機の答えで学ぶ"
+        )
+        raise CalibrationRefused(msg)
+    return any(s.source == SYNTHETIC for s in samples)
+
+
 def calibrate(
     samples: Sequence[Sample],
     *,
     min_samples: int = DEFAULT_MIN_SAMPLES,
     holdout: float = DEFAULT_HOLDOUT,
-    override_conf: float = L1Config().override_conf,
     allow_synthetic: bool = False,
 ) -> FitResult:
-    """R7 の判定をすべて通ったときだけ Calibration を返す。通らなければ CalibrationRefused。"""
+    """R7 の判定をすべて通ったときだけ Calibration を返す。通らなければ CalibrationRefused。
+
+    降格の判定（検証用）は実行時に選べるいちばん低い override_conf（0.9）で数える
+    （閾値を上げて判定を甘くする口を持たない）。合成を含む答えから学んだ温度のモデル名には
+    `synthetic:` を付け、実行時の答えのモデル名と一致しないようにする（実機では当たらない）。
+    """
+    lo, hi = HOLDOUT_RANGE
+    if min_samples < DEFAULT_MIN_SAMPLES or not lo <= holdout <= hi:
+        msg = f"min_samples は {DEFAULT_MIN_SAMPLES} 以上、holdout は {lo}〜{hi}"
+        raise ValueError(msg)
     model = _model_of(samples)
-    if not allow_synthetic and any(s.source == SYNTHETIC for s in samples):
-        msg = "合成のデータ（source=synthetic）を含む。実機に置く温度は実機の答えで学ぶ"
-        raise CalibrationRefused(msg)
+    synthetic = _check_sources(samples, allow_synthetic)
     train = [s for s in samples if not is_validation(s.trace_id, holdout)]
     valid = [s for s in samples if is_validation(s.trace_id, holdout)]
     n_train = len({s.trace_id for s in train})
@@ -530,6 +570,8 @@ def calibrate(
         msg = f"検証用の別々のトレースが {n_valid}（{MIN_VALIDATION} 以上が要る）"
         raise CalibrationRefused(msg)
     _check_classes(train)
+    _check_danger(train, "学習用")
+    _check_danger(valid, "検証用")
     temps = fit_temperatures(train)
     sharp = [q for q, t in temps.items() if t < MIN_SAFE_T]
     if sharp:
@@ -538,9 +580,9 @@ def calibrate(
     at_bound = tuple(q for q, t in temps.items() if t >= MAX_T * (1.0 - BOUND_RTOL))
     if at_bound:
         logger.warning("l1.calibrate.bound", extra={"questions": list(at_bound), "t": MAX_T})
-    calibration = Calibration(model=model, temperatures=temps)
-    used = _applied(valid, calibration)
-    gate = override_metrics([s.answer for s in used], used, override_conf)
+    learned = Calibration(model=model, temperatures=temps)
+    used = _applied(valid, learned)
+    gate = override_metrics([s.answer for s in used], used, GATE_CONF)
     if gate.danger_downgraded:
         msg = (
             f"検証用で正解 danger を {gate.danger_downgraded} 件降格する"
@@ -548,13 +590,14 @@ def calibrate(
         )
         raise CalibrationRefused(msg)
     # 降格の誤り = 正解 danger の降格。上の判定は「検証用の降格の精度 1.0」と同じ（0.9 より厳しい）
+    written = Calibration(SYNTHETIC_PREFIX + model, temps) if synthetic else learned
     return FitResult(
-        calibration=calibration,
+        calibration=written,
         train_traces=n_train,
         validation_traces=n_valid,
         at_bound=at_bound,
-        before=evaluate(valid, None, override_conf),
-        after=evaluate(valid, calibration, override_conf),
+        before=evaluate(valid, None, GATE_CONF),
+        after=evaluate(valid, learned, GATE_CONF),
     )
 
 
@@ -638,8 +681,11 @@ def _parser() -> argparse.ArgumentParser:
     fit.add_argument("--report", type=Path)
     fit.add_argument("--min-samples", type=_positive_int, default=DEFAULT_MIN_SAMPLES)
     fit.add_argument("--holdout", type=_holdout, default=DEFAULT_HOLDOUT)
-    fit.add_argument("--override-conf", type=_override_conf, default=default_conf)
-    fit.add_argument("--allow-synthetic", action="store_true", help="テスト用。実機に置かない")
+    fit.add_argument(
+        "--allow-synthetic",
+        action="store_true",
+        help="テスト用。モデル名に synthetic: を付けて書く（実機では当たらない）",
+    )
     ev = sub.add_parser("evaluate", help="校正なし・校正ありの ECE・NLL・降格の指標")
     ev.add_argument("answers", type=Path)
     ev.add_argument("--calibration", type=Path, required=True)
@@ -662,14 +708,13 @@ def _run_fit(args: argparse.Namespace) -> int:
         samples,
         min_samples=args.min_samples,
         holdout=args.holdout,
-        override_conf=args.override_conf,
         allow_synthetic=args.allow_synthetic,
     )
-    write_calibration(args.out, result.calibration)
     summary = {"written": str(args.out), **result.summary()}
-    if args.report is not None:
+    if args.report is not None:  # 先に書く（報告が書けないなら校正も置き換えない）
         text = json.dumps(summary, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
         args.report.write_text(text, encoding="utf-8")
+    write_calibration(args.out, result.calibration)
     _emit(summary)
     return EXIT_OK
 

@@ -176,13 +176,19 @@ def test_ac3_ラベル_偽の_L1_学習_書き出し_edge_l1_が読める(synthe
     assert calibrate_main(["fit", str(answers), "--out", str(out), "--allow-synthetic"]) == 0
     summary = json.loads(capsys.readouterr().out)
     cal = load_calibration(out)
-    assert cal is not None
-    assert cal.matches(MODEL)
+    assert cal is not None  # edge-l1 の読み込み側が読める
     assert cal.temperatures == summary["temperatures"]
-    assert summary["validation"]["after"]["override"]["dangerDowngraded"] == 0
+    gate = summary["validation"]["after"]["override"]
+    assert gate["dangerDowngraded"] == 0
+    assert gate["dangerRows"] >= 10
+    # 合成で学んだ温度は synthetic: のモデル名で書かれ、実機の答え（MODEL）には当たらない
+    assert cal.model == "synthetic:" + MODEL
+    assert not cal.matches(MODEL)
+    assert cal.matches("synthetic:" + MODEL)
     # 合成のまま --allow-synthetic なしでは書かない
     assert calibrate_main(["fit", str(answers), "--out", str(tmp_path / "x.json")]) == 1
     capsys.readouterr()
+    assert not (tmp_path / "x.json").exists()
 
 
 # ---- UC-1 トレース ----
@@ -577,6 +583,10 @@ def test_out1b_auth1_足りなければ書かない_トレースの誤りは2(tm
     assert code == 2
     assert run(["--synthetic", "--out", str(tmp_path / "no" / "x.jsonl")], capsys)[0] == 2
     assert run(["--synthetic", "--out", str(out), "--per-trace", "0"], capsys)[0] == 2
+    with pytest.raises(SystemExit) as exc:  # [ADDED review] 負のシードは引数の誤り
+        main(["--synthetic", "--out", str(out), "--seed", "-1"])
+    assert exc.value.code == 2
+    capsys.readouterr()
 
 
 # OUT-1c

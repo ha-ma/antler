@@ -753,6 +753,19 @@ def _write_jsonl(path: Path, items: Iterable[dict[str, object]]) -> None:
         tmp.unlink(missing_ok=True)
 
 
+def _seed(text: str) -> int:
+    """numpy の SeedSequence は負の数を受けないので、0 以上の整数だけ。"""
+    try:
+        v = int(text)
+    except ValueError as exc:
+        msg = "整数ではない"
+        raise argparse.ArgumentTypeError(msg) from exc
+    if v < 0:
+        msg = "0 以上"
+        raise argparse.ArgumentTypeError(msg)
+    return v
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python dataset/export_l1_labels.py", description=__doc__)
     src = p.add_mutually_exclusive_group(required=True)
@@ -761,7 +774,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     src.add_argument("--traces", type=Path, help="sim のトレースの JSONL（R1 の形）")
     p.add_argument("--out", type=Path, required=True)
-    p.add_argument("--seed", type=int, default=7)
+    p.add_argument("--seed", type=_seed, default=7)
     p.add_argument("--examples", type=int, default=DEFAULT_EXAMPLES, help="合成の問い合わせの件数")
     p.add_argument("--per-trace", type=int, default=1)
     p.add_argument("--model", default=L1Config().model)
