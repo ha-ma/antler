@@ -35,6 +35,11 @@ type Props = {
   zonesFailed: boolean
 }
 
+/** 同じ関数を渡し続ける（描画のたびに呼ばれて 1 秒ごとにフォーカスを奪わないように）。 */
+function focusOnMount(el: HTMLElement | null): void {
+  el?.focus({ preventScroll: true })
+}
+
 /** JST の ISO 8601（+09:00）から時刻 HH:MM を取り出す。 */
 function clockOf(isoJst: string): string {
   return isoJst.slice(11, 16)
@@ -78,15 +83,7 @@ export function DriveScreen({
 
   return (
     // 出発でボタンが消えるので、フォーカスをこの領域に移す（キーボード・スクリーンリーダーの位置が失われない）
-    <main
-      className="drive"
-      lang={lang}
-      aria-label={text.title}
-      tabIndex={-1}
-      ref={(el) => {
-        el?.focus({ preventScroll: true })
-      }}
-    >
+    <main className="drive" lang={lang} aria-label={text.title} tabIndex={-1} ref={focusOnMount}>
       {/* ライブリージョンは常に置き、中身だけ入れ替える（あとから現れた領域は読まれない SR が多い） */}
       <div
         className="drive__band"
