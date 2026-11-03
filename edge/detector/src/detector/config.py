@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import math
+import re
 import tomllib
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, replace
 from itertools import pairwise
 from pathlib import Path
 
@@ -18,10 +19,13 @@ __all__ = [
     "CoremlConfig",
     "InferConfig",
     "JudgeConfig",
+    "L1Config",
+    "L2Config",
     "PipelineConfig",
     "ServerConfig",
     "TrackerConfig",
     "load_config",
+    "resolve_path",
 ]
 
 # CoreML の compute units（B1-3）。L0（YOLO）は CPU と Neural Engine、GPU は L1（MLX）に空ける
@@ -94,6 +98,32 @@ class TrackerConfig:
 
 
 @dataclass(frozen=True)
+class L1Config:
+    """L1（local-jev への 4 問、B2-4〜B2-8）。降格だけに使う。赤は L0 が鳴らす（edge-l1）。
+
+    接続先の既定は 8766（local-jev の既定 8765 は WebSocket の既定とぶつかる。推奨で決定）。
+    環境変数 TYPESAFE_BASE_URL があればそちらが優先（l1.client.resolve_base_url）。
+    """
+
+    enabled: bool = True
+    base_url: str = "http://127.0.0.1:8766"
+    model: str = "jev-latest"
+    rate_hz: float = 2.5
+    timeout_ms: int = 800
+    override_conf: float = 0.9  # B2-5 の MUST。0.9 より下げられない
+    l2_route_conf: tuple[float, float] = (0.5, 0.9)
+    wait_for_l1_before_red: bool = False  # B2-8（MAY）。true でも保留は 150 ms まで
+    calibration_path: str = "calibration.json"  # 相対パスは設定ファイルのディレクトリから
+
+
+@dataclass(frozen=True)
+class L2Config:
+    """L2（任意の Claude Vision、Step 5）。未実装で、今は値を確かめるだけ。"""
+
+    enabled: str = "auto"
+
+
+@dataclass(frozen=True)
 class Config:
     camera: CameraConfig = field(default_factory=CameraConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
@@ -102,7 +132,14 @@ class Config:
     server: ServerConfig = field(default_factory=ServerConfig)
     coreml: CoremlConfig = field(default_factory=CoremlConfig)
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
+    l1: L1Config = field(default_factory=L1Config)
+    l2: L2Config = field(default_factory=L2Config)
+    source_dir: str = field(default="", compare=False)  # 読んだ設定ファイルのディレクトリ
 
+
+# JudgeRequest の model と同じ字種（schema-judge R1）
+MODEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}")
+L2_MODES = ("auto", "off")
 
 _RANGES = {
     "device": (0, 64),
@@ -122,6 +159,9 @@ _RANGES = {
     "window_s": (0.2, 5.0),
     "hfov_deg": (10.0, 170.0),
     "lane_half_width_m": (0.5, 5.0),
+    "rate_hz": (2.0, 3.0),
+    "timeout_ms": (50, 800),
+    "override_conf": (0.9, 1.0),
 }
 
 
@@ -150,10 +190,42 @@ def _distance_table(value: object, where: str) -> tuple[tuple[float, float], ...
     return tuple(table)
 
 
+def _route_conf(value: object, where: str) -> tuple[float, float]:
+    """[下, 上]。0 ≤ 下 < 上 ≤ 1（上が override_conf を超えないかは load_config で見る）。"""
+    if not (isinstance(value, list) and len(value) == 2 and all(_number(v) for v in value)):
+        msg = f"{where} は [下, 上] の 2 つの数にする"
+        raise ConfigError(msg)
+    lo, hi = float(value[0]), float(value[1])
+    if not 0.0 <= lo < hi <= 1.0:
+        msg = f"{where} は 0 ≤ 下 < 上 ≤ 1 にする: {value}"
+        raise ConfigError(msg)
+    return (lo, hi)
+
+
+def _text(name: str, key: str, value: str) -> None:
+    where = f"{name}.{key}"
+    if key == "base_url" and not value.strip().startswith(("http://", "https://")):
+        msg = f"{where} は http:// か https:// で始まる URL にする（空にできない）"
+        raise ConfigError(msg)
+    if key == "model" and not MODEL_RE.fullmatch(value):
+        msg = f"{where} は英数字で始まる 64 字までの英数字と . _ : - にする"
+        raise ConfigError(msg)
+    if name == "l2" and key == "enabled" and value not in L2_MODES:
+        msg = f"{where} は {' / '.join(L2_MODES)} のどれか: {value!r}"
+        raise ConfigError(msg)
+    if key == "calibration_path" and not value.strip():
+        msg = f"{where} は空にできない"
+        raise ConfigError(msg)
+
+
 def _check(name: str, key: str, default: object, value: object) -> object:
     if key == "distance_table":
         return _distance_table(value, f"{name}.{key}")
-    if isinstance(default, float):
+    if key == "l2_route_conf":
+        return _route_conf(value, f"{name}.{key}")
+    if isinstance(default, bool):
+        ok = isinstance(value, bool)
+    elif isinstance(default, float):
         ok = _number(value)
     else:
         ok = not isinstance(value, bool) and isinstance(value, type(default))
@@ -163,6 +235,8 @@ def _check(name: str, key: str, default: object, value: object) -> object:
     if key == "compute_units" and value not in COMPUTE_UNITS:
         msg = f"{name}.{key} は {' / '.join(COMPUTE_UNITS)} のどれか: {value!r}"
         raise ConfigError(msg)
+    if isinstance(value, str):
+        _text(name, key, value)
     if key == "host" and not str(value).strip():
         msg = f"{name}.{key} は空にできない（全インターフェースを開けない）"
         raise ConfigError(msg)
@@ -201,6 +275,8 @@ def load_config(path: str | Path) -> Config:
         "server": ServerConfig,
         "coreml": CoremlConfig,
         "tracker": TrackerConfig,
+        "l1": L1Config,
+        "l2": L2Config,
     }
     for key in raw:
         if key not in sections:
@@ -214,4 +290,20 @@ def load_config(path: str | Path) -> Config:
     if config.camera.source == "file" and not config.camera.path:
         msg = "camera.source が file のときは camera.path が要る"
         raise ConfigError(msg)
-    return config
+    if config.tracker.min_conf > config.judge.threshold:
+        # 赤なのに主トラックが無く、L1 が聞けない（edge-l0 の Deferred を edge-l1 で回収）
+        msg = "tracker.min_conf は judge.threshold 以下にする"
+        raise ConfigError(msg)
+    if config.l1.l2_route_conf[1] > config.l1.override_conf:
+        msg = "l1.l2_route_conf の上は l1.override_conf 以下にする"
+        raise ConfigError(msg)
+    # 相対パス（l1.calibration_path）の基準。値の比較には入れない（Config() と等しいまま）
+    return replace(config, source_dir=str(Path(path).resolve().parent))
+
+
+def resolve_path(config: Config, value: str) -> Path:
+    """設定に書いた相対パスを、設定ファイルのディレクトリ（無ければ今のディレクトリ）から解決する。"""
+    p = Path(value)
+    if p.is_absolute() or not config.source_dir:
+        return p
+    return Path(config.source_dir) / p

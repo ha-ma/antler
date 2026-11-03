@@ -67,11 +67,10 @@ def test_cfg1c_不正はキー名つきのConfigError(tmp_path, text, key):
         load_config(write(tmp_path, text))
 
 
-# CFG-1d
-@pytest.mark.parametrize("section", ["l1", "l2"])
-def test_cfg1d_l1とl2はまだ知らないセクション(tmp_path, section):
-    with pytest.raises(ConfigError, match=f"知らないセクション: {section}"):
-        load_config(write(tmp_path, f"[{section}]\nenabled = true\n"))
+# CFG-1d（[l1]・[l2] は edge-l1 で足した。知らないセクションは今もエラー）
+def test_cfg1d_知らないセクションはConfigError(tmp_path):
+    with pytest.raises(ConfigError, match="知らないセクション: l3"):
+        load_config(write(tmp_path, "[l3]\nenabled = true\n"))
 
 
 # CFG-1e
