@@ -107,16 +107,24 @@ Amptech 由来（stack のチェッカーと SFAD）:
 ## コマンド
 
 ```bash
-AMPTECH=../Amptech_AI_docs sh scripts/setup-from-amptech.sh   # ハーネスの配布・取り込み直し（Amptech 由来のファイルは上書き。git diff で確かめる）
-sh scripts/setup.sh                                          # clone ごとに 1 回
+npm ci                                                       # Node の依存（npm workspaces。node_modules はルートに集まる）
+pip install -e "edge/detector[dev]"                          # edge の依存（pytest・ruff）
+sh scripts/setup.sh                                          # clone ごとに 1 回（pre-commit / pre-push を有効にする）
+npm run dev:sim / dev:pwa / dev:api                          # 開発サーバ（api は apps/api/.env.example を .env にコピーしてから）
+npm run lint / typecheck / test / test:coverage / build      # 全 workspace（カバレッジの下限は 70%）
 python scripts/registry_check.py                             # stack の登録漏れ
 python scripts/ci_arch_check.py --self-test                  # 検査自体が生きているか
 python scripts/tests/test_antler_hooks.py                    # antler の hook の自己テスト
 python scripts/local-ci.py                                   # push 前の検査と記録
 python .claude/hooks/sfad-done.py                            # feature の完成判定
+AMPTECH=../Amptech_AI_docs sh scripts/setup-from-amptech.sh   # ハーネスの取り込み直し（Amptech 由来のファイルは上書き。git diff で確かめる）
 ```
 
-`packages/`・`edge/`・`dataset/` の検査はまだ中身が無いので `required = false`。その feature の cycle でテストができたら、各フォルダの `local_ci_checks.toml` の `required = false` を消す。
+- コミット前に `.githooks/pre-commit` が、ステージしたファイルの Prettier・ESLint（workspace ごと）・ruff と、全体の型チェックを回す
+- PR と main への push で `.github/workflows/checks-on-pr.yml` が `local-ci.py --ci` を回す
+- ESLint の設定は `scripts/templates/eslint.*.config.js` が正（Amptech の設定は各 app の `eslint.amptech.config.js`。直接直さない）
+- `dataset/` の検査はまだテストが無いので `required = false`・`ci = false`。学習スクリプトの cycle でテストができたら消す
+- ログの決まりは `docs/adr/001-logging-strategy.md`
 
 ## ブランチ運用
 

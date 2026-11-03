@@ -1,0 +1,24 @@
+/* 全体の土台。色はここに書かない（tokens.json から生成した CSS 変数を使う。ch8 規約 1）。 */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* 動きを減らす設定の利用者には、アニメーションと遷移を止める。
+   ただし AlertState danger の 1 Hz 点滅は安全上の通知なので、alert-ui 側で別に扱う（ch5 アクセシビリティ）。 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

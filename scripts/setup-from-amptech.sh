@@ -83,6 +83,36 @@ EOF
   echo "  $f: [stack] name = \"$app\""
 done
 
+echo "== ESLint 設定を antler のものに差し替える（Amptech の設定は eslint.amptech.config.js として残す）"
+for app in sim pwa api; do
+  [ -f "apps/$app/eslint.config.js" ] || continue
+  if head -1 "apps/$app/eslint.config.js" | grep -q "antler の ESLint 設定"; then continue; fi
+  mv "apps/$app/eslint.config.js" "apps/$app/eslint.amptech.config.js"
+  case "$app" in api) t=hono ;; *) t=react ;; esac
+  cp "scripts/templates/eslint.$t.config.js" "apps/$app/eslint.config.js"
+  echo "  apps/$app/eslint.config.js（scripts/templates/eslint.$t.config.js）"
+done
+
+echo "== npm workspaces に合わせて検査の一覧の依存の置き場所を直す（node_modules はルートに集まる）"
+for app in sim pwa; do
+  f="apps/$app/local_ci_checks.toml"
+  [ -f "$f" ] || continue
+  "$PY" - "$f" <<'PYEOF'
+import sys
+path = sys.argv[1]
+text = open(path, encoding="utf-8").read()
+new = text.replace('needs_path = "node_modules"', 'needs_path = "../../node_modules"')
+open(path, "w", encoding="utf-8", newline="\n").write(new)
+PYEOF
+  echo "  $f: needs_path = \"../../node_modules\""
+done
+
+echo "== CI は PR で回す版（checks-on-pr.yml）を使う。手動版と雛形は消す"
+if [ -f .github/workflows/checks-on-pr.yml ]; then
+  rm -f .github/workflows/checks.yml .github/workflows/checks-on-pr.yml.example
+  echo "  .github/workflows/checks.yml と .example を消した"
+fi
+
 echo "== Amptech の agents とスキル"
 for agent in code-reviewer security-auditor test-writer accessibility-checker performance-analyzer debugger doc-writer; do
   cp "$A/agents/$agent.md" ".claude/agents/$agent.md"

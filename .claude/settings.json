@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/sfad-guard.py"
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/sfad-guard.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"sfad-guard.py が無いので仕様の確認は動いていません: $f\" >&2; fi"
           }
         ]
       },
@@ -79,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/sfad-guard.py"
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/sfad-guard.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"sfad-guard.py が無いので仕様の確認は動いていません: $f\" >&2; fi"
           }
         ]
       },
@@ -88,7 +88,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python .claude/hooks/sfad-guard.py"
+            "command": "f=\"$CLAUDE_PROJECT_DIR/.claude/hooks/sfad-guard.py\"; if [ -f \"$f\" ]; then python \"$f\"; else echo \"sfad-guard.py が無いので仕様の確認は動いていません: $f\" >&2; fi"
           }
         ]
       }

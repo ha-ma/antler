@@ -1,0 +1,35 @@
+# 検査（local-ci --ci）— PR と main への push で自動実行する。
+# 元は Amptech の checks-on-pr.yml.example。antler では /sfad init で有効にした（setup-from-amptech.sh は手動版を消す）。
+# 検査の一覧は local_ci_checks.toml の 1 か所（ここには検査のコマンドを書かない）。
+# --ci では、道具が無くて見送られた検査は fail になる。検査に要る道具はここで全部入れる。
+name: Checks (local-ci --ci)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 比較元との差分を取る検査があるため
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # B の検知（edge/detector）の検査に要る道具
+      - run: pip install -e "edge/detector[dev]"
+      - name: Run checks
+        run: python scripts/local-ci.py --ci

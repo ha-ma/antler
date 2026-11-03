@@ -1,0 +1,53 @@
+{
+  "name": "antler",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/sim",
+    "apps/pwa",
+    "apps/api",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev:sim": "npm run dev -w @antler/sim",
+    "dev:pwa": "npm run dev -w @antler/pwa",
+    "dev:api": "npm run dev -w @antler/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "format": "prettier --write ."
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "prettier --write",
+      "node scripts/lint-staged-eslint.mjs"
+    ],
+    "*.{js,mjs,cjs,json,css,md,yml,yaml,html}": "prettier --write",
+    "edge/**/*.py": [
+      "python -m ruff format",
+      "python -m ruff check"
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "eslint": "^9.39.5",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-eslint-comments": "^3.2.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-you-might-not-need-an-effect": "^1.1.0",
+    "eslint-plugin-zustand-rules": "^1.2.1",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  }
+}

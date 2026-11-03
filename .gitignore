@@ -10,11 +10,19 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+.coverage
+*.egg-info/
+# A API の開発用データ（SQLite・保存先）
+apps/api/data/
 
 # 秘密
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+credentials.json
+service-account.json
 
 # Claude Code（個人設定とログ）
 .claude/settings.local.json
