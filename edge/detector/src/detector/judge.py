@@ -31,16 +31,21 @@ class JudgeState:
     side: str | None = None
 
 
-def estimate_distance_m(height: float, table: tuple[tuple[float, float], ...]) -> int:
-    """ボックス高さ → 距離 m。表を線形補間し、表の外は端の値で止める。"""
+def interpolate_distance_m(height: float, table: tuple[tuple[float, float], ...]) -> float:
+    """ボックス高さ → 距離 m（丸めない）。表を線形補間し、表の外は端の値で止める。"""
     if height <= table[0][0]:
-        return round(table[0][1])
+        return table[0][1]
     if height >= table[-1][0]:
-        return round(table[-1][1])
+        return table[-1][1]
     for (h0, m0), (h1, m1) in pairwise(table):
         if h0 <= height <= h1:
-            return round(m0 + (m1 - m0) * (height - h0) / (h1 - h0))
-    return round(table[-1][1])  # 到達しない
+            return m0 + (m1 - m0) * (height - h0) / (h1 - h0)
+    return table[-1][1]  # 到達しない
+
+
+def estimate_distance_m(height: float, table: tuple[tuple[float, float], ...]) -> int:
+    """AlertFlag の distanceM（整数 m）。interpolate_distance_m を丸める。"""
+    return round(interpolate_distance_m(height, table))
 
 
 def side_of(center_x: float) -> str:

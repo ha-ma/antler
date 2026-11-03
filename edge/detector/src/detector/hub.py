@@ -14,12 +14,14 @@ from typing import TYPE_CHECKING
 
 from detector.flag import build_flag
 from detector.frame import format_t_frame
-from detector.judge import Judge, is_blind
+from detector.judge import is_blind
+from detector.l0.stage import L0Stage
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-    from detector.config import JudgeConfig
+    from detector.config import JudgeConfig, TrackerConfig
+    from detector.judge import JudgeState
     from detector.pipeline import FrameResult
 
 logger = logging.getLogger("detector.hub")
@@ -38,11 +40,15 @@ class AlertHub:
         config: JudgeConfig,
         clock: Callable[[], float] = monotonic,
         wall: Callable[[], datetime] = _wall,
+        tracker: TrackerConfig | None = None,
+        l0: L0Stage | None = None,
     ) -> None:
         self._cfg = config
         self._clock = clock
         self._wall = wall
-        self._judge = Judge(config)
+        # 赤は L0 だけで決める（B2-3）。L1 の結果は待たない（edge-l1 で非同期に足す）
+        self._l0 = l0 or L0Stage(config, tracker)
+        self._judge = self._l0.judge  # 既存のテスト（test_server）が状態を覗く入口
         self.sender: Callable[[str], int] = lambda _text: 0
         self._last_sent = 0.0
         self._last_ok: float | None = None
@@ -53,7 +59,7 @@ class AlertHub:
 
     @property
     def deer_on(self) -> bool:
-        s = self._judge.state
+        s = self._l0.state
         return bool(s and s.deer)
 
     def on_result(self, result: FrameResult) -> None:
@@ -61,16 +67,16 @@ class AlertHub:
         if not is_blind(result):
             self._last_ok = now
             self._stalled = False
-        if self._judge.update(result, now):
+        if self._l0.update(result, now):  # 同期。await を入れない
             self._emit("change")
 
     def tick(self) -> None:
         """短い間隔（0.1 秒など）で呼ぶ。入力停止の expire と、1 秒ごとのハートビート。"""
         now = self._clock()
-        if self._judge.expire(now):
+        if self._l0.expire(now):
             self._emit("change")
             return
-        if self._judge.state is None or now - self._last_sent < HEARTBEAT_S:
+        if self._l0.state is None or now - self._last_sent < HEARTBEAT_S:
             return
         if self._is_stalled(now):
             if not self._stalled:
@@ -85,9 +91,9 @@ class AlertHub:
     def snapshot(self) -> str | None:
         """新しくつないだクライアントへ送る直近の判定。まだ判定が無ければ None。"""
         now = self._clock()
-        if self._judge.expire(now):
+        if self._l0.expire(now):
             self._emit("change")  # 入力が止まったままの鹿を、新しい接続に配らない
-        state = self._judge.state
+        state = self._l0.state
         if state is None or self._is_stalled(now):
             return None  # 見えていないのに「鹿なし」も「鹿あり」も配らない
         text = json.dumps(build_flag(state, self._wall()))
@@ -99,9 +105,23 @@ class AlertHub:
                 "deer": state.deer,
                 "reason": "snapshot",
                 "clients": 1,
+                **self._track_fields(state, now),
             },
         )
         return text
+
+    def _track_fields(self, state: JudgeState, now: float) -> dict[str, object]:
+        """deer: true の flag.sent に足す L0 のトラッカーの値（ログだけ。AlertFlag は変えない）。"""
+        if not state.deer:
+            return {}
+        m = self._l0.primary_metrics(now)
+        if m is None:
+            return {"track_id": None, "ttc_s": None, "lateral_mps": None}
+        return {
+            "track_id": m.track_id,
+            "ttc_s": None if m.ttc_s is None else round(m.ttc_s, 2),
+            "lateral_mps": round(m.lateral_mps, 2),
+        }
 
     def on_client_message(self, raw: object) -> None:
         """ack と label だけ読む。余分な項目は捨て、本文はログに残さない。"""
@@ -140,7 +160,7 @@ class AlertHub:
         logger.info("ack", extra=fields)
 
     def _emit(self, reason: str) -> None:
-        state = self._judge.state
+        state = self._l0.state
         if state is None:
             return
         wall = self._wall()
@@ -157,5 +177,6 @@ class AlertHub:
                 "deer": state.deer,
                 "reason": reason,
                 "clients": sent,
+                **self._track_fields(state, self._last_sent),  # 送った後に計算する
             },
         )

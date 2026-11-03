@@ -11,15 +11,21 @@ from pathlib import Path
 from detector.ports import ConfigError
 
 __all__ = [
+    "COMPUTE_UNITS",
     "CameraConfig",
     "Config",
     "ConfigError",
+    "CoremlConfig",
     "InferConfig",
     "JudgeConfig",
     "PipelineConfig",
     "ServerConfig",
+    "TrackerConfig",
     "load_config",
 ]
+
+# CoreML の compute units（B1-3）。L0（YOLO）は CPU と Neural Engine、GPU は L1（MLX）に空ける
+COMPUTE_UNITS = ("cpu_only", "cpu_and_gpu", "cpu_and_ne", "all")
 
 MIN_TARGET_FPS = 5
 MAX_TARGET_FPS = 10
@@ -71,12 +77,31 @@ class ServerConfig:
 
 
 @dataclass(frozen=True)
+class CoremlConfig:
+    compute_units: str = "cpu_and_ne"
+
+
+@dataclass(frozen=True)
+class TrackerConfig:
+    """L0 のトラッカー（B2-2）。画角・車線の半幅は暫定値。実車で測り直す（調査走行）。"""
+
+    min_conf: float = 0.4
+    iou_threshold: float = 0.3
+    max_age_s: float = 1.0
+    window_s: float = 1.0
+    hfov_deg: float = 70.0
+    lane_half_width_m: float = 1.75
+
+
+@dataclass(frozen=True)
 class Config:
     camera: CameraConfig = field(default_factory=CameraConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     infer: InferConfig = field(default_factory=InferConfig)
     judge: JudgeConfig = field(default_factory=JudgeConfig)
     server: ServerConfig = field(default_factory=ServerConfig)
+    coreml: CoremlConfig = field(default_factory=CoremlConfig)
+    tracker: TrackerConfig = field(default_factory=TrackerConfig)
 
 
 _RANGES = {
@@ -91,6 +116,12 @@ _RANGES = {
     "stall_after_s": (1.0, 10.0),
     "port": (1, 65535),
     "max_clients": (1, 64),
+    "min_conf": (0.0, 1.0),
+    "iou_threshold": (0.05, 0.95),
+    "max_age_s": (0.1, 5.0),
+    "window_s": (0.2, 5.0),
+    "hfov_deg": (10.0, 170.0),
+    "lane_half_width_m": (0.5, 5.0),
 }
 
 
@@ -129,6 +160,9 @@ def _check(name: str, key: str, default: object, value: object) -> object:
     if not ok:
         msg = f"{name}.{key} の型が違う（{type(default).__name__} にする）"
         raise ConfigError(msg)
+    if key == "compute_units" and value not in COMPUTE_UNITS:
+        msg = f"{name}.{key} は {' / '.join(COMPUTE_UNITS)} のどれか: {value!r}"
+        raise ConfigError(msg)
     if key == "host" and not str(value).strip():
         msg = f"{name}.{key} は空にできない（全インターフェースを開けない）"
         raise ConfigError(msg)
@@ -165,6 +199,8 @@ def load_config(path: str | Path) -> Config:
         "infer": InferConfig,
         "judge": JudgeConfig,
         "server": ServerConfig,
+        "coreml": CoremlConfig,
+        "tracker": TrackerConfig,
     }
     for key in raw:
         if key not in sections:
