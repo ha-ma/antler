@@ -50,7 +50,10 @@ describe('UC-2 ゾーンの内外（judgeZone）', () => {
     const [zoneA, zoneB] = base.zones
     if (!zoneA || !zoneB) throw new Error('見本が足りない')
     // A の 340 m 北を並行して走る別路線
-    const parallel = { ...zoneB, centerline: LINE_A.map((p) => north(p, 340)) }
+    const parallel = {
+      ...zoneB,
+      centerline: LINE_A.map((p) => [...north(p, 340)] as [number, number]),
+    }
     const zones = buildZoneCollection({ ...base, zones: [zoneA, parallel] })
     const step = (fix: Fix, previous: ZoneJudgement | null) =>
       judgeZone({ fix, now: T, previous, zones })
