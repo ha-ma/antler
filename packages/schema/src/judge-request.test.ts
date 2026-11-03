@@ -29,7 +29,8 @@ describe('AC 受け入れ', () => {
     expect(parses(reworded)).toBe(false)
   })
 
-  it('AC-2: l1 つきの AlertFlag と l1Probs つきの Capture が通り、readAlertFlag の結果は従来と同じ。既存の全見本の結果は変わらない', () => {
+  // 「既存の全見本の結果が変わらない」は schema.test.ts（全見本）と edge の契約テストが担保する。ここでは l1 の有無だけを比べる
+  it('AC-2: l1 つきの AlertFlag と l1Probs つきの Capture が通り、readAlertFlag の結果は l1 の有無で変わらない', () => {
     expect(AlertFlagSchema.safeParse(loadFixture('alert-flag', 'valid', 'with-l1')).success).toBe(
       true,
     )

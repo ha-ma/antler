@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import copy
+import importlib.util
 import json
 import math
 import subprocess
@@ -126,9 +127,18 @@ def test_UC_1i_FAIL_3_NaNとInfinityはPythonでも拒否される(field: str, b
     assert not _pydantic_ok(request)
 
 
-def test_UC_1i_1e400はpydanticが拒否する() -> None:
-    text = json.dumps(_ch7()).replace('"speedKmh": 54', '"speedKmh": 1e400')
-    assert "1e400" in text
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ('"speedKmh": 54', '"speedKmh": 1e400'),
+        ('"ttcSec": 3.9', '"ttcSec": 1e400'),
+        ('"lateralMps": 0.4', '"lateralMps": 1e400'),
+        ('"lateralMps": 0.4', '"lateralMps": -1e400'),
+    ],
+)
+def test_UC_1i_1e400はpydanticが拒否する(old: str, new: str) -> None:
+    text = json.dumps(_ch7()).replace(old, new)
+    assert new in text
     with pytest.raises(ValidationError):
         JudgeRequest.model_validate_json(text)
     with pytest.raises(ValidationError):
@@ -157,15 +167,13 @@ def test_FAIL_2_posの末尾の改行は3つとも拒否される() -> None:
 
 
 def test_IDEM_2_生成を2回繰り返しても同じバイト列() -> None:
-    target = DETECTOR / "src" / "detector" / "schema" / "judge_request.py"
-    before = target.read_bytes()
-    for _ in range(2):
-        result = subprocess.run(  # noqa: S603 - 固定の引数で自分の生成スクリプトを呼ぶ
-            [sys.executable, str(DETECTOR / "scripts" / "generate_models.py"), "--check"],
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=DETECTOR,
-        )
-        assert result.returncode == 0, result.stdout + result.stderr
-    assert target.read_bytes() == before
+    spec = importlib.util.spec_from_file_location(
+        "generate_models", DETECTOR / "scripts" / "generate_models.py"
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    first = module.render()
+    assert first == module.render()
+    assert first == (DETECTOR / "src" / "detector" / "schema" / "judge_request.py").read_bytes()

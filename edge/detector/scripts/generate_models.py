@@ -12,6 +12,7 @@ src/detector/schema/judge_request.py。生成物を手で直さない。
 from __future__ import annotations
 
 import argparse
+import difflib
 import re
 import subprocess
 import sys
@@ -77,19 +78,28 @@ def render() -> bytes:
             str(out),
             *ARGS,
         ]
-        subprocess.run(command, check=True, capture_output=True, text=True)  # noqa: S603
+        result = subprocess.run(command, check=False, capture_output=True, text=True)  # noqa: S603
+        if result.returncode != 0:
+            sys.stderr.write(result.stdout + result.stderr)
+            raise SystemExit(f"生成ツールが失敗した（exit {result.returncode}）")
         return harden(out.read_text(encoding="utf-8")).encode("utf-8")
 
 
 def harden(source: str) -> str:
     """`ttcSec`（0 以上の数か null）のような制約つきの数は RootModel で生成され、基底クラス
     StrictModel の設定が届かない。NaN・Infinity を拒否する設定を RootModel にも足す。"""
-    return re.sub(
+    patched, count = re.subn(
         r"^(class \w+\(RootModel\[[^\n]*\]\):\n)",
         r"\1    model_config = ConfigDict(allow_inf_nan=False)\n",
         source,
         flags=re.MULTILINE,
     )
+    # 生成ツールの出力の形が変わって当たらなくなったら、黙って素通りさせずに止める
+    if count != source.count("(RootModel["):
+        raise SystemExit("RootModel の書き方が想定と違う（harden の正規表現を見直す）")
+    if "ConfigDict" not in patched.split("class ", 1)[0]:
+        raise SystemExit("ConfigDict の import が無い")
+    return patched
 
 
 def main() -> int:
@@ -101,6 +111,14 @@ def main() -> int:
     if args.check:
         if generated == current:
             return 0
+        diff = difflib.unified_diff(
+            current.decode("utf-8").splitlines(),
+            generated.decode("utf-8").splitlines(),
+            "committed",
+            "regenerated",
+            lineterm="",
+        )
+        sys.stderr.write("\n".join(list(diff)[:60]) + "\n")
         sys.stderr.write(
             f"{TARGET.relative_to(ROOT)} が古い。python edge/detector/scripts/generate_models.py\n"
         )
