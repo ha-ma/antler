@@ -6,5 +6,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build:tokens": "tsx scripts/build-tokens.ts",
+    "build:sounds": "tsx scripts/build-sounds.ts"
   }
 }

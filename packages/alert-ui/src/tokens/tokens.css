@@ -1,0 +1,104 @@
+/* 生成物: docs/design/tokens.json から packages/alert-ui/scripts/build-tokens.ts が作る。手で直さない */
+
+:root {
+  --alert-safe: #3FA98C;
+  --on-alert-safe: #0E1512;
+  --alert-zone: #E8A64A;
+  --on-alert-zone: #0E1512;
+  --alert-danger: #E2492C;
+  --on-alert-danger: #FFFFFF;
+  --font-sans: "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display-xl-size: 40px;
+  --display-xl-line: 50px;
+  --display-xl-weight: 900;
+  --display-l-size: 32px;
+  --display-l-line: 42px;
+  --display-l-weight: 900;
+  --title-size: 20px;
+  --title-line: 28px;
+  --title-weight: 900;
+  --heading-size: 16px;
+  --heading-line: 24px;
+  --heading-weight: 700;
+  --body-size: 14px;
+  --body-line: 24px;
+  --body-weight: 400;
+  --label-size: 13px;
+  --label-line: 18px;
+  --label-weight: 500;
+  --caption-size: 12px;
+  --caption-line: 18px;
+  --caption-weight: 400;
+  --eyebrow-size: 12px;
+  --eyebrow-line: 16px;
+  --eyebrow-weight: 700;
+  --eyebrow-tracking: 0.12em;
+  --num-hero-size: 96px;
+  --num-hero-line: 96px;
+  --num-hero-weight: 700;
+  --num-xl-size: 40px;
+  --num-xl-line: 44px;
+  --num-xl-weight: 700;
+  --num-l-size: 24px;
+  --num-l-line: 28px;
+  --num-l-weight: 600;
+  --num-m-size: 16px;
+  --num-m-line: 20px;
+  --num-m-weight: 600;
+  --num-s-size: 12px;
+  --num-s-line: 16px;
+  --num-s-weight: 500;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 40px;
+  --space-7: 64px;
+  --radius-s: 6px;
+  --radius-m: 10px;
+  --radius-l: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+  --shadow-card: 0 12px 40px rgba(0,0,0,0.25);
+  --shadow-press: 0 6px 0 #164F43;
+  --shadow-danger: 0 0 40px 10px rgba(226,73,44,0.6);
+}
+
+:root,
+[data-theme='trip'] {
+  --ground: #FBF8F1;
+  --surface: #FFFFFF;
+  --surface-sunken: #EEF0EA;
+  --ink: #1B2A24;
+  --ink-muted: #4A5A53;
+  --ink-faint: #6B7A73;
+  --line: #E6DFD0;
+  --spruce: #1E6F5C;
+  --spruce-deep: #164F43;
+  --on-spruce: #FFFFFF;
+  --clay: #D86A2B;
+  --clay-deep: #B34E14;
+  --map-water: #CFE0F2;
+  --map-land: #EEF0EA;
+  --photo-placeholder: #CFDCD4;
+}
+
+[data-theme='night'] {
+  --ground: #0E1512;
+  --surface: #1A2420;
+  --surface-sunken: #141A17;
+  --ink: #F2F5F1;
+  --ink-muted: #B9C6BF;
+  --ink-faint: #7A8C84;
+  --line: #2C3C34;
+  --spruce: #3FA98C;
+  --spruce-deep: #1E6F5C;
+  --on-spruce: #0E1512;
+  --clay: #F0A26B;
+  --clay-deep: #B34E14;
+  --map-water: #2A3448;
+  --map-land: #1B2538;
+  --photo-placeholder: #22302A;
+}

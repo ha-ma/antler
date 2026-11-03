@@ -17,3 +17,5 @@ routes.toml.example
 .github/workflows/checks-on-pr.yml.example
 # 生成物（npm run build:json -w @antler/schema）。整形すると UC-1i の一致テストが落ちる
 packages/schema/json/
+# 生成物（npm run build:tokens -w @antler/alert-ui）。整形すると UC-9a の一致テストが落ちる
+packages/alert-ui/src/tokens/
