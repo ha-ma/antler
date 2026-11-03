@@ -1,0 +1,25 @@
+{
+  "id": "cap_a2d4",
+  "source": "vehicle",
+  "image": "captures/cap_8f3a.jpg",
+  "imageSize": [1280, 720],
+  "boxes": [],
+  "conditions": {
+    "season": "winter",
+    "month": 2,
+    "weather": "light_snow",
+    "surface": "packed_snow",
+    "light": "dusk",
+    "fog": "medium",
+    "traffic": "low",
+    "vehicle": "compact_suv"
+  },
+  "distanceM": null,
+  "side": null,
+  "pose": "standing",
+  "reactionMs": null,
+  "outcome": "missed",
+  "roadSegment": "R241-akan-32",
+  "consent": true,
+  "createdAt": "2027-02-15T16:31:09.000+09:00"
+}

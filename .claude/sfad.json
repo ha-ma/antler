@@ -1,0 +1,3 @@
+{
+  "test_command": "npm test --silent && cd edge/detector && python -m pytest -q"
+}

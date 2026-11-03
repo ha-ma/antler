@@ -1,0 +1,13 @@
+{
+  "type": "flag",
+  "v": 1,
+  "deer": true,
+  "conf": 0.94,
+  "distanceM": 58,
+  "side": "L",
+  "zone": "inside",
+  "t_frame": "2027-02-15T16:31:08.120+09:00",
+  "t_sent": "2027-02-15T16:31:08.310+09:00",
+  "frameJpegB64": null,
+  "zoneDistanceKm": 3
+}

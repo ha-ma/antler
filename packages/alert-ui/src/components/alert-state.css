@@ -1,0 +1,121 @@
+/*
+ * AlertState の見た目。色はトークンの CSS 変数だけを使う（ch8 規約 1・3。背景と文字色は要素に var で指定）。
+ * 3 状態とも文字と背景は 4.5:1 以上（UC-10c。danger は 2026-11-03 に赤を濃くして 4.6:1）。
+ * 文字はすべて大きめの太字にしてあり、運転中に一瞥で読めることを優先する。
+ */
+
+.antler-alert {
+  box-sizing: border-box;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  width: 100%;
+  /* 小さい画面・200% 拡大で上端が切れないよう、高さは下限だけ決めて中身に合わせて伸ばす（WCAG 1.4.10） */
+  min-height: 100%;
+  overflow-y: auto;
+  padding: var(--space-5);
+  font-family: var(--font-sans);
+  text-align: center;
+  user-select: none;
+  border: 14px solid transparent;
+}
+
+.antler-alert[data-frame='on'] {
+  border-color: var(--on-alert-danger);
+}
+
+.antler-alert__visual {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.antler-alert__shape {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.antler-alert__shape > svg {
+  position: absolute;
+  inset: 0;
+}
+
+.antler-alert__shape-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+.antler-alert__value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+}
+
+.antler-alert__num {
+  font-size: var(--num-hero-size);
+  line-height: var(--num-hero-line);
+  font-weight: var(--num-hero-weight);
+}
+
+.antler-alert__unit {
+  /* 単位は数値の 1/3（AlertState.md） */
+  font-size: calc(var(--num-hero-size) / 3);
+  font-weight: 700;
+}
+
+.antler-alert__headline {
+  margin: 0;
+  font-size: var(--display-l-size);
+  line-height: var(--display-l-line);
+  font-weight: var(--display-l-weight);
+}
+
+.antler-alert__action {
+  margin: 0;
+  font-size: var(--display-l-size);
+  line-height: var(--display-l-line);
+  font-weight: var(--display-l-weight);
+}
+
+.antler-alert__sub {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* compact（A の車内スマホ）: 形と数値だけ。単位も 19px 以上の太字にする */
+.antler-alert[data-compact='true'] {
+  padding: var(--space-2);
+  border-width: 6px;
+}
+
+.antler-alert[data-compact='true'] .antler-alert__num {
+  font-size: var(--num-xl-size);
+  line-height: var(--num-xl-line);
+}
+
+.antler-alert[data-compact='true'] .antler-alert__unit {
+  font-size: 19px;
+}
+
+.antler-alert__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

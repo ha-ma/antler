@@ -18,6 +18,8 @@
 | 画面 | UI キャンバス v2 https://claude.ai/artifact/92Ho3c3gpV3CdNwmLvUS5F（画面名 A-1〜A-7 / B-0〜B-3 は要件 ID と対応） |
 | 統計の実数 | `apps/sim/src/shared/config/stats.json`（出典・照合状態つき） |
 | stack の登録 | `routes.toml` |
+| feature の順番（ch10 ＋ 付録 A の改善リスト） | `docs/roadmap.md` |
+| 背景（ビジネス・プレゼン・開発の全体像） | 統合ドキュメント https://claude.ai/artifact/EWgkjzMEFsTKozahPeT4pg（文脈。要件の正ではない） |
 
 要件の分割（ファイル名で指す。依頼も「ch5-common.md の 3 状態表」のように章で指す）:
 
@@ -34,6 +36,7 @@
 | `ch8-design.md` | 8. デザインシステムと UI 実装規約 1〜8 |
 | `ch9-decisions.md` | 9. ユーザー判断（判断記録＋原文） |
 | `ch10-plan.md` | 10. 1 週間の計画・受け入れ基準・リポジトリ構成 |
+| `ch11-appendix-a.md` | 付録 A. ハッカソン評価と改善リスト（15 項目）・デモの 3 分構成 |
 
 要件・デザインの写しは原文のまま。直すときは原本（Claude Docs / Claude Design）を直して再エクスポートする（ch9 の判断記録を除く）。
 文書中の `@ezoroad/*` と `ezo-road/` は、このリポジトリでは `@antler/*` と `antler/`。
@@ -67,7 +70,8 @@
 ## 依頼の単位と完成
 
 - **1 feature ＝ 1 `/sfad cycle`（ブランチと PR も feature ごと）。ただしセッションは区切らず、なるべく長く続けて次の feature に進む**（2026-11-03 にユーザーが方針を変更。以前の「1 セッションに 1 feature」は廃止）
-  - feature を 1 つ終えたら（sfad-done exit 0 → PR）、ch10-plan.md の順で次の feature の cycle を同じセッションで始める
+  - feature を 1 つ終えたら（sfad-done exit 0 → PR）、`docs/roadmap.md` の順で次の feature の cycle を同じセッションで始める
+  - 統合ドキュメントの「1 セッション 1 feature」「agent 3 体」は古い記述（いまは長時間セッション・antler の agent 4 体）
   - 長く続けるためにコンテキストを守る: 探索・長い出力は repo-explorer に、3D の試行錯誤は sim-3d-architect に任せ、エージェントの結果はファイルで受ける（下の「エージェントチームの動かし方」）。コンテキストが 60〜70% を超えたら区切りの良いところで `/compact`（自動圧縮にも任せてよい）
   - **ユーザーに確認すべきことは、これまでどおり確認してから実行する**: 第 9 章の判断、Example Mapping の Questions、凍結 API の変更、外部への公開（push 以外の公開・送信）、破壊的な操作。確認を待つあいだは、その判断に依存しない作業を先に進める
 - 依頼は要件 ID と画面名で受ける（例: 「B4-2〜B4-7 と ch5 の 3 状態表の各行を Test List に 1 項目ずつ」）。文章の機能説明を Test List に膨らませない
@@ -79,7 +83,7 @@
 
 `.claude/hooks/dispatch_local_rules.py` が Write / Edit / MultiEdit のときに止める（`python scripts/ci_arch_check.py` が PR でも同じ検査を当てる）:
 
-- UI（apps/sim/src・apps/pwa/src・packages/alert-ui/src）に色を直書きしない。tokens.json から生成した CSS 変数 / TS 定数を使う。3D シーンの配色だけは `apps/sim/src/**/scene/palette.ts` にまとめてよい。`#E2492C`（alert-danger）はどこにも直書きしない
+- UI（apps/sim/src・apps/pwa/src・packages/alert-ui/src）に色を直書きしない。tokens.json から生成した CSS 変数 / TS 定数を使う。3D シーンの配色だけは `apps/sim/src/**/scene/palette.ts` にまとめてよい。`#D83B1E`（alert-danger。旧 `#E2492C` も）はどこにも直書きしない
 - 統計の実数（6,705 件・61.5 万円など）をコードに埋めない。`stats.json` から読み、出典を画面に出す
 - Capture まわり（パスに capture を含むファイル）に氏名・メール・電話・端末識別子・緯度経度を書かない。位置は `roadSegment` に丸める
 - UI に絵文字を使わない。アイコンはインライン SVG（stroke）
