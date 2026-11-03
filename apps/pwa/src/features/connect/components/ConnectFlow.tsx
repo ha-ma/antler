@@ -14,14 +14,17 @@ import { DriveScreen } from './DriveScreen'
 import './connect.css'
 
 // B-0（接続・音の解除・出発）→ B-1（走行中の表示）。B-1 から B-0 に戻る操作は置かない。戻るのは再読み込み。
-// State設計: Server state なし / Shared state なし / Local UI: stage・soundResult・services / useEffect: 音の後始末のみ
+// State設計: Server state なし / Shared state なし / Local UI: services・flow（段階と音の解除の結果）/ useEffect: 音の後始末のみ
 
 type SoundResult = 'pending' | 'ok' | 'failed'
+type Flow = { stage: 'connect' } | { stage: 'drive'; departedAt: number; sound: SoundResult }
+
+/** 音の解除がこの時間たっても決着しなければ、音が出ないものとして知らせる。 */
+const UNLOCK_GRACE_MS = 3000
 
 export function ConnectFlow({ services }: { services?: ConnectServices }) {
   const [svc] = useState(() => services ?? createBrowserServices())
-  const [stage, setStage] = useState<'connect' | 'drive'>('connect')
-  const [soundResult, setSoundResult] = useState<SoundResult>('pending')
+  const [flow, setFlow] = useState<Flow>({ stage: 'connect' })
   const departed = useRef(false)
 
   const { snapshot, sendAck } = useEdgeConnection(svc.url, svc.createSocket)
@@ -39,18 +42,22 @@ export function ConnectFlow({ services }: { services?: ConnectServices }) {
     const unlocking = svc.sound.unlock()
     svc.primeSpeech()
     requestLocationOnce(svc.location, location ?? 'unknown')
-    setStage('drive')
+    setFlow({ stage: 'drive', departedAt: Date.now(), sound: 'pending' })
     void unlocking.then((ok) => {
       if (ok) svc.playTestSound()
-      setSoundResult(ok ? 'ok' : 'failed')
+      setFlow((f) => (f.stage === 'drive' ? { ...f, sound: ok ? 'ok' : 'failed' } : f))
     })
   }
 
-  const noSound = soundResult === 'failed' || (soundResult === 'ok' && !svc.sound.canPlay)
+  const noSound =
+    flow.stage === 'drive' &&
+    (flow.sound === 'failed' ||
+      (flow.sound === 'ok' && !svc.sound.canPlay) ||
+      (flow.sound === 'pending' && now - flow.departedAt > UNLOCK_GRACE_MS))
 
   return (
     <div className="connect-root" data-theme="night">
-      {stage === 'connect' ? (
+      {flow.stage === 'connect' ? (
         <ConnectScreen
           text={text}
           lang={lang}

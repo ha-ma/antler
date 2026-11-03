@@ -98,6 +98,26 @@ describe('UC-7 偽 edge', () => {
     expect(c.events).not.toContain('open')
   })
 
+  it('UC-7d: 壊れた URL の upgrade でもサーバーは落ちない', async () => {
+    const { server } = await start()
+    const net = await import('node:net')
+    await new Promise<void>((resolve) => {
+      const s = net.connect(server.port, '127.0.0.1', () => {
+        s.write(
+          'GET http://[ HTTP/1.1\r\nHost: x\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: abc\r\n\r\n',
+        )
+      })
+      s.on('close', () => resolve())
+      s.on('error', () => resolve())
+      setTimeout(() => {
+        s.destroy()
+        resolve()
+      }, 300)
+    })
+    const res = await fetch(`http://127.0.0.1:${server.port}/other`)
+    expect(res.status).toBe(404)
+  })
+
   it('UC-7d: 64 KB 超のクライアントメッセージで切る', async () => {
     const { server } = await start()
     const c = connect(server)

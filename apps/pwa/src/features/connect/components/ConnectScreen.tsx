@@ -84,7 +84,7 @@ export function ConnectScreen({ text, lang, status, rate, delayMs, location, onD
             ] as const
           ).map(([state, label]) => (
             <li key={state} className="connect__preview">
-              <div className="connect__preview-face" data-preview={state}>
+              <div className="connect__preview-face" data-preview={state} aria-hidden="true" inert>
                 <AlertState
                   state={state}
                   distance={state === 'danger' ? 50 : 12}

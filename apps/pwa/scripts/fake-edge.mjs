@@ -15,6 +15,7 @@ import { pathToFileURL } from 'node:url'
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 const MAX_CLIENT_MESSAGE_BYTES = 64 * 1024
+const MAX_CLIENTS = 16
 const round1 = (n) => Math.round(n * 10) / 10
 
 /** 経過 ms からフラグの中身（deer・zone まわり）を作る。 */
@@ -123,10 +124,21 @@ export function startFakeEdge(options = {}) {
   })
 
   server.on('upgrade', (req, socket) => {
-    const url = new URL(req.url ?? '/', 'http://localhost')
+    socket.on('error', () => socket.destroy())
+    let pathname = null
+    try {
+      pathname = new URL(req.url ?? '/', 'http://localhost').pathname
+    } catch {
+      // 壊れた URL は 404 と同じ扱い
+    }
     const key = req.headers['sec-websocket-key']
-    if (url.pathname !== '/alerts' || typeof key !== 'string') {
+    if (pathname !== '/alerts' || typeof key !== 'string') {
       socket.end('HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n')
+      return
+    }
+    // 開発用の道具。接続数に上限を置く（--host で LAN に出しても詰まらせない）
+    if (clients.size >= MAX_CLIENTS) {
+      socket.end('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n')
       return
     }
     const accept = createHash('sha1')

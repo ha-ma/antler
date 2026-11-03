@@ -251,6 +251,29 @@ describe('UC-6 出発', () => {
     expect(screen.getByTestId('note-no-sound')).toBeInTheDocument()
   })
 
+  it('UC-6j: unlock が 3 秒たっても決着しなければ「音が出ません」を出す', async () => {
+    const r = rig({ unlock: () => new Promise<void>(() => undefined) })
+    render(<ConnectFlow services={r.services} />)
+    await flush()
+    await depart()
+    expect(screen.queryByTestId('note-no-sound')).toBeNull()
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000)
+    })
+    expect(screen.getByTestId('note-no-sound')).toBeInTheDocument()
+  })
+
+  it('UC-5c: プレビューは支援技術に読ませず（aria-hidden・inert）、出発のあとフォーカスは走行画面へ移る', async () => {
+    render(<ConnectFlow services={rig().services} />)
+    await flush()
+    for (const face of document.querySelectorAll('[data-preview]')) {
+      expect(face.getAttribute('aria-hidden')).toBe('true')
+      expect(face.hasAttribute('inert')).toBe(true)
+    }
+    await depart()
+    expect(document.activeElement).toBe(screen.getByRole('main'))
+  })
+
   it('UC-6g: ボタンは 44 px 以上で、アクセシブルな名前を持つ', async () => {
     render(<ConnectFlow services={rig().services} />)
     await flush()

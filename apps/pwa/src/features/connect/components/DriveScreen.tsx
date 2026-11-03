@@ -41,9 +41,19 @@ export function DriveScreen({
 
   const open = snapshot.status === 'open'
   const noLocation = location === 'denied' || location === 'insecure'
+  const notes = noSound || noLocation
 
   return (
-    <div className="drive" lang={lang}>
+    // 出発でボタンが消えるので、フォーカスをこの領域に移す（キーボード・スクリーンリーダーの位置が失われない）
+    <main
+      className="drive"
+      lang={lang}
+      aria-label={text.title}
+      tabIndex={-1}
+      ref={(el) => {
+        el?.focus({ preventScroll: true })
+      }}
+    >
       {/* ライブリージョンは常に置き、中身だけ入れ替える（あとから現れた領域は読まれない SR が多い） */}
       <div
         className="drive__band"
@@ -53,17 +63,15 @@ export function DriveScreen({
       >
         {open ? '' : text.band}
       </div>
-      {(noSound || noLocation) && (
-        <ul className="drive__notes">
-          {noSound && <li data-testid="note-no-sound">{text.noSound}</li>}
-          {noLocation && <li data-testid="note-no-location">{text.noLocation}</li>}
-        </ul>
-      )}
+      <ul className="drive__notes" role="status" data-visible={notes ? 'true' : 'false'}>
+        {noSound && <li data-testid="note-no-sound">{text.noSound}</li>}
+        {noLocation && <li data-testid="note-no-location">{text.noLocation}</li>}
+      </ul>
       <div className="drive__alert">
         <AlertSoundContext.Provider value={sound}>
           <AlertState state={alert.state} distance={alert.distance} side={alert.side} lang={lang} />
         </AlertSoundContext.Provider>
       </div>
-    </div>
+    </main>
   )
 }

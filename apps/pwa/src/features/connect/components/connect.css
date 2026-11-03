@@ -81,6 +81,7 @@
 
 .connect__previews {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin: 0;
   padding: 0;
@@ -89,7 +90,7 @@
 
 .connect__preview {
   display: flex;
-  flex: 1;
+  flex: 1 1 96px;
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
@@ -97,7 +98,7 @@
 }
 
 .connect__preview-face {
-  height: 120px;
+  min-height: 176px;
   overflow: hidden;
   border-radius: var(--radius-m);
 }
@@ -129,12 +130,21 @@
   cursor: pointer;
 }
 
+.connect__depart:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
 .connect__depart:active {
   transform: translateY(4px);
   box-shadow: 0 2px 0 var(--spruce-deep);
 }
 
 /* B-1 */
+.drive:focus {
+  outline: none;
+}
+
 .drive {
   display: flex;
   flex: 1;
@@ -153,6 +163,10 @@
 .drive__band[data-visible='true'] {
   padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--line);
+}
+
+.drive__notes[data-visible='false'] {
+  display: none;
 }
 
 .drive__notes {
