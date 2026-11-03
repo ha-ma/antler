@@ -31,7 +31,7 @@
 
 ### Critical ではないが、リリース前に必ず埋める未計測
 
-- **[R12 / ch6] 内蔵 GPU（Intel UHD / Iris Xe、AMD Radeon 680M 級）での 60 fps** | 影響: 要件の合否が未確認 | 理由: `dpr [1, 1.5]` なので、Retina 級の画面や Windows の拡大率 150% では 1440×900 の画面が **2160×1350（約 2.9 MP、MSAA あり）** で描かれる。今回の M2 は vsync を外すと p50 2.0〜2.5 ms / フレーム（DSF 1 でも 1.5 でも）で、約 6〜8 倍の余裕がある。Apple の GPU と Intel の内蔵 GPU の差は「塗りつぶし主体の場面で 5〜15 倍」が目安なので、**DSF 1.5 相当だと 12〜35 ms の幅になり、60 fps を割る可能性は残る**（推定。実機で測ること）
+- **[R12 / ch6] 内蔵 GPU（Intel UHD / Iris Xe、AMD Radeon 680M 級）での 60 fps** | 影響: 要件の合否が未確認 | 理由: `dpr [1, 1.5]` なので、Retina 級の画面や Windows の拡大率 150% では 1440×900 の画面が **2160×1350（約 2.9 MP、MSAA あり）** で描かれる。今回の M2 で vsync を外すと p50 は DSF 1 で 2.0 ms、DSF 1.5 で 2.2〜2.5 ms だった。**ただしこれは余裕の証拠ではない**: 画素数が 2.25 倍になっても時間がほぼ変わらないので、測れたのは main thread の処理と描画コマンドの発行にかかる時間（約 2〜2.5 ms）であって、**GPU の描画時間は測れていない**（`EXT_disjoint_timer_query_webgl2` も GPU トレースも取っていない）。塗りつぶしが律速になる Intel / AMD の内蔵 GPU にはこの値は移せない。したがって 60 fps を満たすかは**この環境からは言えない**
 - 測り方（実機の Windows / Intel PC で）: `/drive` を Chrome で開き、DevTools の Performance で 10 秒記録。FPS メーターの 5 パーセンタイルと、GPU 列の「GPU」の太さを見る。コンソールで `__antlerDriveRenderInfo.render.calls` を読む。**1440×900・ブラウザの拡大 100% と 150% の 2 通り**で、鹿 3 頭が見える所（赤になる直前）で測る
 - 重かった場合の順番（効果が大きい順の見積もり）: ① `dpr` を `[1, 1.25]` に（塗りつぶしが 0.69 倍）② `antialias: false`（MSAA 分）③ `PerformanceMonitor`（drei）で fps が落ちたら dpr を自動で下げる ④ 林の上限（トドマツ 1100）。3D 担当のメモにある順番（dpr → 林）と同じでよい
 
@@ -42,8 +42,9 @@
 - 証拠: `tick()` が毎回 `zoneStatusAt` → `measureAlongRoute` → `projectOnRoute` を呼ぶ。後者は **ルートの全線分（デモで 1,779 本）** を回り、線分ごとに `toLocal` の配列 2 つとオブジェクト 1 つを作り、最後に `Math.min(...candidates.map(...))` で 1,778 個の引数を展開する（`packages/zones/src/route.ts`）。手がかり（`hintKm`）は「近い候補から選ぶ」だけで、走査の範囲は狭めない
 - 実測（Node、M2、静かな時間帯）: `zoneStatusAt` 1 回 **p50 164 µs / p95 192 µs**。1× の 1 フレームは p50 1 µs（tick の無いフレーム）、tick のフレームだけ 160〜180 µs。**16× は 1 フレームに tick が 2.67 回** 入るので、平均 **0.45〜0.49 ms / フレーム（p99 0.9〜1.0 ms、最大 1.7 ms）**。そのうち約 9 割が tick
 - 影響: いまの M2 では 16.7 ms の 3% で問題ない。ただし ① 遅い CPU（Intel U 系）では 2〜3 倍 ② **ルートの点数に比例**する（plan-trip が実際の道路を 300 km 引くと 10 倍以上）③ 引数の展開は点数が十数万を超えると `RangeError`（スタック超過）になりうる。ブラウザでも 16× のフレームで main thread が 6〜9% → 12% に上がった（`pw.mjs`）
-- 改善: `projectOnRoute` に窓（`hintKm ± 300 m` の線分だけ。`road.ts` の `toRoadCoords` がすでに同じ作りで `hintS` の ±300 m を見ている）を入れ、`Math.min(...)` を 1 回のループにする。A は車の道のり `s` を持っているので、0ec8993 のとおり手がかりに `vehicle.s / 1000` を渡せば窓の中心は確実。**zones は B も使うので、PR に「挙動は同じ・探す範囲だけ狭める」と書くこと**
-- 推定効果: tick 164 µs → 数 µs（線分 1,779 → 約 30）。16× の 1 フレーム 0.48 → 0.05 ms 前後
+- 改善（A だけで済む案を先に）: A は車の道のり `s` を持っていて、`road.ts` の物差しは `planRoute` の `cumulativeM` と同じ（ファイル冒頭のコメントのとおり）。`zone-status.ts` で投影を省き、`positionKm = s / 1000` から `current`（`intervals` のどれの中か・出口までの残り km）と `next`（次の入口までの km）を `intervalAt` と同じ作りで直接出せる。`lonLatAt` は `lightPeriod` に要るので残すが、安い。**影響範囲は A の `zone-status.ts` だけで、zones（B と共有）は触らない**。注意: 横の位置 `d`（−1.75）で曲がりの内側を通ると、投影した値と `s / 1000` が数 m ずれうる。ゾーンの出入りは `intervalAt(s)` がすでに `s` で見ているので整合はむしろ良くなるが、UC-6j（出口で琥珀が残らない）のテストで確かめること
+- 代案（B も同じ遅さに困るとき）: `@antler/zones` の `projectOnRoute` に窓（`hintKm ± 300 m` の線分だけ）を入れ、`Math.min(...)` を 1 回のループにする。`road.ts` の `toRoadCoords` が同じ作りで `hintS` の ±300 m を見ている。**zones は B も使うので、PR に「挙動は同じ・探す範囲だけ狭める」と書くこと**
+- 推定効果: tick 164 µs → 数 µs（A だけの案は線分の走査が 0 回、代案は 1,779 → 約 30）。16× の 1 フレーム 0.48 → 0.05 ms 前後
 - 計測方法: `bench3.mjs` の `zoneStatusAt (1 tick, 1779 seg)` と `16x outside` の行を前後で比べる
 
 ### W-2. 出発画面が three・R3F の到着を待つ（空白時間が長い） | `App.tsx` / `DrivePage.tsx`
@@ -82,7 +83,8 @@
 | 起動時の同期処理                                      | 別の停止         | 開発サーバでは起動直後に長いタスクが 50〜708 ms 出る（Vite の変換込み）。本番ビルドでは 74 + 84 ms（CPU 4 倍で 5 回・各 65〜153 ms）。運転中の停止ではない                                                                                                                                             |
 | GPU プロセス側の初回のパイプライン作成（ANGLE Metal） | **否定できない** | 9 回の走行のうち 1 回だけ、赤の開始の付近で 300 ms の rAF の間隔があり、長いタスクは無かった（main thread は止まっていない）。同じ操作を静かな時間帯に 6 回やって再現しなかった。負荷の高い時間帯（load average 18〜45）のノイズの可能性が高い                                                         |
 
-- 次の一手: 自己計測と performance-analyzer の測定に `visibilityState` の記録と `PerformanceObserver({ type: 'long-animation-frame' })` を足し、Test List の「最初の鹿が出たフレームで 100 ms を超える停止が無い」を、**タブを隠さない条件**で E2E にする。実機の Intel PC でも同じ測定を 1 回
+- **この headless の走行では音と読み上げの経路を通っていない**: `pw2.mjs` で `speechSynthesis.speak` と `AudioContext` の呼び出しを監視したが、記録されたのは CLICK と DOM の印だけ（ビープも TTS も鳴らなかった）。「赤の開始で 33 ms 超なし」は音なしの結果。デスクトップの Chrome では最初の `speak()` で音声の読込が止まりうるので、**音を ON にした実機で赤の開始の前後を必ず測り直すこと**
+- 次の一手: 自己計測と performance-analyzer の測定に `visibilityState` の記録と `PerformanceObserver({ type: 'long-animation-frame' })` を足し、Test List の「最初の鹿が出たフレームで 100 ms を超える停止が無い」を、**タブを隠さず、音を ON にした条件**で E2E にする（headless は音が鳴らない）。実機の Intel PC でも同じ測定を 1 回
 
 ### I-2. 毎フレームの割り当て（GC）
 
@@ -142,12 +144,12 @@
 | 三角形                           | 1.7〜3.9 万                                                           | 10 万未満（目安）                    | 満たす                            |
 | シェーダーの数                   | 8 のまま変化なし                                                      | 鹿が出ても増えない                   | 満たす（昼 → 薄暮は W-3）         |
 | 起動時の長いタスク（本番）       | 74 + 84 ms（CPU 4 倍で 5 本・計 約 590 ms）                           | 1 本 200 ms 未満（目安）             | 満たす（CPU 4 倍で余裕なし）→ W-2 |
-| 60 fps（内蔵 GPU、1440×900）     | **未計測**（M2 では上限を外して p50 2.0〜2.5 ms）                     | 60 fps、5 パーセンタイル 30 fps 以上 | **要実機**                        |
+| 60 fps（内蔵 GPU、1440×900）     | **未計測**（M2 の vsync 無効は main thread + 発行 約 2〜2.5 ms。GPU 時間は未測定）                     | 60 fps、5 パーセンタイル 30 fps 以上 | **要実機**                        |
 | 30 fps（スマホ）                 | **未計測**（mobile-landscape が未実装）                               | 30 fps                               | **要実機**                        |
 
 ## 次の一手
 
-1. 実機の Windows / Intel PC で `/drive` を 100% と 150% の拡大率で測る（上の手順）。60 fps を割れば dpr 1.25 → `antialias: false` → `PerformanceMonitor` の順
-2. W-2（`DriveCanvas` だけ `lazy`）と W-1（`projectOnRoute` の窓）を、drive-3d の PR に入れるか次の feature に回すかをメインが決める。W-2 は 5 行ほどで効果が大きい
+1. 実機の Windows / Intel PC で `/drive` を 100% と 150% の拡大率で、**音を ON にして**測る（上の手順）。60 fps を割れば dpr 1.25 → `antialias: false` → `PerformanceMonitor` の順
+2. W-2（`DriveCanvas` だけ `lazy`）と W-1（`zone-status.ts` で投影を省く）を、drive-3d の PR に入れるか次の feature に回すかをメインが決める。W-2 は 5 行ほどで効果が大きい
 3. W-3 は昼の場面を作る feature（plan-trip 連携）の前に直す。いまは起きない
-4. Test List に追加: 「最初の鹿が出たフレームで 100 ms を超える停止が無い（タブを隠さない）」「`programs.length` が鹿の出現・光の区分の切替で増えない」
+4. Test List に追加: 「最初の鹿が出たフレームと赤の開始で 100 ms を超える停止が無い（タブを隠さない・音 ON）」「`programs.length` が鹿の出現・光の区分の切替で増えない」

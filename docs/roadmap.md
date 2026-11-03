@@ -50,6 +50,8 @@ ch10-plan.md の 1 週間の計画に、付録 A（ch11-appendix-a.md）の改�
 - **drive-3d**: `deriveAlertState` に渡す GPS 相当の判定は、最初のフレームから inside / outside を明示する。`unknown` を渡すと起動直後扱いで琥珀とチャイムが出る（alert-ui C-1、2026-11-03）
 - **pwa-connect / pwa-drive**: 位置の許可が無い・GPS が取れない間は琥珀のまま緑にならない。B-0 で位置の許可を案内し、取れないことを画面で示す（`docs/reports/2026-11-03-alert-contract-guard-alert-ui-c1.md` W-2）
 - **pwa-drive**: zones の `verifyZoneHash` で同梱した zones.geojson を起動時に照合する。誤差 100 m 超で inside のときの残り km の表示を決める（`docs/reports/2026-11-03-alert-contract-guard-zones.md` W-3）
+- **zones（drive-3d のレビューから）**: `measureAlongRoute` に前回の位置を手がかりに渡すと、近くの線分の端（最短 + 30 m 以内）から手がかりに近いものを選ぶため、まっすぐな道でも位置が最大 30 m 遅れる（A は車の道のり s を手がかりに渡して回避済み）。あわせて `projectOnRoute` が毎回ルートの全線分を走査し、`Math.min(...配列)` で展開している（plan-trip の長いルートで遅く、十数万点でスタック超過）。手がかり ±300 m の窓とループへの置き換えを zones の担当で検討する。B も使うので「挙動は同じ・探す範囲だけ狭める」として PR に書く（`docs/reports/2026-11-03-alert-contract-guard-drive-3d.md`・`2026-11-03-performance-analyzer-drive-3d.md` W-1）
+- **performance（Day 5）**: drive-3d の 60 fps は開発機の M2 でしか測っていない。内蔵 GPU（dpr 1.5 で 2.9 MP）とスマホの 30 fps を実機で測る
 
 ## B の判断の 3 層化（2026-11-03 の変更指示）
 
