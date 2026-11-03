@@ -84,6 +84,18 @@ describe('WebAudioPort', () => {
     expect(() => port.playBeep()).toThrow()
   })
 
+  it('FAIL-7: AudioContext が無い端末では unlock が同期で投げずに reject する', async () => {
+    const f = fakes()
+    const Missing = class {
+      constructor() {
+        throw new Error('AudioContext が使えません')
+      }
+    } as unknown as WebAudioDeps['AudioContext']
+    const port = new WebAudioPort({ chime: 'c', beep: 'b' }, { ...f.deps, AudioContext: Missing })
+    const result = port.unlock()
+    await expect(result).rejects.toThrow('AudioContext')
+  })
+
   it('音源の読み込みに失敗したら unlock が例外', async () => {
     const f = fakes()
     const port = new WebAudioPort(

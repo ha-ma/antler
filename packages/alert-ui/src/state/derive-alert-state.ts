@@ -12,8 +12,8 @@ export type AlertStateName = 'safe' | 'zone' | 'danger'
 
 /** スマホ側の GPS × 鹿ゾーン DB の判定（PWA が作る。A はシミュレーターが作る）。 */
 export type GpsZone =
-  | { status: 'inside'; remainingKm?: number }
-  | { status: 'outside'; distanceKm?: number }
+  | { status: 'inside'; remainingKm?: number | undefined }
+  | { status: 'outside'; distanceKm?: number | undefined }
   | { status: 'unknown' }
 
 export type DerivedAlert = {
@@ -21,7 +21,7 @@ export type DerivedAlert = {
   /** safe / zone は km、danger は m。分からなければ undefined（表示は「--」） */
   distance: number | undefined
   /** danger のときの方向。無ければ前方の矢印 */
-  side?: Side
+  side?: Side | undefined
   /** ゾーンの内側か（danger の間も持ち越す。解除後に zone と safe のどちらへ戻るかに使う） */
   inZone: boolean
 }

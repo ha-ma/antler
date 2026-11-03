@@ -66,21 +66,27 @@ export class AlertSoundController {
     return this.unlocked && !this.failed
   }
 
-  /** 音の解除。B-0 の「テスト音を鳴らして出発」などユーザー操作の中で呼ぶ。何度呼んでも出力側の解除は 1 回。 */
+  /**
+   * 音の解除。B-0 の「テスト音を鳴らして出発」などユーザー操作の中で呼ぶ。
+   * 同時・連続に呼んでも出力側の解除は 1 回。失敗したら次の呼び出しでやり直せる（成功すれば canPlay に戻る）。
+   */
   unlock(): Promise<boolean> {
     if (this.unlocking) return this.unlocking
-    this.unlocking = this.port.unlock().then(
-      () => {
-        this.unlocked = true
-        if (this.current) this.applyDanger(this.current, this.current)
-        return true
-      },
-      (error: unknown) => {
-        this.unlocking = null
-        this.fail(error)
-        return false
-      },
-    )
+    // port.unlock が同期で例外を投げても、reject と同じ経路に乗せる（呼び出し元へ漏らさない）
+    this.unlocking = Promise.resolve()
+      .then(() => this.port.unlock())
+      .then(
+        () => {
+          this.unlocked = true
+          this.failed = false
+          if (this.current) this.applyDanger(this.current, this.current)
+          return true
+        },
+        (error: unknown) => {
+          this.fail(error)
+          return false
+        },
+      )
     return this.unlocking
   }
 
@@ -92,9 +98,16 @@ export class AlertSoundController {
     this.applyDanger(prev, next)
   }
 
-  dispose(): void {
+  /** 画面から AlertState が外れたとき。鳴っているビープと発話を止める（ゾーンの記憶は残す）。 */
+  release(): void {
     this.stopBeeps()
+    this.cancelSpeech()
     this.current = null
+  }
+
+  /** 使い終わったとき（Provider を外すとき）。 */
+  dispose(): void {
+    this.release()
   }
 
   private audible(u: SoundUpdate): boolean {
@@ -110,21 +123,32 @@ export class AlertSoundController {
     }
     if (u.state !== 'zone' || this.zoneAnnounced) return
     this.zoneAnnounced = true
-    const rearmed = this.leftZoneAt === null || now - this.leftZoneAt > ZONE_REARM_MS
+    // 時計が後ろへ戻ったときは、入り直しとして黙らせずに鳴らす
+    const rearmed =
+      this.leftZoneAt === null || now < this.leftZoneAt || now - this.leftZoneAt > ZONE_REARM_MS
     if (rearmed && this.audible(u)) this.play(() => this.port.playChime())
   }
 
   private applyDanger(prev: SoundUpdate | null, next: SoundUpdate): void {
-    if (next.state !== 'danger' || !this.audible(next)) {
-      this.stopBeeps()
-      return
-    }
-    if (prev?.state !== 'danger') {
-      // 新しい danger。読み上げを数え直す
+    if (next.state === 'danger' && prev?.state !== 'danger') {
+      // 新しい danger。消音・解除前でも数え直す（あとで鳴り始めたときに読み上げが抜けないように）
       this.beeps = 0
       this.spoken = false
     }
+    if (next.state !== 'danger' || !this.audible(next)) {
+      this.stopBeeps()
+      if (next.state !== 'danger' && prev?.state === 'danger') this.cancelSpeech()
+      return
+    }
     if (this.timer === null) this.tick()
+  }
+
+  private cancelSpeech(): void {
+    try {
+      this.port.cancelSpeech()
+    } catch {
+      // 読み上げが無い端末。止めるものが無いので何もしない
+    }
   }
 
   private tick = (): void => {
@@ -163,6 +187,8 @@ export class AlertSoundController {
 
   private fail(error: unknown): void {
     this.failed = true
+    // 次の unlock() でやり直せるようにする
+    this.unlocking = null
     this.stopBeeps()
     this.onError?.('sound.failed', error)
   }

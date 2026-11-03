@@ -5,7 +5,12 @@ import { AlertFlagSchema } from './alert-flag'
 import { CaptureSchema } from './capture'
 import { ClientMessageSchema } from './client-message'
 import { IsoDateTime, toJst } from './common'
-import { JSON_SCHEMA_SOURCES, renderJsonSchema, type JsonSchemaName } from './json-schema'
+import {
+  JSON_SCHEMA_SOURCES,
+  portablePattern,
+  renderJsonSchema,
+  type JsonSchemaName,
+} from './json-schema'
 import { FIXTURES_DIR, loadFixture, loadFixtures } from './test-fixtures'
 import { TripPlanSchema } from './trip-plan'
 
@@ -122,6 +127,21 @@ describe('UC-1 共通スキーマ', () => {
       const file = path.resolve(FIXTURES_DIR, '../json', `${name}.schema.json`)
       expect(readFileSync(file, 'utf-8'), `${name}: npm run build:json -w @antler/schema`).toBe(
         renderJsonSchema(name),
+      )
+    }
+  })
+
+  it('UC-1k: [ADDED code-reviewer] JSON Schema の正規表現は Python でも同じ意味（\\d → [0-9]、末尾 $ は改行の前に当たらない）', () => {
+    expect(portablePattern('^\\d{4}$')).toBe('^[0-9]{4}(?!\\n)$')
+    expect(portablePattern('^a\\$')).toBe('^a\\$')
+    const capture = renderJsonSchema('capture')
+    expect(capture).not.toContain('\\\\d')
+    for (const n of ['road-segment-trailing-newline']) {
+      expect(CaptureSchema.safeParse(loadFixture('capture', 'invalid', n)).success, n).toBe(false)
+    }
+    for (const n of ['fullwidth-digits-time', 'time-trailing-newline']) {
+      expect(AlertFlagSchema.safeParse(loadFixture('alert-flag', 'invalid', n)).success, n).toBe(
+        false,
       )
     }
   })

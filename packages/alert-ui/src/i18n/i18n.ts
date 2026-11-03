@@ -13,10 +13,10 @@ type StateText = {
 }
 
 type LangText = Record<AlertStateName, StateText> & {
-  /** 支援技術に読ませる文（danger）。方向と距離を差し込む */
-  announceDanger: (side: 'L' | 'R' | undefined, distance: string) => string
-  /** 支援技術に読ませる文（safe / zone） */
-  announceZone: (state: 'safe' | 'zone', distance: string) => string
+  /** 支援技術に読ませる文（danger）。方向と距離を差し込む。距離が分からなければ距離の句を省く */
+  announceDanger: (side: 'L' | 'R' | undefined, distance: string | undefined) => string
+  /** 支援技術に読ませる文（safe / zone）。距離が分からなければ距離の句を省く */
+  announceZone: (state: 'safe' | 'zone', distance: string | undefined) => string
   /** 読み上げ音声（danger に入ってビープ 2 回のあと） */
   speech: string
   /** 支援技術に読ませる単位 */
@@ -30,9 +30,11 @@ export const ALERT_TEXT: Record<Lang, LangText> = {
     zone: { headline: '鹿ゾーン走行中', action: '減速 50 km/h 以下に' },
     danger: { headline: '前方に鹿', action: 'ブレーキ' },
     announceDanger: (side, d) =>
-      `前方に鹿${side === 'L' ? ' 左' : side === 'R' ? ' 右' : ''} ${d} メートル`,
+      `前方に鹿${side === 'L' ? ' 左' : side === 'R' ? ' 右' : ''}${d ? ` ${d} メートル` : ''}`,
     announceZone: (state, d) =>
-      state === 'zone' ? `鹿ゾーン走行中 残り ${d} キロ` : `鹿ゾーンまで ${d} キロ`,
+      state === 'zone'
+        ? `鹿ゾーン走行中${d ? ` 残り ${d} キロ` : ''}`
+        : `鹿ゾーンまで${d ? ` ${d} キロ` : ''}`,
     speech: '前方に鹿がいます',
     unitKm: 'キロ',
     unitM: 'メートル',
@@ -42,9 +44,11 @@ export const ALERT_TEXT: Record<Lang, LangText> = {
     zone: { headline: 'DEER ZONE', action: 'Slow down to 50 km/h' },
     danger: { headline: 'DEER AHEAD', action: 'BRAKE' },
     announceDanger: (side, d) =>
-      `Deer ahead${side === 'L' ? ' on the left' : side === 'R' ? ' on the right' : ''}, ${d} meters`,
+      `Deer ahead${side === 'L' ? ' on the left' : side === 'R' ? ' on the right' : ''}${d ? `, ${d} meters` : ''}`,
     announceZone: (state, d) =>
-      state === 'zone' ? `In deer zone, ${d} km remaining` : `Deer zone in ${d} km`,
+      state === 'zone'
+        ? `In deer zone${d ? `, ${d} km remaining` : ''}`
+        : `Deer zone ahead${d ? ` in ${d} km` : ''}`,
     speech: 'Deer ahead',
     unitKm: 'km',
     unitM: 'meters',
@@ -54,9 +58,11 @@ export const ALERT_TEXT: Record<Lang, LangText> = {
     zone: { headline: '鹿區行駛中', action: '減速至 50 km/h 以下' },
     danger: { headline: '前方有鹿', action: '煞車' },
     announceDanger: (side, d) =>
-      `前方有鹿${side === 'L' ? ' 左側' : side === 'R' ? ' 右側' : ''} ${d} 公尺`,
+      `前方有鹿${side === 'L' ? ' 左側' : side === 'R' ? ' 右側' : ''}${d ? ` ${d} 公尺` : ''}`,
     announceZone: (state, d) =>
-      state === 'zone' ? `鹿區行駛中 剩餘 ${d} 公里` : `距鹿區 ${d} 公里`,
+      state === 'zone'
+        ? `鹿區行駛中${d ? ` 剩餘 ${d} 公里` : ''}`
+        : `距鹿區${d ? ` ${d} 公里` : ''}`,
     speech: '前方有鹿',
     unitKm: '公里',
     unitM: '公尺',
@@ -66,11 +72,11 @@ export const ALERT_TEXT: Record<Lang, LangText> = {
     zone: { headline: '사슴 구역 주행 중', action: '50 km/h 이하로 감속' },
     danger: { headline: '전방 사슴', action: '브레이크' },
     announceDanger: (side, d) =>
-      `전방 사슴${side === 'L' ? ' 왼쪽' : side === 'R' ? ' 오른쪽' : ''} ${d} 미터`,
+      `전방 사슴${side === 'L' ? ' 왼쪽' : side === 'R' ? ' 오른쪽' : ''}${d ? ` ${d} 미터` : ''}`,
     announceZone: (state, d) =>
       state === 'zone'
-        ? `사슴 구역 주행 중 남은 거리 ${d} 킬로미터`
-        : `사슴 구역까지 ${d} 킬로미터`,
+        ? `사슴 구역 주행 중${d ? ` 남은 거리 ${d} 킬로미터` : ''}`
+        : `사슴 구역까지${d ? ` ${d} 킬로미터` : ''}`,
     speech: '전방에 사슴이 있습니다',
     unitKm: '킬로미터',
     unitM: '미터',

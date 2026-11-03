@@ -68,7 +68,8 @@ export class WebAudioPort implements AudioPort {
   }
 
   /** AudioContext を 1 つだけ作り、音源を 1 回だけ読み込む。 */
-  unlock(): Promise<void> {
+  async unlock(): Promise<void> {
+    // async にして、AudioContext が無い端末の同期の例外も reject として返す
     this.ctx ??= new this.deps.AudioContext()
     const ctx = this.ctx
     this.loading ??= (async () => {

@@ -174,6 +174,34 @@ describe('UC-10 支援技術', () => {
     render(<AlertState state="danger" distance={58} side="L" lang="ja" />)
     expect(root().querySelector('[data-visual]')).toHaveAttribute('aria-hidden', 'true')
   })
+
+  it('UC-10d: alert と status の要素は常にあり、role を切り替えない。中身だけが状態で入れ替わる', () => {
+    const { rerender } = render(<AlertState state="zone" distance={3} lang="ja" />)
+    const alertEl = screen.getByRole('alert')
+    const statusEl = screen.getByRole('status')
+    expect(alertEl).toHaveTextContent('')
+    rerender(<AlertState state="danger" distance={58} side="L" lang="ja" />)
+    expect(screen.getByRole('alert')).toBe(alertEl)
+    expect(screen.getByRole('status')).toBe(statusEl)
+    expect(statusEl).toHaveTextContent('')
+  })
+
+  it('UC-10f: [ADDED code-reviewer] 距離が分からないときは距離の句を読ませない。言語が変わったら読み上げ文を作り直す', () => {
+    const { rerender } = render(
+      <AlertState state="danger" distance={undefined} side="R" lang="ja" />,
+    )
+    expect(screen.getByRole('alert').textContent).toBe('前方に鹿 右')
+    rerender(<AlertState state="danger" distance={undefined} side="R" lang="en" />)
+    expect(screen.getByRole('alert').textContent).toBe('Deer ahead on the right')
+  })
+
+  it('UC-10e: 読み上げ文に lang 属性を付け、いまの距離はライブでない要素で読める', () => {
+    const { rerender } = render(<AlertState state="safe" distance={38} lang="zh" />)
+    expect(screen.getByRole('status')).toHaveAttribute('lang', 'zh')
+    rerender(<AlertState state="safe" distance={30} lang="zh" />)
+    expect(screen.getByTestId('alert-current')).toHaveTextContent('距鹿區 30 公里')
+    expect(screen.getByTestId('alert-current')).not.toHaveAttribute('role')
+  })
 })
 
 describe('UC-13 鹿ピクトの共有', () => {

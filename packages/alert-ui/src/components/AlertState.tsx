@@ -21,9 +21,9 @@ export type AlertStateProps = {
   /** 主文の言語。副文は残り 3 言語を常に併記（compact では出さない） */
   lang: Lang
   /** A の車内スマホ用。形と数値と矢印だけ */
-  compact?: boolean
+  compact?: boolean | undefined
   /** 音を鳴らさない */
-  muted?: boolean
+  muted?: boolean | undefined
 }
 
 function announcementOf(
@@ -33,7 +33,9 @@ function announcementOf(
   lang: Lang,
 ) {
   const t = ALERT_TEXT[lang]
-  return state === 'danger' ? t.announceDanger(side, distance) : t.announceZone(state, distance)
+  // 距離が分からない（「--」）ときは距離の句を読ませない
+  const d = distance === '--' ? undefined : distance
+  return state === 'danger' ? t.announceDanger(side, d) : t.announceZone(state, d)
 }
 
 export function AlertState({
@@ -49,12 +51,14 @@ export function AlertState({
   const text = ALERT_TEXT[lang][state]
 
   // 支援技術に読ませる文は、状態が変わったときだけ作り直す（距離の更新で毎秒読み直させない。UC-10）
+  // （言語が変わったときも作り直す）
   const [announced, setAnnounced] = useState(() => ({
     state,
+    lang,
     text: announcementOf(state, value, side, lang),
   }))
-  if (announced.state !== state) {
-    setAnnounced({ state, text: announcementOf(state, value, side, lang) })
+  if (announced.state !== state || announced.lang !== lang) {
+    setAnnounced({ state, lang, text: announcementOf(state, value, side, lang) })
   }
 
   const blinkOn = useBlink(state === 'danger')
@@ -63,6 +67,14 @@ export function AlertState({
   useEffect(() => {
     sound?.update({ state, distance, lang, muted })
   }, [sound, state, distance, lang, muted])
+
+  // 画面から外れたら、鳴っているビープと発話を止める
+  useEffect(() => {
+    if (!sound) return undefined
+    return () => {
+      sound.release()
+    }
+  }, [sound])
 
   const shapeSize = compact ? 72 : 200
   const icon = state === 'safe' ? null : <DeerPictogram size={compact ? 36 : 104} />
@@ -75,8 +87,16 @@ export function AlertState({
       data-frame={state === 'danger' ? (blinkOn ? 'on' : 'off') : 'none'}
       style={{ background: `var(--alert-${state})`, color: `var(--on-alert-${state})` }}
     >
-      <p className="antler-alert__sr" role={state === 'danger' ? 'alert' : 'status'}>
-        {announced.text}
+      {/* ライブリージョンは role を切り替えず、alert と status を常に置いて中身だけ入れ替える（role の切替は読まれない SR が多い） */}
+      <p className="antler-alert__sr" role="alert" lang={lang}>
+        {announced.state === 'danger' ? announced.text : ''}
+      </p>
+      <p className="antler-alert__sr" role="status" lang={lang}>
+        {announced.state === 'danger' ? '' : announced.text}
+      </p>
+      {/* 読み上げではなく、支援技術で読みに来たときのための今の値（ライブではない） */}
+      <p className="antler-alert__sr" lang={lang} data-testid="alert-current">
+        {announcementOf(state, value, side, lang)}
       </p>
       <div className="antler-alert__visual" data-visual aria-hidden="true">
         <AlertShape state={state} size={shapeSize}>

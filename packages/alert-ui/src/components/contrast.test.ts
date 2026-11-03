@@ -31,7 +31,7 @@ describe('UC-10c コントラスト', () => {
   it('danger は 3:1 以上（4.02:1。文字をすべて大きな文字＝24px 以上か 19px 以上の太字にして WCAG の大きな文字の基準で満たす）', () => {
     // ch5 の「4.5:1 以上（赤底×白文字で確認済み）」とは食い違う。確認待ち（PR に記載）
     const ratio = contrast(color('alert-danger'), color('on-alert-danger'))
+    // 赤を濃くして 4.5:1 に届かせる案もあり、そのときもこのテストは通る（下限だけを確かめる）
     expect(ratio).toBeGreaterThanOrEqual(3)
-    expect(ratio).toBeLessThan(4.5)
   })
 })

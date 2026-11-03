@@ -23,4 +23,10 @@ describe('UC-12 数値の表示', () => {
     expect(formatM(Number.POSITIVE_INFINITY)).toBe('--')
     expect(formatM(undefined)).toBe('--')
   })
+
+  it('UC-12c: [ADDED code-reviewer] 10,000 以上（壊れた値）は「--」。指数表記を出さない', () => {
+    expect(formatM(1e21)).toBe('--')
+    expect(formatM(9999)).toBe('9999')
+    expect(formatKm(10_000)).toBe('--')
+  })
 })

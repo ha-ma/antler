@@ -232,4 +232,53 @@ describe('resilience', () => {
       port.calls.lastIndexOf('speak:ja:前方に鹿がいます'),
     )
   })
+
+  it('CONC-2: [ADDED code-reviewer] 読み上げ済みの danger → zone → 消音のまま danger → 消音を解く と、新しい danger の読み上げが鳴る', async () => {
+    const { c, port } = await ready()
+    c.update(danger(120))
+    vi.advanceTimersByTime(400)
+    expect(port.count('speak')).toBe(1)
+    c.update(zone)
+    c.update({ ...danger(120), muted: true })
+    c.update(danger(120))
+    vi.advanceTimersByTime(400)
+    expect(port.count('speak')).toBe(2)
+  })
+
+  it('FAIL-6: [ADDED code-reviewer] 再生に失敗したあと unlock をやり直して成功すれば canPlay に戻る', async () => {
+    const port = new FakePort()
+    port.failBeep = true
+    const { c } = await ready(port)
+    c.update(danger(50))
+    expect(c.canPlay).toBe(false)
+    port.failBeep = false
+    expect(await c.unlock()).toBe(true)
+    expect(c.canPlay).toBe(true)
+    expect(port.count('beep')).toBe(1)
+  })
+
+  it('FAIL-7: [ADDED code-reviewer] 出力側の unlock が同期で例外を投げても、呼び出し元に漏らさず false を返す', async () => {
+    const port = new FakePort()
+    port.unlock = () => {
+      throw new Error('AudioContext が使えません')
+    }
+    const errors: string[] = []
+    const c = new AlertSoundController(port, { onError: (e) => errors.push(e) })
+    await expect(c.unlock()).resolves.toBe(false)
+    expect(errors).toEqual(['sound.failed'])
+  })
+
+  it('FAIL-8: [ADDED code-reviewer] danger が解けたら発話を止め、release でビープも発話も止まる', async () => {
+    const { c, port } = await ready()
+    c.update(danger(120))
+    vi.advanceTimersByTime(400)
+    c.update(zone)
+    expect(port.calls.at(-1)).toBe('cancel')
+    c.update(danger(120))
+    c.release()
+    const before = port.count('beep')
+    vi.advanceTimersByTime(5_000)
+    expect(port.count('beep')).toBe(before)
+    expect(port.calls.at(-1)).toBe('cancel')
+  })
 })

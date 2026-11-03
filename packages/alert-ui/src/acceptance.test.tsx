@@ -156,4 +156,23 @@ describe('受け入れ', () => {
     )
     expect(port.calls).toEqual(['chime'])
   })
+
+  it('UC-5l: [ADDED code-reviewer] danger の AlertState が画面から外れたら、ビープと発話が止まる', async () => {
+    const port = new RecordingPort()
+    const controller = new AlertSoundController(port)
+    await controller.unlock()
+    const view = render(
+      <AlertSoundContext.Provider value={controller}>
+        <AlertState state="danger" distance={50} lang="ja" />
+      </AlertSoundContext.Provider>,
+    )
+    expect(port.calls).toContain('beep')
+    view.unmount()
+    const beeps = port.calls.filter((c) => c === 'beep').length
+    act(() => {
+      vi.advanceTimersByTime(5_000)
+    })
+    expect(port.calls.filter((c) => c === 'beep')).toHaveLength(beeps)
+    expect(port.calls.at(-1)).toBe('cancel')
+  })
 })
