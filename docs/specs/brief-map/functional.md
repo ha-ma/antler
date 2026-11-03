@@ -9,7 +9,7 @@ target_paths:
   - apps/api/src/infrastructure/gateways/file-road-catalog.gateway.ts
   - apps/api/src/infrastructure/http/routes/trip-day.routes.ts
   - apps/sim/src/features/brief-map/
-spec_confirmed_at: pending
+spec_confirmed_at: a4a0343
 tier: 2
 ---
 
