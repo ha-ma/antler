@@ -5,8 +5,8 @@ import { PlanPage } from '@/features/plan-trip'
 import { RecordPage } from '@/features/record'
 
 // /drive（A-3・A-5）は three・R3F を含むので遅延読込にする（ほかの画面の初回読込に入れない）。
-// いまは固定の場面で走る。A-2 は /drive?trip={id}&day={n}(&alert=off) で旅程を渡す（drive が読むのは後の cycle）。
-const DrivePage = lazy(() => import('@/features/drive').then((m) => ({ default: m.DrivePage })))
+// A-2 は /drive?trip={id}&day={n}(&alert=off) で旅程を渡す（drive-link）。trip が無ければ開発用の見本の場面。
+const DriveScreen = lazy(() => import('@/features/drive').then((m) => ({ default: m.DriveScreen })))
 
 /** 画面のルート（docs/design/README.md の対応表）。`/` は A-1 へ。 */
 export const routes: RouteObject[] = [
@@ -18,7 +18,7 @@ export const routes: RouteObject[] = [
     path: '/drive',
     element: (
       <Suspense fallback={null}>
-        <DrivePage />
+        <DriveScreen />
       </Suspense>
     ),
   },

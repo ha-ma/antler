@@ -36,7 +36,7 @@ async function drive(search: string, seed?: number, maxMinutes = 60): Promise<Ru
   vi.useFakeTimers()
   vi.setSystemTime(Date.parse('2026-11-03T09:00:00Z'))
   const base = demoScenario(ZONES, search)
-  const scenario = seed === undefined ? base : { ...base, trip: { ...base.trip, seed } }
+  const scenario = seed === undefined ? base : { ...base, seed }
   const world = createWorld(scenario, ZONES)
   const port = fakePort()
   const sound = new AlertSoundController(port)
@@ -116,10 +116,8 @@ describe('drive-3d 受け入れ', () => {
     expect(b.inputs).toEqual(a.inputs)
     expect(b.events).toEqual(a.events)
     expect(b.world.encounters).toEqual(a.world.encounters)
-    const other = createWorld(
-      { ...demoScenario(ZONES), trip: { ...demoScenario(ZONES).trip, seed: 1 } },
-      ZONES,
-    )
+    // 種は場面の seed（旅のシードと日から。drive-link R4）
+    const other = createWorld({ ...demoScenario(ZONES), seed: 1 }, ZONES)
     expect(other.candidates).not.toEqual(a.world.candidates)
   }, 120_000)
 })
