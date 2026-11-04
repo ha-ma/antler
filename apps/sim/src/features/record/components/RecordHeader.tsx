@@ -2,7 +2,7 @@ import { recordText, type RecordView } from '@antler/trip'
 import { useState } from 'react'
 import { useSaveImage } from '../hooks/useRecordActions'
 import { recordShareUrl } from '../utils/links'
-import { BrandMark } from './ResultMark'
+import { BrandMark } from './BrandMark'
 
 // 上部: ブランド・記録 URL・リンクのコピー・しおりの画像の保存（R5・R6、UC-9a・UC-9b、FAIL-5）
 
@@ -51,9 +51,10 @@ export function RecordHeader({ tripId, lang }: { tripId: string; lang: RecordVie
         <button
           type="button"
           className="record-button record-button--secondary"
-          disabled={saveImage.isPending}
+          aria-disabled={saveImage.isPending}
           onClick={() => {
-            saveImage.mutate()
+            // disabled にするとフォーカスが外れるので、押せる見た目のまま二重の保存を止める
+            if (!saveImage.isPending) saveImage.mutate()
           }}
         >
           {t('saveImage')}
@@ -61,7 +62,7 @@ export function RecordHeader({ tripId, lang }: { tripId: string; lang: RecordVie
       </div>
       <p className="record-share-status" role="status">
         {copy === 'copied' ? t('copied') : copy === 'failed' ? t('copyFailed') : ''}
-        {saveImage.isError ? t('saveImageFailed') : ''}
+        {saveImage.isError ? t('saveImageFailed') : saveImage.isSuccess ? t('imageSaved') : ''}
       </p>
     </header>
   )

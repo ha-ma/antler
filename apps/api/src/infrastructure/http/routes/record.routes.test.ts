@@ -256,11 +256,15 @@ describe('GET /t/:id（SSR）', () => {
     expect(csp).toContain("default-src 'none'")
     expect(csp).toContain("frame-ancestors 'none'")
     const page = await res.text()
-    expect(page).toContain(`<meta property="og:title" content="${plan.title}">`)
+    expect(page).toContain(`<meta property="og:title" content="${plan.title}"`)
     expect(page).toContain('og:description')
-    expect(page).toContain('<meta name="twitter:card" content="summary_large_image">')
+    expect(page).toContain('<meta name="twitter:card" content="summary_large_image"')
     expect(page).toContain('noindex')
     expect(page).not.toMatch(/<script/i)
+    // 文書は 1 つ（head のあとに body、最後に </html>）
+    expect(page.indexOf('</head>')).toBeLessThan(page.indexOf('<body>'))
+    expect(page.match(/<\/html>/g)).toHaveLength(1)
+    expect(page.trimEnd().endsWith('</html>')).toBe(true)
   })
 
   it('UC-7b: 本文に StatTile・守れたもの・ログ・しおり・B の導線・sim へのリンク', async () => {
@@ -307,7 +311,7 @@ describe('GET /t/:id（SSR）', () => {
       headers: { Host: 'evil.example', 'X-Forwarded-Host': 'evil.example' },
     })
     const page = await res.text()
-    expect(page).toContain(`<meta property="og:url" content="${URLS.api}/t/${id}">`)
+    expect(page).toContain(`<meta property="og:url" content="${URLS.api}/t/${id}"`)
     expect(page).not.toContain('evil.example')
     expect(page).toContain('TRIP RECORD ・ 2027.02.14')
   })
@@ -368,6 +372,25 @@ describe('GET /t/:id/og.png', () => {
     expect(renders).toBe(2)
     await app.request(`/api/trips/${id}`, { method: 'DELETE', headers: auth(ownerToken) })
     expect((await app.request(`/t/${id}/og.png`)).status).toBe(404)
+  })
+
+  it('UC-6e: 同じ記録を同時に 3 回取っても描くのは 1 回（503 にならない）', async () => {
+    let renders = 0
+    const render = () => {
+      renders += 1
+      return new Promise<Png>((resolve) => {
+        setTimeout(() => {
+          resolve(new Uint8Array([1]))
+        }, 20)
+      })
+    }
+    const app = appWith({ ogImages: new OgImageRenderer({ fontFiles: [], render }) })
+    const { id } = await h.newTrip()
+    const results = await Promise.all(
+      [1, 2, 3].map(async () => await app.request(`/t/${id}/og.png`)),
+    )
+    expect(results.map((r) => r.status)).toEqual([200, 200, 200])
+    expect(renders).toBe(1)
   })
 
   it('OG 画像の上限は IP あたり 1 分 20 件', async () => {

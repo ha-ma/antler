@@ -25,12 +25,16 @@ export type OgImageRendererOptions = {
 }
 
 export interface OgImages {
+  /** key は `{旅の id}:…` の形 */
   png(key: string, svg: () => string): Promise<Png>
+  /** その旅の画像を捨てる（削除のあと） */
+  forget(tripId: string): void
 }
 
 export class OgImageRenderer implements OgImages {
   private active = 0
   private readonly cache = new Map<string, Png>()
+  private readonly inFlight = new Map<string, Promise<Png>>()
   private readonly maxConcurrent: number
   private readonly cacheSize: number
   private readonly render: (svg: string) => Promise<Png>
@@ -58,19 +62,35 @@ export class OgImageRenderer implements OgImages {
       this.cache.set(key, cached)
       return cached
     }
+    // 同じ鍵を描いている最中なら、その結果を待つ（枠を使わない）
+    const inFlight = this.inFlight.get(key)
+    if (inFlight) return inFlight
     if (this.active >= this.maxConcurrent) throw new OgImageBusyError()
     this.active += 1
+    const rendering = this.draw(key, svg)
+    this.inFlight.set(key, rendering)
     try {
-      const png = await this.render(svg())
-      this.cache.set(key, png)
-      while (this.cache.size > this.cacheSize) {
-        const oldest = this.cache.keys().next().value
-        if (oldest === undefined) break
-        this.cache.delete(oldest)
-      }
-      return png
+      return await rendering
     } finally {
+      this.inFlight.delete(key)
       this.active -= 1
     }
+  }
+
+  forget(tripId: string): void {
+    for (const key of [...this.cache.keys()]) {
+      if (key.startsWith(`${tripId}:`)) this.cache.delete(key)
+    }
+  }
+
+  private async draw(key: string, svg: () => string): Promise<Png> {
+    const png = await this.render(svg())
+    this.cache.set(key, png)
+    while (this.cache.size > this.cacheSize) {
+      const oldest = this.cache.keys().next().value
+      if (oldest === undefined) break
+      this.cache.delete(oldest)
+    }
+    return png
   }
 }

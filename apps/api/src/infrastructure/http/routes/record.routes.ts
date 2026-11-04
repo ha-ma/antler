@@ -56,6 +56,9 @@ export function recordRoutes({
 }: RecordRoutesDeps): Hono {
   const limit = (perMinute: number) =>
     rateLimit({ limit: perMinute, windowMs: 60_000, key: rateLimitKey, ...(now ? { now } : {}) })
+  // 書き込み（runs・DELETE）と読み出し（record・/t/:id）は、それぞれ 1 つの枠を route で分け合う
+  const writes = limit(RECORD_WRITES_PER_MINUTE_PER_IP)
+  const reads = limit(RECORD_READS_PER_MINUTE_PER_IP)
   const params = zValidator('param', recordParamsSchema, throwOnInvalidTripBody)
 
   // 変数名は app（sfad-drift が `app.get(` で threat.md の操作と突き合わせる）
@@ -63,7 +66,7 @@ export function recordRoutes({
 
   app.post(
     '/api/trips/:id/runs',
-    limit(RECORD_WRITES_PER_MINUTE_PER_IP),
+    writes,
     bodyLimit({
       maxSize: RUN_BODY_MAX_BYTES,
       onError: (c) =>
@@ -82,20 +85,20 @@ export function recordRoutes({
     },
   )
 
-  app.get('/api/trips/:id/record', limit(RECORD_READS_PER_MINUTE_PER_IP), params, async (c) => {
+  app.get('/api/trips/:id/record', reads, params, async (c) => {
     const { trip, record } = await getRecord.execute({ id: c.req.valid('param').id })
     return c.json({ trip, record }, 200, PUBLIC_HEADERS)
   })
 
-  app.delete('/api/trips/:id', limit(RECORD_WRITES_PER_MINUTE_PER_IP), params, async (c) => {
-    await deleteTrip.execute({
-      tripId: c.req.valid('param').id,
-      ownerToken: bearerToken(c.req.header('Authorization')),
-    })
+  app.delete('/api/trips/:id', writes, params, async (c) => {
+    const tripId = c.req.valid('param').id
+    await deleteTrip.execute({ tripId, ownerToken: bearerToken(c.req.header('Authorization')) })
+    // メモリに持っている OG 画像も捨てる（読み出しは DB を先に引くので返ることは無いが、残さない）
+    ogImages.forget(tripId)
     return c.body(null, 204, { 'Cache-Control': 'no-store' })
   })
 
-  app.get('/t/:id', limit(RECORD_READS_PER_MINUTE_PER_IP), params, async (c) => {
+  app.get('/t/:id', reads, params, async (c) => {
     const { id } = c.req.valid('param')
     const headers = {
       ...PUBLIC_HEADERS,
@@ -122,6 +125,7 @@ export function recordRoutes({
 
   app.get('/t/:id/og.png', limit(OG_IMAGES_PER_MINUTE_PER_IP), params, async (c) => {
     const { trip, record, version } = await getRecord.execute({ id: c.req.valid('param').id })
+    // 旅（TripPlan）は作成後に変わらない（plan-trip R10）ので、run の数と最後の seq で記録の版が決まる
     const key = `${trip.id}:${String(version.runs)}:${String(version.lastSeq)}`
     const png = await ogImages.png(key, () => buildShioriSvg(buildRecordView(trip, record)))
     return c.body(png, 200, { ...PUBLIC_HEADERS, 'Content-Type': 'image/png' })

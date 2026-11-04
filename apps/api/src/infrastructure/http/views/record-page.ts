@@ -27,8 +27,10 @@ export const RECORD_PAGE_CSP =
 
 type Html = HtmlEscapedString | Promise<HtmlEscapedString>
 
+/** 3 状態の色（alert-* / on-alert-*）は出さない（このページで使わない。alert-danger は鹿検知専用） */
 function cssVars(theme: 'trip' | 'night', prefix = ''): string {
   return Object.entries(tokens.color[theme])
+    .filter(([name]) => !/(^|-)alert-/.test(name))
     .map(([name, value]) => `--${prefix}${name}:${value};`)
     .join('')
 }
@@ -79,7 +81,8 @@ ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px
 .links{display:flex;flex-wrap:wrap;gap:10px}
 .links a{flex:1 1 140px;display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;font-weight:700;text-decoration:none;padding:0 12px;text-align:center}
 .primary{background:var(--spruce);color:var(--on-spruce)}
-.secondary{border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.secondary{border:1px solid var(--ink-faint);background:var(--surface);color:var(--ink)}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .notfound{max-width:560px;margin:80px auto;padding:0 24px;display:flex;flex-direction:column;gap:16px}
 `
 
@@ -124,7 +127,8 @@ function markSvg(result: RecordView['shiori']['rows'][number]['result']): Html {
   </svg>`
 }
 
-function head(lang: Lang, title: string, body: Html): Html {
+/** 文書全体（head と body）。テンプレートは 1 つで閉じる（整形で要素の閉じが動かないように） */
+function documentOf(lang: Lang, title: string, meta: Html, body: Html): Html {
   return html`<!doctype html>
     <html lang="${lang === 'zh' ? 'zh-Hant' : lang}">
       <head>
@@ -133,11 +137,14 @@ function head(lang: Lang, title: string, body: Html): Html {
         <meta name="robots" content="noindex, nofollow" />
         <meta name="referrer" content="strict-origin" />
         <title>${title}</title>
-        ${body}
+        ${meta}
         <style>
           ${raw(STYLE)}
         </style>
       </head>
+      <body>
+        ${body}
+      </body>
     </html>`
 }
 
@@ -157,112 +164,120 @@ export function renderRecordPage(view: RecordView, urls: RecordPageUrls): Html {
     <meta property="og:image:alt" content="${pageTitle}" />
     <meta name="twitter:card" content="summary_large_image" />`
 
-  return html`${head(view.lang, pageTitle, meta)}
-<body>
-<header>
-  <span class="brand">${t('brand')}</span>
-  <span class="url" aria-label="${t('urlLabel')}">${urls.page}</span>
-</header>
-<main>
-  <div class="col">
-    <div>
-      <div class="eyebrow">${view.eyebrow}</div>
-      <h1>${view.heading}</h1>
-      <p class="subtitle">${view.title}</p>
-      <p class="lead">${view.summary}</p>
-    </div>
-    <dl class="stats" aria-label="${t('statsLabel')}">
-      ${view.stats.map(
-        (s) =>
-          html`<div class="stat">
-            <dt>${s.label}</dt>
-            <dd>${s.value}${s.unit ? html`<small>${s.unit}</small>` : ''}</dd>
-          </div>`,
-      )}
-    </dl>
-    <section class="card" aria-labelledby="kept-h">
-      <h2 id="kept-h">${view.keptHeading}</h2>
-      ${
-        view.kept.length === 0
-          ? html`<p class="empty">${view.keptEmpty}</p>`
-          : html`<ul class="kept">
-              ${view.kept.map(
-                (k) =>
-                  html`<li>
-                    <div class="photo">${t('photoPending')}</div>
-                    <b>${k.dayLabel} ${k.name}</b><span>${k.note}</span>
-                  </li>`,
-              )}
-            </ul>`
-      }
-    </section>
-    <section class="card log" aria-labelledby="log-h">
-      <h2 id="log-h">${view.logHeading}</h2>
-      ${
-        view.log.length === 0
-          ? html`<p class="empty">${view.logEmpty}</p>`
-          : html`<ol>
-              ${view.log.map(
-                (l) =>
-                  html`<li>
-                    <span class="when">${l.when}</span><span class="what">${l.what}</span
-                    ><span class="brake">${l.brake}</span
-                    ><span class="tone-${l.tone}">${l.outcomeLabel}</span>
-                  </li>`,
-              )}
-            </ol>`
-      }
-    </section>
-  </div>
-  <aside>
-    <section class="card shiori" aria-labelledby="shiori-h">
-      <div style="display:flex;justify-content:space-between;align-items:baseline"><h2 id="shiori-h">${view.shiori.heading}</h2><span class="chip">${view.shiori.statusLabel}</span></div>
-      <p class="subtitle" style="font-size:18px;margin:0">${view.title}</p>
-      <ol>${view.shiori.rows.map(
-        (r) =>
-          html`<li class="row">
-            ${markSvg(r.result)}<span
-              >${r.title}
-              <span class="off">${r.alertOff ? t('alertOff') : ''}${r.offChallenge ?? ''}</span
-              ><small>${r.resultLabel}${r.detail ? html` ・ ${r.detail}` : ''}</small></span
-            >
-          </li>`,
-      )}</ol>
-    </section>
-    <section class="b" aria-labelledby="b-h">
-      <h2 id="b-h">${t('bHeading')}</h2>
-      <p>${t('bBody')}</p>
-      <ul><li>${t('bPoint1')}</li><li>${t('bPoint2')}</li><li>${t('bPoint3')}</li></ul>
-      <a href="${urls.pwa}">${t('bLink')} →</a>
-    </section>
-    <nav class="links">
-      <a class="primary" href="${urls.app}">${t('openInApp')}</a>
-      <a class="secondary" href="${urls.plan}">${t('planOwn')}</a>
-    </nav>
-  </aside>
-</main>
-</body>
-</html>`
+  const body = html`<header>
+      <span class="brand">${t('brand')}</span>
+      <span class="url"><span class="sr-only">${t('urlLabel')}: </span>${urls.page}</span>
+    </header>
+    <main>
+      <div class="col">
+        <div>
+          <div class="eyebrow">${view.eyebrow}</div>
+          <h1>${view.heading}</h1>
+          <p class="subtitle">${view.title}</p>
+          <p class="lead">${view.summary}</p>
+        </div>
+        <dl class="stats" aria-label="${t('statsLabel')}">
+          ${view.stats.map(
+            (s) =>
+              html`<div class="stat">
+                <dt>${s.label}</dt>
+                <dd>${s.value}${s.unit ? html`<small>${s.unit}</small>` : ''}</dd>
+              </div>`,
+          )}
+        </dl>
+        <section class="card" aria-labelledby="kept-h">
+          <h2 id="kept-h">${view.keptHeading}</h2>
+          ${
+            view.kept.length === 0
+              ? html`<p class="empty">${view.keptEmpty}</p>`
+              : html`<ul class="kept">
+                  ${view.kept.map(
+                    (k) =>
+                      html`<li>
+                        <div class="photo">${t('photoPending')}</div>
+                        <b>${k.dayLabel} ${k.name}</b><span>${k.note}</span>
+                      </li>`,
+                  )}
+                </ul>`
+          }
+        </section>
+        <section class="card log" aria-labelledby="log-h">
+          <h2 id="log-h">${view.logHeading}</h2>
+          ${
+            view.log.length === 0
+              ? html`<p class="empty">${view.logEmpty}</p>`
+              : html`<ol>
+                  ${view.log.map(
+                    (l) =>
+                      html`<li>
+                        <span class="when">${l.when}</span><span class="what">${l.what}</span
+                        ><span class="brake">${l.brake}</span
+                        ><span class="tone-${l.tone}">${l.outcomeLabel}</span>
+                      </li>`,
+                  )}
+                </ol>`
+          }
+        </section>
+      </div>
+      <aside>
+        <section class="card shiori" aria-labelledby="shiori-h">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <h2 id="shiori-h">${view.shiori.heading}</h2>
+            <span class="chip">${view.shiori.statusLabel}</span>
+          </div>
+          <p class="subtitle" style="font-size:18px;margin:0">${view.title}</p>
+          <ol>
+            ${view.shiori.rows.map(
+              (r) =>
+                html`<li class="row">
+                  ${markSvg(r.result)}<span
+                    >${r.title}
+                    <span class="off"
+                      >${r.alertOff ? t('alertOff') : ''}${r.offChallenge ?? ''}</span
+                    ><small>${r.resultLabel}${r.detail ? html` ・ ${r.detail}` : ''}</small></span
+                  >
+                </li>`,
+            )}
+          </ol>
+        </section>
+        <section class="b" aria-labelledby="b-h">
+          <h2 id="b-h">${t('bHeading')}</h2>
+          <p>${t('bBody')}</p>
+          <ul>
+            <li>${t('bPoint1')}</li>
+            <li>${t('bPoint2')}</li>
+            <li>${t('bPoint3')}</li>
+          </ul>
+          <a href="${urls.pwa}">${t('bLink')} →</a>
+        </section>
+        <nav class="links">
+          <a class="primary" href="${urls.app}">${t('openInApp')}</a>
+          <a class="secondary" href="${urls.plan}">${t('planOwn')}</a>
+        </nav>
+      </aside>
+    </main>`
+  return documentOf(view.lang, pageTitle, meta, body)
 }
 
 /** 無い・削除済みの記録。旅が無いので言語が分からず、4 言語を並べる（#9） */
 export function renderNotFoundPage(planUrl: string): Html {
   const langs: Lang[] = ['ja', 'en', 'zh', 'ko']
-  return html`${head('ja', recordText('brand', 'ja'), html``)}
-<body>
-<main class="notfound">
-  <span class="brand">${recordText('brand', 'ja')}</span>
-  <h1 style="font-size:20px;line-height:28px">${recordText('notFound', 'ja')}</h1>
-  ${langs
-    .slice(1)
-    .map(
-      (l) =>
-        html`<p lang="${l === 'zh' ? 'zh-Hant' : l}" class="empty">
-          ${recordText('notFound', l)}
-        </p>`,
-    )}
-  <nav class="links"><a class="primary" href="${planUrl}">${recordText('planOwn', 'ja')} / ${recordText('planOwn', 'en')}</a></nav>
-</main>
-</body>
-</html>`
+  const body = html`<main class="notfound">
+    <span class="brand">${recordText('brand', 'ja')}</span>
+    <h1 style="font-size:20px;line-height:28px">${recordText('notFound', 'ja')}</h1>
+    ${langs
+      .slice(1)
+      .map(
+        (l) =>
+          html`<p lang="${l === 'zh' ? 'zh-Hant' : l}" class="empty">
+            ${recordText('notFound', l)}
+          </p>`,
+      )}
+    <nav class="links">
+      <a class="primary" href="${planUrl}"
+        >${recordText('planOwn', 'ja')} / ${recordText('planOwn', 'en')}</a
+      >
+    </nav>
+  </main>`
+  return documentOf('ja', recordText('brand', 'ja'), html``, body)
 }

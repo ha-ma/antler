@@ -214,6 +214,12 @@ export const RECORD_TEXT = {
     zh: '把旅程表存成圖片',
     ko: '일정을 이미지로 저장',
   },
+  imageSaved: {
+    ja: '画像を保存しました',
+    en: 'Image saved',
+    zh: '已儲存圖片',
+    ko: '이미지를 저장했습니다',
+  },
   saveImageFailed: {
     ja: '画像を作れませんでした。もう一度お試しください。',
     en: "Couldn't make the image. Please try again.",

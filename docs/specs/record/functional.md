@@ -217,100 +217,100 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 
 ### 受け入れ（外側ループ）
 
-- [ ] AC-1: 旅をつくって（api のフェイクの Claude）、2 日目を完走・1 日目を衝突のあと完走の run をトークン付きで送ると、`GET /api/trips/:id/record` が 2 日ぶんの completed・守れた楽しみ・ゾーン通過の和・遭遇と回避・平均を返し、`GET /t/:id` が 200 の HTML（og:image が `/t/:id/og.png`）、`og.png` が PNG。トークン付きの DELETE で 204、そのあと 4 つとも 404
-- [ ] AC-2: A-7 の画面をペルソナの記録（api はフェイク）で開くと、状態の見出し・StatTile 4 つ・守れたもの・ゾーンのログ・しおりの ✓・B の導線・挑戦のリンク（`alert=off`）が出て、所有者トークンのある端末では削除を確かめて送ると「削除しました」になり、トークンが消える
+- [x] AC-1: 旅をつくって（api のフェイクの Claude）、2 日目を完走・1 日目を衝突のあと完走の run をトークン付きで送ると、`GET /api/trips/:id/record` が 2 日ぶんの completed・守れた楽しみ・ゾーン通過の和・遭遇と回避・平均を返し、`GET /t/:id` が 200 の HTML（og:image が `/t/:id/og.png`）、`og.png` が PNG。トークン付きの DELETE で 204、そのあと 4 つとも 404
+- [x] AC-2: A-7 の画面をペルソナの記録（api はフェイク）で開くと、状態の見出し・StatTile 4 つ・守れたもの・ゾーンのログ・しおりの ✓・B の導線・挑戦のリンク（`alert=off`）が出て、所有者トークンのある端末では削除を確かめて送ると「削除しました」になり、トークンが消える
 
 ### UC-1: 走行の記録の形
 
-- [ ] UC-1a: 正しい run が通る。`runId` が UUID でない・`day` 0・`outcome` が pending・`encounters` 51 件・`closestM` 501・知らない欄 → 通らない
-- [ ] UC-1b: `at` は +09:00 の ISO か null、`alertToBrakeMs` は 0〜60,000 か null、`frames` は null を許す
+- [x] UC-1a: 正しい run が通る。`runId` が UUID でない・`day` 0・`outcome` が pending・`encounters` 51 件・`closestM` 501・知らない欄 → 通らない
+- [x] UC-1b: `at` は +09:00 の ISO か null、`alertToBrakeMs` は 0〜60,000 か null、`frames` は null を許す
 
 ### UC-2: 集計
 
-- [ ] UC-2a: run が無い → not-started、全日 not-driven、守れた楽しみ 0 / N、平均 null、最後に走った日 1、furthestDay 0
-- [ ] UC-2b: 同じ日の run が 2 件（衝突 → 完走）→ その日は completed（最新）。ゾーン通過・遭遇は最新の run だけを数える
-- [ ] UC-2g: ON で完走した日のあとに OFF で衝突 → その日は completed のまま、`offResult` が collided。OFF の run しか無い日は OFF の最新が結果
-- [ ] UC-2h: furthestDay は走った日の最大（D1 ✓・D2 ✓・D3 ✕ のあと D1 を走り直しても 3）。同じ楽しみが 2 日にあっても 1 つとして数える
-- [ ] UC-2c: 全日 completed → completed。1 日でも collided か not-driven → partial
-- [ ] UC-2d: 守れた楽しみは completed の日の stops、分母は全日の stops の数
-- [ ] UC-2e: 平均は `alertToBrakeMs` がある遭遇だけ。ログは日 → 時刻の順（null は後ろ）、5 m 以下の回避は間一髪、6 m は普通の回避
-- [ ] UC-2f: 日ごとの `alertEnabled`（OFF の日が分かる）と、最後に走った日は保存順で最後の run の日
+- [x] UC-2a: run が無い → not-started、全日 not-driven、守れた楽しみ 0 / N、平均 null、最後に走った日 1、furthestDay 0
+- [x] UC-2b: 同じ日の run が 2 件（衝突 → 完走）→ その日は completed（最新）。ゾーン通過・遭遇は最新の run だけを数える
+- [x] UC-2g: ON で完走した日のあとに OFF で衝突 → その日は completed のまま、`offResult` が collided。OFF の run しか無い日は OFF の最新が結果
+- [x] UC-2h: furthestDay は走った日の最大（D1 ✓・D2 ✓・D3 ✕ のあと D1 を走り直しても 3）。同じ楽しみが 2 日にあっても 1 つとして数える
+- [x] UC-2c: 全日 completed → completed。1 日でも collided か not-driven → partial
+- [x] UC-2d: 守れた楽しみは completed の日の stops、分母は全日の stops の数
+- [x] UC-2e: 平均は `alertToBrakeMs` がある遭遇だけ。ログは日 → 時刻の順（null は後ろ）、5 m 以下の回避は間一髪、6 m は普通の回避
+- [x] UC-2f: 日ごとの `alertEnabled`（OFF の日が分かる）と、最後に走った日は保存順で最後の run の日
 
 ### UC-3: 走行の保存
 
-- [ ] UC-3a: 正しいトークンで POST → 201、保存され、記録に出る
-- [ ] UC-3b: 同じ runId を 2 回 → 2 回目は 200、行は 1 つ、中身が違っても最初のまま
-- [ ] UC-3c: `day` が日数を超える → 400 `INVALID_INPUT`、保存しない
-- [ ] UC-3d: その日に 20 件ある旅に 21 件目 → 409 `RUN_LIMIT`。別の日は残せる
-- [ ] UC-3e: 1 分に 11 回 → 429
-- [ ] UC-3f: 16 KB を超える body → 413 `PAYLOAD_TOO_LARGE`
+- [x] UC-3a: 正しいトークンで POST → 201、保存され、記録に出る
+- [x] UC-3b: 同じ runId を 2 回 → 2 回目は 200、行は 1 つ、中身が違っても最初のまま
+- [x] UC-3c: `day` が日数を超える → 400 `INVALID_INPUT`、保存しない
+- [x] UC-3d: その日に 20 件ある旅に 21 件目 → 409 `RUN_LIMIT`。別の日は残せる
+- [x] UC-3e: 1 分に 11 回 → 429
+- [x] UC-3f: 16 KB を超える body → 413 `PAYLOAD_TOO_LARGE`
 
 ### UC-4: 記録の読み出し
 
-- [ ] UC-4a: 200 `{ trip, record }` が `RecordTripSchema`・`TripRecordSchema` を通り、応答に `ownerTokenHash`・`runId`・予算・seed が無い。`Cache-Control: no-store`
-- [ ] UC-4b: 無い id・形の違う id → 404 `TRIP_NOT_FOUND`
+- [x] UC-4a: 200 `{ trip, record }` が `RecordTripSchema`・`TripRecordSchema` を通り、応答に `ownerTokenHash`・`runId`・予算・seed が無い。`Cache-Control: no-store`
+- [x] UC-4b: 無い id・形の違う id → 404 `TRIP_NOT_FOUND`
 
 ### UC-5: 削除
 
-- [ ] UC-5a: 正しいトークン → 204。`trip_id`（trips は `id`）の列を持つすべての表（`sqlite_master` を列挙）でその旅の行が 0 件、ほかの旅の行は残る
-- [ ] UC-5b: 削除のあと、同じ冪等キーで POST /api/trips を再送しても 500 にならない（新しい旅として作り直す）
+- [x] UC-5a: 正しいトークン → 204。`trip_id`（trips は `id`）の列を持つすべての表（`sqlite_master` を列挙）でその旅の行が 0 件、ほかの旅の行は残る
+- [x] UC-5b: 削除のあと、同じ冪等キーで POST /api/trips を再送しても 500 にならない（新しい旅として作り直す）
 
 ### UC-6: OG 画像
 
-- [ ] UC-6a: しおりの SVG にタイトル・日ごとの行と記号・`n / N` が入り、文字は XML のエスケープ済み（`<` `&` を含むタイトル）
-- [ ] UC-6b: `GET /t/:id/og.png` → 200 `image/png`、PNG の先頭 8 バイト、幅 1200・高さ 630
-- [ ] UC-6c: 同時に 3 枚目 → 503 `OG_BUSY`
-- [ ] UC-6d: タイトルが長いと 2 行で「…」、8 日以上の旅は 7 行と「ほか n 日」、制御文字は取り除く
-- [ ] UC-6e: 同じ記録の 2 回目は描かない（メモリの画像）。run が増えると描き直す。削除のあとは 404
+- [x] UC-6a: しおりの SVG にタイトル・日ごとの行と記号・`n / N` が入り、文字は XML のエスケープ済み（`<` `&` を含むタイトル）
+- [x] UC-6b: `GET /t/:id/og.png` → 200 `image/png`、PNG の先頭 8 バイト、幅 1200・高さ 630
+- [x] UC-6c: 同時に 3 枚目 → 503 `OG_BUSY`
+- [x] UC-6d: タイトルが長いと 2 行で「…」、8 日以上の旅は 7 行と「ほか n 日」、制御文字は取り除く
+- [x] UC-6e: 同じ記録の 2 回目は描かない（メモリの画像）。run が増えると描き直す。削除のあとは 404
 
 ### UC-7: SSR ページ
 
-- [ ] UC-7a: 200 の HTML に og:title（タイトル）・og:description・og:image（絶対 URL の `/t/:id/og.png`）・twitter:card、`noindex`、CSP、`<script` が無い
-- [ ] UC-7b: 本文に StatTile 4 つの値・守れたもの・ログ・しおり・B の導線（`PWA_PUBLIC_URL`）・sim の `/t/:id` と `/plan` へのリンク
-- [ ] UC-7c: タイトルの `<script>` は文字としてエスケープされる
-- [ ] UC-7d: 無い id → 404 の HTML（「見つかりません」）
-- [ ] UC-7e: `Host: evil.example` で要求しても og:url・og:image は `PUBLIC_API_URL`。日付は Asia/Tokyo
+- [x] UC-7a: 200 の HTML に og:title（タイトル）・og:description・og:image（絶対 URL の `/t/:id/og.png`）・twitter:card、`noindex`、CSP、`<script` が無い
+- [x] UC-7b: 本文に StatTile 4 つの値・守れたもの・ログ・しおり・B の導線（`PWA_PUBLIC_URL`）・sim の `/t/:id` と `/plan` へのリンク
+- [x] UC-7c: タイトルの `<script>` は文字としてエスケープされる
+- [x] UC-7d: 無い id → 404 の HTML（「見つかりません」）
+- [x] UC-7e: `Host: evil.example` で要求しても og:url・og:image は `PUBLIC_API_URL`。日付は Asia/Tokyo
 
 ### UC-8: A-7 の画面
 
-- [ ] UC-8a: 読み込み中・404（「見つかりません」と A-1 へ）・500（もう一度で読み直す）
-- [ ] UC-8b: 完走・途中・未走行の見出し、StatTile 4 つ（平均が無ければ「—」）
-- [ ] UC-8c: 守れたもの（無ければ空の案内）、ゾーンのログ（間一髪・衝突の表記、無ければ空の案内）
-- [ ] UC-8d: しおりの各日に ✓ / ✕ / — と OFF の印
-- [ ] UC-8e: B の導線のリンク先が PWA、挑戦のリンクが最後に走った日の `alert=off`、「別の旅をつくる」が `/plan`
-- [ ] UC-8f: 言語は `plan.lang`。文言の表は 4 言語とも空欄が無い
-- [ ] UC-8g: 所有者トークンの無い端末では、挑戦のリンクの下に「この端末での運転は、この記録には残りません」
+- [x] UC-8a: 読み込み中・404（「見つかりません」と A-1 へ）・500（もう一度で読み直す）
+- [x] UC-8b: 完走・途中・未走行の見出し、StatTile 4 つ（平均が無ければ「—」）
+- [x] UC-8c: 守れたもの（無ければ空の案内）、ゾーンのログ（間一髪・衝突の表記、無ければ空の案内）
+- [x] UC-8d: しおりの各日に ✓ / ✕ / — と OFF の印
+- [x] UC-8e: B の導線のリンク先が PWA、挑戦のリンクが最後に走った日の `alert=off`、「別の旅をつくる」が `/plan`
+- [x] UC-8f: 言語は `plan.lang`。文言の表は 4 言語とも空欄が無い
+- [x] UC-8g: 所有者トークンの無い端末では、挑戦のリンクの下に「この端末での運転は、この記録には残りません」
 
 ### UC-9: コピー・保存・削除
 
-- [ ] UC-9a: 記録 URL は `VITE_API_BASE_URL` + `/t/{id}`。コピーで clipboard に入り「コピーしました」
-- [ ] UC-9b: 「しおりを画像で保存」で `og.png` を取得し `ezo-road-{id}.png` で保存。失敗は「画像を作れませんでした」
-- [ ] UC-9c: トークンのある端末だけに削除。確かめずに消えない（「やめる」で戻る）。確認の文に「共有先に表示されたカードは残ることがあります」
-- [ ] UC-9d: 削除の成功で「削除しました」とトークンの消去。403 は「この端末の鍵では削除できません」、通信の失敗は「つながりません」
-- [ ] UC-9e: `useSaveRun` はトークンがあれば Bearer 付きで POST、無ければ送らずに `not-owner`
+- [x] UC-9a: 記録 URL は `VITE_API_BASE_URL` + `/t/{id}`。コピーで clipboard に入り「コピーしました」
+- [x] UC-9b: 「しおりを画像で保存」で `og.png` を取得し `ezo-road-{id}.png` で保存。失敗は「画像を作れませんでした」
+- [x] UC-9c: トークンのある端末だけに削除。確かめずに消えない（「やめる」で戻る）。確認の文に「共有先に表示されたカードは残ることがあります」
+- [x] UC-9d: 削除の成功で「削除しました」とトークンの消去。403 は「この端末の鍵では削除できません」、通信の失敗は「つながりません」
+- [x] UC-9e: `useSaveRun` はトークンがあれば Bearer 付きで POST、無ければ送らずに `not-owner`
 
 ### 認可（threat.md）
 
-- [ ] AUTH-1: POST runs にトークンなし → 401、形の違うトークン → 401、保存しない
-- [ ] AUTH-2: POST runs に別の旅のトークン → 403、保存しない
-- [ ] AUTH-3: DELETE にトークンなし → 401、違うトークン → 403、何も消えない
-- [ ] AUTH-4: DELETE の成功のあと、同じトークンでもう一度 DELETE・POST runs → 404
-- [ ] AUTH-5: 記録の JSON・SSR・OG はトークンなしで読める（ID を知る人に公開）
-- [ ] IDOR-1: 旅 A のトークンで旅 B を DELETE → 403、旅 B の行は残る
-- [ ] IDOR-2: 応答（record の JSON・SSR の HTML）に ownerTokenHash・runId・トークンが無い
-- [ ] MASS-1: run の body に `tripId`・`createdAt`・`seed`・知らない欄 → 400、保存しない
-- [ ] SEC-1: `isOwnerTokenHash` は長さの違い・1 文字違いで false、同じで true（長さ一定の比較）
-- [ ] SEC-2: SSR の HTML に CSP（`default-src 'none'`・`frame-ancestors 'none'`）と noindex、`<script` が無い
+- [x] AUTH-1: POST runs にトークンなし → 401、形の違うトークン → 401、保存しない
+- [x] AUTH-2: POST runs に別の旅のトークン → 403、保存しない
+- [x] AUTH-3: DELETE にトークンなし → 401、違うトークン → 403、何も消えない
+- [x] AUTH-4: DELETE の成功のあと、同じトークンでもう一度 DELETE・POST runs → 404
+- [x] AUTH-5: 記録の JSON・SSR・OG はトークンなしで読める（ID を知る人に公開）
+- [x] IDOR-1: 旅 A のトークンで旅 B を DELETE → 403、旅 B の行は残る
+- [x] IDOR-2: 応答（record の JSON・SSR の HTML）に ownerTokenHash・runId・トークンが無い
+- [x] MASS-1: run の body に `tripId`・`createdAt`・`seed`・知らない欄 → 400、保存しない
+- [x] SEC-1: `isOwnerTokenHash` は長さの違い・1 文字違いで false、同じで true（長さ一定の比較）
+- [x] SEC-2: SSR の HTML に CSP（`default-src 'none'`・`frame-ancestors 'none'`）と noindex、`<script` が無い
 
 ### 障害耐性（resilience.md）
 
-- [ ] FAIL-1: 保存した run の 1 件が壊れている → その run を飛ばして集計し、warn を出す
-- [ ] FAIL-2: 削除の途中の失敗でトランザクションが戻る（run を消したあとに例外 → 旅も run も残る）
-- [ ] FAIL-3: sim の記録の読み出しが 500 → 「もう一度」で読み直して出る。形の違う応答 → 失敗の表示（白い画面にならない）
-- [ ] FAIL-4: 削除が通信の失敗 → 「つながりません」、トークンは残る
-- [ ] FAIL-5: clipboard が使えない → 「コピーできませんでした」の案内
-- [ ] IDEM-1: 同じ runId の POST を 2 回 → 行は 1 つ、2 回目は 200
-- [ ] CONC-1: 削除した旅への POST runs → 404、run は残らない
+- [x] FAIL-1: 保存した run の 1 件が壊れている → その run を飛ばして集計し、warn を出す
+- [x] FAIL-2: 削除の途中の失敗でトランザクションが戻る（run を消したあとに例外 → 旅も run も残る）
+- [x] FAIL-3: sim の記録の読み出しが 500 → 「もう一度」で読み直して出る。形の違う応答 → 失敗の表示（白い画面にならない）
+- [x] FAIL-4: 削除が通信の失敗 → 「つながりません」、トークンは残る
+- [x] FAIL-5: clipboard が使えない → 「コピーできませんでした」の案内
+- [x] IDEM-1: 同じ runId の POST を 2 回 → 行は 1 つ、2 回目は 200
+- [x] CONC-1: 削除した旅への POST runs → 404、run は残らない
 
 ## Rule → ドメイン語彙対応
 

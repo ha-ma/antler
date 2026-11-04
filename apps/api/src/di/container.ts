@@ -64,6 +64,14 @@ export async function buildContainer(
   })
 
   // 旅の記録（record）。書き込みと削除は所有者トークンを照合する。OG 画像はプロセスの中で描く
+  const publicUrls = [env.PUBLIC_API_URL, env.SIM_PUBLIC_URL, env.PWA_PUBLIC_URL]
+  if (
+    env.NODE_ENV === 'production' &&
+    publicUrls.some((u) => /\/\/(localhost|127\.0\.0\.1)/.test(u))
+  ) {
+    // 共有する記録の URL・OG 画像が localhost を指す（SNS のカードが出ない）。起動は止めない
+    logger.warn('record.public_url_is_localhost', { urls: publicUrls })
+  }
   const uow = new DrizzleUnitOfWork(connection.db)
   const hasher = new NodeSha256Hasher()
   const records = {

@@ -142,9 +142,8 @@ describe('DeleteTripUseCase', () => {
     }
     await h.deleteTrip.execute({ tripId: a.id, ownerToken: a.ownerToken })
     const rowsA = await h.rowsOfTrip(a.id)
-    expect(Object.keys(rowsA)).toEqual(
-      expect.arrayContaining(['trips', 'trip_runs', 'trip_requests']),
-    )
+    // 旅の id を持つ表が増えたら、ここと DrizzleRecordRepository.deleteTrip の両方を直す（足し忘れを止める）
+    expect(Object.keys(rowsA).sort()).toEqual(['trip_requests', 'trip_runs', 'trips'])
     expect(Object.values(rowsA).every((n) => n === 0)).toBe(true)
     const rowsB = await h.rowsOfTrip(b.id)
     expect(rowsB).toMatchObject({ trips: 1, trip_runs: 1, trip_requests: 1 })

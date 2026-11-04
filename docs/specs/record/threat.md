@@ -96,13 +96,13 @@ api のメモリに持つ OG 画像（100 枚）は、読み出しのたびに D
 
 ## Test List への追加
 
-- [ ] AUTH-1: POST runs にトークンなし → 401、形の違うトークン → 401、保存しない
-- [ ] AUTH-2: POST runs に別の旅のトークン → 403、保存しない
-- [ ] AUTH-3: DELETE にトークンなし → 401、違うトークン → 403、何も消えない
-- [ ] AUTH-4: DELETE の成功のあと、同じトークンでもう一度 DELETE・POST runs → 404
-- [ ] AUTH-5: 記録の JSON・SSR・OG はトークンなしで読める（ID を知る人に公開）
-- [ ] IDOR-1: 旅 A のトークンで旅 B を DELETE → 403、旅 B の行は残る
-- [ ] IDOR-2: 応答（record の JSON・SSR の HTML）に ownerTokenHash・runId・トークンが無い
-- [ ] MASS-1: run の body に `tripId`・`createdAt`・`seed`・知らない欄 → 400、保存しない
-- [ ] SEC-1: `isOwnerTokenHash` は長さの違い・1 文字違いで false、同じで true（長さ一定の比較）
-- [ ] SEC-2: SSR の HTML に CSP（`default-src 'none'`・`frame-ancestors 'none'`）と noindex、`<script` が無い
+- [x] AUTH-1: POST runs にトークンなし → 401、形の違うトークン → 401、保存しない
+- [x] AUTH-2: POST runs に別の旅のトークン → 403、保存しない
+- [x] AUTH-3: DELETE にトークンなし → 401、違うトークン → 403、何も消えない
+- [x] AUTH-4: DELETE の成功のあと、同じトークンでもう一度 DELETE・POST runs → 404
+- [x] AUTH-5: 記録の JSON・SSR・OG はトークンなしで読める（ID を知る人に公開）
+- [x] IDOR-1: 旅 A のトークンで旅 B を DELETE → 403、旅 B の行は残る
+- [x] IDOR-2: 応答（record の JSON・SSR の HTML）に ownerTokenHash・runId・トークンが無い
+- [x] MASS-1: run の body に `tripId`・`createdAt`・`seed`・知らない欄 → 400、保存しない
+- [x] SEC-1: `isOwnerTokenHash` は長さの違い・1 文字違いで false、同じで true（長さ一定の比較）
+- [x] SEC-2: SSR の HTML に CSP（`default-src 'none'`・`frame-ancestors 'none'`）と noindex、`<script` が無い

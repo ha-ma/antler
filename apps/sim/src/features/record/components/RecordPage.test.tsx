@@ -112,7 +112,8 @@ describe('RecordPage（A-7）', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'この記録を削除' }))
-    expect(screen.getByText(/共有先に表示されたカードは残ることがあります/)).toBeInTheDocument()
+    // 確認の文にフォーカスが移る（WCAG 2.4.3）
+    expect(screen.getByText(/共有先に表示されたカードは残ることがあります/)).toHaveFocus()
     await user.click(screen.getByRole('button', { name: '削除する' }))
     expect(await screen.findByRole('heading', { name: '削除しました。' })).toBeInTheDocument()
     expect(localStorage.getItem(OWNER_KEY)).toBeNull()
@@ -305,6 +306,7 @@ describe('A-7 の操作', () => {
     await user.click(await screen.findByRole('button', { name: 'この記録を削除' }))
     await user.click(screen.getByRole('button', { name: 'やめる' }))
     expect(screen.queryByRole('button', { name: '削除する' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'この記録を削除' })).toHaveFocus()
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false)
   })
 

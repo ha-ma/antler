@@ -1,11 +1,14 @@
 import type { Lang } from '@antler/schema'
 import { recordText } from '@antler/trip'
 import type { UseMutationResult } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { RecordApiError } from '../types'
 
 // 記録の削除（docs/specs/record/functional.md R10、UC-9c・UC-9d、FAIL-4）。
 // 所有者トークンのある端末だけに出す。確かめずに消えない（「削除する」を押すまで送らない）。
+// 確認を開いたら確認の文にフォーカスを移し、「やめる」で開いたボタンに戻す（WCAG 2.4.3）。
+
+const CONFIRM_ID = 'record-delete-confirm'
 
 function failureText(error: Error, lang: Lang): string {
   if (error instanceof RecordApiError) {
@@ -13,6 +16,11 @@ function failureText(error: Error, lang: Lang): string {
     if (error.status === null) return recordText('deleteOffline', lang)
   }
   return recordText('deleteFailed', lang)
+}
+
+/** 確認の文が出たらフォーカスを移す（ref のコールバック。useEffect を使わない） */
+function focusOnMount(el: HTMLParagraphElement | null): void {
+  el?.focus()
 }
 
 export function DeleteSection({
@@ -25,6 +33,7 @@ export function DeleteSection({
   mutation: UseMutationResult<void, Error, void>
 }) {
   const [confirming, setConfirming] = useState(false)
+  const trigger = useRef<HTMLButtonElement>(null)
   const t = (key: Parameters<typeof recordText>[0]) => recordText(key, lang)
 
   if (!isOwner) return <p className="record-delete-note">{t('deleteOtherDevice')}</p>
@@ -34,16 +43,30 @@ export function DeleteSection({
       <h2 id="record-delete" className="record-delete__heading">
         {t('deleteHeading')}
       </h2>
+      <button
+        ref={trigger}
+        type="button"
+        className="record-button record-button--secondary"
+        aria-expanded={confirming}
+        aria-controls={CONFIRM_ID}
+        onClick={() => {
+          setConfirming(true)
+        }}
+      >
+        {t('deleteHeading')}
+      </button>
       {confirming ? (
-        <div className="record-delete__confirm">
-          <p>{t('deleteConfirm')}</p>
+        <div id={CONFIRM_ID} className="record-delete__confirm">
+          <p ref={focusOnMount} tabIndex={-1}>
+            {t('deleteConfirm')}
+          </p>
           <div className="record-delete__buttons">
             <button
               type="button"
               className="record-button record-button--danger"
-              disabled={mutation.isPending}
+              aria-disabled={mutation.isPending}
               onClick={() => {
-                mutation.mutate()
+                if (!mutation.isPending) mutation.mutate()
               }}
             >
               {t('deleteAction')}
@@ -54,6 +77,7 @@ export function DeleteSection({
               onClick={() => {
                 setConfirming(false)
                 mutation.reset()
+                trigger.current?.focus()
               }}
             >
               {t('deleteCancel')}
@@ -65,17 +89,7 @@ export function DeleteSection({
             </p>
           ) : null}
         </div>
-      ) : (
-        <button
-          type="button"
-          className="record-button record-button--secondary"
-          onClick={() => {
-            setConfirming(true)
-          }}
-        >
-          {t('deleteHeading')}
-        </button>
-      )}
+      ) : null}
     </section>
   )
 }

@@ -37,6 +37,7 @@ EZO ROAD（antler）が使うデータ・素材の出典と利用条件。アセ
 | httpx2（github.com/pydantic/httpx2、typesafe-sdk の依存）                                    | BSD-3-Clause | typesafe-sdk の HTTP                                                                                                                 |
 | local-jev（github.com/amithgc/local-jev、コミット 64a0b31ff343dca32142496cf9edca5a0174a18d） | MIT          | B の L1 のサーバー。detector の依存には入れず、Mac mini で別に入れて `local-jev serve --model llm-qwen2.5-1.5b --port 8766` で動かす |
 | Qwen/Qwen2.5-1.5B-Instruct（Hugging Face。local-jev が初回に取得）                           | Apache-2.0   | L1 のモデルの重み。リポジトリには入れない                                                                                            |
+| @resvg/resvg-js 2.6（github.com/thx/resvg-js）                                               | MPL-2.0      | A-7 のしおりの OG 画像（SVG → PNG、apps/api）。フォントはサーバーのもの（同梱しない）                                                |
 
 ## 開発ハーネス
 
