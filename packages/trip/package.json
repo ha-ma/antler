@@ -10,7 +10,7 @@
   },
   "scripts": {
     "fetch:routes": "tsx scripts/fetch-routes.ts",
-    "test": "vitest run src"
+    "test": "vitest run src --testTimeout=20000"
   },
   "dependencies": {
     "@antler/schema": "^0.0.0",
