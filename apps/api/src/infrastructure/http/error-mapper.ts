@@ -11,6 +11,12 @@ import {
   TripWriterBusyError,
   TripWriterError,
 } from '../../domain/trips/errors/trip-errors.js'
+import {
+  EventConflictError,
+  EventLimitError,
+  OwnerRequiredError,
+  SceneWriterError,
+} from '../../domain/stop-events/errors/stop-event-errors.js'
 import { IdempotencyKeyRequiredError } from './validation.js'
 
 // 例外 → HTTP 応答。HTTP の status と code を知るのはここだけ（Hono stack の規約）。
@@ -19,6 +25,19 @@ import { IdempotencyKeyRequiredError } from './validation.js'
 export type HttpError = { status: ContentfulStatusCode; code: string; message: string }
 
 export function toHttpError(error: unknown): HttpError {
+  // stop-events（docs/specs/stop-events/functional.md「エラーパターン」）
+  if (error instanceof OwnerRequiredError) {
+    return { status: 403, code: 'OWNER_REQUIRED', message: error.message }
+  }
+  if (error instanceof EventConflictError) {
+    return { status: 409, code: 'EVENT_CONFLICT', message: error.message }
+  }
+  if (error instanceof EventLimitError) {
+    return { status: 409, code: 'EVENT_LIMIT', message: error.message }
+  }
+  if (error instanceof SceneWriterError) {
+    return { status: 502, code: 'WRITER_FAILED', message: error.message }
+  }
   if (error instanceof TripInputError) {
     return { status: 400, code: 'INVALID_INPUT', message: error.message }
   }

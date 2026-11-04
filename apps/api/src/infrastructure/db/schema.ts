@@ -1,5 +1,8 @@
 import type { TripDetails, TripPlan } from '@antler/schema'
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import type { StopDeck } from '../../domain/stop-events/models/stop-deck.js'
+import type { StopWriting } from '../../domain/stop-events/models/stop-writing.js'
+import type { TripEventData } from '../../domain/stop-events/models/trip-event.js'
 
 // 旅（TripPlan・TripDetails・所有者トークンのハッシュ）と冪等キーの行（docs/specs/plan-trip/plan.md「マイグレーション統合」）。
 // 表は起動時に migrate.ts の CREATE TABLE IF NOT EXISTS で作る。列を変えるときは両方を直す。
@@ -23,6 +26,43 @@ export const tripWriterCalls = sqliteTable('trip_writer_calls', {
   dayStart: integer('day_start').primaryKey(),
   calls: integer('calls').notNull(),
 })
+
+/** 出来事の束（stop-events。docs/specs/stop-events/plan.md「マイグレーション統合」）。旅と日で 1 行 */
+export const stopDecks = sqliteTable(
+  'stop_decks',
+  {
+    tripId: text('trip_id').notNull(),
+    day: integer('day').notNull(),
+    status: text('status', { enum: ['pending', 'done', 'failed'] }).notNull(),
+    deck: text('deck', { mode: 'json' }).$type<StopDeck>(),
+    writing: text('writing', { mode: 'json' }).$type<StopWriting>(),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.tripId, t.day] })],
+)
+
+/** イベントログ（stop-events R10。record が読む）。run の中の seq で 1 行 */
+export const tripEvents = sqliteTable(
+  'trip_events',
+  {
+    tripId: text('trip_id').notNull(),
+    runId: text('run_id').notNull(),
+    seq: integer('seq').notNull(),
+    day: integer('day').notNull(),
+    kind: text('kind', { enum: ['choice', 'encounter', 'collision', 'avoidance'] }).notNull(),
+    at: text('at').notNull(),
+    alertEnabled: integer('alert_enabled', { mode: 'boolean' }).notNull(),
+    leg: integer('leg'),
+    km: real('km'),
+    data: text('data', { mode: 'json' }).$type<TripEventData>().notNull(),
+    receivedAt: integer('received_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tripId, t.runId, t.seq] }),
+    index('trip_events_trip').on(t.tripId, t.receivedAt),
+  ],
+)
 
 export const tripRequests = sqliteTable('trip_requests', {
   /** 冪等キーのハッシュ（キーそのものは保存しない） */
