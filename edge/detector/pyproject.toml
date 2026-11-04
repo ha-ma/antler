@@ -18,6 +18,16 @@ coreml = ["ultralytics>=8.2", "coremltools>=7.2"]
 # local-jev 自体は別プロセスのサーバーなので依存に入れない（Mac mini で別に入れる。torch と重みを引く）。
 # 無くても L0 は動く（起動時に l1_unavailable: sdk_missing）。
 l1 = ["typesafe-sdk==0.7.5"]
+# Day 0（Mac mini の実機作業。docs/runbooks/2026-11-04-mac-mini-day0.md）: YOLO-World の CoreML 書き出しと計測。
+# 重い（torch を引く）ので dev に入れない。CI では入れない。版は 2026-11-04 に PyPI の実在と
+# macOS arm64・Python 3.11〜3.13 の wheel を確かめた。ultralytics 8.4.202 の CoreML 書き出しは
+# coremltools>=9.0、numpy<=2.3.5、Python<=3.13 を要る。mlx は L1 の local-jev では使われない（指示書の依存）。
+day0 = [
+  "ultralytics==8.4.202",
+  "coremltools==9.0",
+  "mlx==0.32.4",
+  "numpy>=1.26,<=2.3.5",
+]
 # datamodel-code-generator は JSON Schema から pydantic を作る（scripts/generate_models.py）。出力が変わらないよう版を固定する。
 dev = [
   "pytest>=8",
