@@ -1,6 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
+import { DeleteTripUseCase } from '../application/usecases/record/delete-trip.usecase.js'
+import { GetTripRecordUseCase } from '../application/usecases/record/get-trip-record.usecase.js'
+import { SaveRunUseCase } from '../application/usecases/record/save-run.usecase.js'
 import { GetTripDayUseCase } from '../application/usecases/trip-day/get-trip-day.usecase.js'
 import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
@@ -12,6 +15,8 @@ import { FileRoadCatalogGateway } from '../infrastructure/gateways/file-road-cat
 import { createApp } from '../infrastructure/http/app.js'
 import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
+import { OgImageRenderer } from '../infrastructure/http/views/og-image-renderer.js'
+import { DrizzleRecordRepository } from '../infrastructure/repositories/drizzle-record.repository.js'
 import { DrizzleTripRepository } from '../infrastructure/repositories/drizzle-trip.repository.js'
 import {
   HmacSha256TokenSigner,
@@ -58,6 +63,21 @@ export async function buildContainer(
     log: logger,
   })
 
+  // 旅の記録（record）。書き込みと削除は所有者トークンを照合する。OG 画像はプロセスの中で描く
+  const uow = new DrizzleUnitOfWork(connection.db)
+  const hasher = new NodeSha256Hasher()
+  const records = {
+    saveRun: new SaveRunUseCase({ uow, hasher, clock: new SystemClock(), log: logger }),
+    deleteTrip: new DeleteTripUseCase({ uow, hasher, log: logger }),
+    getRecord: new GetTripRecordUseCase({
+      trips,
+      records: new DrizzleRecordRepository(connection.db),
+      log: logger,
+    }),
+    ogImages: new OgImageRenderer({ fontFiles: env.OG_FONT_FILES }),
+    urls: { api: env.PUBLIC_API_URL, sim: env.SIM_PUBLIC_URL, pwa: env.PWA_PUBLIC_URL },
+  }
+
   const rateLimitKey = clientIpKey({
     trustProxy: env.TRUST_PROXY,
     remoteAddress: (c) => {
@@ -85,6 +105,7 @@ export async function buildContainer(
     exposeErrorDetails: env.NODE_ENV === 'development',
     trips: { createTrip, rateLimitKey },
     tripDays: { getTripDay, rateLimitKey },
+    records: { ...records, rateLimitKey },
   })
   return { env, logger, app, connection }
 }

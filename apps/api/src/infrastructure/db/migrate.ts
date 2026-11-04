@@ -24,6 +24,17 @@ const STATEMENTS = [
     day_start INTEGER PRIMARY KEY NOT NULL,
     calls INTEGER NOT NULL
   )`,
+  // 走行の記録（record）
+  `CREATE TABLE IF NOT EXISTS trip_runs (
+    trip_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    day INTEGER NOT NULL,
+    payload TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    seq INTEGER NOT NULL,
+    PRIMARY KEY (trip_id, run_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS trip_runs_trip_seq ON trip_runs (trip_id, seq)`,
 ]
 
 export async function ensureSchema(client: Client): Promise<void> {

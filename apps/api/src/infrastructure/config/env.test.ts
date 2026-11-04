@@ -20,8 +20,26 @@ describe('loadEnv', () => {
       CLAUDE_DAILY_CALL_LIMIT: 400,
       CLAUDE_MAX_CONCURRENT_CALLS: 4,
       TRIPS_DB_URL: 'file:./data/trips.db',
+      PUBLIC_API_URL: 'http://localhost:8787',
+      SIM_PUBLIC_URL: 'http://localhost:5173',
+      PWA_PUBLIC_URL: 'http://localhost:5174',
+      OG_FONT_FILES: [],
       TRUST_PROXY: false,
     })
+  })
+
+  it('record の公開 URL はオリジンだけ、OG のフォントはカンマ区切り', () => {
+    const env = loadEnv({
+      ...base,
+      PUBLIC_API_URL: 'https://api.ezoroad.example',
+      OG_FONT_FILES: '/fonts/a.ttf, /fonts/b.ttc',
+    })
+    expect(env.PUBLIC_API_URL).toBe('https://api.ezoroad.example')
+    expect(env.OG_FONT_FILES).toEqual(['/fonts/a.ttf', '/fonts/b.ttc'])
+    expect(() => loadEnv({ ...base, SIM_PUBLIC_URL: 'https://ezoroad.example/app' })).toThrow(
+      EnvError,
+    )
+    expect(() => loadEnv({ ...base, PWA_PUBLIC_URL: 'ezoroad.example' })).toThrow(EnvError)
   })
 
   it('FAIL-6: ANTHROPIC_API_KEY が無い・空なら起動しない（既定値を持たない）', () => {

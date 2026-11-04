@@ -35,6 +35,7 @@ describe('buildContainer', () => {
     )
     expect(tables.rows.map((r) => r['name'])).toEqual([
       'trip_requests',
+      'trip_runs',
       'trip_writer_calls',
       'trips',
     ])
