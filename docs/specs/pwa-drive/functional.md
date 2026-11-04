@@ -29,7 +29,7 @@ Story: ドライバーとして、Mac Mini が無くても、いま鹿ゾーン�
   - エラーのコード（許可なし / 取得不可 / タイムアウト）だけをログに残す（座標なし）
 - R2a（spec-adversary の指摘で決定）: 測位の鮮度は端末の測位の時刻（`position.timestamp`）でなく、**受け取った時刻**で数える（端末ごとの時計のずれで、凍った緑・固定の琥珀にならないように）
 - R2b（同）: 位置が使えない（`judgeZone` が unknown。測位なし・10 秒より古い・誤差 1 km 超・北海道の外）あいだは、`deriveAlertState` に前の状態を渡さず（previous なし）、起動直後と同じ琥珀に倒す。緑や「ゾーンまで 3.2 km」を持ち越さない（緑のまま測位が途絶えて鹿ゾーンに入る見逃しが最悪の経路）。edge の新しいフラグが `zone:'outside'` と言うあいだだけ、緑を出せる
-- R2c（同）: 判定の結果（`lastFix` に座標を含む）は React の state の中だけで使い、storage・ログ・ネットワーク・Query のキャッシュ・ack に載せない。ゾーン DB の Query は `staleTime: Infinity`（再取得しない）
+- R2c（同）: 判定の結果（`lastFix` に座標を含む）は React の state の中だけで使い、storage・ログ・ネットワーク・Query のキャッシュ・ack に載せない（docs/specs/pwa-uplink: 速度・ゾーンの内外・光の区分という派生値だけを `vehicle` として edge に返す。座標・精度・時刻は載せない）。ゾーン DB の Query は `staleTime: Infinity`（再取得しない）
 - R2: 判定は `judgeZone`（zones の仕様どおり）。1 秒ごとの再計算で、10 秒より古い測位は unknown になり、測位が来なくなっても状態が止まらない
   - 前回の結果（`previous`）を渡し続ける。入るのは 150 m 以内、出るのは 200 m 超（ヒステリシス）
   - `toGpsZone` の結果を `deriveAlertState` の `gps` に渡す。アプリ側で状態を決めない

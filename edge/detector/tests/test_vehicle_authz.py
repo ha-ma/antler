@@ -136,3 +136,34 @@ def test_auth4_大きなvehicleは接続を切り洪水は上限で捨て赤の�
     handled, flags = asyncio.run(main())
     assert handled <= 5  # 洪水の分は捨てられた（ほかの接続の分は数えていない）
     assert flags and flags[-1]["deer"] is True  # 赤の送信は止まらない
+
+
+# AUTH-6
+def test_auth6_古いvehicleを使い続けさせられない_10秒で固定値に戻る(logbuf):
+    hub, _, clock = make_hub()
+    hub.on_client_message(vehicle(speedKmh=0, zone="outside", light="day"))
+    clock.advance(10.01)  # 端末の時計は見ない。edge が受け取った時刻から測る
+    assert hub.vehicle_report(10.0) is None
+    hub.on_client_message(
+        vehicle(speedKmh=0, zone="outside", light="day", t_shown="2099-01-01T00:00:00+09:00")
+    )
+    assert hub.vehicle_report(10.0) is None  # 時刻つきの偽の「新しさ」は通らない
+    assert len(named(logbuf, "vehicle.stale")) == 1
+
+
+# AUTH-7
+def test_auth7_vehicleの値は配信するフラグにもsnapshotにも載らない():
+    hub, sent, clock = make_hub()
+    hub.on_client_message(vehicle(speedKmh=77, zone="outside", light="dusk"))
+    for i in range(2):
+        clock.advance(0.1)
+        hub.on_result(result(100 * i, deer(0.9)))
+    clock.advance(1.0)
+    hub.tick()
+    snapshot = hub.snapshot()
+    assert snapshot is not None
+    texts = [json.dumps(f) for f in sent] + [snapshot]
+    assert texts
+    for text in texts:
+        keys = set(json.loads(text))
+        assert not keys & {"speedKmh", "speed", "light", "headlight"}

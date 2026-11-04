@@ -42,8 +42,9 @@ def _ok(value: object) -> bool:
     return True
 
 
+# VM-1f
 @pytest.mark.parametrize("validity", ["valid", "invalid"])
-def test_VM_1f_全見本でjsonschemaとpydanticが同じ結果(validity: str) -> None:
+def test_vm1f_全見本でjsonschemaとpydanticが同じ結果(validity: str) -> None:
     validator = _validator()
     cases = _vehicle_fixtures(validity)
     assert len(cases) >= 4
@@ -52,7 +53,7 @@ def test_VM_1f_全見本でjsonschemaとpydanticが同じ結果(validity: str) -
         assert _ok(value) == (validity == "valid"), name
 
 
-def test_VM_1f_JSONの整数の速度とゼロを通す() -> None:
+def test_vm1f_JSONの整数の速度とゼロを通す() -> None:
     report = parse_vehicle(json.loads('{"type":"vehicle","speedKmh":60,"zone":"inside"}'))
     assert report == VehicleReport(speed_kmh=60.0, zone="inside", light=None)
     zero = parse_vehicle(json.loads('{"type":"vehicle","speedKmh":0}'))
@@ -60,7 +61,7 @@ def test_VM_1f_JSONの整数の速度とゼロを通す() -> None:
     assert isinstance(zero.speed_kmh, float)
 
 
-def test_VM_1f_空は3項目とも分からない() -> None:
+def test_vm1f_空は3項目とも分からない() -> None:
     assert parse_vehicle({"type": "vehicle"}) == VehicleReport(None, None, None)
 
 
@@ -82,16 +83,17 @@ def test_VM_1f_空は3項目とも分からない() -> None:
         '{"type":"vehicle","speedKmh":42,"timestamp":1}',
     ],
 )
-def test_VM_1f_壊れた値は拒否する(text: str) -> None:
+def test_vm1f_壊れた値は拒否する(text: str) -> None:
     assert not _ok(json.loads(text))  # Python の json は NaN / Infinity も読める。pydantic が止める
 
 
-def test_VM_1f_辞書でないものは拒否する() -> None:
+def test_vm1f_辞書でないものは拒否する() -> None:
     for value in (None, [], "vehicle", 1, {"type": "ack"}, {}):
         assert not _ok(value)
 
 
-def test_VM_1e_生成物が最新() -> None:
+# VM-1e
+def test_vm1e_生成物が最新() -> None:
     result = subprocess.run(  # noqa: S603 - 固定の引数で自分の生成スクリプトを呼ぶ
         [sys.executable, str(DETECTOR / "scripts" / "generate_models.py"), "--check"],
         capture_output=True,
@@ -102,7 +104,7 @@ def test_VM_1e_生成物が最新() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def test_VM_1e_生成は2回で同じバイト列でjudge_requestは変わらない() -> None:
+def test_vm1e_生成は2回で同じバイト列でjudge_requestは変わらない() -> None:
     spec = importlib.util.spec_from_file_location(
         "generate_models", DETECTOR / "scripts" / "generate_models.py"
     )

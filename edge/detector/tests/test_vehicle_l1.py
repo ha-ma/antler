@@ -255,8 +255,8 @@ def write(tmp_path, text: str) -> Path:
     return p
 
 
-# CFG-6a
-def test_cfg6a_既定と指定(tmp_path):
+# CFG-6a・CFG-6b
+def test_cfg6a_6b_既定と指定(tmp_path):
     l1 = load_config(write(tmp_path, "")).l1
     assert (l1.vehicle_state, l1.vehicle_max_age_s) == ("pwa", 10.0)
     l1 = load_config(write(tmp_path, '[l1]\nvehicle_state = "fixed"\nvehicle_max_age_s = 3\n')).l1

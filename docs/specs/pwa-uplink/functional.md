@@ -256,6 +256,8 @@ UC-6 設定:
 認可（threat.md の ❌ セル）:
 
 - [ ] AUTH-1: `vehicle` だけでは赤にならない・赤が解けない・L1 の降格が起きない（校正なし・前のエピソード・赤の候補でないトラックのままなら降格しない）
+- [ ] AUTH-6: 古い `vehicle`（端末の時刻つきの偽の新しさを含む）を使い続けさせられない。edge が受け取った時刻から 10 秒で固定値に戻る
+- [ ] AUTH-7: `vehicle` の値（速度・光）は配信するフラグにも snapshot にも載らない
 - [ ] AUTH-5: 固定値で学習した校正のもとで、降格する答えを返す偽の L1 に、`vehicle`（outside・0 km/h・day）を送り続けても、降格の回数が `vehicle` を送らない場合と同じ（実値が降格を増やさない。spec-adversary Critical の回帰）
 - [ ] AUTH-2: `vehicle` に緯度経度・端末識別子の項目があっても、保持も記録もしない（拒否して前の値を残す）
 - [ ] AUTH-3: `vehicle` のメッセージで設定・閾値・校正は変わらない
@@ -269,15 +271,15 @@ UC-6 設定:
 
 ## Rule → ドメイン語彙対応（Tier 2 推奨）
 
-| Rule             | 語彙                                       | 置き場所                                                                       | 証明 |
-| ---------------- | ------------------------------------------ | ------------------------------------------------------------------------------ | ---- |
-| R1: メッセージ   | VehicleMessageSchema / VehicleMessage      | packages/schema/src/client-message.ts / detector/schema/client_message.py      | UC-1 |
-| R2: PWA が作る値 | toVehicleReport / VehicleReport            | apps/pwa/src/features/connect/lib/vehicle-report.ts                            | UC-2 |
-| R3: PWA の送信   | EdgeClient.sendVehicle / useVehicleUplink  | apps/pwa/src/features/connect/lib/edge-client.ts / hooks/use-vehicle-uplink.ts | UC-3 |
-| R4: edge の受信  | AlertHub.on_client_message / VehicleReport | edge/detector/src/detector/hub.py / vehicle.py                                 | UC-4 |
-| R5: L1 に使う    | VehicleContext.from_report / state_source  | edge/detector/src/detector/l1/request.py                                       | UC-5 |
-| R6: 設定         | L1Config.vehicle_state / vehicle_max_age_s | edge/detector/src/detector/config.py                                           | UC-6 |
-| R8: 偽 edge      | fake-edge の vehicle                       | apps/pwa/scripts/fake-edge.mjs                                                 | UC-3 |
+| Rule             | 語彙                                       | 置き場所                                            | 証明 |
+| ---------------- | ------------------------------------------ | --------------------------------------------------- | ---- |
+| R1: メッセージ   | VehicleMessageSchema / VehicleMessage      | packages/schema/src/client-message.ts               | UC-1 |
+| R2: PWA が作る値 | toVehicleReport / VehicleReport            | apps/pwa/src/features/connect/lib/vehicle-report.ts | UC-2 |
+| R3: PWA の送信   | EdgeClient.sendVehicle / useVehicleUplink  | apps/pwa/src/features/connect/lib/edge-client.ts    | UC-3 |
+| R4: edge の受信  | AlertHub.on_client_message / VehicleReport | edge/detector/src/detector/hub.py                   | UC-4 |
+| R5: L1 に使う    | context_from_report / state_source         | edge/detector/src/detector/l1/request.py            | UC-5 |
+| R6: 設定         | L1Config.vehicle_state / vehicle_max_age_s | edge/detector/src/detector/config.py                | UC-6 |
+| R8: 偽 edge      | fake-edge の vehicle                       | apps/pwa/scripts/fake-edge.mjs                      | UC-3 |
 
 ## 非機能要件
 
