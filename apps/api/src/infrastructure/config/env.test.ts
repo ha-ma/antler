@@ -24,6 +24,9 @@ describe('loadEnv', () => {
       SIM_PUBLIC_URL: 'http://localhost:5173',
       PWA_PUBLIC_URL: 'http://localhost:5174',
       OG_FONT_FILES: [],
+      CAPTURES_DIR: './data/captures-received',
+      CAPTURES_MAX_ITEMS: 50_000,
+      CAPTURES_MAX_BYTES: 5 * 1024 ** 3,
       TRUST_PROXY: false,
     })
   })

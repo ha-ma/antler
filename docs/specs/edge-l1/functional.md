@@ -19,7 +19,7 @@ target_paths:
   - edge/detector/tests/test_fusion.py
   - edge/detector/tests/test_l1_hub.py
   - edge/detector/tests/test_l1_authz.py
-spec_confirmed_at: c527e94
+spec_confirmed_at: b29acdc
 tier: 2
 ---
 

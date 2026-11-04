@@ -1,6 +1,8 @@
+import { resolve } from 'node:path'
 import Anthropic from '@anthropic-ai/sdk'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
+import { SubmitCaptureUseCase } from '../application/usecases/captures/submit-capture.usecase.js'
 import { DeleteTripUseCase } from '../application/usecases/record/delete-trip.usecase.js'
 import { GetTripRecordUseCase } from '../application/usecases/record/get-trip-record.usecase.js'
 import { SaveRunUseCase } from '../application/usecases/record/save-run.usecase.js'
@@ -18,6 +20,8 @@ import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
 import { OgImageRenderer } from '../infrastructure/http/views/og-image-renderer.js'
 import { DrizzleRecordRepository } from '../infrastructure/repositories/drizzle-record.repository.js'
 import { DrizzleTripRepository } from '../infrastructure/repositories/drizzle-trip.repository.js'
+import { FileCaptureRepository } from '../infrastructure/repositories/file-capture.repository.js'
+import { NodeSha256BytesHasher } from '../infrastructure/security/node-bytes-hasher.js'
 import {
   HmacSha256TokenSigner,
   NodeRandomSource,
@@ -86,6 +90,16 @@ export async function buildContainer(
     urls: { api: env.PUBLIC_API_URL, sim: env.SIM_PUBLIC_URL, pwa: env.PWA_PUBLIC_URL },
   }
 
+  // POST /api/captures（edge-capture）。ファイル保存（CAPTURES_DIR を 0700 で作り、件数と画像の合計を数える）
+  const submitCapture = new SubmitCaptureUseCase({
+    captures: new FileCaptureRepository(resolve(env.CAPTURES_DIR)),
+    hasher: new NodeSha256Hasher(),
+    bytesHasher: new NodeSha256BytesHasher(),
+    clock: new SystemClock(),
+    maxItems: env.CAPTURES_MAX_ITEMS,
+    maxBytes: env.CAPTURES_MAX_BYTES,
+  })
+
   const rateLimitKey = clientIpKey({
     trustProxy: env.TRUST_PROXY,
     remoteAddress: (c) => {
@@ -114,6 +128,7 @@ export async function buildContainer(
     trips: { createTrip, rateLimitKey },
     tripDays: { getTripDay, rateLimitKey },
     records: { ...records, rateLimitKey },
+    captures: { submitCapture, rateLimitKey, log: logger },
   })
   return { env, logger, app, connection }
 }
