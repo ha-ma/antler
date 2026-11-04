@@ -7,11 +7,13 @@ import {
 import type { ZoneCollection } from '@antler/zones'
 import { useDriveAlert, useAckOnDanger } from '../hooks/use-drive-alert'
 import { useGpsZone } from '../hooks/use-gps-zone'
+import { useVehicleUplink } from '../hooks/use-vehicle-uplink'
 import { useWakeLock } from '../hooks/use-wake-lock'
 import type { ConnectText } from '../i18n'
 import type { EdgeSnapshot } from '../lib/edge-client'
 import type { GeoWatch } from '../lib/gps'
 import type { LocationState } from '../lib/location'
+import type { VehicleReport } from '../lib/vehicle-report'
 import type { WakeLockDeps } from '../lib/wake-lock'
 import './connect.css'
 
@@ -28,6 +30,8 @@ type Props = {
   /** 音の解除の結果が出ていて、音が出せない */
   noSound: boolean
   sendAck: (now: number) => boolean
+  /** 速度・ゾーン・光を車載の L1 に返す（pwa-uplink）。位置は含まない */
+  sendVehicle: (report: VehicleReport) => boolean
   geo: GeoWatch | undefined
   wakeLock: WakeLockDeps
   /** 同梱の鹿ゾーン DB。読み込み中・失敗は null */
@@ -54,6 +58,7 @@ export function DriveScreen({
   sound,
   noSound,
   sendAck,
+  sendVehicle,
   geo,
   wakeLock,
   zones,
@@ -65,6 +70,7 @@ export function DriveScreen({
   useAckOnDanger(alert.state, () => {
     sendAck(Date.now())
   })
+  useVehicleUplink(view.vehicle, now, sendVehicle)
   const wake = useWakeLock(wakeLock)
 
   const open = snapshot.status === 'open'

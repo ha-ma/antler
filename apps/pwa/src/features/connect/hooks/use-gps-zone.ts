@@ -11,6 +11,7 @@ import {
 } from '@antler/zones'
 import { useEffect, useState } from 'react'
 import { watchFixes, type GeoWatch } from '../lib/gps'
+import { toVehicleReport, type VehicleReport } from '../lib/vehicle-report'
 
 export type GpsView = {
   /** deriveAlertState に渡す GPS 側の判定 */
@@ -25,6 +26,8 @@ export type GpsView = {
   poorAccuracy: boolean
   /** 購読中に許可なしのエラーが届いた */
   denied: boolean
+  /** edge の L1 に返す車の状態（速度・ゾーン・光）。座標は含まない。3 項目とも分からなければ null（pwa-uplink） */
+  vehicle: VehicleReport | null
 }
 
 type Track = { fix: Fix | null; denied: boolean; startedAt: number }
@@ -97,5 +100,9 @@ export function useGpsZone({
       ? judgement.roadName
       : undefined
   const eta = judgement?.status === 'outside' ? judgement.eta : undefined
-  return { gps, roadName, eta, lost, poorAccuracy, denied: track.denied }
+  // 位置は state の中で派生値（速度・内外・光）にして、外へは派生値だけを出す
+  const vehicle = enabled
+    ? toVehicleReport({ fix: track.fix, now, status: judgement?.status ?? null })
+    : null
+  return { gps, roadName, eta, lost, poorAccuracy, denied: track.denied, vehicle }
 }

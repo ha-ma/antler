@@ -196,6 +196,16 @@ export function startFakeEdge(options = {}) {
           sinceFrameMs,
         }),
       )
+    } else if (message?.type === 'vehicle') {
+      // pwa-uplink R8: 速度・ゾーン・光だけを写す（それ以外の項目は出さない）
+      log(
+        JSON.stringify({
+          event: 'vehicle',
+          speedKmh: typeof message.speedKmh === 'number' ? message.speedKmh : null,
+          zone: typeof message.zone === 'string' ? message.zone : null,
+          light: typeof message.light === 'string' ? message.light : null,
+        }),
+      )
     } else {
       log(
         JSON.stringify({
