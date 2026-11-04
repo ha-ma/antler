@@ -63,23 +63,23 @@
 
 ## 横断的セキュリティチェック
 
-- [ ] CORS: 許可オリジンは既存の `CORS_ORIGINS`。許可ヘッダに `X-Owner-Token` を足す（app.ts の最小の追加）
-- [ ] レートリミット: 束 1 分 10 件 / IP、イベント 1 分 60 件 / IP（認可より先）。Claude の 1 日の上限と同時呼び出しの上限は plan-trip と共有
-- [ ] body の上限: 束 1 KB（読まない）、イベント 32 KB
-- [ ] エラーメッセージ: error-mapper の code と短い文だけ。Claude の応答・スタックトレースは返さない
-- [ ] ログマスキング: ownerToken・API キー・Claude の本文・イベントの中身を出さない
-- [ ] トークンの比較: 受けたトークンの SHA-256 と保存したハッシュを比べる（ハッシュ同士なので時間差で中身は漏れない。Info）
-- [ ] 開発バイパス: Claude のフェイクはテストの差し込みだけ。本番の DI では使わない
-- [ ] ファイルアップロード: N/A（この feature はファイルを受けない）
+- [x] CORS: 許可オリジンは既存の `CORS_ORIGINS`。許可ヘッダに `X-Owner-Token` を足す（app.ts の最小の追加）
+- [x] レートリミット: 束 1 分 10 件 / IP、イベント 1 分 60 件 / IP（認可より先）。Claude の 1 日の上限と同時呼び出しの上限は plan-trip と共有
+- [x] body の上限: 束 1 KB（読まない）、イベント 32 KB
+- [x] エラーメッセージ: error-mapper の code と短い文だけ。Claude の応答・スタックトレースは返さない
+- [x] ログマスキング: ownerToken・API キー・Claude の本文・イベントの中身を出さない
+- [x] トークンの比較: 受けたトークンの SHA-256 と保存したハッシュを比べる（ハッシュ同士なので時間差で中身は漏れない。Info）
+- [x] 開発バイパス: Claude のフェイクはテストの差し込みだけ。本番の DI では使わない
+- [x] ファイルアップロード: N/A（この feature はファイルを受けない）
 
 ## Test List への追加
 
-- [ ] AUTH-31: 束の POST にトークンが無い → 403 OWNER_REQUIRED、Claude を呼ばない
-- [ ] AUTH-32: 束の POST に別の旅のトークン → 403
-- [ ] AUTH-33: イベントの POST にトークンが無い・違う → 403、保存しない
-- [ ] AUTH-34: 束の POST が 1 分に 11 件目 → 429 RATE_LIMITED
-- [ ] AUTH-35: イベントの POST が 1 分に 61 件目 → 429 RATE_LIMITED
-- [ ] AUTH-36: 1 日の上限に達したあと束の POST → 429 DAILY_LIMIT、Claude を呼ばない
-- [ ] AUTH-37: 旅のイベントが 5,000 件に達したあとの POST → 409 EVENT_LIMIT
-- [ ] AUTH-38: 正しいトークンなら束もイベントも通る
-- [ ] MASS-31: choice に delayMin・lost・light などの計算値を混ぜる → 400
+- [x] AUTH-31: 束の POST にトークンが無い → 403 OWNER_REQUIRED、Claude を呼ばない
+- [x] AUTH-32: 束の POST に別の旅のトークン → 403
+- [x] AUTH-33: イベントの POST にトークンが無い・違う → 403、保存しない
+- [x] AUTH-34: 束の POST が 1 分に 11 件目 → 429 RATE_LIMITED
+- [x] AUTH-35: イベントの POST が 1 分に 61 件目 → 429 RATE_LIMITED
+- [x] AUTH-36: 1 日の上限に達したあと束の POST → 429 DAILY_LIMIT、Claude を呼ばない
+- [x] AUTH-37: 旅のイベントが 5,000 件に達したあとの POST → 409 EVENT_LIMIT
+- [x] AUTH-38: 正しいトークンなら束もイベントも通る
+- [x] MASS-31: choice に delayMin・lost・light などの計算値を混ぜる → 400

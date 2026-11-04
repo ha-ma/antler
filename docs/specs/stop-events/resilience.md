@@ -73,15 +73,15 @@ done・failed の UPDATE は「自分が立てた pending（status と updated_a
 
 ## Test List への追加
 
-- [ ] FAIL-31: Claude が時間切れ → 502 WRITER_FAILED、束は failed、次の POST で作り直せる
-- [ ] FAIL-32: 2 回とも検証で外れる → 502（1 回目だけ外れたら 2 回目で 201）
-- [ ] FAIL-33: 同時呼び出しの枠が無い → 503 WRITER_BUSY、束は failed
-- [ ] FAIL-34: しおりをいまのマスターで作り直せない → 409 ITINERARY_CHANGED、Claude を呼ばない
-- [ ] IDEM-31: 束を作り終えた日の 2 回目 → 200 と Idempotent-Replayed、Claude は 1 回だけ
-- [ ] IDEM-32: 同じ (runId, seq) の再送 → duplicates に数えて 200、行は 1 つ
-- [ ] IDEM-33: 同じ (runId, seq) で中身が違う → 409 EVENT_CONFLICT、その POST の新しい行も入らない
-- [ ] CONC-31: 同じ日の束を作っている最中の 2 つ目 → 409 IN_PROGRESS
-- [ ] CONC-32: pending が 2 分を過ぎた束 → 次の POST で作り直せる
-- [ ] CONC-33: 作り直しに取られた後の古い生成の done は、自分の pending でなければ書かない
-- [ ] IDEM-34: 保存した束の data の版がいまの DayPlan と違う → 作り直す（201）
-- [ ] MIGR-31: 空のデータファイルから起動すると 2 つの表が作られ、2 回目の起動でも壊れない
+- [x] FAIL-31: Claude が時間切れ → 502 WRITER_FAILED、束は failed、次の POST で作り直せる
+- [x] FAIL-32: 2 回とも検証で外れる → 502（1 回目だけ外れたら 2 回目で 201）
+- [x] FAIL-33: 同時呼び出しの枠が無い → 503 WRITER_BUSY、束は failed
+- [x] FAIL-34: しおりをいまのマスターで作り直せない → 409 ITINERARY_CHANGED、Claude を呼ばない
+- [x] IDEM-31: 束を作り終えた日の 2 回目 → 200 と Idempotent-Replayed、Claude は 1 回だけ
+- [x] IDEM-32: 同じ (runId, seq) の再送 → duplicates に数えて 200、行は 1 つ
+- [x] IDEM-33: 同じ (runId, seq) で中身が違う → 409 EVENT_CONFLICT、その POST の新しい行も入らない
+- [x] CONC-31: 同じ日の束を作っている最中の 2 つ目 → 409 IN_PROGRESS
+- [x] CONC-32: pending が 2 分を過ぎた束 → 次の POST で作り直せる
+- [x] CONC-33: 作り直しに取られた後の古い生成の done は、自分の pending でなければ書かない
+- [x] IDEM-34: 保存した束の data の版がいまの DayPlan と違う → 作り直す（201）
+- [x] MIGR-31: 空のデータファイルから起動すると 2 つの表が作られ、2 回目の起動でも壊れない

@@ -204,78 +204,78 @@ ID は plan-trip・brief-map のテストと重ならないよう、AUTH など�
 
 外側ループ（受け入れ）:
 
-- [ ] AC-31: ペルソナの旅の D2 で束の POST（Claude はフェイク）→ 201。場面に楽しみと選択肢、選択肢に鹿ゾーンの光と失うもの、writing は 4 言語。2 回目は 200 で Claude を呼ばない。choice のイベントを POST → 200、保存した行に束の値が写っている
-- [ ] AC-32: A-4 のモーダルを束のフィクスチャで開くと、見出し・滞在・使った・到着予定・選択肢 3 つ（鹿ゾーンの帯つき）が出て、選択肢を押すと onChoose が呼ばれ、choice が X-Owner-Token つきで送られる
+- [x] AC-31: ペルソナの旅の D2 で束の POST（Claude はフェイク）→ 201。場面に楽しみと選択肢、選択肢に失うもの、writing は 4 言語。D1（同梱の鹿ゾーンを通る移動がある日）では選択肢に鹿ゾーンの光が付く。2 回目は 200 で Claude を呼ばない。choice のイベントを POST → 200、保存した行に束の値が写っている
+- [x] AC-32: A-4 のモーダルを束のフィクスチャで開くと、見出し・滞在・使った・到着予定・選択肢 3 つ（鹿ゾーンの帯つき）が出て、選択肢を押すと onChoose が呼ばれ、choice が X-Owner-Token つきで送られる
 
 UC-1 束の組み立て:
 
-- [ ] DECK-1a: 楽しみの場面はその日の stops の順で、beforeLeg はその楽しみの後に出発する移動の添字。滞在は重さ × 96 分
-- [ ] DECK-1b: 楽しみの場面の選択肢は leave（0）・linger（+60）・stay。linger の鹿ゾーンの入口は leave の 60 分後で、光はその時刻で測り直す
-- [ ] DECK-1c: ランダムの場面の数は運転時間 ÷ 経験の間隔（120 / 150 / 180 分）の切り捨て、最大 3、場面は 1 日 6 つまで
-- [ ] DECK-1d: ランダムの場面は鹿ゾーンの中に置かない（入口の 1 km 手前に動く）。同じ種類が続かない
-- [ ] DECK-1e: 最終日と、その後に鹿ゾーンを通らない場面には stay・turn-back が無い。選択肢はどの場面も 2〜3 個
-- [ ] DECK-1f: 泊まる系は zone が null、失う重さはその日の残りの楽しみの合計、予約した宿が違えば 1 日あたりの予算（1,000 円単位）を失う
-- [ ] DECK-1g: 同じ旅・同じ日 → 同じ束（シードで再現）。別の seed → ランダムの場面が変わる
-- [ ] DECK-1h: 楽しみの場面の支出は 1 日あたりの予算 × 滞在 ÷ 600 分の 100 円単位、到着予定はその日の最後の移動の到着に遅れを足したもの
-- [ ] DECK-1i: [ADDED spec-adversary] 今の移動で鹿ゾーンを通った後のランダムの場面には turn-back が無い
-- [ ] DECK-1j: [ADDED spec-adversary] ゾーンが 2 つ残るとき、選択肢の zone は一番暗いもの（遅れで 2 つ目が夜になれば 2 つ目）で、count は残りの数
-- [ ] DECK-1k: [ADDED spec-adversary] 最終日に返却の 1 時間前を過ぎる選択肢は lateReturn
-- [ ] DECK-1l: [ADDED spec-adversary] 同じ拠点の楽しみ 2 つは同じ止まり場所で、2 つ目の at は 1 つ目の at ＋ 滞在。1 つ目で泊まっても 2 つ目は失わない。移動の無い日の楽しみは 8:00 から
+- [x] DECK-1a: 楽しみの場面はその日の stops の順で、beforeLeg はその楽しみの後に出発する移動の添字。滞在は重さ × 96 分
+- [x] DECK-1b: 楽しみの場面の選択肢は leave（0）・linger（+60）・stay。linger の鹿ゾーンの入口は leave の 60 分後で、光はその時刻で測り直す
+- [x] DECK-1c: ランダムの場面の数は運転時間 ÷ 経験の間隔（120 / 150 / 180 分）の切り捨て、最大 3、場面は 1 日 6 つまで
+- [x] DECK-1d: ランダムの場面は鹿ゾーンの中に置かない（入口の 1 km 手前に動く）。同じ種類が続かない
+- [x] DECK-1e: 最終日と、その後に鹿ゾーンを通らない場面には stay・turn-back が無い。選択肢はどの場面も 2〜3 個
+- [x] DECK-1f: 泊まる系は zone が null、失う重さはその日の残りの楽しみの合計、予約した宿が違えば 1 日あたりの予算（1,000 円単位）を失う
+- [x] DECK-1g: 同じ旅・同じ日 → 同じ束（シードで再現）。別の seed → ランダムの場面が変わる
+- [x] DECK-1h: 楽しみの場面の支出は 1 日あたりの予算 × 滞在 ÷ 600 分の 100 円単位、到着予定はその日の最後の移動の到着に遅れを足したもの
+- [x] DECK-1i: [ADDED spec-adversary] 今の移動で鹿ゾーンを通った後のランダムの場面には turn-back が無い
+- [x] DECK-1j: [ADDED spec-adversary] ゾーンが 2 つ残るとき、選択肢の zone は一番暗いもの（遅れで 2 つ目が夜になれば 2 つ目）で、count は残りの数
+- [x] DECK-1k: [ADDED spec-adversary] 最終日に返却の 1 時間前を過ぎる選択肢は lateReturn
+- [x] DECK-1l: [ADDED spec-adversary] 同じ拠点の楽しみ 2 つは同じ止まり場所で、2 つ目の at は 1 つ目の at ＋ 滞在。1 つ目で泊まっても 2 つ目は失わない。移動の無い日の楽しみは 8:00 から
 
 UC-2 Claude の文:
 
-- [ ] WRITE-2a: 正常な文 → 検証を通る（4 言語・id・数・順）
-- [ ] WRITE-2b: 場面・選択肢の id・数・順が違う、1 言語が空 → 外れ
-- [ ] WRITE-2c: 3 桁以上の数・%・件・円・¥・$・元・원・絵文字・時刻（16:20・16時・4點・4시・四時）を含む → 外れ。見出し・短文の「1時間」は通る。言い回し・一言は数字を含めば外れ
-- [ ] WRITE-2d: Claude に渡す材料は選択肢由来の値だけ（自由入力の文字列・TripPlan のタイトル・日の説明が無い）で、束の時刻と金額を含まない
-- [ ] WRITE-2e: gateway は max_tokens・refusal・形の違う JSON を rejected で返し、時間切れ・認証の失敗を SceneWriterError にする
+- [x] WRITE-2a: 正常な文 → 検証を通る（4 言語・id・数・順）
+- [x] WRITE-2b: 場面・選択肢の id・数・順が違う、1 言語が空 → 外れ
+- [x] WRITE-2c: 3 桁以上の数・%・件・円・¥・$・元・원・絵文字・時刻（16:20・16時・4點・4시・四時）を含む → 外れ。見出し・短文の「1時間」は通る。言い回し・一言は数字を含めば外れ
+- [x] WRITE-2d: Claude に渡す材料は選択肢由来の値だけ（自由入力の文字列・TripPlan のタイトル・日の説明が無い）で、束の時刻と金額を含まない
+- [x] WRITE-2e: gateway は max_tokens・refusal・形の違う JSON を rejected で返し、時間切れ・認証の失敗を SceneWriterError にする
 
 UC-3 イベントログ:
 
-- [ ] LOG-3a: choice は束の値（種類・遅れ・泊まるか・光・失う金額と重さ）を写して保存する
-- [ ] LOG-3b: その日の束が無い・知らない sceneId / choiceId → 400、何も保存しない
-- [ ] LOG-3c: encounter・collision・avoidance を保存し、listByTrip が run の受信順 → seq で返す
-- [ ] LOG-3d: 1 つの POST の中で seq が重なる・51 件・0 件 → 400
-- [ ] LOG-3e: 緯度経度など知らない欄・day が旅の日数を超える → 400
-- [ ] LOG-3f: [ADDED spec-adversary] at の暦日が day の日付でも翌日でもない・alerted: false なのに alertDistanceM・アラート OFF の run で alerted: true → 400
+- [x] LOG-3a: choice は束の値（種類・遅れ・泊まるか・光・失う金額と重さ）を写して保存する
+- [x] LOG-3b: その日の束が無い・知らない sceneId / choiceId → 400、何も保存しない
+- [x] LOG-3c: encounter・collision・avoidance を保存し、listByTrip が run の受信順 → seq で返す
+- [x] LOG-3d: 1 つの POST の中で seq が重なる・51 件・0 件 → 400
+- [x] LOG-3e: 緯度経度など知らない欄・day が旅の日数を超える → 400
+- [x] LOG-3f: [ADDED spec-adversary] at の暦日が day の日付でも翌日でもない・alerted: false なのに alertDistanceM・アラート OFF の run で alerted: true → 400
 
 UC-4 A-4 の画面:
 
-- [ ] UI-4a: 楽しみの場面 → 見出し・短文・滞在・使った（目安）・到着予定、選択肢ごとに「→ 地点 時刻 着」と鹿ゾーンの帯と失うもの
-- [ ] UI-4b: 光の言い方（昼・薄暮・薄明・日没後・夜明け前）と「鹿ゾーンを通らない」「返却に遅れる」を 4 言語で出す。束の日付より後の時刻には「翌」
-- [ ] UI-4c: dialog の役割と見出しの名前、開いたら最初の選択肢にフォーカス、Esc で閉じない、ボタンは 44px 以上
-- [ ] UI-4d: writing が無い場面は楽しみの名前と決まった言い回しで出す（Claude の代わりの文は作らない）
-- [ ] UI-4e: useStopDeck はトークンがあれば X-Owner-Token つきで POST し、応答の形を確かめる。トークンが無ければ取りに行かない
-- [ ] UI-4f: useTripEventLog は seq を 0 から振って送り、トークンが無ければ何もしない
-- [ ] UI-4g: scenesBeforeLeg・roadScenesBetween がその場所の場面を返す
-- [ ] UI-4h: 確認用の画面 `/trip/:id/day/:n/stops` が場面の一覧を出し、押すとモーダルが開く
+- [x] UI-4a: 楽しみの場面 → 見出し・短文・滞在・使った（目安）・到着予定、選択肢ごとに「→ 地点 時刻 着」と鹿ゾーンの帯と失うもの
+- [x] UI-4b: 光の言い方（昼・薄暮・薄明・日没後・夜明け前）と「鹿ゾーンを通らない」「返却に遅れる」を 4 言語で出す。束の日付より後の時刻には「翌」
+- [x] UI-4c: dialog の役割と見出しの名前、開いたら最初の選択肢にフォーカス、Esc で閉じない、ボタンは 44px 以上
+- [x] UI-4d: writing が無い場面は楽しみの名前と決まった言い回しで出す（Claude の代わりの文は作らない）
+- [x] UI-4e: useStopDeck はトークンがあれば X-Owner-Token つきで POST し、応答の形を確かめる。トークンが無ければ取りに行かない
+- [x] UI-4f: useTripEventLog は seq を 0 から振って送り、トークンが無ければ何もしない
+- [x] UI-4g: scenesBeforeLeg・roadScenesBetween がその場所の場面を返す
+- [x] UI-4h: 確認用の画面 `/trip/:id/day/:n/stops` が場面の一覧を出し、押すとモーダルが開く
 
 認可（threat.md）:
 
-- [ ] AUTH-31: 束の POST にトークンが無い → 403 OWNER_REQUIRED、Claude を呼ばない
-- [ ] AUTH-32: 束の POST に別の旅のトークン → 403
-- [ ] AUTH-33: イベントの POST にトークンが無い・違う → 403、保存しない
-- [ ] AUTH-34: 束の POST が 1 分に 11 件目 → 429 RATE_LIMITED
-- [ ] AUTH-35: イベントの POST が 1 分に 61 件目 → 429 RATE_LIMITED
-- [ ] AUTH-36: 1 日の上限に達したあと束の POST → 429 DAILY_LIMIT、Claude を呼ばない
-- [ ] AUTH-37: 旅のイベントが 5,000 件に達したあとの POST → 409 EVENT_LIMIT
-- [ ] AUTH-38: 正しいトークンなら束もイベントも通る（意図した権利が塞がれていない）
-- [ ] MASS-31: choice に delayMin・lost・light などの計算値を混ぜる → 400（端末の値で上書きできない）
+- [x] AUTH-31: 束の POST にトークンが無い → 403 OWNER_REQUIRED、Claude を呼ばない
+- [x] AUTH-32: 束の POST に別の旅のトークン → 403
+- [x] AUTH-33: イベントの POST にトークンが無い・違う → 403、保存しない
+- [x] AUTH-34: 束の POST が 1 分に 11 件目 → 429 RATE_LIMITED
+- [x] AUTH-35: イベントの POST が 1 分に 61 件目 → 429 RATE_LIMITED
+- [x] AUTH-36: 1 日の上限に達したあと束の POST → 429 DAILY_LIMIT、Claude を呼ばない
+- [x] AUTH-37: 旅のイベントが 5,000 件に達したあとの POST → 409 EVENT_LIMIT
+- [x] AUTH-38: 正しいトークンなら束もイベントも通る（意図した権利が塞がれていない）
+- [x] MASS-31: choice に delayMin・lost・light などの計算値を混ぜる → 400（端末の値で上書きできない）
 
 障害・冪等・並行（resilience.md）:
 
-- [ ] FAIL-31: Claude が時間切れ → 502 WRITER_FAILED、束は failed、次の POST で作り直せる
-- [ ] FAIL-32: 2 回とも検証で外れる → 502（1 回目だけ外れたら 2 回目で 201）
-- [ ] FAIL-33: 同時呼び出しの枠が無い → 503 WRITER_BUSY、束は failed
-- [ ] FAIL-34: 保存した旅のしおりをいまのマスターで作り直せない → 409 ITINERARY_CHANGED、Claude を呼ばない
-- [ ] IDEM-31: 束を作り終えた日の 2 回目 → 200 と Idempotent-Replayed、Claude は 1 回だけ
-- [ ] IDEM-32: 同じ (runId, seq) の再送 → duplicates に数えて 200、行は 1 つ
-- [ ] IDEM-33: 同じ (runId, seq) で中身が違う → 409 EVENT_CONFLICT、その POST の新しい行も入らない
-- [ ] IDEM-34: [ADDED spec-adversary] 保存した束の data の版がいまの DayPlan と違う → 作り直す（201）
-- [ ] CONC-33: [ADDED spec-adversary] 作り直しに取られた後の古い生成の done は、自分の pending でなければ書かない
-- [ ] CONC-31: 同じ日の束を作っている最中の 2 つ目 → 409 IN_PROGRESS
-- [ ] CONC-32: pending が 2 分を過ぎた束 → 次の POST で作り直せる
-- [ ] MIGR-31: 空のデータファイルから起動すると 2 つの表が作られ、2 回目の起動でも壊れない
+- [x] FAIL-31: Claude が時間切れ → 502 WRITER_FAILED、束は failed、次の POST で作り直せる
+- [x] FAIL-32: 2 回とも検証で外れる → 502（1 回目だけ外れたら 2 回目で 201）
+- [x] FAIL-33: 同時呼び出しの枠が無い → 503 WRITER_BUSY、束は failed
+- [x] FAIL-34: 保存した旅のしおりをいまのマスターで作り直せない → 409 ITINERARY_CHANGED、Claude を呼ばない
+- [x] IDEM-31: 束を作り終えた日の 2 回目 → 200 と Idempotent-Replayed、Claude は 1 回だけ
+- [x] IDEM-32: 同じ (runId, seq) の再送 → duplicates に数えて 200、行は 1 つ
+- [x] IDEM-33: 同じ (runId, seq) で中身が違う → 409 EVENT_CONFLICT、その POST の新しい行も入らない
+- [x] IDEM-34: [ADDED spec-adversary] 保存した束の data の版がいまの DayPlan と違う → 作り直す（201）
+- [x] CONC-33: [ADDED spec-adversary] 作り直しに取られた後の古い生成の done は、自分の pending でなければ書かない
+- [x] CONC-31: 同じ日の束を作っている最中の 2 つ目 → 409 IN_PROGRESS
+- [x] CONC-32: pending が 2 分を過ぎた束 → 次の POST で作り直せる
+- [x] MIGR-31: 空のデータファイルから起動すると 2 つの表が作られ、2 回目の起動でも壊れない
 
 ## Rule → ドメイン語彙対応
 
@@ -291,8 +291,8 @@ UC-4 A-4 の画面:
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-31・AC-32 が Green
-- [ ] 全 UC / 全エラーパターンのテストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（lint / format / 型 / 依存方向）
-- [ ] code-reviewer・layer-guard・component-guard・accessibility-checker・security-auditor の Critical 0
+- [x] 受け入れテスト AC-31・AC-32 が Green
+- [x] 全 UC / 全エラーパターンのテストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（lint / format / 型 / 依存方向）
+- [x] code-reviewer・layer-guard・component-guard・accessibility-checker・security-auditor の Critical 0
