@@ -317,20 +317,21 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 
 ## Rule → ドメイン語彙対応
 
-| Rule                     | 語彙（コード上の名前）                                                                                  | 置き場所                                                                             |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| R2                       | `DriveRunInputSchema`、`DriveRunInput`、`MAX_RUNS_PER_DAY`                                              | `packages/trip/src/record/run.ts`                                                    |
-| R3・R4                   | `summarizeRecord`、`TripRecordSchema`、`TripRecord`、`CLOSE_CALL_M`、`recordTripOf`、`RecordTripSchema` | `packages/trip/src/record/summary.ts`                                                |
-| R2・R10                  | `isOwnerTokenHash`（長さ一定の比較）                                                                    | `apps/api/src/domain/record/policies/owner-policy.ts`                                |
-| R2                       | `SaveRunUseCase`                                                                                        | `apps/api/src/application/usecases/record/save-run.usecase.ts`                       |
-| R4・R6・R7               | `GetTripRecordUseCase`                                                                                  | `apps/api/src/application/usecases/record/get-trip-record.usecase.ts`                |
-| R10                      | `DeleteTripUseCase`                                                                                     | `apps/api/src/application/usecases/record/delete-trip.usecase.ts`                    |
-| R6                       | `buildShioriSvg`、`OgImageRenderer`                                                                     | `apps/api/src/infrastructure/http/views/`                                            |
-| R7・R8                   | `renderRecordPage`、`renderNotFoundPage`                                                                | `apps/api/src/infrastructure/http/views/record-page.ts`                              |
-| R2・R4・R6・R7・R10・R12 | `recordRoutes`                                                                                          | `apps/api/src/infrastructure/http/routes/record.routes.ts`                           |
-| R5・R8・R9               | `RecordPage`、`useTripRecord`                                                                           | `apps/sim/src/features/record/`                                                      |
-| R10・R11                 | `useDeleteTrip`、`useSaveRun`、`recordHref`                                                             | `apps/sim/src/features/record/hooks/`                                                |
-| R11                      | `toDriveRun`、`DriveRoute`                                                                              | `apps/sim/src/features/record/utils/drive-run.ts`、`apps/sim/src/app/DriveRoute.tsx` |
+| Rule                     | 語彙（コード上の名前）                                                                                  | 置き場所                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| R2                       | `DriveRunInputSchema`、`DriveRunInput`、`MAX_RUNS_PER_DAY`                                              | `packages/trip/src/record/run.ts`                                     |
+| R3・R4                   | `summarizeRecord`、`TripRecordSchema`、`TripRecord`、`CLOSE_CALL_M`、`recordTripOf`、`RecordTripSchema` | `packages/trip/src/record/summary.ts`                                 |
+| R2・R10                  | `isOwnerTokenHash`（長さ一定の比較）                                                                    | `apps/api/src/domain/record/policies/owner-policy.ts`                 |
+| R2                       | `SaveRunUseCase`                                                                                        | `apps/api/src/application/usecases/record/save-run.usecase.ts`        |
+| R4・R6・R7               | `GetTripRecordUseCase`                                                                                  | `apps/api/src/application/usecases/record/get-trip-record.usecase.ts` |
+| R10                      | `DeleteTripUseCase`                                                                                     | `apps/api/src/application/usecases/record/delete-trip.usecase.ts`     |
+| R6                       | `buildShioriSvg`、`OgImageRenderer`                                                                     | `apps/api/src/infrastructure/http/views/`                             |
+| R7・R8                   | `renderRecordPage`、`renderNotFoundPage`                                                                | `apps/api/src/infrastructure/http/views/record-page.ts`               |
+| R2・R4・R6・R7・R10・R12 | `recordRoutes`                                                                                          | `apps/api/src/infrastructure/http/routes/record.routes.ts`            |
+| R5・R8・R9               | `RecordPage`、`useTripRecord`                                                                           | `apps/sim/src/features/record/`                                       |
+| R10・R11                 | `useDeleteTrip`、`useSaveRun`、`recordHref`                                                             | `apps/sim/src/features/record/hooks/`                                 |
+| R11                      | `toDriveRun`                                                                                            | `apps/sim/src/features/record/utils/drive-run.ts`                     |
+| R11                      | `DriveRoute`                                                                                            | `apps/sim/src/app/DriveRoute.tsx`                                     |
 
 ## 受け入れ基準
 
