@@ -106,6 +106,7 @@ Questions は 2026-11-04 に推奨で決定（CLAUDE.md の方針「推奨案の
 - R12 運転からの入口（barrel）: drive-link が使うものを `@/features/stop-events` から出す
   - `useStopDeck(tripId, day)`（束の取得。所有者トークンが無ければ取りに行かない）
   - `scenesBeforeLeg(deck, leg)`・`roadScenesBetween(deck, leg, fromKm, toKm)`（その場所で出す場面）
+  - drive-link（main 済み）の `DriveScenario` はその日の移動を 1 本の道につなぎ、2 つ目以降の移動の始まりを `legStarts[].sM`（道のり m）で持つ。`sceneRouteM(scene, { legStartsM, totalM })` で場面を道のり m に写し（止まり場所 k は k 番目の移動の始まり、0 は 0 m、最後は道の終わり。移動 leg の km 地点はその移動の始まり＋km）、`scenesDueOnRoute(deck, route, fromM, toM)` で前のフレームからいまの道のりまでに来た場面を取る（fromM < m ≤ toM。始めは fromM = -1）。2026-11-04、drive-link に合わせて追加
   - `StopSceneModal`（props: scene・writing・lang・alertEnabled・dayLabel・onChoose）
   - `useTripEventLog(tripId, { runId, alertEnabled })`（`log(event)` で seq を振って送る）と、イベントの型。runId と seq はメモリにだけ持つ（再読み込みは新しい run。seq が 0 に戻って衝突しない）。`newRunId()` で runId を作る
   - `useStopDeck` は 409 IN_PROGRESS を 5 秒あけて 20 回まで待ち直す（生成の最悪 45 秒 × 2 回より長く待つ）
@@ -251,7 +252,7 @@ UC-4 A-4 の画面:
 - [x] UI-4d: writing が無い場面は楽しみの名前と決まった言い回しで出す（Claude の代わりの文は作らない）
 - [x] UI-4e: useStopDeck はトークンがあれば Authorization: Bearer つきで POST し、応答の形を確かめる。トークンが無ければ取りに行かない
 - [x] UI-4f: useTripEventLog は seq を 0 から振って送り、トークンが無ければ何もしない
-- [x] UI-4g: scenesBeforeLeg・roadScenesBetween がその場所の場面を返す
+- [x] UI-4g: scenesBeforeLeg・roadScenesBetween がその場所の場面を返す。sceneRouteM・scenesDueOnRoute が drive の道のり（legStarts）に写した場面を返す
 - [x] UI-4h: 確認用の画面 `/trip/:id/day/:n/stops` が場面の一覧を出し、押すとモーダルが開く
 
 認可（threat.md）:

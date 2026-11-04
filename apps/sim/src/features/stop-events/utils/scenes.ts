@@ -24,6 +24,41 @@ export function roadScenesBetween(
   )
 }
 
+/**
+ * drive の道のり（m）への写し（drive-link の DriveScenario。その日の移動をつないだ 1 本の道）。
+ * - legStartsM: 2 つ目以降の移動の始まりの道のり（DriveScenario.legStarts[].sM の順）
+ * - totalM: その日の道のりの終わり（最後の移動の到着）
+ * 止まり場所 k は「k 番目の移動の始まり」（k = 0 は出発前で 0 m、最後は totalM）、
+ * 移動 leg の km 地点は「その移動の始まり + km」（終わりを越えない）
+ */
+export type RouteMap = { legStartsM: readonly number[]; totalM: number }
+
+export function sceneRouteM(scene: StopScene, { legStartsM, totalM }: RouteMap): number {
+  const legStart = (leg: number) => (leg === 0 ? 0 : (legStartsM[leg - 1] ?? totalM))
+  const trigger = scene.trigger
+  if (trigger.kind === 'stop') {
+    return trigger.beforeLeg === 0 ? 0 : Math.min(legStart(trigger.beforeLeg), totalM)
+  }
+  return Math.min(legStart(trigger.leg) + trigger.km * 1000, totalM)
+}
+
+/**
+ * 道のり fromM より先・toM まで（fromM < m ≤ toM）に来た場面を、束の順に返す。
+ * 運転を始めたときは fromM に -1 を渡す（出発前の楽しみ＝0 m の場面も出す）。
+ * 毎フレーム「前のフレームの道のり → いまの道のり」で呼べば、同じ場面を 2 度出さない
+ */
+export function scenesDueOnRoute(
+  deck: StopDeck,
+  route: RouteMap,
+  fromM: number,
+  toM: number,
+): StopScene[] {
+  return deck.scenes.filter((s) => {
+    const m = sceneRouteM(s, route)
+    return m > fromM && m <= toM
+  })
+}
+
 /** 場面の Claude の文。無ければ null（決まった言い回しで出す。UI-4d） */
 export function writingFor(writing: StopWriting | undefined, sceneId: string): SceneWriting | null {
   return writing?.scenes.find((s) => s.id === sceneId) ?? null
