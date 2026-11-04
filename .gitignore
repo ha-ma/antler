@@ -14,6 +14,8 @@ __pycache__/
 *.egg-info/
 # A API の開発用データ（SQLite・保存先）
 apps/api/data/
+# POST /api/captures が受け取った Capture と画像（同意済みの匿名データ。コミットしない）
+data/captures-received/
 
 # 秘密
 .env

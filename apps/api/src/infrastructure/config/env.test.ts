@@ -20,6 +20,9 @@ describe('loadEnv', () => {
       CLAUDE_DAILY_CALL_LIMIT: 400,
       CLAUDE_MAX_CONCURRENT_CALLS: 4,
       TRIPS_DB_URL: 'file:./data/trips.db',
+      CAPTURES_DIR: './data/captures-received',
+      CAPTURES_MAX_ITEMS: 50_000,
+      CAPTURES_MAX_BYTES: 5 * 1024 ** 3,
       TRUST_PROXY: false,
     })
   })

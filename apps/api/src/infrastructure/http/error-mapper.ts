@@ -1,6 +1,13 @@
 import { HTTPException } from 'hono/http-exception'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import {
+  CaptureConflictError,
+  CaptureInputError,
+  ConsentRequiredError,
+  InvalidImageError,
+  StoreFullError,
+} from '../../domain/captures/errors/capture-errors.js'
+import {
   DailyLimitError,
   IdempotencyMismatchError,
   ItineraryChangedError,
@@ -48,6 +55,28 @@ export function toHttpError(error: unknown): HttpError {
   }
   if (error instanceof TripWriterError) {
     return { status: 502, code: 'WRITER_FAILED', message: error.message }
+  }
+  // POST /api/captures（docs/specs/edge-capture/functional.md「エラーパターン」）
+  if (error instanceof CaptureInputError) {
+    // 欄名と規則だけを返す（送られた値は入れない）。長くなりすぎないよう切る
+    const detail = error.issues.join('; ').slice(0, 300)
+    return {
+      status: 400,
+      code: 'INVALID_INPUT',
+      message: detail === '' ? error.message : `${error.message}: ${detail}`,
+    }
+  }
+  if (error instanceof ConsentRequiredError) {
+    return { status: 422, code: 'CONSENT_REQUIRED', message: error.message }
+  }
+  if (error instanceof InvalidImageError) {
+    return { status: 400, code: 'INVALID_IMAGE', message: error.message }
+  }
+  if (error instanceof CaptureConflictError) {
+    return { status: 409, code: 'CAPTURE_CONFLICT', message: error.message }
+  }
+  if (error instanceof StoreFullError) {
+    return { status: 503, code: 'STORE_FULL', message: error.message }
   }
   if (error instanceof HTTPException) {
     // 読めない JSON（zValidator が 400 の HTTPException を投げる）は入力エラーとして返す
