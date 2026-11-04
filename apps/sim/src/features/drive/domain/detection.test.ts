@@ -12,8 +12,11 @@ import {
   type CameraPose,
   type DetectorState,
   type Sighting,
+  WINDOW_FOG_FACTOR,
 } from './detection'
 import { createRng } from './rng'
+import { demoScenario } from './scenario'
+import { ZONES } from './zones-data'
 
 // 北（-z）を向いた車。右は東（+x）
 const camera: CameraPose = { x: 0, z: 0, forward: [0, -1], right: [1, 0] }
@@ -37,9 +40,9 @@ describe('カメラの検知条件（R6）', () => {
     expect(cameraSees(camera, deerAt(3, -60))?.distanceM).toBeCloseTo(Math.hypot(3, 60), 5)
   })
 
-  it('UC-6b: 捕捉の確率は昼・晴れ・1 人で 0.95、夜・雪・4 人で 0.7 × 0.8 × 0.925。捕捉しない鹿は検知されない', () => {
-    expect(detectProbability('day', 'clear', 1)).toBeCloseTo(0.95, 6)
-    expect(detectProbability('night', 'snow', 4)).toBeCloseTo(0.7 * 0.8 * 0.925, 6)
+  it('UC-6b: 捕捉の確率は昼・晴れ・曇りなしで 0.95、夜・雪・窓 medium で 0.7 × 0.8 × 0.9。捕捉しない鹿は検知されない', () => {
+    expect(detectProbability('day', 'clear', 'none')).toBeCloseTo(0.95, 6)
+    expect(detectProbability('night', 'snow', 'medium')).toBeCloseTo(0.7 * 0.8 * 0.9, 6)
     // 確率 0 で引くと捕捉されず、その後ずっと検知されない（引き直さない）
     const seen: Sighting = { deerId: 'a', distanceM: 80, side: 'L' }
     let state = INITIAL_DETECTOR
@@ -77,6 +80,14 @@ const toFlag = (s: Sighting | null): ReceivedFlag =>
         zoneRemainingKm: 3,
       }
     : { deer: false, strict: true, zone: 'inside', zoneRemainingKm: 3 }
+
+describe('車内の窓の曇り（drive-link R6）', () => {
+  it('UC-3f: 窓の曇りの係数は none 1.0・light 0.95・medium 0.9・heavy 0.85。見本の場面は light', () => {
+    expect(WINDOW_FOG_FACTOR).toEqual({ none: 1, light: 0.95, medium: 0.9, heavy: 0.85 })
+    expect(detectProbability('day', 'clear', 'heavy')).toBeCloseTo(0.95 * 0.85, 6)
+    expect(demoScenario(ZONES).windowFog).toBe('light')
+  })
+})
 
 describe('フラグ（R6）', () => {
   it('UC-6c: 最初の検知から 150〜400 ms 後に deer:true（距離と左右）。遅延はシードで決まる', () => {
