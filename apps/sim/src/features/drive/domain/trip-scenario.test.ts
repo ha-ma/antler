@@ -9,7 +9,7 @@ import {
 } from '@antler/trip'
 import { ROAD_CATALOG } from '@antler/trip/roads'
 import { measureAlongRoute, metersBetween, planRoute, type LonLat } from '@antler/zones'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { createCandidates } from './deer-spawn'
 import { createRoadFrame, lonLatAt } from './road'
 import { driveSeed } from './scenario'
@@ -21,8 +21,6 @@ import { NO_INPUT } from '../types'
 
 // drive-link: 旅のその日（GET /api/trips/:id/day/:n の応答と同じもの）から運転の場面を作る。
 // 応答は api と同じ純粋関数（@antler/trip の buildDayPlan）で作る。
-// 300 km のルートで World を作る（planRoute が 1 回 約 0.3 秒）ので、全 workspace を並べて回すときの重さを見込んで長めに待つ
-vi.setConfig({ testTimeout: 30_000 })
 
 function personaPlan(seed = 918273): TripPlan {
   const itinerary = buildItinerary(PERSONA_INPUT)
