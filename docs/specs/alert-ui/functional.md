@@ -4,7 +4,7 @@ target_paths:
   - packages/schema/
   - packages/alert-ui/
   - edge/detector/tests/test_schema_contract.py
-spec_confirmed_at: 378a605
+spec_confirmed_at: 9fecde3
 tier: 2
 ---
 

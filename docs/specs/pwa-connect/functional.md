@@ -4,7 +4,7 @@ target_paths:
   - apps/pwa/src/features/connect/
   - apps/pwa/src/app/
   - apps/pwa/scripts/fake-edge.mjs
-spec_confirmed_at: 7a68248
+spec_confirmed_at: 9fecde3
 tier: 1
 ---
 
