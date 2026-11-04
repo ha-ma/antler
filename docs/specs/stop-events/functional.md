@@ -14,7 +14,7 @@ target_paths:
   - apps/api/src/infrastructure/http/schemas/stop-deck.schema.ts
   - apps/api/src/infrastructure/http/schemas/trip-event.schema.ts
   - apps/sim/src/features/stop-events/
-spec_confirmed_at: fc970a2
+spec_confirmed_at: 527faca
 tier: 2
 ---
 
