@@ -1,0 +1,6 @@
+{
+  "verified": false,
+  "note": "A-6 のキャンセル額の概算に使う 1 人あたりの単価。出典が無い仮の値（functional.md R3 の Deferred、担当=ユーザー、期日 2026-11-08）。verified:false のあいだ画面は「概算」と書く。税込かどうかも出典と一緒に決める。",
+  "lodgingPerPersonNightJPY": 15000,
+  "experiencePerPersonJPY": 8000
+}

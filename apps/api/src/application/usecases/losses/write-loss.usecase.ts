@@ -52,6 +52,9 @@ export type WriteLossDeps = {
   dailyWriterCallLimit: number
 }
 
+/** 保存する行の、文と時刻を除いた部分（鍵・旅・記述子） */
+type LossKey = Pick<StoredLoss, 'keyHash' | 'tripId' | 'collision'>
+
 export class WriteLossUseCase {
   /** 鍵ごとの処理中の要求（single-flight。1 プロセス前提は同時の枠と同じ） */
   private readonly inFlight = new Map<string, Promise<WriteLossOutput>>()
@@ -75,21 +78,14 @@ export class WriteLossUseCase {
       days,
       collision,
     })
-    const task = this.findOrCreate(
-      {
-        keyHash,
-        tripId,
-        collision,
-        story: { ja: '', en: '', zh: '', ko: '' },
-        createdAtMs: 0,
-      },
-      brief,
-    ).finally(() => this.inFlight.delete(keyHash))
+    const task = this.findOrCreate({ keyHash, tripId, collision }, brief).finally(() =>
+      this.inFlight.delete(keyHash),
+    )
     this.inFlight.set(keyHash, task)
     return task
   }
 
-  private async findOrCreate(draft: StoredLoss, brief: LossBrief): Promise<WriteLossOutput> {
+  private async findOrCreate(draft: LossKey, brief: LossBrief): Promise<WriteLossOutput> {
     const { losses, clock, log } = this.deps
     const existing = await losses.findLoss(draft.keyHash)
     if (existing) {
