@@ -101,6 +101,7 @@ def requests(n: int = 3) -> list[JudgeRequest]:
 # ---- 統計 ----
 
 
+# BEN-1a
 def test_percentile_and_summary() -> None:
     values = [10.0, 20.0, 30.0, 40.0, 50.0]
     assert bench.percentile(values, 50) == 30.0
@@ -114,6 +115,7 @@ def test_percentile_and_summary() -> None:
     json.dumps(empty, allow_nan=False)
 
 
+# CMP-1e
 def test_ece() -> None:
     assert bench.ece([]) is None
     assert bench.ece([(1.0, True), (1.0, True)]) == 0.0
@@ -125,6 +127,7 @@ def test_ece() -> None:
 # ---- 計測 ----
 
 
+# BEN-1b BEN-1c
 def test_bench_without_yolo_counts_failures_and_models() -> None:
     client = FakeClient([answer(), unavailable("timeout"), answer(model="other")])
     bench_cfg = bench.Bench("http://127.0.0.1:1", 800, n=6, warmup=1, interval_ms=0)
@@ -140,6 +143,7 @@ def test_bench_without_yolo_counts_failures_and_models() -> None:
     assert "l0_alone" not in report
 
 
+# BEN-2a
 def test_bench_with_yolo_measures_fps_drop() -> None:
     client = FakeClient([answer()], delay=0.01)
     detector = ContendedDetector(client)
@@ -154,6 +158,7 @@ def test_bench_with_yolo_measures_fps_drop() -> None:
     json.dumps(report, allow_nan=False)
 
 
+# BEN-2b
 def test_bench_with_yolo_within_limit() -> None:
     client = FakeClient([answer()], delay=0.005)
     cfg = bench.Bench("http://127.0.0.1:1", 800, n=10, warmup=0, interval_ms=0, yolo_seconds=0.3)
@@ -164,6 +169,7 @@ def test_bench_with_yolo_within_limit() -> None:
     assert report["l0_alone"]["frames"] > 0
 
 
+# BEN-2c
 def test_detector_errors_are_counted_not_raised() -> None:
     client = FakeClient([answer()])
     cfg = bench.Bench(
@@ -188,6 +194,7 @@ def test_detector_errors_are_counted_not_raised() -> None:
 # ---- 比較 ----
 
 
+# CMP-1a
 def test_rule_answer_uses_track_only() -> None:
     lane = bench.rule_answer(request_dict(pos="lane"))
     assert lane["alert_level"] == ("danger", 1.0)
@@ -200,6 +207,7 @@ def test_rule_answer_uses_track_only() -> None:
     assert bench.rule_answer(request_dict())["false_positive"] == (False, 1.0)
 
 
+# CMP-1b
 def test_compare_scores_rule_and_systems() -> None:
     examples = [example(), example(fp=True), example(level="zone", on_roadway=True, pos="lane")]
     client = FakeClient([answer(levels={"none": 0.0, "zone": 0.0, "danger": 1.0})])
@@ -216,6 +224,7 @@ def test_compare_scores_rule_and_systems() -> None:
     json.dumps(report, allow_nan=False)
 
 
+# CMP-1c
 def test_compare_counts_failures() -> None:
     client = FakeClient([unavailable("timeout")])
     report = asyncio.run(bench.run_compare([example()], ["m"], client, warmup=0))
@@ -235,6 +244,7 @@ def loader(count: int, seed: int) -> list[dict]:
     return [example() for _ in range(count)]
 
 
+# DAC-1
 def test_main_writes_json_and_table(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     server = JevServer(body=jev_body())
     out = tmp_path / "bench.json"
@@ -255,6 +265,7 @@ def test_main_writes_json_and_table(tmp_path: Path, capsys: pytest.CaptureFixtur
     assert printed.startswith("{")
 
 
+# BEN-2d
 def test_main_with_model_uses_detector_factory(capsys: pytest.CaptureFixture[str]) -> None:
     server = JevServer(body=jev_body())
     seen: list[tuple[Config, Path]] = []
@@ -288,6 +299,7 @@ def test_main_with_model_uses_detector_factory(capsys: pytest.CaptureFixture[str
     assert "併走" in capsys.readouterr().out
 
 
+# CMP-1d
 def test_main_compare_from_labels_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     labels = tmp_path / "labels.jsonl"
     labels.write_text("\n".join(json.dumps(example()) for _ in range(4)) + "\n", encoding="utf-8")
@@ -324,6 +336,7 @@ def test_main_compare_with_other_model_answering_is_invalid(
     assert "無効" in captured.out
 
 
+# BEN-1d
 def test_main_l1_unreachable_is_exit_3(capsys: pytest.CaptureFixture[str]) -> None:
     client = FakeClient([unavailable("connect")])
     code = bench.main(
@@ -343,6 +356,7 @@ def test_main_rejects_bad_numbers(argv: list[str]) -> None:
     assert bench.main(argv, examples_loader=loader) == 2
 
 
+# BEN-3a
 def test_main_input_errors(tmp_path: Path) -> None:
     assert bench.main(["--labels", str(tmp_path / "none.jsonl")]) == 2
     bad = tmp_path / "bad.jsonl"
@@ -357,6 +371,7 @@ def test_main_input_errors(tmp_path: Path) -> None:
     assert remote == 2  # ループバック以外へは送らない
 
 
+# BEN-1e
 def test_environment_is_json() -> None:
     env = bench.environment()
     json.dumps(env, allow_nan=False)
@@ -366,6 +381,7 @@ def test_environment_is_json() -> None:
 # ---- spec-adversary の指摘 ----
 
 
+# ADV-4
 def test_warmup_retries_until_first_success_and_keeps_failures() -> None:
     client = FakeClient([unavailable("timeout"), unavailable("timeout"), answer()])
     run = asyncio.run(bench.run_l1(client, requests(), n=2, warmup=3))
@@ -389,6 +405,7 @@ def test_warmup_uses_its_own_client() -> None:
     assert len(main_client.requests) == 2
 
 
+# ADV-2
 def test_overlap_with_dead_l1_is_not_a_pass() -> None:
     # 単独では答え、YOLO と併走する区間では L1 が落ちる(OOM など): YOLO は負荷なしで回る
     client = FakeClient([answer()] * 5 + [unavailable("connect")])
@@ -402,6 +419,7 @@ def test_overlap_with_dead_l1_is_not_a_pass() -> None:
     assert bench._problem({"mode": "bench", **report}) is not None
 
 
+# ADV-6
 def test_l0_errors_are_per_window() -> None:
     cfg = bench.Bench(
         "http://127.0.0.1:1",
@@ -434,6 +452,7 @@ def test_compare_reports_coverage_and_accuracy_with_failures_counted_wrong() -> 
     assert report["systems"]["llm-qwen2.5-1.5b"]["valid"] is True
 
 
+# ADV-3
 def test_compare_system_answered_by_other_model_is_invalid() -> None:
     client = FakeClient([answer(model="llm-qwen2.5-1.5b")])
     report = asyncio.run(bench.run_compare([example()], ["nli-deberta-large"], client, warmup=0))
@@ -496,6 +515,7 @@ def test_main_with_dead_overlap_exits_3(capsys: pytest.CaptureFixture[str]) -> N
 # ---- edge-latency-reviewer / code-reviewer の指摘 ----
 
 
+# ADV-7
 def test_p95_with_failures_counted_as_timeout() -> None:
     # 5 回中 2 回が 800 ms で落ちた: 成功だけの p95 は低く見える。タイムアウトを混ぜた p95 を並べる
     client = FakeClient([answer(), answer(), unavailable("timeout"), unavailable("timeout")])
@@ -544,6 +564,7 @@ def test_yolo_errors_invalidate_the_fps_verdict() -> None:
     assert verdict["fps_drop_ok"] is False
 
 
+# ADV-8
 def test_scenarios_zero_and_empty_loader_are_input_errors() -> None:
     assert bench.main(["--scenarios", "0"], examples_loader=loader) == 2
     assert bench.main([], examples_loader=lambda n, seed: []) == 2

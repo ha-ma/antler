@@ -63,6 +63,7 @@ def verify(names: str | None, outputs: dict) -> dict:
     )
 
 
+# EXP-1c
 def test_verify_accepts_l0_readable_model() -> None:
     report = verify("{0: 'deer'}", GOOD)
     assert report["names"] == ["deer"]
@@ -71,6 +72,7 @@ def test_verify_accepts_l0_readable_model() -> None:
     assert report["outputs_expected"] == ["confidence", "coordinates"]
 
 
+# EXP-1d
 def test_verify_rejects_model_without_deer() -> None:
     with pytest.raises(ex.ExportError, match="l0 の読み方で読めない"):
         verify("{0: 'person'}", GOOD)
@@ -113,6 +115,7 @@ def run_export(tmp_path: Path, **kw: object) -> tuple[dict, FakeWorld]:
     return report, world
 
 
+# EXP-1a
 def test_export_sets_classes_exports_with_nms_and_moves(tmp_path: Path) -> None:
     report, world = run_export(tmp_path)
     assert world.classes == ["deer"]
@@ -130,6 +133,7 @@ def test_export_sets_classes_exports_with_nms_and_moves(tmp_path: Path) -> None:
     assert report["names_patched"] is False
 
 
+# EXP-1b
 def test_export_refuses_to_overwrite_without_force(tmp_path: Path) -> None:
     run_export(tmp_path)
     with pytest.raises(ex.ExportError, match="既にある"):
@@ -177,6 +181,7 @@ def test_main_reports_export_failure(
     "argv",
     [["--conf", "0.5"], ["--conf", "0"], ["--classes", "fox"]],
 )
+# EXP-1f
 def test_main_rejects_inputs(argv: list[str]) -> None:
     assert ex.main(argv) == 2
 
@@ -209,6 +214,7 @@ def install_fake_coremltools(monkeypatch: pytest.MonkeyPatch, metadata: dict[str
     monkeypatch.setitem(sys.modules, "coremltools", module)
 
 
+# EXP-1e
 def test_ensure_names_patches_only_when_unreadable(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -258,6 +264,7 @@ def verify_spec(declared: list[str], outputs: dict, image: object = None) -> dic
     return ex.verify(Path("m.mlpackage"), ["deer"], loader=load, prepare=lambda i: i, image=image)
 
 
+# ADV-1
 def test_verify_checks_declared_outputs_even_when_nothing_is_detected() -> None:
     # 黒い画像では 0 件で、l0 は形を見ない。宣言の名前で落とす
     with pytest.raises(ex.ExportError, match="出力の名前が l0 の読み方と合わない"):
@@ -277,6 +284,7 @@ def test_verify_checks_shape_with_a_detecting_image() -> None:
         verify_spec(["confidence", "coordinates"], bad, image=np.zeros((480, 640, 3)))
 
 
+# ADV-5
 def test_export_runs_inside_out_dir_so_weights_land_there(tmp_path: Path) -> None:
     seen: list[str] = []
 
@@ -343,6 +351,7 @@ def test_ultralytics_errors_become_export_errors(tmp_path: Path) -> None:
         ex.export(out_dir=tmp_path / "m", model_factory=lambda w: Boom(tmp_path))
 
 
+# ADV-8
 def test_force_keeps_the_old_model_when_verification_fails(tmp_path: Path) -> None:
     run_export(tmp_path)
     target = tmp_path / "models" / "yolov8s-worldv2-deer.mlpackage"

@@ -15,6 +15,7 @@ def load_entry():
     return module
 
 
+# CMP-1f
 def test_synthetic_examples_are_labelled_judge_requests() -> None:
     rows = load_entry().synthetic_examples(6, 7)
     assert len(rows) == 6
