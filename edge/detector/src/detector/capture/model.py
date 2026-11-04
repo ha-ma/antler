@@ -120,17 +120,21 @@ def build_capture(
     l1_probs: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     """検出つきのフレームから Capture（consent は false。同意は走行後に PWA が決める）を作る。"""
-    boxes: list[dict[str, object]] = []
-    best_height, best_center_x = -1.0, 0.5
+    # 有効な検出を全部集め、高さの降順（同じなら確信度の降順）で BOX_LIMIT 件に絞る。
+    # 距離と方向は最も大きく写った検出から。検出器の出力順に依存しない
+    valid: list[tuple[float, float, list[float], float]] = []
     for d in detections:
         if d.label != "deer" or not math.isfinite(d.conf) or d.conf < min_box_conf:
             continue
         xywh = _box(d)
-        if xywh is None or len(boxes) >= BOX_LIMIT:
-            continue
-        boxes.append({"label": "deer", "xywh": xywh, "by": "model"})
-        if d.xywh[3] > best_height:
-            best_height, best_center_x = d.xywh[3], d.xywh[0]
+        if xywh is not None:
+            valid.append((d.xywh[3], d.conf, xywh, d.xywh[0]))
+    valid.sort(key=lambda v: (v[0], v[1]), reverse=True)
+    top = valid[:BOX_LIMIT]
+    boxes: list[dict[str, object]] = [
+        {"label": "deer", "xywh": xywh, "by": "model"} for _, _, xywh, _ in top
+    ]
+    best_height, best_center_x = (top[0][0], top[0][3]) if top else (-1.0, 0.5)
     local = t_frame.astimezone(JST)
     capture: dict[str, object] = {
         "id": capture_id,

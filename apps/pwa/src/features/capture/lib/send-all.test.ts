@@ -10,7 +10,7 @@ import {
   type BackendOptions,
 } from '../__tests__/fake-edge'
 import { createEdgeApi } from './edge-api'
-import { sendAll, type SendProgress, type SendTotals } from './send-all'
+import { createLedger, sendAll, type SendProgress } from './send-all'
 import { uploadCapture } from './upload'
 
 function setup(options: BackendOptions) {
@@ -23,12 +23,14 @@ function setup(options: BackendOptions) {
   })
   const sleep = vi.fn((_ms: number) => Promise.resolve())
   const progress: SendProgress[] = []
-  const run = (consent: boolean, carry?: SendTotals) =>
+  // 「もう一度」をまたぐ記録。同じ setup の run は同じ記録を渡し続ける（画面の useSend と同じ）
+  const ledger = createLedger()
+  const run = (consent: boolean) =>
     sendAll({
       consent,
       edge,
       sleep,
-      ...(carry ? { carry } : {}),
+      ledger,
       upload: (capture, image) =>
         uploadCapture({ baseUrl: API_BASE, capture, image, fetch: backend.fetch }),
       onProgress: (p) => progress.push(p),
@@ -39,9 +41,9 @@ function setup(options: BackendOptions) {
 const created: ApiBehavior = (call) =>
   jsonResponse(201, { id: call.capture.id, image: call.capture.image })
 const status =
-  (code: number, headers: Record<string, string> = {}): ApiBehavior =>
+  (code: number, headers: Record<string, string> = {}, errorCode = 'X'): ApiBehavior =>
   () =>
-    jsonResponse(code, { error: { code: 'X', message: 'x' } }, headers)
+    jsonResponse(code, { error: { code: errorCode, message: 'x' } }, headers)
 
 /** 同じ id は 2 回目から 200（Idempotent-Replayed）を返す api */
 function idempotentApi(): ApiBehavior {
@@ -167,7 +169,7 @@ describe('sendAll（P3）', () => {
     expect(backend.state.items.map((i) => i.uploaded)).toEqual([true, false, false])
 
     offline = false
-    const second = await run(true, first)
+    const second = await run(true)
     expect(second).toEqual({ provided: 3, failed: 0, removed: 0, stopped: null })
     expect(backend.apiCalls.map((c) => c.capture.id)).toEqual([
       captureId(1),
@@ -353,8 +355,9 @@ describe('sendAll（P3）', () => {
     expect(first).toEqual({ provided: 1, failed: 0, removed: 0, stopped: 'edge' })
     expect(backend.state.items[0]?.uploaded).toBe(false)
 
-    const second = await run(true, first)
-    expect(second).toEqual({ provided: 2, failed: 0, removed: 0, stopped: null })
+    const second = await run(true)
+    // 同じ id の再送は 200（replayed）。提供は id の集合なので 1 件のまま（二重に数えない）
+    expect(second).toEqual({ provided: 1, failed: 0, removed: 0, stopped: null })
     expect(backend.apiCalls).toHaveLength(2)
     expect(backend.state.items[0]?.uploaded).toBe(true)
   })

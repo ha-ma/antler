@@ -150,7 +150,27 @@ def test_STO_1i_提供しないは未送信の画像とJSONを消す(store: Capt
     assert store.set_consent(["cap_000000000001"], False) == 0
 
 
-def test_STO_1j_保持期間を過ぎた未送信は消え送信済みと期間内は残る(tmp_path: Path) -> None:
+def test_STO_1i_JSONを消せなければ消したと答えず索引にも残す(
+    store: CaptureStore, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store.save(make_capture(1), JPEG)
+    real_unlink = Path.unlink
+
+    def failing(self: Path, missing_ok: bool = False) -> None:
+        if self.suffix == ".json":
+            msg = "read-only"
+            raise PermissionError(msg)
+        real_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", failing)
+    assert store.set_consent(["cap_000000000001"], False) == 0  # 消せなかった
+    assert store.list()[1] == 1  # 次の起動で復活して食い違わないよう、索引にも残る
+    monkeypatch.undo()
+    assert store.set_consent(["cap_000000000001"], False) == 1  # 直ったら消える
+    assert store.list() == ([], 0)
+
+
+def test_STO_1j_保持期間を過ぎたものは送信済みでも消え期間内は残る(tmp_path: Path) -> None:
     created = datetime(2027, 2, 15, 16, 30, 0, tzinfo=JST)
     clock = {"now": created + timedelta(hours=1)}
     store = CaptureStore(
@@ -165,15 +185,18 @@ def test_STO_1j_保持期間を過ぎた未送信は消え送信済みと期間�
     assert store.list()[1] == 3
     clock["now"] = created + timedelta(hours=25)
     items, total = store.list()
-    assert sorted(i["capture"]["id"] for i in items) == ["cap_000000000002", "cap_000000000003"]
-    assert total == 2
-    assert not (tmp_path / "captures" / "cap_000000000001.jpg").exists()
+    # 送信済み（2）も保持期間で消える。借り手が替わった車に前の画像を残さない
+    assert [i["capture"]["id"] for i in items] == ["cap_000000000003"]
+    assert total == 1
+    for gone in ("cap_000000000001", "cap_000000000002"):
+        assert not (tmp_path / "captures" / f"{gone}.jpg").exists()
+        assert not (tmp_path / "captures" / f"{gone}.uploaded").exists()
     # 起動時にも掃除される
     clock["now"] = created + timedelta(hours=60)
     again = CaptureStore(
         tmp_path / "captures", max_items=50, retention_hours=24, now=lambda: clock["now"]
     )
-    assert [i["capture"]["id"] for i in again.list()[0]] == ["cap_000000000002"]
+    assert again.list() == ([], 0)
 
 
 def test_STO_1k_長さ0や途中で切れたJSONは一覧に出ずpendingは未送信だけ(tmp_path: Path) -> None:

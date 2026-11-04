@@ -59,6 +59,13 @@ class Response:
     headers: dict[str, str] = field(default_factory=dict)
 
 
+def _to_int(text: str) -> int | None:
+    """ASCII の数字だけの文字列を整数に（`"²"` など isdigit() が True の文字で落とさない）。"""
+    if not text or not text.isascii() or not text.isdigit():
+        return None
+    return int(text)
+
+
 def _json(status: int, payload: object) -> Response:
     body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
     return Response(status, body, {"Content-Type": "application/json; charset=utf-8"})
@@ -209,9 +216,10 @@ class CaptureApi:
         limit = DEFAULT_LIMIT
         if "limit" in query:
             raw = query["limit"][-1]
-            if not raw.isdigit() or not 1 <= int(raw) <= MAX_LIMIT:
+            limit_value = _to_int(raw)
+            if limit_value is None or not 1 <= limit_value <= MAX_LIMIT:
                 return _error(400, "INVALID_INPUT", f"limit は 1〜{MAX_LIMIT}")
-            limit = int(raw)
+            limit = limit_value
         items, total = self._store.list(limit, pending=pending)
         return _json(200, {"items": items, "total": total, "idleSeconds": self._idle()})
 
@@ -225,14 +233,14 @@ class CaptureApi:
         content_type = h.get("content-type", "").split(";", 1)[0].strip().lower()
         if content_type != "application/json":
             return _error(415, "UNSUPPORTED_MEDIA_TYPE", "application/json で送ってください")
-        declared = h.get("content-length", "")
-        if not declared.isdigit():
+        declared = _to_int(h.get("content-length", ""))
+        if declared is None:
             return _error(411, "LENGTH_REQUIRED", "Content-Length が要ります")
-        if int(declared) > MAX_BODY_BYTES or len(body) > MAX_BODY_BYTES:
+        if declared > MAX_BODY_BYTES or len(body) > MAX_BODY_BYTES:
             return _error(413, "PAYLOAD_TOO_LARGE", "本文が大きすぎます")
         try:
             payload = json.loads(body.decode("utf-8"))
-        except (UnicodeDecodeError, ValueError):
+        except (UnicodeDecodeError, ValueError, RecursionError):  # 深い入れ子も 400
             return _error(400, "INVALID_INPUT", "JSON を読めません")
         ids, consent = _parse_ids(payload, with_consent=name == "consent")
         if ids is None:
@@ -347,10 +355,10 @@ def _make_handler(
                 return
 
         def _serve(self) -> None:
-            length = self.headers.get("Content-Length", "")
+            length = _to_int(self.headers.get("Content-Length", ""))
             body = b""
-            if self.command == "POST" and length.isdigit() and 0 < int(length) <= MAX_BODY_BYTES:
-                body = self.rfile.read(int(length))
+            if self.command == "POST" and length is not None and 0 < length <= MAX_BODY_BYTES:
+                body = self.rfile.read(length)
             response = api.handle(self.command, self.path, dict(self.headers.items()), body)
             self.send_response(response.status)
             for key, value in response.headers.items():

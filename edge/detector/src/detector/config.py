@@ -139,7 +139,7 @@ class CaptureConfig:
     max_items: int = 2000
     queue_size: int = 8
     l1_attach_window_s: float = 3.0  # l1Probs を付ける、答えの前後の秒数
-    retention_hours: int = 24  # 未送信をこの時間で消す（借り手が替わった車に残さない）
+    retention_hours: int = 24  # この時間でどれも消す（送信済みも。借り手が替わった車に残さない）
 
 
 @dataclass(frozen=True)

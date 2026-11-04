@@ -97,6 +97,17 @@ def test_CAP_1c_距離と方向は最も大きい検出から_boxesは8件まで
     assert len(only_good["boxes"]) == 1
 
 
+def test_CAP_1c_9件目だけが最大でも距離と方向はそれから取る() -> None:
+    # 検出器の出力順に依らず、高さの降順で 8 件に絞る（9 件目の最大の検出を捨てない）
+    small = [Detection("deer", 0.9, (0.9, 0.5, 0.04, 0.05)) for _ in range(8)]
+    biggest = Detection("deer", 0.5, (0.2, 0.5, 0.1, 0.2))
+    capture = _build([*small, biggest])
+    assert len(capture["boxes"]) == BOX_LIMIT
+    assert capture["boxes"][0]["xywh"][3] == pytest.approx(0.2)  # 高さの降順
+    assert capture["distanceM"] == 8
+    assert capture["side"] == "L"
+
+
 def test_CAP_1d_知れない欄の既定値() -> None:
     capture = _build()
     conditions = capture["conditions"]

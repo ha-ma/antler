@@ -2,10 +2,10 @@
 
 /** capture 欄（JSON 文字列）の上限（バイト） */
 export const CAPTURE_JSON_MAX_BYTES = 8 * 1024
-/** 画像 1 枚の上限（バイト） */
-export const CAPTURE_IMAGE_MAX_BYTES = 1024 * 1024
-/** リクエスト本文の上限（バイト）。画像 1 MB ＋ multipart の枠と Capture */
-export const CAPTURE_BODY_MAX_BYTES = 1.25 * 1024 * 1024
+/** 画像 1 枚の上限（バイト）。320 px の JPEG は数十 KB、sim の 1280×720 の JPEG は 100〜300 KB */
+export const CAPTURE_IMAGE_MAX_BYTES = 512 * 1024
+/** リクエスト本文の上限（バイト）。画像 512 KiB ＋ multipart の枠と Capture */
+export const CAPTURE_BODY_MAX_BYTES = 640 * 1024
 /** 画像の一辺の下限・上限（px） */
 export const CAPTURE_IMAGE_MIN_PX = 16
 export const CAPTURE_IMAGE_MAX_PX = 2048

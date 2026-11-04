@@ -146,8 +146,8 @@ class CaptureStore:
                 if capture is None:
                     continue
                 if not consent:
-                    self._delete(capture_id)
-                    changed += 1
+                    if self._delete(capture_id):
+                        changed += 1
                     continue
                 if capture.get("consent") is True:
                     continue
@@ -216,31 +216,38 @@ class CaptureStore:
                 tmp.unlink(missing_ok=True)
             raise
 
-    def _delete(self, capture_id: str) -> None:
-        """JSON を先に消す（完成のしるしが先に無くなる）。画像・しるしの失敗は無視する。"""
+    def _delete(self, capture_id: str) -> bool:
+        """JSON を先に消す（完成のしるしが先に無くなる）。消せたら True。
+
+        JSON が消せなければ索引にも残して False（「消した」と答えて次の起動で復活させない）。
+        画像・しるしの失敗は記録して続ける（JSON が無ければ一覧に出ず、起動時に片づく）。
+        """
         for suffix in (".json", ".jpg", ".uploaded"):
-            with contextlib.suppress(OSError):
+            try:
                 (self._dir / f"{capture_id}{suffix}").unlink(missing_ok=True)
+            except OSError as exc:
+                logger.warning("capture.failed", extra={"error_type": type(exc).__name__})
+                if suffix == ".json":
+                    return False
         self._index.pop(capture_id, None)
         self._uploaded.discard(capture_id)
+        return True
 
     def _evict(self) -> None:
         """max_items を超えたら、送信済みの古いものから（無ければ全体で古いものから）消す。"""
         while len(self._index) > self._max:
             by_age = sorted(self._index, key=lambda i: (str(self._index[i].get("createdAt")), i))
             victim = next((i for i in by_age if i in self._uploaded), by_age[0])
-            self._delete(victim)
+            if not self._delete(victim):
+                return  # 消せない（権限など）。無限に回らない。次の保存でまた試す
             logger.info("capture.evicted", extra={"id": victim})
 
     def _expire(self) -> None:
-        """保持期間を過ぎた未送信を消す（createdAt が読めないものは消さない）。"""
+        """保持期間を過ぎたものを送信済みでも消す（createdAt が読めないものは消さない）。"""
         cutoff = self._now() - self._retention
         for capture_id in list(self._index):
-            if capture_id in self._uploaded:
-                continue
             created = _parse_time(self._index[capture_id].get("createdAt"))
-            if created is not None and created < cutoff:
-                self._delete(capture_id)
+            if created is not None and created < cutoff and self._delete(capture_id):
                 logger.info("capture.expired", extra={"id": capture_id})
 
     def _load(self) -> None:

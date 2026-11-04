@@ -88,14 +88,14 @@ Story: 運転手として、鹿が出た場面の写真を、あとで自分で�
   - 上限 `max_items`（既定 2000）。超えたら**送信済みのうち古いもの**から、無ければ全体で古いものから消す（`capture.evicted`）。1 枚約 20〜40 KB なので 2000 枚で約 60 MB
   - 壊れた JSON（長さ 0・途中で切れたものを含む）・画像の無い JSON・JSON の無い画像は一覧に出さず、起動時に孤児の一時ファイルと JSON の無い画像を片づける。fsync してから置く（電源断で中身の無い JSON を完成品にしない）
   - 同意の更新（`set_consent(ids, consent)`）: `true` は JSON の `consent` だけを書き換える。送信済みのしるしがあるものは変えない。**`false`（提供しない）は画像・JSON を消す**（推奨で決定。断ったものが次の起動でまた出ない・次の人に出ない。spec-adversary C1）。再び同意を尋ねるのは新しい検知フレームだけ
-  - **保持期間** `retention_hours`（既定 24、1〜168）: 起動時と一覧のたびに、`createdAt` からこの時間を過ぎた**未送信**のものを消す（`capture.expired`）。借り手が替わった車や、送られないまま溜まった画像を無期限に持たない（推奨で決定）。送信済みは `max_items` の上限で消えるまで残る（edge の手元の記録）
+  - **保持期間** `retention_hours`（既定 24、1〜168）: 起動時と一覧のたびに、`createdAt` からこの時間を過ぎたものを、**送信済みでも**消す（`capture.expired`）。借り手が替わった車に前の画像を残さない（送信済みを残すと、同じ AP の端末が consent・uploaded の順に打って保持期間を迂回できる。security-auditor W2。推奨で決定）
   - 一覧の絞り込み: `pending`（送信済みでないもの）だけを返せる。保存先の `max_per_run`（300）が一覧の上限（200）を超えても、PWA は繰り返し取って全部を扱える
 - E5: PWA 向けの HTTP（`CaptureServer`）。別ポート（`capture_server.port`、既定 8767、host は `server.host` と同じ考え方で既定はループバック。車載では AP の LAN のアドレス）
   - `GET /captures?pending=1&limit=200` → `{"items":[{"capture": Capture, "uploaded": bool}], "total": n, "idleSeconds": s | null}`（新しい順。`limit` は既定 200・最大 500。`pending=1` は未送信だけ。`idleSeconds` は P1 の走行中の判定に使う、最後にフレームを受け取ってからの秒で、まだ 1 枚も受け取っていなければ `null`）
   - `GET /captures/{id}/image` → `image/jpeg`
   - `POST /captures/consent` ← `{"consent": bool, "ids": ["cap_…", …]}`（ids は 1〜200 件）→ `{"updated": n}`（`consent:false` は E4 のとおり消した件数）
   - `POST /captures/uploaded` ← `{"ids": [...]}` → `{"updated": n}`（送信済みのしるしを付ける。同意のあるものだけ）
-  - それ以外のパスは 404、メソッド違いは 405。POST の本文は 8 KB まで・`Content-Type: application/json` だけ（それ以外は 415）。同時の接続は 8 まで（超えたら 503）。接続ごとに 5 秒で打ち切る。接続は保たない（`Connection: close`）。一覧はメモリの索引から返し、ディスクを走査しない（走行中でも検知を邪魔しない）
+  - それ以外のパスは 404、メソッド違いは 405。POST の本文は 8 KB まで・`Content-Type: application/json` だけ（それ以外は 415）。同時の接続は 8 まで（超えたら 503）。読み書き 1 回ごとに 5 秒で打ち切る（1 バイトずつ送り続けて枠を握り続けられる点は、車内 WPA2 の LAN が前提なので許容する。edge-capture のレビュー W10）。接続は保たない（`Connection: close`）。一覧はメモリの索引から返し、ディスクを走査しない（走行中でも検知を邪魔しない）
   - **Host の検査（DNS rebinding）**: `Host` ヘッダのホスト名が **IP アドレスのリテラル・`localhost`・`ezoroad.local`** のどれかでなければ 421（外部のページが自分のドメインを車内の IP に向けても読めない）。ポートは見ない（spec-adversary W1）
   - **ブラウザの別サイトから叩かれない**: `Origin` ヘッダがあるリクエストは、次のどちらかのときだけ許す: (a) `capture_server.allowed_origins` に載っている、(b) **オリジンのホスト名が `Host` のホスト名と同じ**（PWA を同じ機器の別ポートで配信するとき。既定の空の許可リストでも動く）。許したときだけ `Access-Control-Allow-Origin`（そのオリジンを返す）と `Vary: Origin` を付ける。許さない Origin（`null` を含む）の POST は 403。`Origin` が無い（ブラウザ以外）リクエストは通す。GET は許さない Origin に CORS ヘッダを付けない（ブラウザは中身を読めない。画像の `<img>` 表示は CORS の対象外）
   - **OPTIONS（preflight）**: 許す Origin には 204 と `Access-Control-Allow-Methods: GET, POST`・`Access-Control-Allow-Headers: Content-Type`・`Access-Control-Max-Age: 600`。許さない Origin には 403。Chrome の Private Network Access のために `Access-Control-Allow-Private-Network: true` を許す Origin にだけ返す
@@ -244,15 +244,15 @@ Story: 運転手として、鹿が出た場面の写真を、あとで自分で�
 
 ## 非機能要件
 
-- [ ] 赤の経路: `offer` の追加の遅延は 1 フレームあたり 1 ms 未満（縮小のコピーだけ）。JPEG 変換・書き込みは別スレッド。キューが溢れても赤は遅れない
-- [ ] 個人情報: Capture と api のログに氏名・メール・電話・端末識別子・緯度経度が出ない。位置は `roadSegment` だけ。車内を写すカメラの経路が無い
-- [ ] 同意: `consent: false` の Capture は PWA から api に送られず、api も受けない（二重の確認）
-- [ ] 画像: 1 枚 1 MB 以下（320 px の JPEG は約 20〜40 KB）。メタデータを持つ画像を保存しない
-- [ ] 決定性: `id`・時刻・乱数・エンコーダは注入できる（テストで同じ結果になる）
-- [ ] 保存の上限: edge は `max_items`（2000）、api は `CAPTURES_MAX_ITEMS`（50,000）
-- [ ] 依存を足さない（edge: numpy と標準ライブラリ、api と PWA: npm の追加なし）
-- [ ] edge の ruff（print 禁止・Any 禁止・秘密の直書き禁止）と pytest のカバレッジ 70% 以上。api・PWA の lint・typecheck・カバレッジ 70% 以上
-- [ ] 色は tokens の変数だけ、絵文字なし、アイコンはインライン SVG、4 言語が欠けない
+- [x] 赤の経路: `offer` の追加の遅延は 1 フレームあたり 1 ms 未満（縮小のコピーだけ）。JPEG 変換・書き込みは別スレッド。キューが溢れても赤は遅れない
+- [x] 個人情報: Capture と api のログに氏名・メール・電話・端末識別子・緯度経度が出ない。位置は `roadSegment` だけ。車内を写すカメラの経路が無い
+- [x] 同意: `consent: false` の Capture は PWA から api に送られず、api も受けない（二重の確認）
+- [x] 画像: 1 枚 1 MB 以下（320 px の JPEG は約 20〜40 KB）。メタデータを持つ画像を保存しない
+- [x] 決定性: `id`・時刻・乱数・エンコーダは注入できる（テストで同じ結果になる）
+- [x] 保存の上限: edge は `max_items`（2000）、api は `CAPTURES_MAX_ITEMS`（50,000）
+- [x] 依存を足さない（edge: numpy と標準ライブラリ、api と PWA: npm の追加なし）
+- [x] edge の ruff（print 禁止・Any 禁止・秘密の直書き禁止）と pytest のカバレッジ 70% 以上。api・PWA の lint・typecheck・カバレッジ 70% 以上
+- [x] 色は tokens の変数だけ、絵文字なし、アイコンはインライン SVG、4 言語が欠けない
 
 ## Questions（Deferred のみ残存可）
 
@@ -287,154 +287,154 @@ Story: 運転手として、鹿が出た場面の写真を、あとで自分で�
 
 外側ループ（受け入れ）:
 
-- [ ] AC-1: 合成のフレーム（検出つき）を `CaptureService` に流すと、Capture と 320 px の JPEG が保存され、`GET /captures` に出て、画像が取れ、同意を付けると `consent: true` になり、送信済みにすると一覧の `uploaded` が true になる。赤の判定の結果は保存の有無・失敗に影響されない
-- [ ] AC-2: api に multipart の Capture と画像を POST すると 201 でファイルに保存され、同じものの再送は 200（Idempotent-Replayed）、同じ id で中身が違えば 409、`consent: false` は 422 で何も保存されない
-- [ ] AC-3: PWA に偽の edge（2 件、うち 1 件は consent 後に送れない状態）と偽の api を渡すと、重ねた画面に件数・チェック（ON）・サムネイルが出て、「送る」で同意した分だけが api に multipart で届き、edge の送信済みが更新され、回線切れでは未送信のまま「もう一度」が出る
+- [x] AC-1: 合成のフレーム（検出つき）を `CaptureService` に流すと、Capture と 320 px の JPEG が保存され、`GET /captures` に出て、画像が取れ、同意を付けると `consent: true` になり、送信済みにすると一覧の `uploaded` が true になる。赤の判定の結果は保存の有無・失敗に影響されない
+- [x] AC-2: api に multipart の Capture と画像を POST すると 201 でファイルに保存され、同じものの再送は 200（Idempotent-Replayed）、同じ id で中身が違えば 409、`consent: false` は 422 で何も保存されない
+- [x] AC-3: PWA に偽の edge（2 件、うち 1 件は consent 後に送れない状態）と偽の api を渡すと、重ねた画面に件数・チェック（ON）・サムネイルが出て、「送る」で同意した分だけが api に multipart で届き、edge の送信済みが更新され、回線切れでは未送信のまま「もう一度」が出る
 
 UC-1 Capture の組み立て:
 
-- [ ] CAP-1a: 検出つきのフレームから作った Capture が `packages/schema/json/capture.schema.json` に通る（`l1Probs` あり・なしの両方）
-- [ ] CAP-1b: `xywh` は中心基準から左上基準に変わり、0〜1 に収まる（端にはみ出す検出も）
-- [ ] CAP-1c: `distanceM` と `side` は最も大きい検出から。検出が 9 件以上でも `boxes` は 8 件まで
-- [ ] CAP-1d: 知れない欄の既定値（weather・surface・traffic・vehicle・pose は `unknown`、fog は `none`、outcome は `avoided`、reactionMs は null）、`consent` は false、`source` は `vehicle`
-- [ ] CAP-1e: `roadSegment` は提供元の値。例外・空・座標のような文字列（`43.1,144.3`）・形違いは `unknown`
-- [ ] CAP-1f: キーに個人情報・緯度経度が無い（キーの集合が CaptureSchema の欄と一致）
-- [ ] CAP-1g: `id` は `cap_` + 16 進 12 桁で、乱数の差し込みで決定的
-- [ ] CAP-1h: `createdAt` は `t_frame` の JST、`month`・`season` はそこから（12 月と 2 月は冬、3 月は春）
+- [x] CAP-1a: 検出つきのフレームから作った Capture が `packages/schema/json/capture.schema.json` に通る（`l1Probs` あり・なしの両方）
+- [x] CAP-1b: `xywh` は中心基準から左上基準に変わり、0〜1 に収まる（端にはみ出す検出も）
+- [x] CAP-1c: `distanceM` と `side` は最も大きい検出から。検出が 9 件以上でも `boxes` は 8 件まで
+- [x] CAP-1d: 知れない欄の既定値（weather・surface・traffic・vehicle・pose は `unknown`、fog は `none`、outcome は `avoided`、reactionMs は null）、`consent` は false、`source` は `vehicle`
+- [x] CAP-1e: `roadSegment` は提供元の値。例外・空・座標のような文字列（`43.1,144.3`）・形違いは `unknown`
+- [x] CAP-1f: キーに個人情報・緯度経度が無い（キーの集合が CaptureSchema の欄と一致）
+- [x] CAP-1g: `id` は `cap_` + 16 進 12 桁で、乱数の差し込みで決定的
+- [x] CAP-1h: `createdAt` は `t_frame` の JST、`month`・`season` はそこから（12 月と 2 月は冬、3 月は春）
 
 UC-2 光の区分:
 
-- [ ] LIGHT-1a: 2 月の道東で 6:30 は dawn、7:30 と 12:00 は day、16:30 は dusk、20:00 は night
-- [ ] LIGHT-1c: [ADDED] タイムゾーンが違っても同じ瞬間なら同じ区分
-- [ ] LIGHT-1d: [ADDED] タイムゾーン無しの日時は拒否する
-- [ ] LIGHT-1b: `@antler/zones` の `lightPeriod` と同じ値（固定の日時 8 点を TS の実行結果と同じ値で確かめる。6 月の 4:00 は dawn、19:00 は dusk、12 月の 15:30 は dusk・17:30 は night など）
+- [x] LIGHT-1a: 2 月の道東で 6:30 は dawn、7:30 と 12:00 は day、16:30 は dusk、20:00 は night
+- [x] LIGHT-1c: [ADDED] タイムゾーンが違っても同じ瞬間なら同じ区分
+- [x] LIGHT-1d: [ADDED] タイムゾーン無しの日時は拒否する
+- [x] LIGHT-1b: `@antler/zones` の `lightPeriod` と同じ値（固定の日時 8 点を TS の実行結果と同じ値で確かめる。6 月の 4:00 は dawn、19:00 は dusk、12 月の 15:30 は dusk・17:30 は night など）
 
 UC-3 何を保存するか:
 
-- [ ] REC-1a: 確信度 0.8 以上の検出があるフレームは保存の対象、0.79 以下・検出なし・`failed`・全部不正・画像なしは対象外
-- [ ] REC-1b: 2 秒未満の間隔の 2 枚目は保存しない（t_frame で測る）。2 秒ちょうどは保存する
-- [ ] REC-1c: `max_per_run` に達したら保存しない（ログに 1 回）
-- [ ] REC-1d: キューが満杯なら捨てて数える（`capture.dropped`）。`offer` は待たない（書き込みが止まったエンコーダでも即戻る）
-- [ ] REC-1e: ワーカーが例外を出しても次を処理する。20 回連続で `capture.degraded`、成功で回復
-- [ ] REC-1f: 保存したあとの JPEG の幅が `image_width`、高さが 4:3、`imageSize` と一致する
-- [ ] REC-1g: `close()` はキューを吐き出してから止まる。2 回呼んでも壊れない
-- [ ] REC-1i: t_frame が前回より戻ったら（時計の巻き戻し）、その枚を保存して基準を置き直す。追いつくまで止まらない
-- [ ] REC-1j: `idle_seconds()` はフレームを受け取るたび（保存しなくても）0 に戻り、1 枚も受け取っていなければ `None`
-- [ ] REC-1l: [ADDED] `offer` の同期の仕事は中央値 1 ms 未満（縮小と変換はワーカー。edge-latency-reviewer W1）
-- [ ] REC-1k: [ADDED] id が衝突したら（すでに同じ id の Capture がある）作り直して保存する
-- [ ] REC-1h: ログに `capture.saved`（id・t_frame・encode_ms・write_ms）が出て、画像・Capture の中身は出ない
+- [x] REC-1a: 確信度 0.8 以上の検出があるフレームは保存の対象、0.79 以下・検出なし・`failed`・全部不正・画像なしは対象外
+- [x] REC-1b: 2 秒未満の間隔の 2 枚目は保存しない（t_frame で測る）。2 秒ちょうどは保存する
+- [x] REC-1c: `max_per_run` に達したら保存しない（ログに 1 回）
+- [x] REC-1d: キューが満杯なら捨てて数える（`capture.dropped`）。`offer` は待たない（書き込みが止まったエンコーダでも即戻る）
+- [x] REC-1e: ワーカーが例外を出しても次を処理する。20 回連続で `capture.degraded`、成功で回復
+- [x] REC-1f: 保存したあとの JPEG の幅が `image_width`、高さが 4:3、`imageSize` と一致する
+- [x] REC-1g: `close()` はキューを吐き出してから止まる。2 回呼んでも壊れない
+- [x] REC-1i: t_frame が前回より戻ったら（時計の巻き戻し）、その枚を保存して基準を置き直す。追いつくまで止まらない
+- [x] REC-1j: `idle_seconds()` はフレームを受け取るたび（保存しなくても）0 に戻り、1 枚も受け取っていなければ `None`
+- [x] REC-1l: [ADDED] `offer` の同期の仕事は中央値 1 ms 未満（縮小と変換はワーカー。edge-latency-reviewer W1）
+- [x] REC-1k: [ADDED] id が衝突したら（すでに同じ id の Capture がある）作り直して保存する
+- [x] REC-1h: ログに `capture.saved`（id・t_frame・encode_ms・write_ms）が出て、画像・Capture の中身は出ない
 
 UC-4 L1 の確率:
 
-- [ ] L1P-1a: 答えの前後 3 秒以内に offer された保存（保存前・保存済み）に `l1Probs` が付き、`CaptureSchema`（L1ProbsSchema）に通る
-- [ ] L1P-1b: 3 秒より離れた保存には付けない。すでに `l1Probs` があるものは書き換えない
-- [ ] L1P-1c: NaN・無限大・範囲外を含む答えは付けない
-- [ ] L1P-1d: 付けた値は校正前の生の確率（校正を当てた値ではない）
-- [ ] L1P-1e: `run_l1` の観察者が答えごとに呼ばれ、観察者が例外を出しても L1 の動作（降格・ログ）は変わらない。観察者なしの動作は今までと同じ
-- [ ] L1P-1f: `fresh = false`（エピソードが変わった答え）は使わない。観察者（`on_l1_answer`）はディスクに触れずに戻る（書き込みが止まったストアでも即戻る）
+- [x] L1P-1a: 答えの前後 3 秒以内に offer された保存（保存前・保存済み）に `l1Probs` が付き、`CaptureSchema`（L1ProbsSchema）に通る
+- [x] L1P-1b: 3 秒より離れた保存には付けない。すでに `l1Probs` があるものは書き換えない
+- [x] L1P-1c: NaN・無限大・範囲外を含む答えは付けない
+- [x] L1P-1d: 付けた値は校正前の生の確率（校正を当てた値ではない）
+- [x] L1P-1e: `run_l1` の観察者が答えごとに呼ばれ、観察者が例外を出しても L1 の動作（降格・ログ）は変わらない。観察者なしの動作は今までと同じ
+- [x] L1P-1f: `fresh = false`（エピソードが変わった答え）は使わない。観察者（`on_l1_answer`）はディスクに触れずに戻る（書き込みが止まったストアでも即戻る）
 
 UC-5 ローカルの保存:
 
-- [ ] STO-1a: 保存すると `{id}.jpg`・`{id}.json` ができ、JSON が最後。一覧は JSON のあるものだけ。権限が 0700/0600
-- [ ] STO-1b: `id` が `..`・`/`・大文字・長さ違いなら拒否（パスに使わない）
-- [ ] STO-1c: 壊れた JSON・画像の無い JSON・JSON の無い画像は一覧に出ない。起動時に孤児の一時ファイルと JSON の無い画像を消す
-- [ ] STO-1d: `set_consent(true)` は送信済みのものを変えない。存在しない id は数えない
-- [ ] STO-1i: `set_consent(false)` は未送信の画像・JSON を消す（一覧・画像の取得から消える）。送信済みは消さない
-- [ ] STO-1j: 保持期間（`retention_hours`）を過ぎた未送信は起動時と一覧のたびに消え、送信済みと期間内のものは残る
-- [ ] STO-1h: [ADDED] 同じ id は二度保存できない（`StoreError`）
-- [ ] STO-1k: 長さ 0・途中で切れた JSON は一覧に出ない。`pending` の絞り込みは未送信だけを返す
-- [ ] STO-1e: `max_items` を超えると送信済みの古いものから消え、無ければ古いものから消える
-- [ ] STO-1f: 書き込みの途中で失敗しても、JSON ができない（完成品に見えない）。一時ファイルを残さない
-- [ ] STO-1g: `l1Probs` の書き足しが `os.replace` で原子的（読み手が途中の JSON を見ない）
+- [x] STO-1a: 保存すると `{id}.jpg`・`{id}.json` ができ、JSON が最後。一覧は JSON のあるものだけ。権限が 0700/0600
+- [x] STO-1b: `id` が `..`・`/`・大文字・長さ違いなら拒否（パスに使わない）
+- [x] STO-1c: 壊れた JSON・画像の無い JSON・JSON の無い画像は一覧に出ない。起動時に孤児の一時ファイルと JSON の無い画像を消す
+- [x] STO-1d: `set_consent(true)` は送信済みのものを変えない。存在しない id は数えない
+- [x] STO-1i: `set_consent(false)` は未送信の画像・JSON を消す（一覧・画像の取得から消える）。送信済みは消さない
+- [x] STO-1j: 保持期間（`retention_hours`）を過ぎた未送信は起動時と一覧のたびに消え、送信済みと期間内のものは残る
+- [x] STO-1h: [ADDED] 同じ id は二度保存できない（`StoreError`）
+- [x] STO-1k: 長さ 0・途中で切れた JSON は一覧に出ない。`pending` の絞り込みは未送信だけを返す
+- [x] STO-1e: `max_items` を超えると送信済みの古いものから消え、無ければ古いものから消える
+- [x] STO-1f: 書き込みの途中で失敗しても、JSON ができない（完成品に見えない）。一時ファイルを残さない
+- [x] STO-1g: `l1Probs` の書き足しが `os.replace` で原子的（読み手が途中の JSON を見ない）
 
 UC-6 HTTP:
 
-- [ ] HTTP-1a: `GET /captures` が新しい順で、`uploaded` を含み、最大 200 件・`total` つき
-- [ ] HTTP-1b: `GET /captures/{id}/image` が `image/jpeg` でバイト列を返す。不正な id・存在しない id は 404（パスを返さない）
-- [ ] HTTP-1c: `POST /captures/consent` と `POST /captures/uploaded` の本文の検証（ids 0 件・201 件・不正な id・型違い → 400、JSON 以外の Content-Type → 415、8 KB 超 → 413）
-- [ ] HTTP-1d: Origin: 許可リストにあるオリジンは ACAO と preflight（OPTIONS）が返る。無いオリジンの POST は 403、GET は CORS ヘッダ無し。Origin 無しは通る
-- [ ] HTTP-1e: 同時接続が 8 を超えたら 503。遅い接続は 5 秒で切れる
-- [ ] HTTP-1f: 未知のパス 404、メソッド違い 405。応答にファイルパス・例外文が無い
-- [ ] HTTP-1g: 実際にソケットで待ち受けて（`port=0`）、標準の HTTP クライアントで一覧が取れる
-- [ ] HTTP-1h: `Host` が IP リテラル・`localhost`・`ezoroad.local` 以外（`evil.example`）なら 421。ポートは見ない
-- [ ] HTTP-1i: `allowed_origins` が空でも、`Host` と同じホスト名のオリジン（別ポート）は許す。`Origin: null`・別ホストは 403。許したときだけ ACAO と `Vary: Origin`
-- [ ] HTTP-1j: OPTIONS（preflight）は許す Origin に 204 と許可ヘッダ、許さない Origin に 403
-- [ ] HTTP-1k: `GET /captures?pending=1&limit=N` は未送信だけ、`limit` は最大 500、`idleSeconds` を含む。`POST /captures/consent {consent:false}` は消した件数を返す
+- [x] HTTP-1a: `GET /captures` が新しい順で、`uploaded` を含み、最大 200 件・`total` つき
+- [x] HTTP-1b: `GET /captures/{id}/image` が `image/jpeg` でバイト列を返す。不正な id・存在しない id は 404（パスを返さない）
+- [x] HTTP-1c: `POST /captures/consent` と `POST /captures/uploaded` の本文の検証（ids 0 件・201 件・不正な id・型違い → 400、JSON 以外の Content-Type → 415、8 KB 超 → 413）
+- [x] HTTP-1d: Origin: 許可リストにあるオリジンは ACAO と preflight（OPTIONS）が返る。無いオリジンの POST は 403、GET は CORS ヘッダ無し。Origin 無しは通る
+- [x] HTTP-1e: 同時接続が 8 を超えたら 503。遅い接続は 5 秒で切れる
+- [x] HTTP-1f: 未知のパス 404、メソッド違い 405。応答にファイルパス・例外文が無い
+- [x] HTTP-1g: 実際にソケットで待ち受けて（`port=0`）、標準の HTTP クライアントで一覧が取れる
+- [x] HTTP-1h: `Host` が IP リテラル・`localhost`・`ezoroad.local` 以外（`evil.example`）なら 421。ポートは見ない
+- [x] HTTP-1i: `allowed_origins` が空でも、`Host` と同じホスト名のオリジン（別ポート）は許す。`Origin: null`・別ホストは 403。許したときだけ ACAO と `Vary: Origin`
+- [x] HTTP-1j: OPTIONS（preflight）は許す Origin に 204 と許可ヘッダ、許さない Origin に 403
+- [x] HTTP-1k: `GET /captures?pending=1&limit=N` は未送信だけ、`limit` は最大 500、`idleSeconds` を含む。`POST /captures/consent {consent:false}` は消した件数を返す
 
 UC-7 つなぎと設定:
 
-- [ ] WIRE-1a: `wrap(results)` は結果をそのままの順で返し、`offer` は結果を返した**あと**に呼ばれる。`offer` が例外でもイテレータは続く
-- [ ] WIRE-1b: `capture.enabled = false` で `from_config` は `None`
-- [ ] WIRE-1c: `process_frames` が成功したフレームの `FrameResult.image` に 640×480 を付ける。失敗したフレームは付けない。`FrameResult` の等しさは画像に影響されない
-- [ ] CFG-1a: `[capture]`・`[capture_server]` の既定値と範囲（image_width 160〜640、jpeg_quality 50〜95、trigger_conf 0.4〜1、min_interval_s 0.5〜60、max_per_run 1〜10000、max_items 10〜20000、queue_size 1〜64、port 1〜65535）。外れたら `ConfigError`
-- [ ] CFG-1b: `capture_server.allowed_origins` は `http(s)://host[:port]` の形だけ（`*`・パス付き・空文字は拒否）
-- [ ] CFG-1c: `capture.trigger_conf` は `tracker.min_conf` 以上にする。`config.example.toml` に両セクションがある
-- [ ] CFG-1d: `capture.retention_hours` は 1〜168（既定 24）
+- [x] WIRE-1a: `wrap(results)` は結果をそのままの順で返し、`offer` は結果を返した**あと**に呼ばれる。`offer` が例外でもイテレータは続く
+- [x] WIRE-1b: `capture.enabled = false` で `from_config` は `None`
+- [x] WIRE-1c: `process_frames` が成功したフレームの `FrameResult.image` に 640×480 を付ける。失敗したフレームは付けない。`FrameResult` の等しさは画像に影響されない
+- [x] CFG-1a: `[capture]`・`[capture_server]` の既定値と範囲（image_width 160〜640、jpeg_quality 50〜95、trigger_conf 0.4〜1、min_interval_s 0.5〜60、max_per_run 1〜10000、max_items 10〜20000、queue_size 1〜64、port 1〜65535）。外れたら `ConfigError`
+- [x] CFG-1b: `capture_server.allowed_origins` は `http(s)://host[:port]` の形だけ（`*`・パス付き・空文字は拒否）
+- [x] CFG-1c: `capture.trigger_conf` は `tracker.min_conf` 以上にする。`config.example.toml` に両セクションがある
+- [x] CFG-1d: `capture.retention_hours` は 1〜168（既定 24）
 
 UC-8 POST /api/captures:
 
-- [ ] API-1a: 正しい multipart（JPEG・sim と vehicle の 2 つ）が 201 で、`{id, image}`。ファイルが保存される（JSON の `image` はサーバーが決めたパス）
-- [ ] API-1b: 同じものの再送は 200 と `Idempotent-Replayed: true`。保存は 1 つのまま
-- [ ] API-1c: 同じ `id` で中身（Capture か画像）が違えば 409 `CAPTURE_CONFLICT`。既存のファイルは変わらない
-- [ ] API-1d: `consent: false` は 422 `CONSENT_REQUIRED`。何も保存されない
-- [ ] API-1e: `capture` が無い・`image` が無い・JSON でない・スキーマ違反・知らない欄（`email`・`lat`）は 400 `INVALID_INPUT`
-- [ ] API-1f: クライアントの `image` のパス（`/etc/passwd`・`../x.jpg`）は使われず、サーバーが決めたパスで保存される（`image` の形が合わなければスキーマで 400）
-- [ ] API-1g: 本文が 1.25 MB を超えたら 413。`capture` が 8 KB を超えたら 400
-- [ ] API-1h: 1 分 60 件を超えたら 429
-- [ ] API-1i: 保存件数が上限なら 503 `STORE_FULL`。上限の判定は件数の数え直しなしでも正しい（保存のたびに増える）
-- [ ] API-1j: 同じ `id` の同時の 2 リクエストで、保存されるのは片方だけ（もう片方は 200 か 409）
-- [ ] API-1k: ログに Capture の本文・roadSegment・画像が出ない（`id`・`source`・大きさ・status だけ）
-- [ ] API-1l: CORS: 許可したオリジンに ACAO が返る
-- [ ] API-1m: `id` が 41 文字以上は 400。`cap_A` と `cap_a` は同じ key（同じ本文なら 200、違えば 409）
-- [ ] API-1n: `capture` がファイルで来る・`image` が文字列で来る・同じ名前の欄が 2 つ → 400。ほかの欄は無視される
-- [ ] API-1o: 画像の合計が `CAPTURES_MAX_BYTES` を超えたら 503。実ファイル名は `{key}-{sha 先頭12桁}.{ext}`、JSON の `file` がそれを指し、`capture.image` は論理のパス
+- [x] API-1a: 正しい multipart（JPEG・sim と vehicle の 2 つ）が 201 で、`{id, image}`。ファイルが保存される（JSON の `image` はサーバーが決めたパス）
+- [x] API-1b: 同じものの再送は 200 と `Idempotent-Replayed: true`。保存は 1 つのまま
+- [x] API-1c: 同じ `id` で中身（Capture か画像）が違えば 409 `CAPTURE_CONFLICT`。既存のファイルは変わらない
+- [x] API-1d: `consent: false` は 422 `CONSENT_REQUIRED`。何も保存されない
+- [x] API-1e: `capture` が無い・`image` が無い・JSON でない・スキーマ違反・知らない欄（`email`・`lat`）は 400 `INVALID_INPUT`
+- [x] API-1f: クライアントの `image` のパス（`/etc/passwd`・`../x.jpg`）は使われず、サーバーが決めたパスで保存される（`image` の形が合わなければスキーマで 400）
+- [x] API-1g: 本文が 1.25 MB を超えたら 413。`capture` が 8 KB を超えたら 400
+- [x] API-1h: 1 分 60 件を超えたら 429
+- [x] API-1i: 保存件数が上限なら 503 `STORE_FULL`。上限の判定は件数の数え直しなしでも正しい（保存のたびに増える）
+- [x] API-1j: 同じ `id` の同時の 2 リクエストで、保存されるのは片方だけ（もう片方は 200 か 409）
+- [x] API-1k: ログに Capture の本文・roadSegment・画像が出ない（`id`・`source`・大きさ・status だけ）
+- [x] API-1l: CORS: 許可したオリジンに ACAO が返る
+- [x] API-1m: `id` が 41 文字以上は 400。`cap_A` と `cap_a` は同じ key（同じ本文なら 200、違えば 409）
+- [x] API-1n: `capture` がファイルで来る・`image` が文字列で来る・同じ名前の欄が 2 つ → 400。ほかの欄は無視される
+- [x] API-1o: 画像の合計が `CAPTURES_MAX_BYTES` を超えたら 503。実ファイル名は `{key}-{sha 先頭12桁}.{ext}`、JSON の `file` がそれを指し、`capture.image` は論理のパス
 
 UC-9 画像の検証:
 
-- [ ] IMG-1a: 最小の JPEG（JFIF）と PNG の寸法を読める
-- [ ] IMG-1b: 先頭のバイトが JPEG/PNG でない（ファイル名や Content-Type が jpg でも）→ 拒否
-- [ ] IMG-1c: 寸法が `imageSize` と違う → 拒否
-- [ ] IMG-1d: JPEG に Exif（APP1）・XMP・コメント（COM）→ 拒否。PNG に `eXIf`・`tEXt`・`iTXt`・`tIME` → 拒否。JFIF（APP0）だけ・PNG の許可チャンクだけは通る
-- [ ] IMG-1e: 途中で切れた・SOF が無い・IHDR が無い・チャンク長が本文を超える → 拒否（例外ではなく結果として）
-- [ ] IMG-1f: EOI（`FF D9`）・IEND の後ろに 1 バイトでも付いている画像、JFXX や 2 つ目の APP0、0×0 でない JFIF のサムネイルは拒否。寸法が 16 未満・2048 超は拒否
+- [x] IMG-1a: 最小の JPEG（JFIF）と PNG の寸法を読める
+- [x] IMG-1b: 先頭のバイトが JPEG/PNG でない（ファイル名や Content-Type が jpg でも）→ 拒否
+- [x] IMG-1c: 寸法が `imageSize` と違う → 拒否
+- [x] IMG-1d: JPEG に Exif（APP1）・XMP・コメント（COM）→ 拒否。PNG に `eXIf`・`tEXt`・`iTXt`・`tIME` → 拒否。JFIF（APP0）だけ・PNG の許可チャンクだけは通る
+- [x] IMG-1e: 途中で切れた・SOF が無い・IHDR が無い・チャンク長が本文を超える → 拒否（例外ではなく結果として）
+- [x] IMG-1f: EOI（`FF D9`）・IEND の後ろに 1 バイトでも付いている画像、JFXX や 2 つ目の APP0、0×0 でない JFIF のサムネイルは拒否。寸法が 16 未満・2048 超は拒否
 
 UC-10 PWA:
 
-- [ ] GATE-1a: 3 秒以内に未送信が 1 件以上取れ、`idleSeconds` が `null` か 60 秒以上のときだけ画面が重なる。0 件・取得の失敗・3 秒超過・`idleSeconds` が 60 秒未満（走行中の再読み込み）では重ならない（B-0 だけ）
-- [ ] GATE-1f: `VITE_API_BASE_URL` が無ければ（送り先が無いので）何も描かない
-- [ ] GATE-1b: 画面に件数・サムネイル（最大 6 枚）・チェック（初期 ON）・主ボタン「送る」・「あとで」が出る。チェックを外すと主ボタンが「提供しない」になる
-- [ ] GATE-1c: 「あとで」で閉じると B-0 が見える。何も送らない・edge の状態を変えない
-- [ ] GATE-1d: 4 言語（ja・en・zh・ko）の表に欠けが無い。主文は端末の言語
-- [ ] GATE-1e: ボタンとチェックは 44 px 以上のタッチターゲット、アイコンのみのボタンに `aria-label`、絵文字なし
-- [ ] UP-1a: OFF で「提供しない」→ edge に `consent:false` を送り、api には何も送らない
-- [ ] UP-1b: ON で「送る」→ edge に `consent:true` →画像を取る → api に multipart（`capture`・`image`）→ 成功した id だけ edge に送信済みを送る
-- [ ] UP-1c: `isUploadable` でない Capture（壊れた形）は api に送らず失敗に数える
-- [ ] UP-1d: ネットワークの失敗・5xx で止めて残りは未送信のまま「もう一度」が出る。「もう一度」で続きから（送信済みは飛ばす）
-- [ ] UP-1e: 400・409・413・422 はその 1 件を失敗に数え、edge に `consent:false`（削除）を送って未送信から外し、続ける
-- [ ] UP-1i: 429 は `Retry-After`（最大 65 秒）を待って同じ 1 件をもう一度送る。それでも 429 なら止めて「混み合っています」（回線の文言ではない）。404・405 は「送り先に届きませんでした」で止める
-- [ ] UP-1j: 200 件を超える未送信はページを繰り返して全部扱う。同意の POST が失敗したら api に何も送らない。一覧を取り直して `consent === true` のものだけを送る
-- [ ] UP-1k: OFF で「提供しない」は edge に `consent:false`（削除）を送る
-- [ ] UP-1f: api へのリクエストが `credentials: 'omit'`・`referrerPolicy: 'no-referrer'`、本文は Capture の JSON と画像だけ（位置・識別子なし）
-- [ ] UP-1g: `uploadCapture` が PWA・sim のどちらにも依存せず、`fetch` を差し込める。欄名が `capture`・`image`
-- [ ] UP-1h: 進み具合「n / N」と完了の文言が出る
-- [ ] URL-1a: edge の Capture サーバーの URL は WebSocket のホストと同じで、ポートは 8767（`?edge=host:port` の host だけを使う）。api の URL は `VITE_API_BASE_URL`（必須。無ければ送り先が無いので画面を出さない）
-- [ ] CSP-1a: 本番ビルドの CSP の `connect-src` に edge の `http://ezoroad.local:8767` と `VITE_API_BASE_URL` のオリジン、`img-src` に edge の 8767 が入る。`VITE_API_BASE_URL` が無ければ api は足さない。`script-src` などほかの指示は変わらない
+- [x] GATE-1a: 3 秒以内に未送信が 1 件以上取れ、`idleSeconds` が `null` か 60 秒以上のときだけ画面が重なる。0 件・取得の失敗・3 秒超過・`idleSeconds` が 60 秒未満（走行中の再読み込み）では重ならない（B-0 だけ）
+- [x] GATE-1f: `VITE_API_BASE_URL` が無ければ（送り先が無いので）何も描かない
+- [x] GATE-1b: 画面に件数・サムネイル（最大 6 枚）・チェック（初期 ON）・主ボタン「送る」・「あとで」が出る。チェックを外すと主ボタンが「提供しない」になる
+- [x] GATE-1c: 「あとで」で閉じると B-0 が見える。何も送らない・edge の状態を変えない
+- [x] GATE-1d: 4 言語（ja・en・zh・ko）の表に欠けが無い。主文は端末の言語
+- [x] GATE-1e: ボタンとチェックは 44 px 以上のタッチターゲット、アイコンのみのボタンに `aria-label`、絵文字なし
+- [x] UP-1a: OFF で「提供しない」→ edge に `consent:false` を送り、api には何も送らない
+- [x] UP-1b: ON で「送る」→ edge に `consent:true` →画像を取る → api に multipart（`capture`・`image`）→ 成功した id だけ edge に送信済みを送る
+- [x] UP-1c: `isUploadable` でない Capture（壊れた形）は api に送らず失敗に数える
+- [x] UP-1d: ネットワークの失敗・5xx で止めて残りは未送信のまま「もう一度」が出る。「もう一度」で続きから（送信済みは飛ばす）
+- [x] UP-1e: 400・409・413・422 はその 1 件を失敗に数え、edge に `consent:false`（削除）を送って未送信から外し、続ける
+- [x] UP-1i: 429 は `Retry-After`（最大 65 秒）を待って同じ 1 件をもう一度送る。それでも 429 なら止めて「混み合っています」（回線の文言ではない）。404・405 は「送り先に届きませんでした」で止める
+- [x] UP-1j: 200 件を超える未送信はページを繰り返して全部扱う。同意の POST が失敗したら api に何も送らない。一覧を取り直して `consent === true` のものだけを送る
+- [x] UP-1k: OFF で「提供しない」は edge に `consent:false`（削除）を送る
+- [x] UP-1f: api へのリクエストが `credentials: 'omit'`・`referrerPolicy: 'no-referrer'`、本文は Capture の JSON と画像だけ（位置・識別子なし）
+- [x] UP-1g: `uploadCapture` が PWA・sim のどちらにも依存せず、`fetch` を差し込める。欄名が `capture`・`image`
+- [x] UP-1h: 進み具合「n / N」と完了の文言が出る
+- [x] URL-1a: edge の Capture サーバーの URL は WebSocket のホストと同じで、ポートは 8767（`?edge=host:port` の host だけを使う）。api の URL は `VITE_API_BASE_URL`（必須。無ければ送り先が無いので画面を出さない）
+- [x] CSP-1a: 本番ビルドの CSP の `connect-src` に edge の `http://ezoroad.local:8767` と `VITE_API_BASE_URL` のオリジン、`img-src` に edge の 8767 が入る。`VITE_API_BASE_URL` が無ければ api は足さない。`script-src` などほかの指示は変わらない
 
 認可（threat.md の ❌ セルごとに 1 項目。認可は無いので「拒否する検査」）:
 
-- [ ] AUTH-1: `consent: false` の Capture は api が 422 `CONSENT_REQUIRED` で受けず、何も保存しない
-- [ ] AUTH-2: すでにある `id` で中身が違うものは 409 で、既存のファイルが変わらない
-- [ ] AUTH-3: 知らない欄・個人情報のキー・`image` に絶対パスや `../` を入れた Capture は 400。保存されるパスはサーバーが決めたもの
-- [ ] AUTH-4: メタデータ付きの画像・寸法違いの画像・画像でないものは 400 `INVALID_IMAGE`
-- [ ] AUTH-5: 1 分 61 件目は 429、保存件数が上限なら 503 `STORE_FULL`
-- [ ] AUTH-6: `GET /api/captures`・`GET /api/captures/{id}`・`DELETE /api/captures/{id}` は 404（口が無い）
-- [ ] AUTH-7: edge の `GET /captures` は許可リストに無い Origin に ACAO を付けない（許可リストが空なら CORS ヘッダ無し）
-- [ ] AUTH-8: edge の `POST /captures/consent`・`/captures/uploaded` は許可リストに無い Origin なら 403、`text/plain` や `multipart/form-data` なら 415
-- [ ] AUTH-9: 送信済みのしるしがある Capture の `consent` は `POST /captures/consent` で変わらない
-- [ ] AUTH-10: edge の画像・JSON に `..`・`/`・絶対パスの id を渡すと 404（ファイルシステムに触れない）
-- [ ] AUTH-11: edge は 8 KB を超える本文を 413、同時 9 接続目を 503 にする
-- [ ] AUTH-12: PWA は OFF なら api に何も送らず、ON でも `isUploadable` でない Capture は送らない
-- [ ] AUTH-13: edge は `Host` が IP リテラル・`localhost`・`ezoroad.local` 以外（DNS rebinding）なら 421 で、一覧も画像も返さない
+- [x] AUTH-1: `consent: false` の Capture は api が 422 `CONSENT_REQUIRED` で受けず、何も保存しない
+- [x] AUTH-2: すでにある `id` で中身が違うものは 409 で、既存のファイルが変わらない
+- [x] AUTH-3: 知らない欄・個人情報のキー・`image` に絶対パスや `../` を入れた Capture は 400。保存されるパスはサーバーが決めたもの
+- [x] AUTH-4: メタデータ付きの画像・寸法違いの画像・画像でないものは 400 `INVALID_IMAGE`
+- [x] AUTH-5: 1 分 61 件目は 429、保存件数が上限なら 503 `STORE_FULL`
+- [x] AUTH-6: `GET /api/captures`・`GET /api/captures/{id}`・`DELETE /api/captures/{id}` は 404（口が無い）
+- [x] AUTH-7: edge の `GET /captures` は許可リストに無い Origin に ACAO を付けない（許可リストが空なら CORS ヘッダ無し）
+- [x] AUTH-8: edge の `POST /captures/consent`・`/captures/uploaded` は許可リストに無い Origin なら 403、`text/plain` や `multipart/form-data` なら 415
+- [x] AUTH-9: 送信済みのしるしがある Capture の `consent` は `POST /captures/consent` で変わらない
+- [x] AUTH-10: edge の画像・JSON に `..`・`/`・絶対パスの id を渡すと 404（ファイルシステムに触れない）
+- [x] AUTH-11: edge は 8 KB を超える本文を 413、同時 9 接続目を 503 にする
+- [x] AUTH-12: PWA は OFF なら api に何も送らず、ON でも `isUploadable` でない Capture は送らない
+- [x] AUTH-13: edge は `Host` が IP リテラル・`localhost`・`ezoroad.local` 以外（DNS rebinding）なら 421 で、一覧も画像も返さない
 
 トレーサビリティ:
 
@@ -450,8 +450,8 @@ UC-10 PWA:
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-1・AC-2・AC-3 が Green
-- [ ] 全 UC / 全状態パターンのテストが Green、既存テストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（edge: ruff、api・PWA: lint・typecheck）
+- [x] 受け入れテスト AC-1・AC-2・AC-3 が Green
+- [x] 全 UC / 全状態パターンのテストが Green、既存テストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（edge: ruff、api・PWA: lint・typecheck）
 - [ ] alert-contract-guard・security-auditor・edge-latency-reviewer・code-reviewer の Critical 0

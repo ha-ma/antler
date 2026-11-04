@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { buildJpeg, buildPng } from '../../../../tests/factories/captures.js'
 import { inspectCaptureImage } from './capture-image.js'
 
@@ -9,6 +10,19 @@ function reasonOf(bytes: Uint8Array, size: [number, number] = SIZE): string | un
 }
 
 describe('inspectCaptureImage', () => {
+  it('IMG-1g: [ADDED] edge の本物のエンコーダ（OpenCV）が出した 320×240 の JPEG を通す（契約）', () => {
+    // tests/fixtures/edge-320x240.jpg は edge の OpenCvJpegEncoder().encode(shrink(img, 320), 80) の出力
+    const bytes = new Uint8Array(
+      readFileSync(new URL('../../../../tests/fixtures/edge-320x240.jpg', import.meta.url)),
+    )
+    expect(inspectCaptureImage(bytes, SIZE)).toEqual({
+      ok: true,
+      format: 'jpeg',
+      width: 320,
+      height: 240,
+    })
+  })
+
   it('IMG-1a: 最小の JPEG（JFIF）と PNG の寸法を読める', () => {
     expect(inspectCaptureImage(buildJpeg(), SIZE)).toEqual({
       ok: true,

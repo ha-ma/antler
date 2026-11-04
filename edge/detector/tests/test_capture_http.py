@@ -126,8 +126,32 @@ def test_HTTP_1b_画像はimage_jpegで返し不正や存在しないidは404で
     for bad in ("cap_0000000000ff", "..", "%2e%2e", "cap_ABCDEF012345", f"{ID1}%2f..%2f.."):
         status, _, body = call(api, "GET", f"/captures/{bad}/image")
         assert status == 404, bad
-        assert b"/" not in jbody(body)["error"]["message"].encode() or True
+        message = jbody(body)["error"]["message"]
+        assert "/" not in message  # パスや入力を返さない
+        assert bad not in message
     assert call(api, "GET", "/captures/../etc/passwd")[0] == 404
+
+
+def test_HTTP_1c_深いJSONの入れ子は400で500にならない(store: CaptureStore) -> None:
+    api = api_for(store)
+    nested = b"[" * 4000 + b"]" * 4000
+    status, _, _ = call(
+        api, "POST", "/captures/consent", content_type="application/json", body=nested
+    )
+    assert status == 400
+
+
+def test_HTTP_1c_isdigitがTrueでもintにできない文字で500にならない(store: CaptureStore) -> None:
+    api = api_for(store)
+    # "²".isdigit() は True だが int("²") は ValueError。400 と 411 になる（500 や例外にしない）
+    assert call(api, "GET", "/captures?limit=%C2%B2")[0] == 400
+    assert call(api, "GET", "/captures?limit=２")[0] == 400  # 全角
+    status, _, _ = call(
+        api, "POST", "/captures/consent", content_type="application/json", body=b"{}", length=None
+    )
+    assert status != 500
+    headers = {"host": "ezoroad.local", "content-type": "application/json", "content-length": "²"}
+    assert api.handle("POST", "/captures/consent", headers, b"{}").status == 411
 
 
 def test_HTTP_1c_POSTの本文の検証(store: CaptureStore) -> None:
@@ -436,19 +460,34 @@ def test_AUTH_11_同時接続の9つ目は503_遅い接続は打ち切られる(
         sock = socket.create_connection(("127.0.0.1", port), timeout=3)
         sock.sendall(b"GET /captures HTTP/1.0\r\nHost: 127.0.0.1\r\n")  # 空行を送らず握る
         held.append(sock)
-    threading.Event().wait(0.3)
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
-    conn.request("GET", "/captures")
-    assert conn.getresponse().status == 503
-    conn.close()
-    # 握ったままの接続は timeout（1 秒）で切れ、そのあとはまた受けられる
-    threading.Event().wait(1.5)
+
+    def status_now() -> int:
+        conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+        try:
+            conn.request("GET", "/captures")
+            return conn.getresponse().status
+        finally:
+            conn.close()
+
+    # サーバーの 8 つのスロットが埋まるまで少し待つ（負荷が高くても 503 になるまで確かめる）
+    status = 0
+    for _ in range(40):
+        status = status_now()
+        if status == 503:
+            break
+        threading.Event().wait(0.05)
+    assert status == 503
+    # 握ったままの接続は、こちらが閉じなくてもサーバーが timeout（1 秒）で切る
+    held[0].settimeout(4)
+    assert held[0].recv(1) == b""
+    for _ in range(40):
+        if status_now() == 200:
+            break
+        threading.Event().wait(0.1)
+    else:
+        pytest.fail("スロットが空いても受けられない")
     for sock in held:
         sock.close()
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
-    conn.request("GET", "/captures")
-    assert conn.getresponse().status == 200
-    conn.close()
 
 
 def test_AUTH_11_8KBを超える本文は読まずに413(server) -> None:  # type: ignore[no-untyped-def]

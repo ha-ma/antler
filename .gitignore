@@ -51,3 +51,6 @@ packages/zones/data/cache/
 # L1 の校正の生成物（edge-l1-calibration）。合成で学んだ温度が実機に残ると偽の温度で赤が下がるので入れない
 dataset/out/
 edge/detector/calibration.json
+
+# edge-capture: 車載で保存した検知フレーム（同意の前の実走行の画像。リポジトリに入れない）
+edge/detector/captures/

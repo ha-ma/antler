@@ -246,9 +246,9 @@ describe('POST /api/captures', () => {
     expect(files().every((f) => f.startsWith(ID_A))).toBe(true)
   })
 
-  it('API-1g: 本文が 1.25 MB を超えたら 413 INVALID_INPUT', async () => {
+  it('API-1g: 本文が 640 KiB を超えたら 413 INVALID_INPUT', async () => {
     const { post } = setup()
-    const huge = new Uint8Array(1.25 * 1024 * 1024 + 1)
+    const huge = new Uint8Array(640 * 1024 + 1)
     huge.set(buildJpeg())
     const res = await post({ image: huge })
     expect(res.status).toBe(413)
@@ -263,14 +263,14 @@ describe('POST /api/captures', () => {
     expect(files()).toEqual([])
   })
 
-  it('API-1g: capture が 8 KB を超えたら 400。画像が 1 MB を超えるなら（本文は 1.25 MB 以内でも）400 INVALID_IMAGE', async () => {
+  it('API-1g: capture が 8 KB を超えたら 400。画像が 512 KiB を超えるなら（本文は 640 KiB 以内でも）400 INVALID_IMAGE', async () => {
     const { post } = setup()
     const padded = JSON.stringify(buildCapture()) + ' '.repeat(8 * 1024)
     const tooBig = await post({ capture: padded })
     expect(tooBig.status).toBe(400)
     expect((await errorOf(tooBig)).code).toBe('INVALID_INPUT')
 
-    const image = new Uint8Array(1024 * 1024 + 1)
+    const image = new Uint8Array(512 * 1024 + 1)
     image.set(buildJpeg())
     const bigImage = await post({ image })
     expect(bigImage.status).toBe(400)
