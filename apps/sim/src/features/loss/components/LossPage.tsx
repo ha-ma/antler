@@ -7,8 +7,8 @@ import { strikeItinerary } from '../domain/strike'
 import { useCollision } from '../hooks/useCollision'
 import { LossTripDayError, useLossTripDay } from '../hooks/useLossTripDay'
 import { fillText, LOSS_TEXT } from '../text'
-import type { CollisionReport, LossBaseline, TripDay } from '../types'
-import { checkAgainstDay } from '../utils/collision-url'
+import type { LossBaseline, ResolvedCollision, TripDay } from '../types'
+import { checkAgainstDay, resolveCollision } from '../utils/collision-url'
 import { clockOf, factSentence, placeName } from '../utils/format'
 import { replayHref, retryHref } from '../utils/links'
 import { LossCard } from './LossCard'
@@ -52,9 +52,11 @@ export function LossPage() {
     return <LossStatus kind="tripFailed" lang="ja" onRetry={() => void query.refetch()} />
   }
   const { plan, day } = query.data
-  if (!checkAgainstDay(plan, day, collision))
+  // 済ませた楽しみが URL に無い（DriveResult から来た）ときは、しおりから「予定どおり」を決める
+  const resolved = resolveCollision(collision, day)
+  if (!checkAgainstDay(plan, day, resolved))
     return <LossStatus kind="unreadable" lang={plan.lang} />
-  return <LossContent data={query.data} collision={collision} />
+  return <LossContent data={query.data} collision={resolved} />
 }
 
 type StatusKind = 'unreadable' | 'notFound' | 'outdated' | 'tripFailed'
@@ -89,7 +91,7 @@ function LossStatus({
   )
 }
 
-function LossContent({ data, collision }: { data: TripDay; collision: CollisionReport }) {
+function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCollision }) {
   const { plan, details, day } = data
   const lang = plan.lang
   const t = LOSS_TEXT

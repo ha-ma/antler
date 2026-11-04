@@ -1,6 +1,6 @@
 import type { TripPlan } from '@antler/schema'
 import type { DayPlan } from '@antler/trip'
-import type { CollisionReport } from '../types'
+import type { ResolvedCollision } from '../types'
 
 // しおりの取り消し線（functional.md R2、A6-1）。端末の純粋関数。
 // 行は 1 日ごとに「行程（from → to。移動の無い日は出さない）→ 楽しみ → 宿」の順。
@@ -30,7 +30,7 @@ function dayRows(d: PlanDay, status: 'achieved' | 'lost'): ItineraryRow[] {
 export function strikeItinerary(
   plan: Pick<TripPlan, 'days'>,
   day: { legs: readonly Pick<DayPlan['legs'][number], 'from' | 'to'>[] },
-  collision: Pick<CollisionReport, 'day' | 'leg' | 'at' | 'achievedStops'>,
+  collision: Pick<ResolvedCollision, 'day' | 'leg' | 'at' | 'achievedStops'>,
 ): ItineraryRow[] {
   const achieved = new Set(collision.achievedStops)
   const leg = day.legs[collision.leg]

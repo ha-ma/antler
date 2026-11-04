@@ -1,6 +1,6 @@
 import type { TripPlan } from '@antler/schema'
 import { STATS } from '@antler/trip'
-import type { CollisionReport, LossBaseline } from '../types'
+import type { LossBaseline, ResolvedCollision } from '../types'
 
 // 喪失 4 指標（functional.md R3、A6-2）。端末の純粋関数で決定的に計算する。
 // 統計の値は STATS（stats.json）、単価は data/loss-baseline.json から読む。コードに数字を埋めない。
@@ -24,7 +24,7 @@ export type LossAssessment = {
 
 export function assessLoss(
   plan: Pick<TripPlan, 'days' | 'pleasures' | 'party'>,
-  collision: Pick<CollisionReport, 'day' | 'achievedStops'>,
+  collision: Pick<ResolvedCollision, 'day' | 'achievedStops'>,
   baseline: LossBaseline,
 ): LossAssessment {
   const weightOf = new Map(plan.pleasures.map((p) => [p.id, p.weight]))

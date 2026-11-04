@@ -5,7 +5,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import { renderWithProviders } from '@/test/render'
 import { TRIP_ID, tripDayBody } from '@/test/trip-day'
 import baseline from '../data/loss-baseline.json'
-import type { CollisionReport } from '../types'
+import type { ResolvedCollision } from '../types'
 import { lossHref } from '../utils/collision-url'
 import { LossPage } from './LossPage'
 
@@ -64,7 +64,7 @@ function stubApi(day: () => Reply, loss: () => Reply = () => okStory()): Calls {
   return calls
 }
 
-const collision: CollisionReport = {
+const collision: ResolvedCollision & { simMs: number } = {
   tripId: TRIP_ID,
   day: 2,
   leg: 0,

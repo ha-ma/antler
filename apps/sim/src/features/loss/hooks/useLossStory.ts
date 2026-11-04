@@ -2,7 +2,7 @@ import { IsoDateTime, LocalizedText } from '@antler/schema'
 import { useQuery } from '@tanstack/react-query'
 import { z } from 'zod'
 import { logger } from '@/shared/utils/logger'
-import type { CollisionReport, Loss } from '../types'
+import type { Loss, ResolvedCollision } from '../types'
 import { apiBase, errorCode } from './api'
 
 // 喪失文（POST /api/trips/:id/losses。functional.md R5・R6）。
@@ -29,7 +29,7 @@ export class LossStoryError extends Error {
 }
 
 type StoryInput = Pick<
-  CollisionReport,
+  ResolvedCollision,
   'tripId' | 'day' | 'leg' | 'at' | 'alertEnabled' | 'achievedStops'
 >
 

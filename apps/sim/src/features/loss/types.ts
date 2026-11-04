@@ -22,18 +22,26 @@ export type CollisionReport = {
   leg: number
   /** 衝突の時刻（ISO 8601、+09:00）。JST の暦日はその日の日付と同じ */
   at: string
-  /** 衝突時の速さ（0〜199 の整数） */
-  speedKmh: number
-  /** 衝突地点・時刻の光 */
-  light: LightPeriod
-  /** 鹿が出た側（車から見て） */
-  side: 'L' | 'R'
+  /** 衝突時の速さ（0〜199 の整数）。drive の DriveResult に無いときは null（事実の 1 文を短くする） */
+  speedKmh: number | null
+  /** 衝突地点・時刻の光。分からなければ null */
+  light: LightPeriod | null
+  /** 鹿が出た側（車から見て）。分からなければ null */
+  side: 'L' | 'R' | null
   /** その走行のアラート ON / OFF */
   alertEnabled: boolean
-  /** その日に済ませた楽しみの id。無ければ [] */
+  /**
+   * その日に済ませた楽しみの id（無ければ []）。null は「予定どおり」: 衝突した移動までに出発した町の楽しみは
+   * 済んだとみなす（R2 の「前の日は予定どおり」と同じ考え。DriveResult には A-4 の結果が無いため。推奨で決定）
+   */
+  achievedStops: string[] | null
+  /** シミュレーションの経過（World.t、ms。巻き戻し用）。分からなければ null（巻き戻しはその日の最初から） */
+  simMs: number | null
+}
+
+/** しおりを読んで achievedStops を決めたあとの衝突の情報（画面・計算・喪失文の要求はこれを使う） */
+export type ResolvedCollision = Omit<CollisionReport, 'achievedStops'> & {
   achievedStops: string[]
-  /** シミュレーションの経過（World.t、ms。巻き戻し用） */
-  simMs: number
 }
 
 /** GET /api/trips/:id/day/:n の応答 */

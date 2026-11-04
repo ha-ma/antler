@@ -2,7 +2,8 @@ import { IsoDateTime, Slug, toJst, type TripPlan } from '@antler/schema'
 import type { DayPlan } from '@antler/trip'
 import { LIGHT_PERIODS } from '@antler/zones'
 import { z } from 'zod'
-import type { CollisionReport } from '../types'
+import type { DriveResult } from '@/features/drive'
+import type { CollisionReport, ResolvedCollision } from '../types'
 
 // A-6 の入口（functional.md R1）: 衝突の情報は URL のクエリだけに持つ。
 // `/loss/:tripId?day&leg&at&speed&light&side&stops=a,b&t(&alert=off)`。alert は OFF のときだけ書く。
@@ -22,20 +23,23 @@ const QuerySchema = z.strictObject({
   day: IntText.pipe(z.number().int().min(1)),
   leg: IntText.pipe(z.number().int().min(0)),
   at: IsoDateTime,
-  speed: IntText.pipe(z.number().int().min(0).max(MAX_SPEED_KMH)),
-  light: z.enum(LIGHT_PERIODS),
-  side: z.enum(['L', 'R']),
+  // speed・light・side・t・stops は任意（DriveResult に無いものは書かない。欄が無ければ null）
+  speed: IntText.pipe(z.number().int().min(0).max(MAX_SPEED_KMH)).optional(),
+  light: z.enum(LIGHT_PERIODS).optional(),
+  side: z.enum(['L', 'R']).optional(),
+  // 欄が無い → null（予定どおり）、`stops=`（空）→ []（何も済ませていない）
   stops: z
     .string()
     .optional()
-    .transform((s) => (s ? s.split(',') : []))
+    .transform((s) => (s === undefined ? null : s === '' ? [] : s.split(',')))
     .pipe(
       z
         .array(Slug)
         .max(MAX_STOPS)
-        .refine((a) => new Set(a).size === a.length),
+        .refine((a) => new Set(a).size === a.length)
+        .nullable(),
     ),
-  t: IntText.pipe(z.number().int().min(0).max(MAX_SIM_MS)),
+  t: IntText.pipe(z.number().int().min(0).max(MAX_SIM_MS)).optional(),
   alert: z.literal('off').optional(),
 })
 
@@ -44,20 +48,54 @@ function clampInt(value: number, max: number): number {
   return Math.min(max, Math.max(0, Math.round(value)))
 }
 
-/** drive が衝突のあとに移る A-6 の URL。速さは 0〜199、経過は 0〜MAX_SIM_MS の整数に丸める */
+/** drive が衝突のあとに移る A-6 の URL。速さは 0〜199、経過は 0〜MAX_SIM_MS の整数に丸める。null の欄は書かない */
 export function lossHref(report: CollisionReport): string {
   const q = new URLSearchParams({
     day: String(report.day),
     leg: String(report.leg),
     at: report.at,
-    speed: String(clampInt(report.speedKmh, MAX_SPEED_KMH)),
-    light: report.light,
-    side: report.side,
-    stops: report.achievedStops.join(','),
-    t: String(clampInt(report.simMs, MAX_SIM_MS)),
   })
+  if (report.speedKmh !== null) q.set('speed', String(clampInt(report.speedKmh, MAX_SPEED_KMH)))
+  if (report.light !== null) q.set('light', report.light)
+  if (report.side !== null) q.set('side', report.side)
+  if (report.achievedStops !== null) q.set('stops', report.achievedStops.join(','))
+  if (report.simMs !== null) q.set('t', String(clampInt(report.simMs, MAX_SIM_MS)))
   if (!report.alertEnabled) q.set('alert', 'off')
   return `/loss/${encodeURIComponent(report.tripId)}?${q.toString()}`
+}
+
+/**
+ * drive-link の走行の結果（DriveResult）から A-6 の入口を作る。衝突で、旅から作った場面のときだけ（見本の場面・完走は null）。
+ * DriveResult に無い速さ・光・側・経過は null、済ませた楽しみは null（予定どおり）。
+ */
+export function lossReportFromDrive(result: DriveResult): CollisionReport | null {
+  if (result.outcome !== 'collided' || result.source !== 'trip') return null
+  return {
+    tripId: result.tripId,
+    day: result.day,
+    leg: result.legIndex,
+    at: result.endedAt,
+    speedKmh: null,
+    light: null,
+    side: null,
+    alertEnabled: result.alertEnabled,
+    achievedStops: null,
+    simMs: null,
+  }
+}
+
+/** 衝突した移動までに出発した町（legs[0..leg].from）の楽しみ。R7 で済ませられる楽しみの全部 */
+function reachableStops(day: Pick<DayPlan, 'legs' | 'stops'>, leg: number): string[] {
+  const departed = new Set(day.legs.slice(0, leg + 1).map((l) => l.from))
+  return day.stops.filter((s) => departed.has(s.base)).map((s) => s.id)
+}
+
+/** achievedStops が null（予定どおり）なら、しおりから済んだ楽しみを決める */
+export function resolveCollision(
+  c: CollisionReport,
+  day: Pick<DayPlan, 'legs' | 'stops'>,
+): ResolvedCollision {
+  return { ...c, achievedStops: c.achievedStops ?? reachableStops(day, c.leg) }
 }
 
 /** URL を CollisionReport に読む。欠け・範囲外・形の違い・知らない欄は null（画面は api を呼ばない） */
@@ -77,12 +115,12 @@ export function parseCollision(id: string, search: URLSearchParams): CollisionRe
     day: q.day,
     leg: q.leg,
     at: q.at,
-    speedKmh: q.speed,
-    light: q.light,
-    side: q.side,
+    speedKmh: q.speed ?? null,
+    light: q.light ?? null,
+    side: q.side ?? null,
     alertEnabled: q.alert === undefined,
     achievedStops: q.stops,
-    simMs: q.t,
+    simMs: q.t ?? null,
   }
 }
 
@@ -93,7 +131,7 @@ export function parseCollision(id: string, search: URLSearchParams): CollisionRe
 export function checkAgainstDay(
   plan: Pick<TripPlan, 'days'>,
   day: Pick<DayPlan, 'day' | 'date' | 'legs' | 'stops'>,
-  c: Pick<CollisionReport, 'day' | 'leg' | 'at' | 'achievedStops'>,
+  c: Pick<ResolvedCollision, 'day' | 'leg' | 'at' | 'achievedStops'>,
 ): boolean {
   if (c.day < 1 || c.day > plan.days.length || day.day !== c.day) return false
   if (c.leg >= day.legs.length) return false

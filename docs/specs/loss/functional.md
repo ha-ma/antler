@@ -42,6 +42,10 @@ spec-adversary の指摘（`docs/reports/2026-11-04-spec-adversary-loss.md`）�
   - URL が読めない（欠け・範囲外・形の違い）→ 画面は「衝突の情報が読めません」と `/plan` への導線だけを出し、api を呼ばない
   - 範囲: `speedKmh` 0〜199 の整数、`simMs` 0〜86,400,000 の整数、`achievedStops` 10 件まで。しおりを読んだあと、R7 と同じ規則（日・移動・暦日・達成できる楽しみ）に外れたら、同じく「読めません」
   - URL の値（速さ・光・側）はその人のシミュレーションの事実として、事実の 1 文にだけ使う（api には送らない）
+  - **drive-link の `DriveResult` に合わせる（2026-11-04、main に drive-link が入ったあと。推奨で決定）**: barrel の `lossReportFromDrive(result)` が `DriveResult` から `CollisionReport` を作る（`tripId`・`day`・`leg = legIndex`・`at = endedAt`・`alertEnabled`）。衝突でない・見本の場面なら null。`DriveResult` に無い速さ・光・側・経過・済ませた楽しみは null にする
+    - URL の `speed`・`light`・`side`・`t`・`stops` は任意。無ければ null。事実の 1 文は 3 つがそろわなければ短い形（「鹿と衝突しました。」）、`replay` は経過が無ければ付けない（その日の最初から）
+    - `stops` の欄が無い（null）ときは「予定どおり」: 衝突した移動までに出発した町（`legs[0..leg].from`）の楽しみは済んだとみなす（R2 の前の日の扱い・R7 の規則と同じ）。`stops=`（空）は何も済ませていない
+    - app 層の `DriveRoute`（`/drive`）が `DriveScreen` の `onFinish` を受け、衝突なら `lossHref(lossReportFromDrive(result))` に移る。完走（A-7）には移さない（record の担当）
 - R2 しおりの取り消し線（A6-1、LossCard）: 保存したしおり（`plan.days`）を全日並べ、衝突した日の該当位置に ✕ の行を挿入する
   - 衝突より前の日は**予定どおり済んだとみなす**（A-2 の `?day=n` で途中の日から走れるので、走ったかどうかは見ない。推奨で決定）
   - 衝突より前の日: 達成（✓）。衝突した日: `achievedStops` の楽しみは ✓、その後に ✕「D{day} {時刻} {from} → {to} で衝突」（`alert-danger`）、残りの楽しみと宿は取り消し線。衝突より後の日: すべて取り消し線
@@ -155,6 +159,7 @@ UC-1 入口:
 
 - [x] UC-1a: `lossHref` の URL を `parseCollision` で読むと同じ CollisionReport に戻る（alert ON は alert のクエリ無し、stops は空でもよい）
 - [x] UC-1b: 欠け・範囲外・知らない値の URL は読めない（null）。画面は「読めません」と `/plan` への導線だけで、fetch しない
+- [x] UC-1c: [ADDED drive-link と合わせる] `lossReportFromDrive` は衝突した旅の走行だけを CollisionReport にし（速さ・光・側・経過・済ませた楽しみは null）、URL を往復しても同じ。完走・見本は null。null の stops は予定どおり（出発した町の楽しみ）に決まり、`/drive` で衝突すると `/loss/:id?…` に移る
 
 UC-2 取り消し線:
 

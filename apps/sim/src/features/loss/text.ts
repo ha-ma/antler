@@ -64,6 +64,12 @@ export const LOSS_TEXT = {
   lightNight: { ja: '夜', en: 'At night', zh: '夜間', ko: '밤' },
   sideL: { ja: '左', en: 'the left', zh: '左側', ko: '왼쪽' },
   sideR: { ja: '右', en: 'the right', zh: '右側', ko: '오른쪽' },
+  factPlain: {
+    ja: '鹿と衝突しました。',
+    en: 'The car hit a deer.',
+    zh: '與鹿相撞了。',
+    ko: '사슴과 충돌했습니다.',
+  },
   alertOff: {
     ja: '鹿アラートは OFF でした。',
     en: 'The deer alert was OFF.',

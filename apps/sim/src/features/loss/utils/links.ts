@@ -15,6 +15,7 @@ export function replayHref(
 ): string {
   const q = new URLSearchParams({ trip: c.tripId, day: String(c.day) })
   if (!c.alertEnabled) q.set('alert', 'off')
-  q.set('replay', String(Math.max(0, c.simMs - REPLAY_LEAD_MS)))
+  // 経過が分からない（DriveResult に無い）ときは replay を付けない（その日の最初から）
+  if (c.simMs !== null) q.set('replay', String(Math.max(0, c.simMs - REPLAY_LEAD_MS)))
   return `/drive?${q.toString()}`
 }

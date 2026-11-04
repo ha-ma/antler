@@ -38,19 +38,25 @@ const LIGHT_KEY = {
 
 /** 衝突の事実の 1 文（R5 の最後。Claude に書かせない端末の定型文） */
 export function factSentence(
-  c: { light: LightPeriod; side: 'L' | 'R'; speedKmh: number; alertEnabled: boolean },
+  c: {
+    light: LightPeriod | null
+    side: 'L' | 'R' | null
+    speedKmh: number | null
+    alertEnabled: boolean
+  },
   lang: Lang,
 ): string {
   const t = LOSS_TEXT
-  const parts = [
-    fillText(t.fact[lang], {
-      light: t[LIGHT_KEY[c.light]][lang],
-      side: t[c.side === 'L' ? 'sideL' : 'sideR'][lang],
-      speed: c.speedKmh,
-    }),
-    c.alertEnabled ? null : t.alertOff[lang],
-    t.carDone[lang],
-  ]
+  // 光・側・速さがそろっていれば詳しい文、どれかが分からなければ（DriveResult から来たとき）短い文
+  const detailed =
+    c.light !== null && c.side !== null && c.speedKmh !== null
+      ? fillText(t.fact[lang], {
+          light: t[LIGHT_KEY[c.light]][lang],
+          side: t[c.side === 'L' ? 'sideL' : 'sideR'][lang],
+          speed: c.speedKmh,
+        })
+      : t.factPlain[lang]
+  const parts = [detailed, c.alertEnabled ? null : t.alertOff[lang], t.carDone[lang]]
   // 英語と韓国語は文の間に空白を置く（日本語・中国語は詰める）
   return parts.filter(Boolean).join(lang === 'en' || lang === 'ko' ? ' ' : '')
 }

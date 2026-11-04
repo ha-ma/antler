@@ -1,10 +1,19 @@
 import { personaDay, personaTrip, TRIP_ID } from '@/test/trip-day'
-import type { CollisionReport } from '../types'
-import { checkAgainstDay, lossHref, parseCollision } from './collision-url'
+import type { DriveResult } from '@/features/drive'
+import type { CollisionReport, ResolvedCollision } from '../types'
+import {
+  checkAgainstDay,
+  lossHref,
+  lossReportFromDrive,
+  parseCollision,
+  resolveCollision,
+} from './collision-url'
+import { factSentence } from './format'
+import { replayHref } from './links'
 
 // UC-1（R1）: 入口の URL と、しおりを読んだあとの検証（R7 と同じ規則）。
 
-const report: CollisionReport = {
+const report: ResolvedCollision & { simMs: number } = {
   tripId: TRIP_ID,
   day: 2,
   leg: 0,
@@ -44,10 +53,17 @@ describe('lossHref / parseCollision', () => {
     const href = lossHref(on)
     expect(href).not.toContain('alert=')
     expect(roundTrip(href)).toEqual(on)
-    // stops の欄が無くても空とみなす
+    // stops の欄が無いのは「予定どおり」（null）。速さ・光・側・経過も欄が無ければ null
     const q = new URL(href, 'http://localhost').searchParams
-    q.delete('stops')
-    expect(parseCollision(TRIP_ID, q)).toEqual(on)
+    for (const key of ['stops', 'speed', 'light', 'side', 't']) q.delete(key)
+    expect(parseCollision(TRIP_ID, q)).toEqual({
+      ...on,
+      achievedStops: null,
+      speedKmh: null,
+      light: null,
+      side: null,
+      simMs: null,
+    })
   })
 
   it('UC-1a: 2 件の stops はカンマで並ぶ', () => {
@@ -68,7 +84,7 @@ describe('lossHref / parseCollision', () => {
     ['at がタイムゾーン無し', (q) => q.set('at', '2027-02-15T16:31:00')],
     ['at が欠け', (q) => q.delete('at')],
     ['t が 86,400,001', (q) => q.set('t', '86400001')],
-    ['t が欠け', (q) => q.delete('t')],
+    ['t が負', (q) => q.set('t', '-1')],
     ['alert が off 以外', (q) => q.set('alert', 'on')],
     [
       'stops が 11 件',
@@ -141,5 +157,72 @@ describe('checkAgainstDay（R1 の最後・R7 と同じ規則）', () => {
         achievedStops: ['red-crowned-crane', 'shiretoko-cruise'],
       }),
     ).toBe(false)
+  })
+})
+
+describe('drive-link の DriveResult から A-6 へ（R1）', () => {
+  const driveResult: DriveResult = {
+    tripId: TRIP_ID,
+    day: 2,
+    seed: 1,
+    source: 'trip',
+    data: null,
+    alertEnabled: false,
+    startAt: '2027-02-15T09:00:00+09:00',
+    zonePasses: 1,
+    outcome: 'collided',
+    endS: 1234,
+    legIndex: 0,
+    endedAt: '2027-02-15T16:31:00+09:00',
+    collidedDeerId: 'd1',
+    encounters: [],
+    inputs: [],
+    frames: null,
+  }
+
+  it('UC-1c: 衝突した走行 → 速さ・光・側・経過・済ませた楽しみは null の CollisionReport。URL を往復しても同じ', () => {
+    const c = lossReportFromDrive(driveResult)
+    expect(c).toEqual({
+      tripId: TRIP_ID,
+      day: 2,
+      leg: 0,
+      at: '2027-02-15T16:31:00+09:00',
+      speedKmh: null,
+      light: null,
+      side: null,
+      alertEnabled: false,
+      achievedStops: null,
+      simMs: null,
+    })
+    if (!c) throw new Error('null')
+    const href = lossHref(c)
+    expect(href).not.toMatch(/speed=|light=|side=|stops=|[?&]t=/)
+    expect(roundTrip(href)).toEqual(c)
+  })
+
+  it('UC-1c: 完走・見本の場面からは A-6 に移らない（null）', () => {
+    expect(lossReportFromDrive({ ...driveResult, outcome: 'completed' })).toBeNull()
+    expect(lossReportFromDrive({ ...driveResult, source: 'demo' })).toBeNull()
+  })
+
+  it('UC-2a: 済ませた楽しみが null なら、衝突した移動までに出発した町の楽しみを予定どおり済んだとみなす', () => {
+    const { plan } = personaTrip()
+    const day2 = personaDay(2, plan)
+    const c = lossReportFromDrive(driveResult)
+    if (!c) throw new Error('null')
+    const resolved = resolveCollision(c, day2)
+    expect(resolved.achievedStops).toEqual(['red-crowned-crane'])
+    expect(checkAgainstDay(plan, day2, resolved)).toBe(true)
+    // URL に書いた [] はそのまま（何も済ませていない）
+    expect(resolveCollision({ ...c, achievedStops: [] }, day2).achievedStops).toEqual([])
+  })
+
+  it('UC-7b: 経過が分からなければ replay を付けず、事実の 1 文は短い形', () => {
+    const c = lossReportFromDrive(driveResult)
+    if (!c) throw new Error('null')
+    expect(replayHref(c)).toBe(`/drive?trip=${TRIP_ID}&day=2&alert=off`)
+    expect(factSentence(c, 'ja')).toBe(
+      '鹿と衝突しました。鹿アラートは OFF でした。車はもう走れません。',
+    )
   })
 })
