@@ -32,7 +32,7 @@
 
 ## Out of Scope（明示的にやらないこと）
 
-- 運転の終了の帯から記録へ移る配線（drive/ は drive-link の担当。record は barrel を出すだけ。後からマージする側がつなぐ）
+- drive/ の中の変更（drive-link のマージ後に、app 層の `DriveRoute` で `onFinish` を受けてつないだ。drive のファイルは変えない）
 - A-6 喪失の画面（loss）。衝突の run の保存は loss / drive が `useSaveRun` で行う
 - 出来事の時系列（stop-events の `POST /api/trips/:id/events`）と、その行の削除（後からマージする側が削除のトランザクションに足す）
 - 楽しみの写真の実物（Day 6）、Claude の「今日の鹿レポート」（付録 A #10）

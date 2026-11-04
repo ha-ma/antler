@@ -10,6 +10,7 @@ target_paths:
   - apps/api/src/infrastructure/http/schemas/record.schema.ts
   - apps/api/src/infrastructure/http/views/
   - apps/sim/src/features/record/
+  - apps/sim/src/app/DriveRoute.tsx
 spec_confirmed_at: fc970a2
 tier: 2
 ---
@@ -30,7 +31,7 @@ tier: 2
 
 **Tier 2**: 認可（所有者トークンでの書き込み・削除）、永続化スキーマ（表 `trip_runs` を足す）、外部への公開（SSR ページ・OG 画像）に触れる。
 
-**範囲外**: 運転の終了の帯から記録へ移る配線（drive の担当。record は barrel から `useSaveRun`・`recordHref` を出すだけ）、A-6 喪失の画面（loss）、出来事の時系列 `POST /api/trips/:id/events`（stop-events）、楽しみの写真の実物（Day 6）、Claude が書く「今日の鹿レポート」（付録 A #10、deer-report）、同意のチェックと Capture（capture）、保持期間による自動削除（Deferred）。
+**範囲外**: drive の中の変更（運転の終わりは drive-link の `onFinish(DriveResult)` を app 層の `DriveRoute` で受けてつなぐ。R11）、A-6 喪失の画面（loss。衝突の run は DriveRoute が残す）、出来事の時系列 `POST /api/trips/:id/events`（stop-events）、楽しみの写真の実物（Day 6）、Claude が書く「今日の鹿レポート」（付録 A #10、deer-report）、同意のチェックと Capture（capture）、保持期間による自動削除（Deferred）。
 
 ## Example Map
 
@@ -92,6 +93,8 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
   - UI キャンバスの A7_Record には削除が無い。ch6 に従い、B の導線の下に足す（モックからの差分）
 - R11 走行の保存の hook（barrel）: `useSaveRun()` は旅の id の所有者トークンを読み、あれば POST、無ければ保存しない（`not-owner` を返す）。`recordHref(id)` は `/t/{id}`
   - 呼び出し側（drive・loss）との約束: `not-owner` のときは `/t/:id` へ移らず、その運転の結果をその場で見せる（記録に移ると、自分の運転が消えたように見える）
+  - 配線（app 層の `DriveRoute`、drive-link マージ後に追加）: drive の `onFinish(DriveResult)` を `toDriveRun` で run にして保存。旅の場面だけ（見本の場面は残さない）。完走して残せたら `/t/:id` へ（A5-6）、衝突は終了の帯のまま（A-6 は loss）
+  - `toDriveRun`: pending の遭遇は送らない、遭遇の時刻は `alertClockAt`（drive-link。移動の始まりで時計を進めるので startAt + alertAt ではない）、範囲はスキーマの上限に丸める、runId は運転ごとに新しい UUID（推奨で決定）
 - R12 レート制限（IP あたり 1 分）: 書き込み（runs・DELETE）10 件（ch6 の記録作成）、読み出し（record・`/t/:id`）60 件、`og.png` 20 件
 
 推奨で決定（CLAUDE.md の方針。PR にも書く）: R1 の記録 id = 旅の id と公開 URL は env だけ、R2 の所有者トークンの要求・欄・1 日 20 件・16 KB・冪等の扱い、R3 の「ON の最新」と間一髪 5 m、R4 の見せる欄、R6 の resvg とフォントの扱い・切り詰め・メモリの 100 枚・PNG の保存は api の画像、R7 の noindex と CSP、R9 の挑戦の日と案内、R10 の削除の範囲とステータス、R12 の件数。spec-adversary の 7 件（docs/reports/2026-11-04-spec-adversary-record.md）はすべて推奨案で取り込んだ。
@@ -209,7 +212,6 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 ## Questions（Deferred のみ残存可）
 
 - [Deferred: 担当=ユーザー / 期日=2026-11-06 / 暫定挙動=消さない] 旅と run の保持期間（plan-trip の Deferred と同じ行。Capture の保持期間と一緒に決める）
-- [Deferred: 担当=Claude（drive-link か record の後にマージする側）/ 期日=2026-11-06（Day 4）/ 暫定挙動=A-7 は URL を直接開くと出る。運転の終了の帯からは移らない] 運転の終了の帯で `useSaveRun` を呼んで `/t/:id` へ移る配線（drive/ は drive-link の担当）。DriveResult に `zonePasses` と遭遇の時刻の材料を足すことを依頼済み（共有ノート record-handover.md）
 - [Deferred: 担当=Claude（stop-events と record の後にマージする側）/ 期日=2026-11-06 / 暫定挙動=削除は trips・trip_runs・trip_requests だけ] 出来事のログ（stop-events の表）の行も削除のトランザクションで消す。遭遇を events にも入れるなら runId で紐づける（stop-events の仕様に書いてもらう）
 - [Deferred: 担当=人 A / 期日=2026-11-08（Day 6）/ 暫定挙動=写真のプレースホルダ（`photo-placeholder` に名前）] 守れた楽しみの写真の実物
 
@@ -288,6 +290,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 - [x] UC-9c: トークンのある端末だけに削除。確かめずに消えない（「やめる」で戻る）。確認の文に「共有先に表示されたカードは残ることがあります」
 - [x] UC-9d: 削除の成功で「削除しました」とトークンの消去。403 は「この端末の鍵では削除できません」、通信の失敗は「つながりません」
 - [x] UC-9e: `useSaveRun` はトークンがあれば Bearer 付きで POST、無ければ送らずに `not-owner`
+- [x] UC-9f: 旅の場面を完走 → run を残して `/t/:id` へ。衝突は残すが移らない、トークンの無い端末は送らず移らない、見本の場面は残さない。`toDriveRun` は pending を落とし、時刻は `alertClockAt`、範囲を丸める
 
 ### 認可（threat.md）
 
@@ -314,19 +317,20 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 
 ## Rule → ドメイン語彙対応
 
-| Rule                     | 語彙（コード上の名前）                                                                                  | 置き場所                                                              |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| R2                       | `DriveRunInputSchema`、`DriveRunInput`、`MAX_RUNS_PER_DAY`                                              | `packages/trip/src/record/run.ts`                                     |
-| R3・R4                   | `summarizeRecord`、`TripRecordSchema`、`TripRecord`、`CLOSE_CALL_M`、`recordTripOf`、`RecordTripSchema` | `packages/trip/src/record/summary.ts`                                 |
-| R2・R10                  | `isOwnerTokenHash`（長さ一定の比較）                                                                    | `apps/api/src/domain/record/policies/owner-policy.ts`                 |
-| R2                       | `SaveRunUseCase`                                                                                        | `apps/api/src/application/usecases/record/save-run.usecase.ts`        |
-| R4・R6・R7               | `GetTripRecordUseCase`                                                                                  | `apps/api/src/application/usecases/record/get-trip-record.usecase.ts` |
-| R10                      | `DeleteTripUseCase`                                                                                     | `apps/api/src/application/usecases/record/delete-trip.usecase.ts`     |
-| R6                       | `buildShioriSvg`、`OgImageRenderer`                                                                     | `apps/api/src/infrastructure/http/views/`                             |
-| R7・R8                   | `renderRecordPage`、`renderNotFoundPage`                                                                | `apps/api/src/infrastructure/http/views/record-page.ts`               |
-| R2・R4・R6・R7・R10・R12 | `recordRoutes`                                                                                          | `apps/api/src/infrastructure/http/routes/record.routes.ts`            |
-| R5・R8・R9               | `RecordPage`、`useTripRecord`                                                                           | `apps/sim/src/features/record/`                                       |
-| R10・R11                 | `useDeleteTrip`、`useSaveRun`、`recordHref`                                                             | `apps/sim/src/features/record/hooks/`                                 |
+| Rule                     | 語彙（コード上の名前）                                                                                  | 置き場所                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| R2                       | `DriveRunInputSchema`、`DriveRunInput`、`MAX_RUNS_PER_DAY`                                              | `packages/trip/src/record/run.ts`                                                    |
+| R3・R4                   | `summarizeRecord`、`TripRecordSchema`、`TripRecord`、`CLOSE_CALL_M`、`recordTripOf`、`RecordTripSchema` | `packages/trip/src/record/summary.ts`                                                |
+| R2・R10                  | `isOwnerTokenHash`（長さ一定の比較）                                                                    | `apps/api/src/domain/record/policies/owner-policy.ts`                                |
+| R2                       | `SaveRunUseCase`                                                                                        | `apps/api/src/application/usecases/record/save-run.usecase.ts`                       |
+| R4・R6・R7               | `GetTripRecordUseCase`                                                                                  | `apps/api/src/application/usecases/record/get-trip-record.usecase.ts`                |
+| R10                      | `DeleteTripUseCase`                                                                                     | `apps/api/src/application/usecases/record/delete-trip.usecase.ts`                    |
+| R6                       | `buildShioriSvg`、`OgImageRenderer`                                                                     | `apps/api/src/infrastructure/http/views/`                                            |
+| R7・R8                   | `renderRecordPage`、`renderNotFoundPage`                                                                | `apps/api/src/infrastructure/http/views/record-page.ts`                              |
+| R2・R4・R6・R7・R10・R12 | `recordRoutes`                                                                                          | `apps/api/src/infrastructure/http/routes/record.routes.ts`                           |
+| R5・R8・R9               | `RecordPage`、`useTripRecord`                                                                           | `apps/sim/src/features/record/`                                                      |
+| R10・R11                 | `useDeleteTrip`、`useSaveRun`、`recordHref`                                                             | `apps/sim/src/features/record/hooks/`                                                |
+| R11                      | `toDriveRun`、`DriveRoute`                                                                              | `apps/sim/src/features/record/utils/drive-run.ts`、`apps/sim/src/app/DriveRoute.tsx` |
 
 ## 受け入れ基準
 

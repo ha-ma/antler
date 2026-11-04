@@ -4,4 +4,5 @@
 export { RecordPage } from './components/RecordPage'
 export { saveRun, useSaveRun, type SaveRunVariables } from './hooks/useSaveRun'
 export { recordHref } from './utils/links'
+export { toDriveRun, type FinishedDrive } from './utils/drive-run'
 export type { SaveRunOutcome } from './types'
