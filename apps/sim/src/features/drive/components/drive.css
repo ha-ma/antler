@@ -234,6 +234,28 @@
   background: none;
 }
 
+.drive-start__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.drive-start__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--spruce);
+  font-weight: var(--label-weight);
+  pointer-events: auto;
+}
+
+.drive-start__link:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
 .drive-hud__primary {
   min-height: 48px;
   padding: 0 var(--space-5);

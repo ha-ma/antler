@@ -35,6 +35,15 @@ const envSchema = z.object({
   // Claude の同時呼び出しの上限。超えたら 503 WRITER_BUSY
   CLAUDE_MAX_CONCURRENT_CALLS: z.coerce.number().int().min(1).default(4),
   TRIPS_DB_URL: z.string().min(1).default('file:./data/trips.db'),
+  // POST /api/captures（docs/specs/edge-capture/functional.md A5・A6）。受け取った Capture と画像の置き場所と上限
+  CAPTURES_DIR: z.string().min(1).default('./data/captures-received'),
+  CAPTURES_MAX_ITEMS: z.coerce.number().int().min(1).default(50_000),
+  // 画像の合計の上限（バイト）。既定は 5 GiB
+  CAPTURES_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(5 * 1024 ** 3),
   // プロキシの X-Forwarded-For を信じるか。信じるときは右端（直前のプロキシが付けた値）を使う
   TRUST_PROXY: z
     .enum(['true', 'false'])

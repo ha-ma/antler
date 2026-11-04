@@ -1,6 +1,6 @@
 import type { Side } from '@antler/schema'
 import type { LightPeriod } from '@antler/zones'
-import type { Weather } from '../types'
+import type { Weather, WindowFog } from '../types'
 import type { PlaneXZ } from './road'
 import { between, type Rng } from './rng'
 
@@ -50,13 +50,24 @@ export function cameraSees(
   return { deerId: deer.id, distanceM, side: lateral < 0 ? 'L' : 'R' }
 }
 
+/** 車内の窓の曇りの係数（drive-link R6。当日の条件の windowFog。推奨で決定） */
+export const WINDOW_FOG_FACTOR: Record<WindowFog, number> = {
+  none: 1,
+  light: 0.95,
+  medium: 0.9,
+  heavy: 0.85,
+}
+
 /**
- * 1 回の判定で検知できる確率（UC-6b）。光・天候・車内の曇り（人数が多いほど曇る、A2-3）で下げる。
- * 推奨で決定: 昼・晴れ・1 人で 0.95
+ * 鹿 1 頭をカメラが捉える確率（drive-3d UC-6b、drive-link UC-3f）。光・天候・車内の窓の曇り（A2-3）で下げる。
+ * 推奨で決定: 昼・晴れ・曇りなしで 0.95
  */
-export function detectProbability(light: LightPeriod, weather: Weather, partySize: number): number {
-  const fogging = 1 - 0.025 * Math.max(0, Math.min(8, partySize) - 1)
-  return LIGHT_FACTOR[light] * WEATHER_FACTOR[weather] * fogging
+export function detectProbability(
+  light: LightPeriod,
+  weather: Weather,
+  windowFog: WindowFog,
+): number {
+  return LIGHT_FACTOR[light] * WEATHER_FACTOR[weather] * WINDOW_FOG_FACTOR[windowFog]
 }
 
 /** フラグを作る側の状態（場面全体で 1 つ） */

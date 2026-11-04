@@ -30,11 +30,17 @@ describe('運転の場面とルート（R1・R2）', () => {
     expect(Math.abs(Math.hypot(x, z) - real) / real).toBeLessThan(0.005)
   })
 
-  it('UC-1c: ?alert=off ならアラート OFF、無ければ旅程の alertEnabled', () => {
-    expect(resolveAlertEnabled(DEMO_TRIP, '?alert=off')).toBe(false)
-    expect(resolveAlertEnabled(DEMO_TRIP, '')).toBe(true)
-    expect(resolveAlertEnabled({ ...DEMO_TRIP, alertEnabled: false }, '?alert=on')).toBe(false)
+  it('UC-1c: ?alert=off ならアラート OFF、無ければ ON（旅程の alertEnabled は見ない。drive-link UC-3c）', () => {
+    expect(resolveAlertEnabled('?alert=off')).toBe(false)
+    expect(resolveAlertEnabled('')).toBe(true)
+    expect(resolveAlertEnabled('?alert=on')).toBe(true)
+    // 最初の値がちょうど off のときだけ OFF（brief-map の driveHref が書く形）
+    expect(resolveAlertEnabled('?alert=OFF')).toBe(true)
+    expect(resolveAlertEnabled('?alert=0')).toBe(true)
+    expect(resolveAlertEnabled('?alert=off&alert=on')).toBe(false)
+    expect(resolveAlertEnabled('?alert=on&alert=off')).toBe(true)
     expect(demoScenario(ZONES, '?alert=off').alertEnabled).toBe(false)
+    expect(DEMO_TRIP.alertEnabled).toBe(true)
   })
 
   it('UC-1d: d が正なら進む向きの右。頂点の角でも位置が飛ばない', () => {

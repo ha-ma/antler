@@ -17,6 +17,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from datetime import datetime
 
+    import numpy as np
+
     from detector.config import Config
     from detector.ports import Detection, Detector, FrameSource
 
@@ -33,6 +35,8 @@ class FrameResult:
     infer_ms: float = 0.0
     failed: bool = False  # 推論が壊れたフレーム。「鹿なし」と区別する
     invalid_count: int = 0  # 不正で捨てた検出の数。鹿 0 件でこれが多いと「壊れた鹿なし」
+    # 640×480 に縮めた画像（検知フレームの保存 edge-capture が使う）。比較・repr には入れない
+    image: np.ndarray | None = field(default=None, compare=False, repr=False)
 
 
 def process_frames(
@@ -115,7 +119,14 @@ def process_frames(
                     "invalid_count": invalid,
                 },
             )
-            yield FrameResult(frame.seq, frame.t_frame, detections, infer_ms, invalid_count=invalid)
+            yield FrameResult(
+                frame.seq,
+                frame.t_frame,
+                detections,
+                infer_ms,
+                invalid_count=invalid,
+                image=resized.image,
+            )
     finally:
         logger.info(
             "pipeline.summary",

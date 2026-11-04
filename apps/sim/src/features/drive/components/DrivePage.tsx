@@ -6,8 +6,9 @@ import { useAlertSound } from '../hooks/use-alert-sound'
 import { useAutoPause } from '../hooks/use-auto-pause'
 import { useDriveSnapshot } from '../hooks/use-drive-snapshot'
 import { useKeyboardDrive } from '../hooks/use-keyboard-drive'
+import { briefHref } from '../hooks/use-drive-params'
 import { useWebGL2 } from '../hooks/use-webgl2'
-import type { World } from '../types'
+import type { DriveResult, World } from '../types'
 import { BottomBar } from './hud/BottomBar'
 import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
@@ -21,10 +22,10 @@ import './drive.css'
 
 // A-3 運転中（3D）と A-5 鹿ゾーン・検知アラートの画面（docs/specs/drive-3d/functional.md）。
 // State 設計:
-// - Server state: なし（ゾーン DB はビルドに同梱）
+// - Server state: その日の行程（GET /api/trips/:id/day/:n）は DriveScreen が TanStack Query で読み、場面にして渡す
 // - Shared state: シミュレーション（DriveEngine。HUD とスマホは useSyncExternalStore で購読、3D は毎フレーム読む）
 // - Local UI state: エンジン（作るのは 1 回）・出発したか・音トグル（3 個）
-// - Form / URL state: URL の ?alert=off（場面を作るときに 1 回読む）
+// - Form / URL state: URL の ?trip・?day・?alert=off（DriveScreen が読み、場面を作るときに 1 回使う）
 // - useEffect: キー入力・タブの表示・音のコントローラの片づけ（外部の購読。hooks/ に隔離）
 
 // 3D（three・R3F、gzip 約 300 KB）だけを遅れて読む。出発の案内・HUD・エンジンは three なしで先に出す
@@ -37,17 +38,21 @@ type Props = {
   /** テストで差し替える（既定は固定の場面） */
   createEngine?: () => DriveEngine
   /** テストで差し替える（jsdom には WebGL が無い） */
-  canvas?: (props: {
-    world: () => World
-    phone: ReactNode
-    onFrame: (dt: number) => void
-  }) => ReactNode
-  webgl2?: () => boolean
+  canvas?:
+    | ((props: {
+        world: () => World
+        phone: ReactNode
+        onFrame: (dt: number) => void
+      }) => ReactNode)
+    | undefined
+  webgl2?: (() => boolean) | undefined
+  /** 衝突・完走したときに走行の結果を渡す（A-6・A-7 が使う。drive-link R8） */
+  onFinish?: ((result: DriveResult) => void) | undefined
 }
 
 const defaultEngine = () => new DriveEngine(demoScenario(ZONES, window.location.search), ZONES)
 
-export function DrivePage({ createEngine = defaultEngine, canvas, webgl2 }: Props) {
+export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFinish }: Props) {
   const [engine] = useState(createEngine)
   const [started, setStarted] = useState(false)
   const [soundOn, setSoundOn] = useState(true)
@@ -61,10 +66,21 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2 }: Prop
   const world = useCallback(() => engine.world, [engine])
   const onFrame = useCallback(
     (dt: number) => {
-      if (started) engine.frame(dt)
+      if (!started) return
+      const events = engine.frame(dt)
+      // 衝突・完走のフレームで 1 回だけ結果を渡す（途中で離れたときは作らない）
+      if (onFinish && events.some((e) => e.type === 'collided' || e.type === 'completed')) {
+        const result = engine.result()
+        if (result) onFinish(result)
+      }
     },
-    [engine, started],
+    [engine, started, onFinish],
   )
+  const scenario = engine.world.scenario
+  const backToBrief =
+    scenario.source === 'trip'
+      ? briefHref(scenario.trip.id, scenario.day, scenario.alertEnabled)
+      : undefined
   const begin = () => {
     void sound.start()
     setStarted(true)
@@ -118,10 +134,10 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2 }: Prop
             <DangerOverlay alert={snapshot.alert} lang={snapshot.lang} />
           )}
           <BottomBar speedKmh={snapshot.speedKmh} soundOn={soundOn} onSound={setSoundOn} />
-          <EndBanner outcome={snapshot.outcome} onRetry={retry} />
+          <EndBanner outcome={snapshot.outcome} onRetry={retry} briefHref={backToBrief} />
         </div>
       )}
-      {!started && <StartOverlay alertEnabled={snapshot.alertEnabled} onStart={begin} />}
+      {!started && <StartOverlay scenario={scenario} onStart={begin} />}
     </main>
   )
 }

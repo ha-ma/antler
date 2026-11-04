@@ -14,6 +14,8 @@ from detector.ports import ConfigError
 __all__ = [
     "COMPUTE_UNITS",
     "CameraConfig",
+    "CaptureConfig",
+    "CaptureServerConfig",
     "Config",
     "ConfigError",
     "CoremlConfig",
@@ -128,6 +130,36 @@ class L2Config:
 
 
 @dataclass(frozen=True)
+class CaptureConfig:
+    """検知フレームの保存（B2-5、docs/specs/edge-capture）。保存は赤の経路の外で行う。"""
+
+    enabled: bool = True
+    dir: str = "captures"  # 相対パスは設定ファイルのディレクトリから
+    image_width: int = 320  # B3-3。高さは 4:3
+    jpeg_quality: int = 80
+    trigger_conf: float = 0.8  # 既定は L0 の赤の閾値（judge.threshold）と同じ
+    min_interval_s: float = 2.0
+    max_per_run: int = 300
+    max_items: int = 2000
+    queue_size: int = 8
+    l1_attach_window_s: float = 3.0  # l1Probs を付ける、答えの前後の秒数
+    retention_hours: int = 24  # この時間でどれも消す（送信済みも。借り手が替わった車に残さない）
+
+
+@dataclass(frozen=True)
+class CaptureServerConfig:
+    """PWA が走行後に Capture を取りに来る HTTP（docs/specs/edge-capture E5）。
+
+    8765（WebSocket）・8766（local-jev）とぶつからない 8767。allowed_origins が空なら、
+    ブラウザの別オリジンからの書き込みを許さない（CORS ヘッダを付けない）。
+    """
+
+    host: str = "127.0.0.1"
+    port: int = 8767
+    allowed_origins: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class Config:
     camera: CameraConfig = field(default_factory=CameraConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
@@ -138,6 +170,8 @@ class Config:
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
     l1: L1Config = field(default_factory=L1Config)
     l2: L2Config = field(default_factory=L2Config)
+    capture: CaptureConfig = field(default_factory=CaptureConfig)
+    capture_server: CaptureServerConfig = field(default_factory=CaptureServerConfig)
     source_dir: str = field(default="", compare=False)  # 読んだ設定ファイルのディレクトリ
 
 
@@ -168,7 +202,19 @@ _RANGES = {
     "timeout_ms": (50, 800),
     "override_conf": (0.9, 1.0),
     "vehicle_max_age_s": (1.0, 60.0),
+    "image_width": (160, 640),
+    "jpeg_quality": (50, 95),
+    "trigger_conf": (0.4, 1.0),
+    "min_interval_s": (0.5, 60.0),
+    "max_per_run": (1, 10_000),
+    "max_items": (10, 20_000),
+    "queue_size": (1, 64),
+    "l1_attach_window_s": (0.5, 10.0),
+    "retention_hours": (1, 168),
 }
+
+# オリジン（スキームとホスト、任意のポート）。パス・ワイルドカード・空は許さない
+_ORIGIN_RE = re.compile(r"https?://[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::\d{1,5})?")
 
 
 def _number(value: object) -> bool:
@@ -208,8 +254,27 @@ def _route_conf(value: object, where: str) -> tuple[float, float]:
     return (lo, hi)
 
 
+def _origins(value: object, where: str) -> tuple[str, ...]:
+    """CORS の許可リスト。`http(s)://host[:port]` の文字列だけ（* もパスも許さない）。"""
+    if not isinstance(value, list):
+        msg = f"{where} は文字列の配列にする"
+        raise ConfigError(msg)
+    for origin in value:
+        if not isinstance(origin, str) or _ORIGIN_RE.fullmatch(origin) is None:
+            msg = f"{where} は http(s)://host[:port] の形だけ（* もパスも不可）: {origin!r}"
+            raise ConfigError(msg)
+        port = origin.rsplit(":", 1)[-1]
+        if port.isdigit() and not 1 <= int(port) <= 65535:
+            msg = f"{where} のポートは 1〜65535: {origin!r}"
+            raise ConfigError(msg)
+    return tuple(value)
+
+
 def _text(name: str, key: str, value: str) -> None:
     where = f"{name}.{key}"
+    if name == "capture" and key == "dir" and not value.strip():
+        msg = f"{where} は空にできない"
+        raise ConfigError(msg)
     if key == "base_url" and not value.strip().startswith(("http://", "https://")):
         msg = f"{where} は http:// か https:// で始まる URL にする（空にできない）"
         raise ConfigError(msg)
@@ -232,6 +297,8 @@ def _check(name: str, key: str, default: object, value: object) -> object:
         return _distance_table(value, f"{name}.{key}")
     if key == "l2_route_conf":
         return _route_conf(value, f"{name}.{key}")
+    if key == "allowed_origins":
+        return _origins(value, f"{name}.{key}")
     if isinstance(default, bool):
         ok = isinstance(value, bool)
     elif isinstance(default, float):
@@ -286,6 +353,8 @@ def load_config(path: str | Path) -> Config:
         "tracker": TrackerConfig,
         "l1": L1Config,
         "l2": L2Config,
+        "capture": CaptureConfig,
+        "capture_server": CaptureServerConfig,
     }
     for key in raw:
         if key not in sections:
@@ -302,6 +371,9 @@ def load_config(path: str | Path) -> Config:
     if config.tracker.min_conf > config.judge.threshold:
         # 赤なのに主トラックが無く、L1 が聞けない（edge-l0 の Deferred を edge-l1 で回収）
         msg = "tracker.min_conf は judge.threshold 以下にする"
+        raise ConfigError(msg)
+    if config.capture.trigger_conf < config.tracker.min_conf:
+        msg = "capture.trigger_conf は tracker.min_conf 以上にする"
         raise ConfigError(msg)
     if config.l1.l2_route_conf[1] > config.l1.override_conf:
         msg = "l1.l2_route_conf の上は l1.override_conf 以下にする"

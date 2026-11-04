@@ -1,6 +1,8 @@
+import { resolve } from 'node:path'
 import Anthropic from '@anthropic-ai/sdk'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
+import { SubmitCaptureUseCase } from '../application/usecases/captures/submit-capture.usecase.js'
 import { GetTripDayUseCase } from '../application/usecases/trip-day/get-trip-day.usecase.js'
 import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
@@ -13,6 +15,8 @@ import { createApp } from '../infrastructure/http/app.js'
 import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
 import { DrizzleTripRepository } from '../infrastructure/repositories/drizzle-trip.repository.js'
+import { FileCaptureRepository } from '../infrastructure/repositories/file-capture.repository.js'
+import { NodeSha256BytesHasher } from '../infrastructure/security/node-bytes-hasher.js'
 import {
   HmacSha256TokenSigner,
   NodeRandomSource,
@@ -58,6 +62,16 @@ export async function buildContainer(
     log: logger,
   })
 
+  // POST /api/captures（edge-capture）。ファイル保存（CAPTURES_DIR を 0700 で作り、件数と画像の合計を数える）
+  const submitCapture = new SubmitCaptureUseCase({
+    captures: new FileCaptureRepository(resolve(env.CAPTURES_DIR)),
+    hasher: new NodeSha256Hasher(),
+    bytesHasher: new NodeSha256BytesHasher(),
+    clock: new SystemClock(),
+    maxItems: env.CAPTURES_MAX_ITEMS,
+    maxBytes: env.CAPTURES_MAX_BYTES,
+  })
+
   const rateLimitKey = clientIpKey({
     trustProxy: env.TRUST_PROXY,
     remoteAddress: (c) => {
@@ -85,6 +99,7 @@ export async function buildContainer(
     exposeErrorDetails: env.NODE_ENV === 'development',
     trips: { createTrip, rateLimitKey },
     tripDays: { getTripDay, rateLimitKey },
+    captures: { submitCapture, rateLimitKey, log: logger },
   })
   return { env, logger, app, connection }
 }

@@ -59,3 +59,24 @@ vehicle_max_age_s = 10.0             # 1〜60。ゾーンと光の期限。速�
 
 [l2]
 enabled = "auto"      # auto | off。L2 は未実装（Step 5）
+
+# 検知フレームの保存（B2-5、docs/specs/edge-capture）。赤の経路の外（別スレッド）で保存する。
+# 車内を写すカメラの経路は持たない（フロントガラスの外を向いた 1 台の映像だけ）。
+[capture]
+enabled = true
+dir = "captures"          # 相対パスはこのファイルのディレクトリから。git に入れない
+image_width = 320         # 160〜640（B3-3）。高さは 4:3
+jpeg_quality = 80         # 50〜95
+trigger_conf = 0.8        # この確信度以上の検出があるフレームを保存（0.4〜1。tracker.min_conf 以上）
+min_interval_s = 2.0      # 保存の最短の間隔（フレームの t_frame で測る）
+max_per_run = 300         # 1 回の起動で保存する枚数の上限
+max_items = 2000          # ディスクの上限（超えたら送信済みの古いものから消す）
+queue_size = 8            # 溢れたら捨てて数える（赤の経路を待たせない）
+l1_attach_window_s = 3.0  # l1Probs（校正前の確率）を付ける、L1 の答えの前後の秒数
+retention_hours = 24      # 1〜168。この時間でどれも消す（送信済みも）。「提供しない」はすぐ消える
+
+# 走行後に PWA が Capture を取りに来る HTTP（一覧・画像・同意・送信済み）。
+[capture_server]
+host = "127.0.0.1"        # 車載では AP の LAN のアドレス
+port = 8767               # WebSocket（8765）・local-jev（8766）とぶつけない
+allowed_origins = []      # PWA のオリジン（例: ["http://ezoroad.local:5174"]）。空ならブラウザの別オリジンから書けない
