@@ -184,6 +184,12 @@ describe('読み込み（R2）', () => {
     expect(calls).toHaveLength(1)
   })
 
+  it('UC-2e: エラーの本文が { error: null } や JSON でなくても「読み込めませんでした」（例外で落ちない）', async () => {
+    stubApi(() => ({ status: 503, body: { error: null } }))
+    renderDrive(`/drive?trip=${TRIP_ID}&day=1`)
+    await expectMessage('読み込めませんでした')
+  })
+
   it('UC-2d: 移動の無い日は「この日は移動がありません」とその日の A-2 へ', async () => {
     stubApi((day) => {
       const body = tripDayBody(day)

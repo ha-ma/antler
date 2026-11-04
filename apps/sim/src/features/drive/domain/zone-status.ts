@@ -30,7 +30,8 @@ export function zoneStatusAt(plan: RoutePlan, position: LonLat, hintKm?: number)
 /**
  * 車の道のり s（m）からゾーン状態を出す（drive-link R5）。planRoute の区間は s と同じ物差し（cumulativeM）なので、
  * measureAlongRoute で全線分を走査せずに同じ答えが出る（1 日 280 km のルートは 20 m 間隔で 1 万 4 千本）。
- * 区間は道のりの順に並んでいるので二分探索する。
+ * 区間は道のりの順に並び、重ならない（planRoute はルートを前から 1 回なめて、続く inside を 1 つの区間にまとめる。
+ * withoutRanges で割っても順は保つ）ので二分探索する。
  */
 export function zoneStatusFromS(plan: RoutePlan, sM: number): ZoneStatus {
   const positionKm = Math.min(Math.max(sM / 1000, 0), plan.totalKm)
@@ -75,8 +76,9 @@ export function withoutRanges(plan: RoutePlan, rangesM: readonly [number, number
     const from = fromM / 1000
     const to = toM / 1000
     intervals = intervals.flatMap((v) => {
-      if (v.exitKm < from || v.entryKm > to) return [v]
+      if (v.exitKm <= from || v.entryKm >= to) return [v]
       const kept: typeof intervals = []
+      // 割った残りは長さが正のものだけ（長さ 0 の区間は出入りがちらつく。alert-contract-guard W-3）
       if (v.entryKm < from) kept.push({ ...v, exitKm: from })
       if (v.exitKm > to) kept.push({ ...v, entryKm: to })
       return kept

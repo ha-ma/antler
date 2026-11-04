@@ -264,4 +264,24 @@ describe('ゾーン（R5）', () => {
     const cut = withoutRanges(routePlan, [[0, (routePlan.intervals[0]?.entryKm ?? 0) * 1000 + 100]])
     expect(cut.intervals[0]?.entryKm).toBeCloseTo((routePlan.intervals[0]?.entryKm ?? 0) + 0.1, 6)
   })
+
+  it('UC-4f: 直線で埋めたつなぎ目も区間を作らない範囲に入る。範囲の端に接するだけの区間は割らず、長さ 0 の区間を作らない', () => {
+    const gap = scenarioFromDay({ plan, day: twoLegs(800) }, '')
+    if (!gap) throw new Error('場面がない')
+    const joint = gap.legStarts[0]?.sM ?? 0
+    // つなぎ目（約 800 m）の範囲が 1 つ、2 つ目の移動の始まりで終わる
+    expect(gap.straightRangesM).toHaveLength(1)
+    const [from, to] = gap.straightRangesM[0] ?? [0, 0]
+    expect(to).toBeCloseTo(joint, 6)
+    expect(to - from).toBeGreaterThan(700)
+    expect(to - from).toBeLessThan(900)
+
+    const first = routePlan.intervals[0]
+    if (!first) throw new Error('区間がない')
+    const touching = withoutRanges(routePlan, [[first.exitKm * 1000, first.exitKm * 1000 + 500]])
+    expect(touching.intervals[0]).toEqual(first)
+    const covering = withoutRanges(routePlan, [[first.entryKm * 1000, first.exitKm * 1000]])
+    expect(covering.intervals.every((v) => v.exitKm > v.entryKm)).toBe(true)
+    expect(covering.intervals).not.toContainEqual(first)
+  })
 })

@@ -23,6 +23,8 @@ export function scenarioFromDay({ plan, day }: TripDayInput, search: string): Dr
   const route: LonLat[] = []
   const legStartIndex: number[] = []
   const legEndIndex: number[] = []
+  /** 直線で埋めたつなぎ目の頂点の範囲（前の移動の終点〜次の移動の始点） */
+  const fillerIndex: [number, number][] = []
   for (const leg of day.legs) {
     const part = smoothRoute(leg.route)
     const prev = route[route.length - 1]
@@ -33,8 +35,10 @@ export function scenarioFromDay({ plan, day }: TripDayInput, search: string): Dr
         // 同じ点: 前の移動の終点をこの移動の始点として使う
         body = part.slice(1)
       } else {
-        // 離れた端点は直線で埋める（端点を除いた中の点だけ足す）
+        // 離れた端点は直線で埋める（端点を除いた中の点だけ足す）。ここはしおりの道ではないので区間を作らない
+        const from = route.length - 1
         route.push(...smoothRoute([prev, head]).slice(1, -1))
+        fillerIndex.push([from, route.length])
       }
     }
     legStartIndex.push(body === part ? route.length : route.length - 1)
@@ -48,9 +52,13 @@ export function scenarioFromDay({ plan, day }: TripDayInput, search: string): Dr
     sM: sAt(legStartIndex[i + 1] ?? 0),
     departAt: leg.departAt,
   }))
-  const straightRangesM = day.legs.flatMap((leg, i): [number, number][] =>
-    leg.source === 'straight' ? [[sAt(legStartIndex[i] ?? 0), sAt(legEndIndex[i] ?? 0)]] : [],
-  )
+  // 直線で引いた概算の移動と、直線で埋めたつなぎ目には区間を作らない（brief-map R1。A-2 に出ないゾーンを出さない）
+  const straightRangesM: [number, number][] = [
+    ...day.legs.flatMap((leg, i): [number, number][] =>
+      leg.source === 'straight' ? [[sAt(legStartIndex[i] ?? 0), sAt(legEndIndex[i] ?? 0)]] : [],
+    ),
+    ...fillerIndex.map(([a, b]): [number, number] => [sAt(a), sAt(b)]),
+  ].sort((x, y) => x[0] - y[0])
 
   return {
     source: 'trip',

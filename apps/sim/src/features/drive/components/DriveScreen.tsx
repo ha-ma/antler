@@ -1,4 +1,5 @@
 import { useMemo, type ComponentProps } from 'react'
+import { Link } from 'react-router'
 import { TripDayError } from '../api/trip-day'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
@@ -41,7 +42,7 @@ export function DriveScreen({ onFinish, canvas, webgl2 }: Props) {
   // 旅・日・アラートが変わったら作り直す（エンジンは最初の 1 回だけ作るので）
   return (
     <TripDrive
-      key={`${params.id}/${String(params.day)}/${params.search}`}
+      key={`${params.id}/${String(params.day)}/${params.alertOn ? 'on' : 'off'}`}
       params={params}
       page={page}
     />
@@ -116,9 +117,9 @@ function TripMessage({
             </button>
           )}
           {links.map(([href, label]) => (
-            <a key={href} className="drive-start__link" href={href}>
+            <Link key={href} className="drive-start__link" to={href}>
               {label}
-            </a>
+            </Link>
           ))}
         </div>
       </section>

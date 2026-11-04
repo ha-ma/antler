@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import type { DriveOutcome } from '../../types'
 import { HUD_TEXT } from './hud-text'
 
@@ -22,9 +23,9 @@ export function EndBanner({ outcome, onRetry, briefHref }: Props) {
           {t.retry}
         </button>
         {briefHref && (
-          <a className="drive-start__link" href={briefHref}>
+          <Link className="drive-start__link" to={briefHref}>
             {HUD_TEXT.trip.toBrief}
-          </a>
+          </Link>
         )}
       </div>
     </section>

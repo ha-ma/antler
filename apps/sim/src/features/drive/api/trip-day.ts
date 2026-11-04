@@ -43,10 +43,12 @@ export async function fetchTripDay(
   }
   const body: unknown = await res.json().catch(() => null)
   if (!res.ok) {
-    const code =
-      typeof body === 'object' && body !== null && 'error' in body
-        ? String((body as { error: { code?: unknown } }).error.code ?? '')
-        : null
+    // 本文の形は信じない（{ error: null } や JSON でない本文でも TripDayError にする）
+    const error =
+      typeof body === 'object' && body !== null ? (body as { error?: unknown }).error : null
+    const raw =
+      typeof error === 'object' && error !== null ? (error as { code?: unknown }).code : null
+    const code = typeof raw === 'string' ? raw : null
     logger.warn('drive.day.failed', { status: res.status, code })
     throw new TripDayError(res.status, code)
   }

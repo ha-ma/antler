@@ -1,4 +1,5 @@
 import { placeById } from '@antler/trip'
+import { Link } from 'react-router'
 import { briefHref } from '../hooks/use-drive-params'
 import type { DriveScenario } from '../types'
 import { HUD_TEXT, SURFACE_TEXT, WEATHER_TEXT } from './hud/hud-text'
@@ -50,12 +51,12 @@ export function StartOverlay({
           {t.go}
         </button>
         {trip && (
-          <a
+          <Link
             className="drive-start__link"
-            href={briefHref(scenario.trip.id, scenario.day, scenario.alertEnabled)}
+            to={briefHref(scenario.trip.id, scenario.day, scenario.alertEnabled)}
           >
             {HUD_TEXT.trip.toBrief}
-          </a>
+          </Link>
         )}
       </div>
     </section>
