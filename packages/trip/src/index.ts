@@ -48,6 +48,38 @@ export {
   type WindowFog,
 } from './day/conditions'
 export { roadBetween, RoadCatalogSchema, type Road, type RoadCatalog } from './day/roads'
+// 走行の記録と旅の記録の集計（record、A-7・POST /api/trips/:id/runs・GET /api/trips/:id/record）
+export {
+  DeerPatternSchema,
+  DriveEncounterSchema,
+  DriveRunInputSchema,
+  MAX_ENCOUNTERS_PER_RUN,
+  MAX_RUNS_PER_DAY,
+  MAX_ZONE_PASSES,
+  type DeerPattern,
+  type DriveEncounter,
+  type DriveRunInput,
+} from './record/run'
+export {
+  CLOSE_CALL_M,
+  summarizeRecord,
+  TripRecordSchema,
+  type DayResult,
+  type RecordPlan,
+  type RecordRun,
+  type TripRecord,
+} from './record/summary'
+export { RecordTripSchema, recordTripOf, type RecordTrip } from './record/trip-view'
+export { RECORD_TEXT, recordText, type RecordTextKey } from './record/text'
+export { buildRecordView, type LogTone, type RecordView, type StatKey } from './record/view'
+export {
+  formatClock,
+  formatDateRange,
+  formatSeconds,
+  patternLabel,
+  placeName,
+  pleasureLabel,
+} from './record/format'
 export {
   DayConditionsSchema,
   DayPlanSchema,

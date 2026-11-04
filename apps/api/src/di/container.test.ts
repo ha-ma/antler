@@ -39,6 +39,7 @@ describe('buildContainer', () => {
       'stop_decks',
       'trip_events',
       'trip_requests',
+      'trip_runs',
       'trip_writer_calls',
       'trips',
     ])

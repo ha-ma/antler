@@ -19,6 +19,13 @@ const corsOrigins = z
     'CORS_ORIGINS はスキーム付きのオリジン（例: http://localhost:5173）だけを並べる',
   )
 
+/** スキーム付きのオリジン（末尾の / なし）。公開 URL（og:url・og:image・リンク）に使う */
+const publicOrigin = (fallback: string) =>
+  z
+    .string()
+    .regex(/^https?:\/\/[^/\s]+$/, 'スキーム付きのオリジン（例: https://ezoroad.app）を書く')
+    .default(fallback)
+
 const envSchema = z.object({
   // 既定は production（付け忘れたときに、エラーの detail を出す側に倒さない）。開発は npm run dev が development を付ける
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
@@ -35,6 +42,20 @@ const envSchema = z.object({
   // Claude の同時呼び出しの上限。超えたら 503 WRITER_BUSY
   CLAUDE_MAX_CONCURRENT_CALLS: z.coerce.number().int().min(1).default(4),
   TRIPS_DB_URL: z.string().min(1).default('file:./data/trips.db'),
+  // 旅の記録（docs/specs/record/functional.md R1）。og:url・og:image・リンクはこの値だけから作る（Host ヘッダは使わない）
+  PUBLIC_API_URL: publicOrigin('http://localhost:8787'),
+  SIM_PUBLIC_URL: publicOrigin('http://localhost:5173'),
+  PWA_PUBLIC_URL: publicOrigin('http://localhost:5174'),
+  // OG 画像のフォント（カンマ区切りのファイルのパス）。空ならシステムのフォント（Linux は fonts-noto-cjk を入れる）
+  OG_FONT_FILES: z
+    .string()
+    .default('')
+    .transform((raw) =>
+      raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
   // POST /api/captures（docs/specs/edge-capture/functional.md A5・A6）。受け取った Capture と画像の置き場所と上限
   CAPTURES_DIR: z.string().min(1).default('./data/captures-received'),
   CAPTURES_MAX_ITEMS: z.coerce.number().int().min(1).default(50_000),

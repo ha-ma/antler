@@ -4,7 +4,7 @@ target_paths:
   - packages/schema/
   - packages/alert-ui/
   - edge/detector/tests/test_schema_contract.py
-spec_confirmed_at: 378a605
+spec_confirmed_at: 541cfb5
 tier: 2
 ---
 
@@ -69,6 +69,7 @@ Story: A の車内スマホを見るプレイヤーと B の PWA を見るドラ
 - R7: compact（A の車内スマホ）は数値と形だけ。文字は 9px、副文は出さない
 - R8: 操作要素を置かない。タップで消えない
 - R9: tokens.json から CSS 変数（tokens.css）と TS 定数（tokens.ts）を作る。生成物を手で直さない。alert-* はテーマで変わらない
+  - TS 定数はサブパス `@antler/alert-ui/tokens` からも読める（React を読まずに色だけ使う api の SSR・OG 画像のため。record で追加、2026-11-04。既存の export は変えない）
 - R10: 支援技術に状態を伝える
   - danger は割り込みで、入ったときの 1 回だけ「前方に鹿 左 58 メートル」のように伝える。距離が変わっても読み直させない
   - safe / zone は状態が変わったときだけ穏やかに伝える

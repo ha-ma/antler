@@ -6,6 +6,7 @@ import { serializeError, type Logger } from '../logging/logger.js'
 import { toHttpError } from './error-mapper.js'
 import { captureRoutes, type CaptureRoutesDeps } from './routes/capture.routes.js'
 import { healthRoutes, type ReadinessCheck } from './routes/health.routes.js'
+import { recordRoutes, type RecordRoutesDeps } from './routes/record.routes.js'
 import { tripDayRoutes, type TripDayRoutesDeps } from './routes/trip-day.routes.js'
 import { tripRoutes, type TripRoutesDeps } from './routes/trip.routes.js'
 import { stopDeckRoutes, type StopDeckRoutesDeps } from './routes/stop-deck.routes.js'
@@ -26,6 +27,8 @@ export type AppDeps = {
   stopDecks?: StopDeckRoutesDeps
   /** POST /api/trips/:id/events（stop-events）。無ければ載せない */
   tripEvents?: TripEventRoutesDeps
+  /** 走行の記録・記録・削除・/t/:id（record）。無ければ載せない */
+  records?: RecordRoutesDeps
   /** POST /api/captures（edge-capture）。無ければ載せない */
   captures?: CaptureRoutesDeps
 }
@@ -39,6 +42,7 @@ export function createApp({
   tripDays,
   stopDecks,
   tripEvents,
+  records,
   captures,
 }: AppDeps): Hono {
   const app = new Hono()
@@ -60,7 +64,7 @@ export function createApp({
     cors({
       origin: [...corsOrigins],
       allowMethods: ['GET', 'POST', 'DELETE'],
-      // Authorization: Bearer <ownerToken>（stop-events・record の書き込みの権利。docs/specs/stop-events/threat.md）
+      // Authorization: Bearer <ownerToken>（record の runs・DELETE、stop-events の束・イベント）
       allowHeaders: ['Content-Type', 'Idempotency-Key', 'Authorization'],
       exposeHeaders: ['Idempotent-Replayed', 'Retry-After'],
       maxAge: 600,
@@ -72,6 +76,7 @@ export function createApp({
   if (tripDays) app.route('/', tripDayRoutes(tripDays))
   if (stopDecks) app.route('/', stopDeckRoutes(stopDecks))
   if (tripEvents) app.route('/', tripEventRoutes(tripEvents))
+  if (records) app.route('/', recordRoutes(records))
   if (captures) app.route('/', captureRoutes(captures))
 
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: '見つかりません' } }, 404))
