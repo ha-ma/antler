@@ -24,6 +24,15 @@ export function ownerTokenOf(tripId: string): string | null {
   }
 }
 
+/** 旅を消したあとに端末の所有者トークンを消す（record R10）。消せなくても旅はもう無い */
+export function forgetOwnerToken(tripId: string): void {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(OWNER_KEY_PREFIX + tripId)
+  } catch (error) {
+    logger.warn('record.owner-storage', { message: String(error) })
+  }
+}
+
 function keepOwnerToken(tripId: string, token: string): void {
   try {
     if (typeof localStorage !== 'undefined') localStorage.setItem(OWNER_KEY_PREFIX + tripId, token)

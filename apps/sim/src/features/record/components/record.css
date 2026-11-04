@@ -1,0 +1,548 @@
+/* A-7 旅の記録（/t/:id）。色・文字・余白は tokens.css の CSS 変数だけを使う（ch8 規約 1・4）。
+   ground の上の小さい文字は ink-muted（ink-faint は 4.5:1 に届かない）。alert-danger は使わない（鹿検知専用）。
+   UI キャンバス v2 の A7_Record に合わせ、幅が狭いときは 1 列に折り返す。 */
+
+.record {
+  min-height: 100vh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--body-size);
+  line-height: var(--body-line);
+}
+
+.record :focus-visible {
+  outline: 3px solid var(--spruce);
+  outline-offset: 2px;
+}
+
+.record h1:focus,
+.record h1:focus-visible {
+  outline: none;
+}
+
+.record--status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-7) var(--space-6);
+}
+
+.record--status h1 {
+  margin: 0;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.record-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.record-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: var(--heading-size);
+  letter-spacing: 0.04em;
+}
+
+.record-brand-mark {
+  width: 24px;
+  height: 24px;
+}
+
+.record-brand-mark__outer {
+  stroke: var(--spruce);
+}
+
+.record-brand-mark__inner {
+  stroke: var(--clay);
+}
+
+.record-share {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.record-url {
+  min-height: 44px;
+  width: min(300px, 100%);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+}
+
+.record-share-status {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: right;
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+  min-height: var(--caption-line);
+}
+
+.record-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-m);
+  font: inherit;
+  font-size: var(--label-size);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.record-button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.record-button--primary {
+  border: 0;
+  background: var(--spruce);
+  color: var(--on-spruce);
+}
+
+.record-button--primary:hover {
+  background: var(--spruce-deep);
+}
+
+.record-button--secondary {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.record-button--danger {
+  border: 0;
+  background: var(--clay-deep);
+  color: var(--surface);
+}
+
+.record-main {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-6) var(--space-7);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
+.record-col {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.record-aside {
+  flex: 1 1 320px;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.record-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.record-eyebrow {
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-line);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  color: var(--spruce);
+}
+
+.record-intro h1 {
+  margin: 0;
+  font-size: var(--display-l-size);
+  line-height: var(--display-l-line);
+  font-weight: var(--display-l-weight);
+}
+
+.record-subtitle {
+  margin: 0;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.record-lead {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+.record-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.record-stat {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  padding: var(--space-3) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.record-stat dt {
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+.record-stat dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--num-l-size);
+  line-height: var(--num-l-line);
+  font-weight: var(--num-l-weight);
+}
+
+.record-stat--pleasures dd {
+  color: var(--spruce);
+}
+
+/* 単位は数値の 40 %（ch8 の文字の決まり） */
+.record-stat dd small {
+  font-size: 0.4em;
+  margin-left: 2px;
+}
+
+.record-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.record-card h2 {
+  margin: 0;
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+  font-weight: var(--heading-weight);
+}
+
+.record-empty,
+.record-note,
+.record-delete-note {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.record-kept {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.record-kept li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.record-photo {
+  height: 120px;
+  border-radius: var(--radius-m);
+  background: var(--photo-placeholder);
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--caption-size);
+}
+
+.record-kept b {
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+}
+
+.record-kept span {
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+.record-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.record-log li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-m);
+  background: var(--ground);
+  font-size: var(--label-size);
+}
+
+.record-log__when {
+  font-family: var(--font-mono);
+  font-size: var(--caption-size);
+  color: var(--ink-muted);
+  min-width: 90px;
+}
+
+.record-log__what {
+  flex: 1 1 200px;
+}
+
+.record-log__brake {
+  font-family: var(--font-mono);
+  font-size: var(--caption-size);
+}
+
+.record-log__outcome {
+  font-size: var(--caption-size);
+  font-weight: 700;
+}
+
+.record-log__outcome--avoided {
+  color: var(--spruce);
+}
+
+.record-log__outcome--closeCall,
+.record-log__outcome--collided {
+  color: var(--clay-deep);
+}
+
+.record-shiori__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.record-chip {
+  font-family: var(--font-mono);
+  font-size: var(--caption-size);
+  color: var(--spruce);
+}
+
+.record-shiori__title {
+  margin: 0;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.record-shiori ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.record-shiori__row {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+}
+
+.record-shiori__row small {
+  display: block;
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.record-mark {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.record-mark--completed {
+  stroke: var(--spruce);
+}
+
+.record-mark--collided {
+  stroke: var(--clay-deep);
+}
+
+.record-mark--none {
+  stroke: var(--ink-muted);
+}
+
+.record-off {
+  font-size: var(--caption-size);
+  font-weight: 700;
+  color: var(--clay-deep);
+}
+
+/* B への導線（夜のテーマ。data-theme="night" で tokens.css の night の値になる） */
+.record-b {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.record-b__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.record-b__phone {
+  flex: none;
+  width: 44px;
+  height: 80px;
+  border-radius: var(--radius-s);
+  background: var(--ground);
+  border: 2px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.record-b__phone span {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--alert-safe);
+}
+
+.record-b h2 {
+  margin: 0;
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+}
+
+.record-b p,
+.record-b ul {
+  margin: 0;
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+.record-b ul {
+  padding-left: 18px;
+}
+
+.record-b__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border-radius: var(--radius-m);
+  background: var(--spruce);
+  color: var(--on-spruce);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.record-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.record-actions .record-button {
+  flex: 1 1 140px;
+  min-height: 48px;
+}
+
+.record-delete {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.record-delete__heading {
+  margin: 0;
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  color: var(--ink-muted);
+}
+
+.record-delete__confirm p {
+  margin: 0 0 var(--space-2);
+}
+
+.record-delete__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.record-delete__error {
+  color: var(--clay-deep);
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .record-header,
+  .record-main,
+  .record--status {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .record-share {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .record-share-status {
+    text-align: left;
+  }
+
+  .record-aside {
+    max-width: none;
+  }
+}
