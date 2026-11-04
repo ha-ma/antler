@@ -142,12 +142,18 @@
   gap: var(--space-3);
 }
 
-/* 4 指標（StatTile） */
+/* 4 指標（StatTile）。アートボードどおり 2 × 2、狭い画面では 1 列 */
 .loss-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-3);
   margin: 0;
+}
+
+@media (max-width: 480px) {
+  .loss-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .loss-tile {
