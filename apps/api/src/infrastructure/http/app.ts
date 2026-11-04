@@ -7,6 +7,7 @@ import { toHttpError } from './error-mapper.js'
 import { captureRoutes, type CaptureRoutesDeps } from './routes/capture.routes.js'
 import { healthRoutes, type ReadinessCheck } from './routes/health.routes.js'
 import { lossRoutes, type LossRoutesDeps } from './routes/loss.routes.js'
+import { recordRoutes, type RecordRoutesDeps } from './routes/record.routes.js'
 import { tripDayRoutes, type TripDayRoutesDeps } from './routes/trip-day.routes.js'
 import { tripRoutes, type TripRoutesDeps } from './routes/trip.routes.js'
 
@@ -23,6 +24,8 @@ export type AppDeps = {
   tripDays?: TripDayRoutesDeps
   /** POST /api/trips/:id/losses（loss）。無ければ載せない */
   losses?: LossRoutesDeps
+  /** 走行の記録・記録・削除・/t/:id（record）。無ければ載せない */
+  records?: RecordRoutesDeps
   /** POST /api/captures（edge-capture）。無ければ載せない */
   captures?: CaptureRoutesDeps
 }
@@ -35,6 +38,7 @@ export function createApp({
   trips,
   tripDays,
   losses,
+  records,
   captures,
 }: AppDeps): Hono {
   const app = new Hono()
@@ -56,7 +60,8 @@ export function createApp({
     cors({
       origin: [...corsOrigins],
       allowMethods: ['GET', 'POST', 'DELETE'],
-      allowHeaders: ['Content-Type', 'Idempotency-Key'],
+      // Authorization は旅の所有者トークン（record の runs・DELETE）
+      allowHeaders: ['Content-Type', 'Idempotency-Key', 'Authorization'],
       exposeHeaders: ['Idempotent-Replayed', 'Retry-After'],
       maxAge: 600,
     }),
@@ -66,6 +71,7 @@ export function createApp({
   if (trips) app.route('/', tripRoutes(trips))
   if (tripDays) app.route('/', tripDayRoutes(tripDays))
   if (losses) app.route('/', lossRoutes(losses))
+  if (records) app.route('/', recordRoutes(records))
   if (captures) app.route('/', captureRoutes(captures))
 
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: '見つかりません' } }, 404))

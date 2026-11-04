@@ -1,6 +1,7 @@
 import type { Lang } from '@antler/schema'
 import { formatBudget } from '@antler/trip'
 import { Link } from 'react-router'
+import { recordHref } from '@/features/record'
 import baseline from '../data/loss-baseline.json'
 import { assessLoss } from '../domain/assess-loss'
 import { strikeItinerary } from '../domain/strike'
@@ -180,6 +181,10 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
                 {t.newTrip[lang]}
               </Link>
             </div>
+            {/* A-7 の旅の記録（record）。その日は衝突として残る。A6-4 の 3 つより控えめに */}
+            <Link className="loss-record-link" to={recordHref(collision.tripId)}>
+              {t.toRecord[lang]}
+            </Link>
           </nav>
         </section>
         <aside className="loss-aside">

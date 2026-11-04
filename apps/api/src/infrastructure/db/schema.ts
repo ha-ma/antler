@@ -1,5 +1,5 @@
 import type { TripDetails, TripPlan } from '@antler/schema'
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import type { CollisionDescriptor } from '../../domain/losses/models/loss.js'
 import type { LocalizedText } from '../../domain/trips/models/trip-writing.js'
 
@@ -37,6 +37,28 @@ export const tripLosses = sqliteTable(
     createdAt: integer('created_at').notNull(),
   },
   (t) => [index('trip_losses_trip_id').on(t.tripId)],
+)
+
+/**
+ * 走行の記録（run）。1 日の運転 1 回の要約（docs/specs/record/plan.md「マイグレーション統合」）。
+ * payload は DriveRunInput の JSON（読むときに形を確かめる）。外部キーは張らない（削除は usecase が明示的に消す）
+ */
+export const tripRuns = sqliteTable(
+  'trip_runs',
+  {
+    tripId: text('trip_id').notNull(),
+    runId: text('run_id').notNull(),
+    day: integer('day').notNull(),
+    payload: text('payload', { mode: 'json' }).$type<unknown>().notNull(),
+    /** 保存した時刻（ms） */
+    createdAt: integer('created_at').notNull(),
+    /** 旅の中の保存の順番（1 始まり）。日ごとの最新を決める */
+    seq: integer('seq').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tripId, t.runId] }),
+    index('trip_runs_trip_seq').on(t.tripId, t.seq),
+  ],
 )
 
 export const tripRequests = sqliteTable('trip_requests', {

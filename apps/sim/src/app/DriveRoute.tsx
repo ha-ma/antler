@@ -1,22 +1,38 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import type { DriveResult } from '@/features/drive'
 import { lossHref, lossReportFromDrive } from '@/features/loss'
+import { recordHref, toDriveRun, useSaveRun } from '@/features/record'
 
-// /drive（A-3・A-5）は three・R3F を含むので遅延読込にする（ほかの画面の初回読込に入れない）。
-// A-2 は /drive?trip={id}&day={n}(&alert=off) で旅程を渡す（drive-link）。trip が無ければ開発用の見本の場面。
+// /drive の運転の終わり（A5-6）。drive と record・loss をつなぐのは app 層だけ。
+// - 旅の場面の衝突・完走で run を残す（record R11。見本の場面は旅が無いので残さない）
+// - 衝突したら A-6（/loss/:id?…）へすぐ移る（loss R1。run の保存の結果は待たない。保存は裏で続く）
+// - 完走して残せたら A-7（/t/:id）へ（record R11）。この端末に所有者トークンが無ければ送らず、移らない
+// /drive は three・R3F を含むので遅延読込にする（ほかの画面の初回読込に入れない）。
+
 const DriveScreen = lazy(() => import('@/features/drive').then((m) => ({ default: m.DriveScreen })))
 
-/**
- * 運転の画面と、走り終えたあとの行き先（A5-6）。旅の場面で鹿と衝突したら A-6（`/loss/:id?…`）へ移る。
- * 完走（A-7）は record の担当で、ここでは移らない。
- */
 export function DriveRoute() {
+  const { mutate: saveRun } = useSaveRun()
   const navigate = useNavigate()
-  const onFinish = (result: DriveResult) => {
-    const collision = lossReportFromDrive(result)
-    if (collision) void navigate(lossHref(collision))
-  }
+  const onFinish = useCallback(
+    (result: DriveResult) => {
+      if (result.source !== 'trip') return
+      saveRun(
+        { tripId: result.tripId, run: toDriveRun(result) },
+        {
+          onSuccess: (saved) => {
+            if (saved.status !== 'not-owner' && result.outcome === 'completed') {
+              void navigate(recordHref(result.tripId))
+            }
+          },
+        },
+      )
+      const collision = lossReportFromDrive(result)
+      if (collision) void navigate(lossHref(collision))
+    },
+    [saveRun, navigate],
+  )
   return (
     <Suspense fallback={null}>
       <DriveScreen onFinish={onFinish} />

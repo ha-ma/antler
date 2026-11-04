@@ -220,6 +220,20 @@
   flex: 1 1 200px;
 }
 
+/* A-7 への控えめな導線（文字のリンク。タップ領域は 44px） */
+.loss-record-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  min-height: 44px;
+  color: var(--ink-muted);
+  font-size: var(--body-size);
+}
+
+.loss-record-link:hover {
+  color: var(--ink);
+}
+
 .loss-button {
   display: inline-flex;
   align-items: center;

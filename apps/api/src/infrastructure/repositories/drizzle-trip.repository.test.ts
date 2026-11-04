@@ -73,7 +73,7 @@ describe('ensureSchema', () => {
     const tables = await conn.client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     )
-    // ほかの feature（loss など）の表も同じ ensureSchema で作るので、plan-trip の表があることだけを見る
+    // ほかの feature（loss・record など）の表も同じ ensureSchema で作るので、plan-trip の表があることだけを見る
     expect(tables.rows.map((r) => r['name'])).toEqual(
       expect.arrayContaining(['trip_requests', 'trip_writer_calls', 'trips']),
     )

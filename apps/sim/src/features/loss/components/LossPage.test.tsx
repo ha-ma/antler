@@ -162,6 +162,11 @@ describe('LossPage（A-6）', () => {
       `/drive?trip=${TRIP_ID}&day=2&alert=off&replay=${String(collision.simMs - 3000)}`,
     )
     expect(screen.getByRole('link', { name: '別の旅をつくる' })).toHaveAttribute('href', '/plan')
+    // A-7 の旅の記録へ（record）
+    expect(screen.getByRole('link', { name: 'この旅の記録を見る' })).toHaveAttribute(
+      'href',
+      `/t/${TRIP_ID}`,
+    )
   })
 
   it('UC-2c: LossCard はタイトルに <s>、✕ の行に「衝突」の文と時刻、lost の行に読み上げ用の「取り消し」', async () => {

@@ -40,6 +40,12 @@ export const LOSS_TEXT = {
   },
   retry: { ja: 'もう一度', en: 'Try again', zh: '再試一次', ko: '다시 시도' },
   toPlan: { ja: '旅をつくる画面へ', en: 'Plan a trip', zh: '前往規劃旅程', ko: '여행 만들기로' },
+  toRecord: {
+    ja: 'この旅の記録を見る',
+    en: 'See the record of this trip',
+    zh: '查看這趟旅程的紀錄',
+    ko: '이 여행의 기록 보기',
+  },
   eyebrow: {
     ja: 'DAY {n} ・ {time} ・ {from} → {to}',
     en: 'DAY {n} · {time} · {from} → {to}',
