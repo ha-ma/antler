@@ -2,16 +2,19 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
 import { GetTripDayUseCase } from '../application/usecases/trip-day/get-trip-day.usecase.js'
+import { WriteLossUseCase } from '../application/usecases/losses/write-loss.usecase.js'
 import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
 import { openDatabase, type Connection } from '../infrastructure/db/connection.js'
 import { DrizzleUnitOfWork } from '../infrastructure/db/drizzle-unit-of-work.js'
 import { ensureSchema } from '../infrastructure/db/migrate.js'
+import { ClaudeLossWriterGateway } from '../infrastructure/gateways/claude-loss-writer.gateway.js'
 import { ClaudeTripWriterGateway } from '../infrastructure/gateways/claude-trip-writer.gateway.js'
 import { FileRoadCatalogGateway } from '../infrastructure/gateways/file-road-catalog.gateway.js'
 import { createApp } from '../infrastructure/http/app.js'
 import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
+import { DrizzleLossRepository } from '../infrastructure/repositories/drizzle-loss.repository.js'
 import { DrizzleTripRepository } from '../infrastructure/repositories/drizzle-trip.repository.js'
 import {
   HmacSha256TokenSigner,
@@ -36,12 +39,14 @@ export async function buildContainer(
   await ensureSchema(connection.client)
   const trips = new DrizzleTripRepository(connection.db)
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1 })
+  // Claude の同時呼び出しの枠は plan-trip と loss で 1 つを共有する（別にすると上限が 2 倍になる。loss R8）
+  const writerSlots = new InProcessConcurrencyLimiter(env.CLAUDE_MAX_CONCURRENT_CALLS)
 
   const createTrip = new CreateTripUseCase({
     trips,
     uow: new DrizzleUnitOfWork(connection.db),
     writer: new ClaudeTripWriterGateway(anthropic.messages, logger),
-    writerSlots: new InProcessConcurrencyLimiter(env.CLAUDE_MAX_CONCURRENT_CALLS),
+    writerSlots,
     random: new NodeRandomSource(),
     hasher: new NodeSha256Hasher(),
     ownerTokens: new HmacSha256TokenSigner(env.OWNER_TOKEN_SECRET),
@@ -56,6 +61,18 @@ export async function buildContainer(
     data: new FileRoadCatalogGateway(),
     clock: new SystemClock(),
     log: logger,
+  })
+
+  // 喪失文（loss）。1 日の上限は TripRepository.countWriterCall で plan-trip と同じ数え上げ
+  const writeLoss = new WriteLossUseCase({
+    trips,
+    losses: new DrizzleLossRepository(connection.db),
+    writer: new ClaudeLossWriterGateway(anthropic.messages, logger),
+    writerSlots,
+    hasher: new NodeSha256Hasher(),
+    clock: new SystemClock(),
+    log: logger,
+    dailyWriterCallLimit: env.CLAUDE_DAILY_CALL_LIMIT,
   })
 
   const rateLimitKey = clientIpKey({
@@ -85,6 +102,7 @@ export async function buildContainer(
     exposeErrorDetails: env.NODE_ENV === 'development',
     trips: { createTrip, rateLimitKey },
     tripDays: { getTripDay, rateLimitKey },
+    losses: { writeLoss, rateLimitKey },
   })
   return { env, logger, app, connection }
 }

@@ -1,5 +1,7 @@
 import type { TripDetails, TripPlan } from '@antler/schema'
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import type { CollisionDescriptor } from '../../domain/losses/models/loss.js'
+import type { LocalizedText } from '../../domain/trips/models/trip-writing.js'
 
 // 旅（TripPlan・TripDetails・所有者トークンのハッシュ）と冪等キーの行（docs/specs/plan-trip/plan.md「マイグレーション統合」）。
 // 表は起動時に migrate.ts の CREATE TABLE IF NOT EXISTS で作る。列を変えるときは両方を直す。
@@ -23,6 +25,19 @@ export const tripWriterCalls = sqliteTable('trip_writer_calls', {
   dayStart: integer('day_start').primaryKey(),
   calls: integer('calls').notNull(),
 })
+
+/** 喪失文（loss、docs/specs/loss/plan.md「マイグレーション統合」）。鍵は文の材料の記述子のハッシュ */
+export const tripLosses = sqliteTable(
+  'trip_losses',
+  {
+    keyHash: text('key_hash').primaryKey(),
+    tripId: text('trip_id').notNull(),
+    collision: text('collision', { mode: 'json' }).$type<CollisionDescriptor>().notNull(),
+    story: text('story', { mode: 'json' }).$type<LocalizedText>().notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [index('trip_losses_trip_id').on(t.tripId)],
+)
 
 export const tripRequests = sqliteTable('trip_requests', {
   /** 冪等キーのハッシュ（キーそのものは保存しない） */

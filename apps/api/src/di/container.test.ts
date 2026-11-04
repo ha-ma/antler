@@ -33,11 +33,9 @@ describe('buildContainer', () => {
     const tables = await connection.client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     )
-    expect(tables.rows.map((r) => r['name'])).toEqual([
-      'trip_requests',
-      'trip_writer_calls',
-      'trips',
-    ])
+    expect(tables.rows.map((r) => r['name'])).toEqual(
+      expect.arrayContaining(['trip_losses', 'trip_requests', 'trip_writer_calls', 'trips']),
+    )
     connection.client.close()
   })
 

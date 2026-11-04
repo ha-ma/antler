@@ -11,6 +11,7 @@ import {
   TripWriterBusyError,
   TripWriterError,
 } from '../../domain/trips/errors/trip-errors.js'
+import { LossLimitError, LossWriterError } from '../../domain/losses/errors/loss-errors.js'
 import { IdempotencyKeyRequiredError } from './validation.js'
 
 // 例外 → HTTP 応答。HTTP の status と code を知るのはここだけ（Hono stack の規約）。
@@ -47,6 +48,13 @@ export function toHttpError(error: unknown): HttpError {
     return { status: 503, code: 'WRITER_BUSY', message: error.message }
   }
   if (error instanceof TripWriterError) {
+    return { status: 502, code: 'WRITER_FAILED', message: error.message }
+  }
+  // loss（docs/specs/loss/functional.md「エラーパターン」）
+  if (error instanceof LossLimitError) {
+    return { status: 429, code: 'LOSS_LIMIT', message: error.message }
+  }
+  if (error instanceof LossWriterError) {
     return { status: 502, code: 'WRITER_FAILED', message: error.message }
   }
   if (error instanceof HTTPException) {
