@@ -121,7 +121,8 @@ describe('stop-events の HTTP', { timeout: SLOW_TEST_MS }, () => {
     expect(second.headers.get('Idempotent-Replayed')).toBe('true')
     expect(writer.calls).toHaveLength(1)
 
-    const logged = await postEvents(a, choiceBody())
+    // 束の時刻は分まで（sim は scene.at をそのまま送る）
+    const logged = await postEvents(a, choiceBody({ at: '2027-02-15T10:56+09:00' }))
     expect(logged.status).toBe(200)
     expect(await logged.json()).toEqual({ accepted: 1, duplicates: 0 })
     const [row] = await db.events.listByTrip(TRIP_ID)

@@ -56,7 +56,7 @@
 
 ### 同じ日の束の同時の 2 要求
 
-（trip_id, day）主キーの INSERT で片方だけが通る。もう片方は行が pending なので 409 IN_PROGRESS。端末（useStopDeck）は 409 を 5 秒あけて 12 回まで（60 秒）待ち直す（生成は最悪 45 秒 × 2 回）。
+（trip_id, day）主キーの INSERT で片方だけが通る。もう片方は行が pending なので 409 IN_PROGRESS。端末（useStopDeck）は 409 を 5 秒あけて 20 回まで（100 秒）待ち直す（生成は最悪 45 秒 × 2 回。code-reviewer W3 で 12 回から変更）。
 
 ### pending のまま api が落ちた
 

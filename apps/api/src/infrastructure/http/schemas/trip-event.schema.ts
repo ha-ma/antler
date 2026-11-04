@@ -1,3 +1,4 @@
+import { IsoDateTime } from '@antler/schema'
 import { z } from 'zod'
 import { DEER_PATTERNS } from '../../../domain/stop-events/models/trip-event.js'
 import { MAX_EVENTS_PER_POST } from '../../../domain/stop-events/rules/stop-rules.js'
@@ -16,7 +17,8 @@ const Pattern = z.enum(DEER_PATTERNS)
 const base = {
   seq: z.number().int().min(0).max(99_999),
   day: z.number().int().min(1).max(31),
-  at: z.iso.datetime({ offset: true, local: false }),
+  // 束の時刻は分まで（'2027-02-15T10:56+09:00'）。秒つきも受ける（@antler/schema の IsoDateTime と同じ）
+  at: IsoDateTime,
   leg: z.number().int().min(0).max(99).optional(),
   km: z.number().min(0).max(2000).optional(),
 }
@@ -47,7 +49,8 @@ const TripEventSchema = z.discriminatedUnion('kind', [
 ])
 
 export const recordTripEventsBodySchema = z.strictObject({
-  runId: UUID_V4,
+  // 大文字の UUID も同じ run として扱う（layer-guard の指摘で Route から移した）
+  runId: UUID_V4.transform((v) => v.toLowerCase()),
   alertEnabled: z.boolean(),
   events: z.array(TripEventSchema).min(1).max(MAX_EVENTS_PER_POST),
 })

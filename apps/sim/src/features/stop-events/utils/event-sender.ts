@@ -10,7 +10,6 @@ import { apiBase, errorCode, OWNER_TOKEN_HEADER } from './api'
 export type EventSenderOptions = {
   tripId: string
   runId: string
-  alertEnabled: boolean
   ownerToken: string
   /** 送り直しの間隔（テストで縮める） */
   retryDelaysMs?: readonly number[]
@@ -29,14 +28,20 @@ export class TripEventSender {
 
   constructor(private readonly options: EventSenderOptions) {}
 
-  /** seq を振って送る。結果（届いたか）を返すが、呼ぶ側は待たなくてよい */
-  log(draft: TripEventDraft): Promise<boolean> {
+  /**
+   * seq を振って送る。結果（届いたか）を返すが、呼ぶ側は待たなくてよい。
+   * alertEnabled は送るときの値（走行の途中で切り替えても、seq は run の中で続く。component-guard W1）
+   */
+  log(draft: TripEventDraft, alertEnabled: boolean): Promise<boolean> {
     const event = { ...draft, seq: this.nextSeq++ }
-    return this.send(event)
+    return this.send(event, alertEnabled)
   }
 
-  private async send(event: TripEventDraft & { seq: number }): Promise<boolean> {
-    const { tripId, runId, alertEnabled, ownerToken } = this.options
+  private async send(
+    event: TripEventDraft & { seq: number },
+    alertEnabled: boolean,
+  ): Promise<boolean> {
+    const { tripId, runId, ownerToken } = this.options
     const delays = this.options.retryDelaysMs ?? DEFAULT_DELAYS
     const url = `${apiBase()}/api/trips/${encodeURIComponent(tripId)}/events`
     const body = JSON.stringify({ runId, alertEnabled, events: [event] })

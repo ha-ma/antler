@@ -2,7 +2,7 @@ import type { Lang } from '@antler/schema'
 import { placeById } from '@antler/trip'
 import { CHOICE_TEXT, fillText, LIGHT_TEXT, STOP_TEXT } from '../text'
 import type { SceneChoice, SceneWriting } from '../types'
-import { hhmm, isAfterDate, lightWord, yen } from '../utils/format'
+import { lightWord, timeOfDay, yen } from '../utils/format'
 
 // 選択肢のボタン（docs/design/README.md ChoiceButton、functional.md R11・UI-4a）。
 // 左寄せ、太字の言い回し＋「→ 地点 時刻 着」、clay-deep の帯で「鹿ゾーンをいつ通るか」と失うもの、Claude の一言。
@@ -15,28 +15,14 @@ type Props = {
   date: string
   primary: boolean
   onSelect: (choice: SceneChoice) => void
-  onKeyDown?: (event: React.KeyboardEvent<HTMLButtonElement>) => void
-  buttonRef?: React.Ref<HTMLButtonElement>
 }
 
 function placeName(id: string, lang: Lang): string {
   return placeById(id)?.name[lang] ?? id
 }
 
-function timeText(iso: string, date: string, lang: Lang): string {
-  return isAfterDate(iso, date) ? fillText(STOP_TEXT.nextDay[lang], { time: hhmm(iso) }) : hhmm(iso)
-}
-
-export function ChoiceButton({
-  choice,
-  writing,
-  lang,
-  date,
-  primary,
-  onSelect,
-  onKeyDown,
-  buttonRef,
-}: Props) {
+export function ChoiceButton({ choice, writing, lang, date, primary, onSelect }: Props) {
+  const timeText = timeOfDay
   const label = writing?.label[lang] ?? CHOICE_TEXT[choice.kind][lang]
   const where = choice.arrive
     ? fillText(STOP_TEXT.arriveAt[lang], {
@@ -62,13 +48,11 @@ export function ChoiceButton({
 
   return (
     <button
-      ref={buttonRef}
       type="button"
       className={`stop-choice${primary ? ' stop-choice--primary' : ''}`}
       onClick={() => {
         onSelect(choice)
       }}
-      {...(onKeyDown ? { onKeyDown } : {})}
     >
       <span className="stop-choice__title">
         <span className="stop-choice__label">{label}</span>

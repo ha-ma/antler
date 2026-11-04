@@ -8,11 +8,12 @@ import { parseStopDeckResponse } from '../utils/parse-deck'
 // その日の束（POST /api/trips/:id/day/:n/stop-deck。docs/specs/stop-events/functional.md R2・R9・R12、resilience.md）。
 // - 旅を作った端末だけが ownerToken を持つ。無ければ取りに行かない（A-4 を出さない。エラーにしない）
 // - 旅と日で決まり、2 回目からは保存済みが返るので読み直さない（staleTime: Infinity）
-// - 409 IN_PROGRESS（別のタブが作っている）は 5 秒あけて 12 回まで待ち直す。5xx・通信の失敗は 1 回だけ
+// - 409 IN_PROGRESS（別のタブが作っている）は 5 秒あけて 20 回まで待ち直す。5xx・通信の失敗は 1 回だけ
 
 /** 生成（Claude を含む）は最悪 45 秒 × 2 回 */
 const TIMEOUT_MS = 100_000
-const IN_PROGRESS_RETRIES = 12
+/** 5 秒 × 20 回 = 100 秒（生成の最悪 90 秒より長く待つ。code-reviewer W3） */
+const IN_PROGRESS_RETRIES = 20
 const IN_PROGRESS_DELAY_MS = 5_000
 
 export class StopDeckError extends Error {

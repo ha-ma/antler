@@ -143,6 +143,9 @@ describe('validateStopWriting（R7）', () => {
     expect(body('ko', '4시에 출발한다.')).toContain('clock-time@scenes.0.body.ko')
     expect(body('en', 'Leave at 4:20 pm.')).toContain('clock-time@scenes.0.body.en')
     expect(body('ja', 'あと1時間、鶴を見ていた。')).toEqual([])
+    // 「一時的」「一時停止」「有一點」は時刻ではない
+    expect(body('ja', '雪は一時的に強くなった。一時停止して確かめた。')).toEqual([])
+    expect(body('zh', '雪下得有一點大。')).toEqual([])
     expect(body('ko', '한 시간 더 있었다. 2시간이면 충분하다.')).toEqual([])
   })
 

@@ -1,15 +1,18 @@
 import type { Lang } from '@antler/schema'
 import { placeById, pleasureById } from '@antler/trip'
-import { useCallback, useId, useRef } from 'react'
+import { useCallback, useId } from 'react'
+import { createPortal } from 'react-dom'
 import { fillText, SCENE_TEXT, STOP_TEXT } from '../text'
 import type { SceneChoice, SceneWriting, StopScene } from '../types'
-import { hhmm, isAfterDate, yen } from '../utils/format'
+import { hhmm, htmlLang, timeOfDay, yen } from '../utils/format'
+import { attachModalBehavior } from '../utils/modal-focus'
 import { ChoiceButton } from './ChoiceButton'
 import './stop-events.css'
 
 // A-4 観光スポット（車を降りる）のモーダル（docs/specs/stop-events/functional.md R11、デザイン A4_Stop / A4_L）。
 // 写真の枠・見出し・短文・数字 3 枚（滞在／使った／到着予定）・選択肢・アラートの ON / OFF。
 // 選ぶまで閉じない（Esc・外側のクリックでは閉じない）。開いたら最初の選択肢にフォーカスし、Tab は中で回る。
+// body 直下に portal で出し、背面を inert にする（utils/modal-focus.ts）。閉じたら開く前の要素にフォーカスを戻す。
 
 export type StopSceneModalProps = {
   scene: StopScene
@@ -22,6 +25,7 @@ export type StopSceneModalProps = {
   onChoose: (choice: SceneChoice) => void
 }
 
+/** 写真の枠の数（A4-1 は 1〜3 枚。実物は Day 6） */
 const PHOTO_SLOTS = 3
 
 export function StopSceneModal({
@@ -33,10 +37,10 @@ export function StopSceneModal({
   onChoose,
 }: StopSceneModalProps) {
   const titleId = useId()
-  const dialogRef = useRef<HTMLDivElement>(null)
-  // 開いたら最初の選択肢にフォーカス（ref が付いたときに 1 回。場面を変えるときは呼ぶ側が key={scene.id} で開き直す）
-  const focusFirstChoice = useCallback((button: HTMLButtonElement | null) => {
-    button?.focus()
+  // フォーカス・キー操作・背面の inert（ref が付いたときに 1 回、外れたら戻す。場面を変えるときは呼ぶ側が key={scene.id} で開き直す）
+  const dialogRef = useCallback((dialog: HTMLDivElement | null) => {
+    if (!dialog) return undefined
+    return attachModalBehavior(dialog)
   }, [])
 
   const pleasure = scene.pleasure ? pleasureById(scene.pleasure.id) : undefined
@@ -48,41 +52,17 @@ export function StopSceneModal({
   const arrivalPlace = scene.arrive
     ? (placeById(scene.arrive.place)?.name[lang] ?? scene.arrive.place)
     : null
-  const arrivalTime = scene.arrive
-    ? isAfterDate(scene.arrive.at, date)
-      ? fillText(STOP_TEXT.nextDay[lang], { time: hhmm(scene.arrive.at) })
-      : hhmm(scene.arrive.at)
-    : null
+  const arrivalTime = scene.arrive ? timeOfDay(scene.arrive.at, date, lang) : null
 
-  // 選択肢のキー操作: Esc では閉じない（運転側のキーにも渡さない。R11）、Tab はモーダルの中で回す
-  const onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'Escape') {
-      event.preventDefault()
-      event.stopPropagation()
-      return
-    }
-    if (event.key !== 'Tab') return
-    const buttons = Array.from(dialogRef.current?.querySelectorAll('button') ?? [])
-    const first = buttons[0]
-    const last = buttons[buttons.length - 1]
-    if (!first || !last) return
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first.focus()
-    }
-  }
-
-  return (
-    <div className="stop-backdrop" data-theme="trip">
+  return createPortal(
+    <div className="stop-backdrop" data-theme="trip" data-modal-root="" lang={htmlLang(lang)}>
       <div
         ref={dialogRef}
         className="stop-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        tabIndex={-1}
       >
         <div className="stop-photo">
           <span className="stop-photo__caption">
@@ -95,11 +75,8 @@ export function StopSceneModal({
               {fillText(STOP_TEXT.weight[lang], { n: scene.pleasure.weight })}
             </span>
           ) : null}
-          <span
-            className="stop-photo__dots"
-            role="img"
-            aria-label={fillText(STOP_TEXT.photoCount[lang], { n: PHOTO_SLOTS })}
-          >
+          {/* 写真の実物は Day 6。いまは枠だけなので、支援技術には読ませない */}
+          <span className="stop-photo__dots" aria-hidden="true">
             {Array.from({ length: PHOTO_SLOTS }, (_, i) => (
               <span key={i} className={`stop-photo__dot${i === 0 ? ' stop-photo__dot--on' : ''}`} />
             ))}
@@ -115,9 +92,9 @@ export function StopSceneModal({
               {' ・ '}
               <span className="stop-num">{hhmm(scene.at)}</span>
             </span>
-            <h1 id={titleId} className="stop-title">
+            <h2 id={titleId} className="stop-title">
               {headline}
-            </h1>
+            </h2>
             {writing ? <p className="stop-lead">{writing.body[lang]}</p> : null}
           </div>
 
@@ -157,8 +134,6 @@ export function StopSceneModal({
                 date={date}
                 primary={i === 0}
                 onSelect={onChoose}
-                onKeyDown={onKeyDown}
-                {...(i === 0 ? { buttonRef: focusFirstChoice } : {})}
               />
             ))}
           </div>
@@ -172,6 +147,7 @@ export function StopSceneModal({
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

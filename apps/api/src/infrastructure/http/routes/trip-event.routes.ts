@@ -47,7 +47,7 @@ export function tripEventRoutes({
       const result = await recordTripEvents.execute({
         tripId: id,
         ownerToken: c.req.header(OWNER_TOKEN_HEADER),
-        runId: body.runId.toLowerCase(),
+        runId: body.runId,
         alertEnabled: body.alertEnabled,
         events: body.events,
       })

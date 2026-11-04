@@ -129,11 +129,10 @@ describe('useTripEventLog', () => {
     const sender = new TripEventSender({
       tripId: STOP_TRIP_ID,
       runId: RUN,
-      alertEnabled: true,
       ownerToken: STOP_OWNER_TOKEN,
       retryDelaysMs: [0, 0],
     })
-    expect(await sender.log(choice)).toBe(true)
+    expect(await sender.log(choice, true)).toBe(true)
     expect(calls).toHaveLength(2)
     expect(
       calls.map(
@@ -143,7 +142,30 @@ describe('useTripEventLog', () => {
 
     vi.unstubAllGlobals()
     const rejected = stubFetch(() => ({ status: 400, body: { error: { code: 'INVALID_INPUT' } } }))
-    expect(await sender.log(choice)).toBe(false)
+    expect(await sender.log(choice, true)).toBe(false)
     expect(rejected).toHaveLength(1)
+  })
+
+  it('UI-4f: 走行の途中でアラートを切り替えても seq は続く（run の中で 0 に戻らない）', async () => {
+    localStorage.setItem(OWNER_KEY, STOP_OWNER_TOKEN)
+    const calls = stubFetch(() => ({ status: 200, body: { accepted: 1, duplicates: 0 } }))
+    const { result, rerender } = renderHook(
+      ({ alertEnabled }) => useTripEventLog(STOP_TRIP_ID, { runId: RUN, alertEnabled }),
+      { initialProps: { alertEnabled: true } },
+    )
+    result.current.log(choice)
+    rerender({ alertEnabled: false })
+    result.current.log(choice)
+    await waitFor(() => {
+      expect(calls).toHaveLength(2)
+    })
+    const sent = calls.map(
+      (c) =>
+        JSON.parse(String(c.init.body)) as { alertEnabled: boolean; events: { seq: number }[] },
+    )
+    expect(sent.map((b) => [b.alertEnabled, b.events[0]?.seq])).toEqual([
+      [true, 0],
+      [false, 1],
+    ])
   })
 })

@@ -33,7 +33,7 @@ function open(
 describe('StopSceneModal', () => {
   it('UI-4a: 見出し・短文・滞在・使った（目安）・到着予定、選択肢ごとに到着・鹿ゾーンの帯・失うもの', () => {
     open(crane, craneWriting)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('群れがまだ残っていた。')
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('群れがまだ残っていた。')
     expect(screen.getByText(/四十羽ほど/)).toBeInTheDocument()
     expect(screen.getByText('滞在').nextSibling).toHaveTextContent('42 分')
     expect(screen.getByText('使った（予算からの目安）').nextSibling).toHaveTextContent('¥0')
@@ -98,9 +98,37 @@ describe('StopSceneModal', () => {
     expect(buttons[0]).toHaveClass('stop-choice')
   })
 
+  it('UI-4c: 文字をクリックした後も Esc・Tab は中で効く。背面は inert、閉じたら開く前の要素にフォーカスが戻り lang が付く', async () => {
+    const user = userEvent.setup()
+    const page = document.createElement('button')
+    page.textContent = '背面のボタン'
+    document.body.append(page)
+    page.focus()
+    const { unmount } = render(
+      <StopSceneModal
+        scene={crane}
+        writing={craneWriting}
+        lang="zh"
+        alertEnabled
+        date="2027-02-15"
+        onChoose={vi.fn()}
+      />,
+    )
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.closest('[lang]')).toHaveAttribute('lang', 'zh-Hant')
+    expect(page).toHaveAttribute('inert')
+    await user.click(screen.getByText(/四十隻/))
+    await user.tab()
+    expect(dialog).toContainElement(document.activeElement as HTMLElement)
+    unmount()
+    expect(page).not.toHaveAttribute('inert')
+    expect(page).toHaveFocus()
+    page.remove()
+  })
+
   it('UI-4d: 文が無い場面は楽しみの名前と決まった言い回し（Claude の代わりの物語は出さない）', () => {
     open(crane, null)
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('タンチョウ')
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('タンチョウ')
     expect(screen.getAllByRole('button')[1]).toHaveTextContent('もう少しいる')
     expect(screen.queryByText(/四十羽/)).not.toBeInTheDocument()
   })

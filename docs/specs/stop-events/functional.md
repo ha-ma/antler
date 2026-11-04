@@ -105,7 +105,8 @@ Questions は 2026-11-04 に推奨で決定（CLAUDE.md の方針「推奨案の
   - `scenesBeforeLeg(deck, leg)`・`roadScenesBetween(deck, leg, fromKm, toKm)`（その場所で出す場面）
   - `StopSceneModal`（props: scene・writing・lang・alertEnabled・dayLabel・onChoose）
   - `useTripEventLog(tripId, { runId, alertEnabled })`（`log(event)` で seq を振って送る）と、イベントの型。runId と seq はメモリにだけ持つ（再読み込みは新しい run。seq が 0 に戻って衝突しない）。`newRunId()` で runId を作る
-  - `useStopDeck` は 409 IN_PROGRESS を 5 秒あけて 12 回まで待ち直す（生成の時間切れ 45 秒より長く待つ）
+  - `useStopDeck` は 409 IN_PROGRESS を 5 秒あけて 20 回まで待ち直す（生成の最悪 45 秒 × 2 回より長く待つ）
+  - モーダルは body 直下に出し、開いているあいだ背面を inert にする。閉じたら開く前の要素にフォーカスを戻す。lang 属性を付ける（accessibility-checker の Critical）
   - 確認用の画面 `/trip/:id/day/:n/stops`（その日の場面を順に開ける。運転の組み込み前の確認とデモの予備。app の routes に 1 行足す）
 
 ## API エンドポイント

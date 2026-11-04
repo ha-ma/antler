@@ -1,3 +1,5 @@
+import type { Lang } from '@antler/schema'
+import { fillText, STOP_TEXT } from '../text'
 import type { Light } from '../types'
 
 // A-4 の数字の表示（docs/specs/stop-events/functional.md R4・R11・UI-4b）。時刻は +09:00 の ISO（分まで）。
@@ -19,6 +21,16 @@ export function lightWord(light: Light, iso: string, date: string): LightWord {
   if (light !== 'night') return light
   const morning = !isAfterDate(iso, date) && Number(iso.slice(11, 13)) < 12
   return morning ? 'beforeDawn' : 'afterSunset'
+}
+
+/** 画面に出す時刻（束の日付より後なら「翌」を付ける） */
+export function timeOfDay(iso: string, date: string, lang: Lang): string {
+  return isAfterDate(iso, date) ? fillText(STOP_TEXT.nextDay[lang], { time: hhmm(iso) }) : hhmm(iso)
+}
+
+/** HTML の lang 属性（zh は繁体字） */
+export function htmlLang(lang: Lang): string {
+  return lang === 'zh' ? 'zh-Hant' : lang
 }
 
 /** ¥ と 3 桁区切り（¥61,400） */

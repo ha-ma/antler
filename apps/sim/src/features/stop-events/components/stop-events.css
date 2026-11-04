@@ -5,8 +5,9 @@
   position: fixed;
   inset: 0;
   z-index: 50;
+  /* 中身が画面より高くても上が切れないように、中央寄せは dialog の margin: auto で行う（a11y Critical 1） */
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: var(--space-5);
   background: color-mix(in srgb, var(--ink) 55%, transparent);
@@ -18,6 +19,7 @@
 .stop-dialog {
   width: 100%;
   max-width: 1120px;
+  margin: auto;
   display: flex;
   flex-wrap: wrap;
   overflow: hidden;
