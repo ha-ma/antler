@@ -10,6 +10,7 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
+spec_confirmed_at: 69a9e42
 tier: 1
 ---
 
