@@ -2,28 +2,24 @@ import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
+import { buildCsp } from './csp'
 
 // 本番ビルドだけに CSP を入れる（開発中は React Refresh のインラインスクリプトが要るため）。
-// 接続先は Mac Mini の WebSocket だけ（ch7「B WebSocket」）。フォントはオフライン用に同梱する（ch8 規約 4）。
+// 組み立ては csp.ts（テストできる純粋な関数）。接続先は Mac Mini の WebSocket（ch7「B WebSocket」）に加えて、
+// edge-capture の走行後の送信のために edge の 8767 と VITE_API_BASE_URL のオリジン（あるときだけ）。
+// フォントはオフライン用に同梱する（ch8 規約 4）。
 function contentSecurityPolicy(): Plugin {
-  const policy = [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self'",
-    "font-src 'self'",
-    "img-src 'self' data: blob:",
-    "media-src 'self'",
-    "connect-src 'self' ws://ezoroad.local:8765",
-    "object-src 'none'",
-    "base-uri 'self'",
-  ].join('; ')
+  let apiBaseUrl: unknown
   return {
     name: 'antler-csp',
     apply: 'build',
+    configResolved(config) {
+      apiBaseUrl = config.env['VITE_API_BASE_URL']
+    },
     transformIndexHtml: () => [
       {
         tag: 'meta',
-        attrs: { 'http-equiv': 'Content-Security-Policy', content: policy },
+        attrs: { 'http-equiv': 'Content-Security-Policy', content: buildCsp(apiBaseUrl) },
         injectTo: 'head-prepend',
       },
     ],

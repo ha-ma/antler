@@ -1,5 +1,6 @@
 import type { DerivedAlert, GpsZone } from '@antler/alert-ui'
 import type { ReceivedFlag, TripPlan } from '@antler/schema'
+import type { DayPlan } from '@antler/trip'
 import type { LightPeriod, LonLat, RoutePlan } from '@antler/zones'
 import type { DetectorState } from './domain/detection'
 import type { Rng } from './domain/rng'
@@ -12,18 +13,44 @@ import type { RoadFrame } from './domain/road'
 export type Surface = 'dry' | 'wet' | 'packed-snow' | 'ice'
 /** 天候（R6。検知の確率） */
 export type Weather = 'clear' | 'cloudy' | 'snow' | 'fog'
+/** 車内の窓の曇り（drive-link R6。検知の確率。brief-map の当日の条件と同じ語彙） */
+export type WindowFog = 'none' | 'light' | 'medium' | 'heavy'
+/** その日の行程を決めたデータの版（GET /api/trips/:id/day/:n の day.data） */
+export type TripDayData = DayPlan['data']
 
-/** 運転の場面（R1）。plan-trip ができたら、その TripPlan とルートから作る */
+/**
+ * 運転の場面（drive-3d R1、drive-link R3）。旅のその日（GET /api/trips/:id/day/:n）から scenarioFromDay で作る。
+ * trip の無い /drive は見本の場面（demoScenario）
+ */
 export type DriveScenario = {
+  /** 旅から作った場面か、開発用の見本か */
+  source: 'trip' | 'demo'
   trip: TripPlan
   day: number
-  /** その日のルート（緯度経度の折れ線） */
+  /** その日のルート（緯度経度の折れ線。移動をつなぎ、20 m ごとに打ち直したもの） */
   route: LonLat[]
   /** 出発時刻（ISO 8601、+09:00） */
   startAt: string
   surface: Surface
   weather: Weather
-  /** アラート ON/OFF（旅程の alertEnabled か URL の ?alert=off） */
+  windowFog: WindowFog
+  /** 出発地と到着地（地点の slug） */
+  from: string
+  to: string
+  /** その日の移動の距離の合計（km。A-2 の要約と同じ数） */
+  distanceKm: number
+  /**
+   * 2 つ目以降の移動の始まり（道のり m と、しおりの出発時刻）。着いたら時計を departAt まで進める（drive-link R3）。
+   * 立ち寄り（A-4、stop-events）もこれを使う
+   */
+  legStarts: { sM: number; departAt: string }[]
+  /** 直線で引いた概算の移動の道のりの範囲（m）。ここにはゾーンの区間も鹿も作らない（drive-link R5） */
+  straightRangesM: [number, number][]
+  /** 結果を決めるデータの版（旅の場面だけ。A6-4 の再生で同じ版か確かめる） */
+  data: TripDayData | null
+  /** 鹿の候補と検知の乱数の種（deriveSeed(旅のシード, "drive:" + 日)。drive-link R4） */
+  seed: number
+  /** アラート ON/OFF（URL の ?alert=off だけで決める。TripPlan は書き換えない。plan-trip R10） */
   alertEnabled: boolean
 }
 
@@ -137,6 +164,11 @@ export type Encounter = {
   pattern: DeerPattern
   /** 赤が出た時刻（World.t、ms）。出ていなければ null */
   alertAt: number | null
+  /**
+   * 赤が出たときのゲーム内の時刻（JST の ISO 8601）。出ていなければ null。
+   * 移動の始まりで時計を進めるので startAt + alertAt とは限らない（A-7 の記録はこちらを使う）
+   */
+  alertClockAt: string | null
   /** アラートのあとに最初に Space / S を押した時刻 */
   brakeAt: number | null
   /** アラート→ブレーキ（ms）。アラート OFF・ブレーキなしは null */
@@ -188,4 +220,40 @@ export type SimInternals = {
   detector: DetectorState
   /** 検知に使うシード付きの乱数 */
   detectRng: Rng
+  /** 移動の始まりで時計を進めた合計（ms）。時計は startMs + t + clockShiftMs（drive-link R3） */
+  clockShiftMs: number
+  /** 入力が変わった時刻と入力（A-6 の「衝突の 3 秒前を見る」用。drive-link R8） */
+  inputLog: { t: number; input: DriveInput }[]
+  /** 衝突した鹿 */
+  collidedDeerId: string | null
+  /** 入った鹿ゾーンの区間の数（ゾーンの中から出発したら 1 から数える） */
+  zoneEnters: number
+}
+
+/**
+ * 走行の結果（drive-link R8）。衝突か完走のときだけ作る。A-6（loss）・A-7（record）が使う。
+ * 鹿アラートの ON/OFF は TripPlan ではなく、ここ（走行の記録の側）に持つ（plan-trip R10）
+ */
+export type DriveResult = {
+  tripId: string
+  day: number
+  /** 鹿の候補と検知の種（同じ値なら同じ鹿） */
+  seed: number
+  source: DriveScenario['source']
+  data: TripDayData | null
+  alertEnabled: boolean
+  /** 出発時刻（ISO 8601、+09:00。場面の startAt） */
+  startAt: string
+  /** その走行で入った鹿ゾーンの区間の数（A7-2 のゾーン通過回数） */
+  zonePasses: number
+  outcome: Exclude<DriveOutcome, 'driving'>
+  /** 終わった地点の道のり（m）と、何本目の移動か（0 から） */
+  endS: number
+  legIndex: number
+  /** 終わった時刻（シミュレーションの時計、JST の ISO 8601） */
+  endedAt: string
+  collidedDeerId: string | null
+  encounters: Encounter[]
+  inputs: { t: number; input: DriveInput }[]
+  frames: { fpsMedian: number; fpsP5: number; frames: number } | null
 }

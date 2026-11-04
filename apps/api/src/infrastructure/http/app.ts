@@ -4,6 +4,7 @@ import { requestId } from 'hono/request-id'
 import { secureHeaders } from 'hono/secure-headers'
 import { serializeError, type Logger } from '../logging/logger.js'
 import { toHttpError } from './error-mapper.js'
+import { captureRoutes, type CaptureRoutesDeps } from './routes/capture.routes.js'
 import { healthRoutes, type ReadinessCheck } from './routes/health.routes.js'
 import { tripDayRoutes, type TripDayRoutesDeps } from './routes/trip-day.routes.js'
 import { tripRoutes, type TripRoutesDeps } from './routes/trip.routes.js'
@@ -25,6 +26,8 @@ export type AppDeps = {
   stopDecks?: StopDeckRoutesDeps
   /** POST /api/trips/:id/events（stop-events）。無ければ載せない */
   tripEvents?: TripEventRoutesDeps
+  /** POST /api/captures（edge-capture）。無ければ載せない */
+  captures?: CaptureRoutesDeps
 }
 
 export function createApp({
@@ -36,6 +39,7 @@ export function createApp({
   tripDays,
   stopDecks,
   tripEvents,
+  captures,
 }: AppDeps): Hono {
   const app = new Hono()
 
@@ -68,6 +72,7 @@ export function createApp({
   if (tripDays) app.route('/', tripDayRoutes(tripDays))
   if (stopDecks) app.route('/', stopDeckRoutes(stopDecks))
   if (tripEvents) app.route('/', tripEventRoutes(tripEvents))
+  if (captures) app.route('/', captureRoutes(captures))
 
   app.notFound((c) => c.json({ error: { code: 'NOT_FOUND', message: '見つかりません' } }, 404))
   app.onError((error, c) => {
