@@ -1,7 +1,14 @@
 import { deriveAlertState } from '@antler/alert-ui'
-import { readAlertFlag, type ReceivedFlag } from '@antler/schema'
+import { readAlertFlag, toJst, type ReceivedFlag } from '@antler/schema'
 import { lightPeriod, planRoute, toInstant, type ZoneCollection } from '@antler/zones'
-import type { DriveInput, DriveScenario, Encounter, PlaybackRate, World } from '../types'
+import type {
+  DriveInput,
+  DriveResult,
+  DriveScenario,
+  Encounter,
+  PlaybackRate,
+  World,
+} from '../types'
 import { NO_INPUT } from '../types'
 import { boxesOverlap, carBox, deerBox } from './collision'
 import { candidatesToDecide, createCandidates, decideAppear } from './deer-spawn'
@@ -20,7 +27,7 @@ import { INITIAL_PLAYBACK, requestRate, scaledDt, setInZone, setPaused } from '.
 import { createRng, deriveSeed } from './rng'
 import { createRoadFrame, lonLatAt, poseAt } from './road'
 import { buildSimFlag } from './sim-flag'
-import { firstEntryBetween, intervalAt, zoneStatusAt } from './zone-status'
+import { firstEntryBetween, intervalAt, withoutRanges, zoneStatusFromS } from './zone-status'
 import { initialVehicle, stepVehicle } from './vehicle'
 
 // シミュレーションの 1 歩（R4）。R3F から切り離した関数で、固定ステップ（1/60 秒）で World を進める。
@@ -45,12 +52,13 @@ export type SimEvent =
   | { type: 'completed' }
 
 export function createWorld(scenario: DriveScenario, zones: ZoneCollection): World {
-  const plan = planRoute(scenario.route, zones)
+  // 直線で引いた概算の移動にはゾーンの区間を作らない（brief-map R1 と同じ。drive-link R5）
+  const plan = withoutRanges(planRoute(scenario.route, zones), scenario.straightRangesM)
   const frame = createRoadFrame(scenario.route)
   const startMs = toInstant(scenario.startAt)
   const vehicle = initialVehicle(0)
   const position = lonLatAt(frame, vehicle.s, vehicle.d)
-  const zone = zoneStatusAt(plan, position)
+  const zone = zoneStatusFromS(plan, vehicle.s)
   const playback = setInZone(INITIAL_PLAYBACK, zone.gps.status === 'inside')
   return {
     scenario,
@@ -61,7 +69,8 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
     playback,
     zone,
     light: lightPeriod(startMs, { lon: position[0], lat: position[1] }),
-    candidates: createCandidates(plan, scenario.trip.seed),
+    // 種は旅のシードと日から（drive-link R4。同じ旅・同じ日なら同じ鹿）
+    candidates: createCandidates(plan, scenario.seed),
     decided: new Set(),
     deer: [],
     flag: null,
@@ -84,8 +93,42 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
       stoppedMs: 0,
       braking: false,
       detector: INITIAL_DETECTOR,
-      detectRng: createRng(deriveSeed(scenario.trip.seed, 'detect')),
+      detectRng: createRng(deriveSeed(scenario.seed, 'detect')),
+      clockShiftMs: 0,
+      inputLog: [],
+      collidedDeerId: null,
+      // ゾーンの中から出発したら進入と同じに数える（zones R5）
+      zoneEnters: zone.gps.status === 'inside' ? 1 : 0,
     },
+  }
+}
+
+/** シミュレーションの時計（epoch ms）。移動の始まりで進めたぶんを含む */
+export function clockMs(world: World): number {
+  return world.internal.startMs + world.t + world.internal.clockShiftMs
+}
+
+/** 走行の結果（drive-link R8）。衝突か完走のときだけ作る */
+export function driveResult(world: World, frames: DriveResult['frames']): DriveResult | null {
+  if (world.outcome === 'driving') return null
+  const { scenario, internal, vehicle } = world
+  return {
+    tripId: scenario.trip.id,
+    day: scenario.day,
+    seed: scenario.seed,
+    source: scenario.source,
+    data: scenario.data,
+    alertEnabled: scenario.alertEnabled,
+    startAt: scenario.startAt,
+    zonePasses: internal.zoneEnters,
+    outcome: world.outcome,
+    endS: vehicle.s,
+    legIndex: scenario.legStarts.filter((l) => l.sM <= vehicle.s).length,
+    endedAt: toJst(new Date(clockMs(world)).toISOString()),
+    collidedDeerId: internal.collidedDeerId,
+    encounters: world.encounters.map((e) => ({ ...e })),
+    inputs: internal.inputLog.map((l) => ({ t: l.t, input: { ...l.input } })),
+    frames,
   }
 }
 
@@ -101,7 +144,11 @@ export function pause(world: World, paused: boolean): void {
 }
 
 export function setInput(world: World, input: DriveInput): void {
+  // 変わったときだけ時刻つきで残す（A-6 の「衝突の 3 秒前を見る」用）
+  const prev = world.input
+  const changed = (Object.keys(input) as (keyof DriveInput)[]).some((k) => input[k] !== prev[k])
   world.input = input
+  if (changed) world.internal.inputLog.push({ t: world.t, input: { ...input } })
 }
 
 /** 1 フレーム進める（UC-4a・UC-4b・UC-4e）。realDtMs は実時間の経過 */
@@ -138,6 +185,7 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
   world.vehicle = stepVehicle(world.vehicle, world.input, world.scenario.surface, STEP_MS / 1000)
   internal.stoppedMs =
     Math.abs(world.vehicle.speed) < STOPPED_MPS ? internal.stoppedMs + STEP_MS : 0
+  advanceClockAtLegStart(world, before)
 
   // ゾーンの出入り（再生速度の固定）は道のり s で毎ステップ見る
   let entered = false
@@ -148,6 +196,7 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
   if (nowIn !== null && !wasIn) {
     world.playback = setInZone(world.playback, true)
     events.push({ type: 'zone-enter', interval: nowIn })
+    internal.zoneEnters += 1
     entered = true
   } else if (nowIn === null && wasIn) {
     world.playback = setInZone(world.playback, false)
@@ -167,6 +216,21 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
     events.push({ type: 'completed' })
   }
   return entered
+}
+
+/**
+ * 2 つ目以降の移動の始まりに着いたら、時計をしおりの出発時刻まで進める（drive-link R3・UC-3g）。
+ * 立ち寄り・待ちの時間を飛ばす。既に過ぎていれば進めない
+ */
+function advanceClockAtLegStart(world: World, before: number): void {
+  const after = world.vehicle.s
+  if (after <= before) return
+  for (const leg of world.scenario.legStarts) {
+    if (before < leg.sM && leg.sM <= after) {
+      const wait = toInstant(leg.departAt) - clockMs(world)
+      if (wait > 0) world.internal.clockShiftMs += wait
+    }
+  }
 }
 
 /** アラートのあとに Space / S を押した時刻（R9） */
@@ -189,7 +253,7 @@ function spawnAndMoveDeer(world: World, zones: ZoneCollection, events: SimEvent[
   const { vehicle, internal } = world
   for (const c of candidatesToDecide(world.candidates, world.decided, vehicle.s)) {
     world.decided.add(c.id)
-    if (decideAppear(c, world.plan, zones, internal.startMs + world.t)) {
+    if (decideAppear(c, world.plan, zones, clockMs(world))) {
       const herd = spawnDeer(c, world.t)
       world.deer.push(...herd)
       events.push({ type: 'deer-appear', deerIds: herd.map((d) => d.id) })
@@ -214,6 +278,7 @@ function checkCollision(world: World, events: SimEvent[]): boolean {
   const hit = world.deer.find((d) => boxesOverlap(car, deerBox(d.s, d.d, d.heading)))
   if (!hit) return false
   world.outcome = 'collided'
+  world.internal.collidedDeerId = hit.id
   const e = encounterFor(world, hit.id, hit.pattern)
   e.outcome = 'collided'
   e.closestM = 0
@@ -227,10 +292,10 @@ function tick(world: World, events: SimEvent[]): void {
   const { internal, vehicle, scenario } = world
   const t = world.t
   const position = lonLatAt(internal.frame, vehicle.s, vehicle.d)
-  // 手がかりは車の道のり s（真値）。前回の positionKm を渡すと、measureAlongRoute が近くの線分の端（最短 + 30 m 以内）
-  // から手がかりに近いものを選ぶので、まっすぐな道でも最大 30 m 遅れ、出口で琥珀が残る（UC-6j）
-  world.zone = zoneStatusAt(world.plan, position, vehicle.s / 1000)
-  world.light = lightPeriod(internal.startMs + t, { lon: position[0], lat: position[1] })
+  // ゾーン状態は車の道のり s から区間を引く（drive-link R5）。measureAlongRoute は毎回全線分を走査し、
+  // 前回の位置を手がかりにすると最大 30 m 遅れる（drive-3d UC-6j）
+  world.zone = zoneStatusFromS(world.plan, vehicle.s)
+  world.light = lightPeriod(clockMs(world), { lon: position[0], lat: position[1] })
 
   const car = poseAt(internal.frame, vehicle.s, vehicle.d)
   const camera = {
@@ -256,7 +321,7 @@ function tick(world: World, events: SimEvent[]): void {
   }
 
   if (scenario.alertEnabled) {
-    const probability = detectProbability(world.light, scenario.weather, scenario.trip.party.size)
+    const probability = detectProbability(world.light, scenario.weather, scenario.windowFog)
     const step = stepDetector(internal.detector, t, sightings, probability, internal.detectRng)
     internal.detector = step.state
     const out = step.out
@@ -271,6 +336,7 @@ function tick(world: World, events: SimEvent[]): void {
         const e = encounterFor(world, id, deer.pattern)
         if (e.alertAt === null) {
           e.alertAt = t
+          e.alertClockAt = toJst(new Date(clockMs(world)).toISOString())
           if (internal.braking) setBrake(e, t)
         }
       }
@@ -298,7 +364,7 @@ function tick(world: World, events: SimEvent[]): void {
 
 /** シミュレーターが作るフラグを、B のフラグを受けるときと同じ readAlertFlag で読む（sim-flag.ts） */
 function makeFlag(world: World, sighting: Sighting | null): ReceivedFlag | null {
-  return readAlertFlag(buildSimFlag(world.internal.startMs + world.t, sighting)).flag
+  return readAlertFlag(buildSimFlag(clockMs(world), sighting)).flag
 }
 
 function encounterFor(world: World, deerId: string, pattern: Encounter['pattern']): Encounter {
@@ -308,6 +374,7 @@ function encounterFor(world: World, deerId: string, pattern: Encounter['pattern'
       deerId,
       pattern,
       alertAt: null,
+      alertClockAt: null,
       brakeAt: null,
       alertToBrakeMs: null,
       closestM: Number.POSITIVE_INFINITY,
