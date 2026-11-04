@@ -39,8 +39,7 @@ xcode-select -p || xcode-select --install
 mkdir -p ~/work && cd ~/work
 git clone https://github.com/ha-ma/antler.git
 cd antler
-git fetch origin
-git checkout feat/edge-day0   # PR がマージされた後は main でよい（git checkout main && git pull）
+git checkout main   # PR #27 は 2026-11-04 に main にマージ済み
 git pull
 ```
 
