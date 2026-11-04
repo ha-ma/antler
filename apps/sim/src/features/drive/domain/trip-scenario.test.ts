@@ -109,6 +109,8 @@ describe('drive-link 受け入れ（場面）', () => {
       source: 'trip',
       data: day1.data,
       alertEnabled: true,
+      startAt: scenario.startAt,
+      zonePasses: w.plan.intervals.length,
       outcome: 'completed',
       legIndex: 0,
       collidedDeerId: null,
@@ -198,6 +200,40 @@ describe('場面（R3・R4）', () => {
     const a = scenarioFromDay(input, '')
     expect(JSON.stringify(input)).toBe(before)
     expect(scenarioFromDay(input, '')).toEqual(a)
+  })
+
+  it('UC-5d: 遭遇の記録の alertClockAt は進めた時計（startAt + alertAt ではない）', () => {
+    const scenario = scenarioFromDay({ plan, day: twoLegs() }, '')
+    if (!scenario) throw new Error('場面がない')
+    const w = createWorld(scenario, ZONES)
+    w.candidates = []
+    w.internal.detectRng = () => 0 // 必ず捕捉し、遅延は最短
+    const legS = scenario.legStarts[0]?.sM ?? 0
+    w.vehicle = { ...w.vehicle, s: legS - 1, speed: 15 }
+    advance(w, 100, ZONES) // 2 つ目の移動に入り、時計が 15:30 まで進む
+    w.deer = [
+      {
+        id: 'x',
+        candidateId: 'x',
+        pattern: 'roadside',
+        index: 0,
+        s: w.vehicle.s + 80,
+        d: 4.5,
+        heading: Math.PI / 2,
+        pose: 'idle',
+        occluded: false,
+        startedAt: null,
+        gone: false,
+      },
+    ]
+    setInput(w, { ...NO_INPUT, throttle: true })
+    for (let i = 0; i < 30 && w.alert.state !== 'danger'; i++) advance(w, 100, ZONES)
+    const e = w.encounters.find((x) => x.deerId === 'x')
+    expect(e?.alertAt).not.toBeNull()
+    const clock = Date.parse(e?.alertClockAt ?? '')
+    expect(clock).toBeGreaterThanOrEqual(Date.parse('2027-02-14T15:30:00+09:00'))
+    expect(clock).toBeGreaterThan(Date.parse(scenario.startAt) + (e?.alertAt ?? 0) + 60_000)
+    expect(e?.alertClockAt).toMatch(/\+09:00$/)
   })
 
   it('UC-3g: 2 つ目の移動の始まりに着くと、時計がその departAt まで進む。過ぎていれば進めない', () => {

@@ -97,6 +97,8 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
       clockShiftMs: 0,
       inputLog: [],
       collidedDeerId: null,
+      // ゾーンの中から出発したら進入と同じに数える（zones R5）
+      zoneEnters: zone.gps.status === 'inside' ? 1 : 0,
     },
   }
 }
@@ -117,6 +119,8 @@ export function driveResult(world: World, frames: DriveResult['frames']): DriveR
     source: scenario.source,
     data: scenario.data,
     alertEnabled: scenario.alertEnabled,
+    startAt: scenario.startAt,
+    zonePasses: internal.zoneEnters,
     outcome: world.outcome,
     endS: vehicle.s,
     legIndex: scenario.legStarts.filter((l) => l.sM <= vehicle.s).length,
@@ -192,6 +196,7 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
   if (nowIn !== null && !wasIn) {
     world.playback = setInZone(world.playback, true)
     events.push({ type: 'zone-enter', interval: nowIn })
+    internal.zoneEnters += 1
     entered = true
   } else if (nowIn === null && wasIn) {
     world.playback = setInZone(world.playback, false)
@@ -331,6 +336,7 @@ function tick(world: World, events: SimEvent[]): void {
         const e = encounterFor(world, id, deer.pattern)
         if (e.alertAt === null) {
           e.alertAt = t
+          e.alertClockAt = toJst(new Date(clockMs(world)).toISOString())
           if (internal.braking) setBrake(e, t)
         }
       }
@@ -368,6 +374,7 @@ function encounterFor(world: World, deerId: string, pattern: Encounter['pattern'
       deerId,
       pattern,
       alertAt: null,
+      alertClockAt: null,
       brakeAt: null,
       alertToBrakeMs: null,
       closestM: Number.POSITIVE_INFINITY,

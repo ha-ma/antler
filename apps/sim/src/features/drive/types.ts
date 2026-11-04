@@ -164,6 +164,11 @@ export type Encounter = {
   pattern: DeerPattern
   /** 赤が出た時刻（World.t、ms）。出ていなければ null */
   alertAt: number | null
+  /**
+   * 赤が出たときのゲーム内の時刻（JST の ISO 8601）。出ていなければ null。
+   * 移動の始まりで時計を進めるので startAt + alertAt とは限らない（A-7 の記録はこちらを使う）
+   */
+  alertClockAt: string | null
   /** アラートのあとに最初に Space / S を押した時刻 */
   brakeAt: number | null
   /** アラート→ブレーキ（ms）。アラート OFF・ブレーキなしは null */
@@ -221,6 +226,8 @@ export type SimInternals = {
   inputLog: { t: number; input: DriveInput }[]
   /** 衝突した鹿 */
   collidedDeerId: string | null
+  /** 入った鹿ゾーンの区間の数（ゾーンの中から出発したら 1 から数える） */
+  zoneEnters: number
 }
 
 /**
@@ -235,6 +242,10 @@ export type DriveResult = {
   source: DriveScenario['source']
   data: TripDayData | null
   alertEnabled: boolean
+  /** 出発時刻（ISO 8601、+09:00。場面の startAt） */
+  startAt: string
+  /** その走行で入った鹿ゾーンの区間の数（A7-2 のゾーン通過回数） */
+  zonePasses: number
   outcome: Exclude<DriveOutcome, 'driving'>
   /** 終わった地点の道のり（m）と、何本目の移動か（0 から） */
   endS: number
