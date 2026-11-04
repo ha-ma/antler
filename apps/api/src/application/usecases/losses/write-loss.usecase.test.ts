@@ -161,6 +161,27 @@ describe('WriteLossUseCase', () => {
     expect(rb.loss).toEqual(ra.loss)
   })
 
+  it('UC-5f: 同時の 2 要求の 1 本目が失敗すれば 2 本目も同じ失敗。終われば次の要求は Claude を呼び直す', async () => {
+    let open: () => void = () => undefined
+    const gate = new Promise<void>((resolve) => {
+      open = resolve
+    })
+    const { run, writer, trips } = setup({
+      writer: new ScriptedLossWriter([new LossWriterError('timeout')], gate),
+    })
+    const a = run()
+    const b = run()
+    open()
+    const [ra, rb] = await Promise.allSettled([a, b])
+    expect(ra.status).toBe('rejected')
+    expect(rb.status).toBe('rejected')
+    expect(writer.calls).toHaveLength(1)
+    expect((await run()).replayed).toBe(false)
+    expect(writer.calls).toHaveLength(2)
+    // 作り直しを含め、呼び出しのたびに 1 日の数え上げが進む
+    expect([...trips.writerCalls.values()]).toEqual([2])
+  })
+
   it('CONC-1: 保存の INSERT が負けた（別のプロセスが先に保存）→ 保存済みの文を返す', async () => {
     const { run, losses } = setup()
     const winner = {

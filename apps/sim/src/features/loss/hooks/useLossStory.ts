@@ -10,7 +10,8 @@ import { apiBase, errorCode } from './api'
 // 再試行しない（retry: false。1 回の 502 が裏で何度も Claude を呼ばないように）。「もう一度」は人が押す。
 
 /** api の時間切れ（30 秒）より少し長く待つ */
-const TIMEOUT_MS = 40_000
+/** api の最悪（Claude 30 秒 × 作り直し 1 回）より長く待つ（resilience.md） */
+const TIMEOUT_MS = 65_000
 
 const ResponseSchema = z.object({
   loss: z.object({ tripId: z.string().min(1), story: LocalizedText, createdAt: IsoDateTime }),

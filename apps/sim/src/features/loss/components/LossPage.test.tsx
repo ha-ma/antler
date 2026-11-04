@@ -294,7 +294,7 @@ describe('LossPage（A-6）', () => {
     expect(tiles()).not.toBeNull()
     expect(screen.getByRole('region', { name: '旅のしおり' })).toBeInTheDocument()
     const story = screen.getByRole('region', { name: 'Claude が書いた、失ったもの' })
-    expect(within(story).getByRole('status')).toHaveTextContent('文を用意しています')
+    expect(within(story).getByText(/文を用意しています/)).toBeInTheDocument()
   })
 
   it('UC-5d: 文の失敗（502）は文の欄だけ「用意できませんでした」と「もう一度」。自動の再試行なし', async () => {

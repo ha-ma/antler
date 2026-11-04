@@ -37,7 +37,7 @@ export function LossPage() {
   if (collision === null) return <LossStatus kind="unreadable" lang="ja" />
   if (query.isPending) {
     return (
-      <main className="loss loss--status" data-theme="night" aria-busy="true">
+      <main className="loss loss--status" data-theme="night">
         <title>{`${LOSS_TEXT.loadingTrip.ja} | ${LOSS_TEXT.brand.ja}`}</title>
         <p role="status">{LOSS_TEXT.loadingTrip.ja}</p>
       </main>

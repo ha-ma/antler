@@ -24,6 +24,13 @@ function roundTrip(href: string): CollisionReport | null {
 }
 
 describe('lossHref / parseCollision', () => {
+  it('UC-1a: drive が実数の速さ・経過を渡しても、丸めて範囲に収めた URL は読める', () => {
+    const href = lossHref({ ...report, speedKmh: 54.6, simMs: 812345.7 })
+    expect(roundTrip(href)).toEqual({ ...report, speedKmh: 55, simMs: 812346 })
+    const fast = roundTrip(lossHref({ ...report, speedKmh: 250.2, simMs: -3 }))
+    expect(fast).toMatchObject({ speedKmh: 199, simMs: 0 })
+  })
+
   it('UC-1a: lossHref の URL を parseCollision で読むと同じ CollisionReport に戻る', () => {
     const href = lossHref(report)
     expect(href).toBe(

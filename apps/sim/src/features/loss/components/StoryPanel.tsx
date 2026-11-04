@@ -16,11 +16,7 @@ export function StoryPanel({ collision, lang }: { collision: CollisionReport; la
     story.error instanceof LossStoryError &&
     (story.error.code === 'DAILY_LIMIT' || story.error.code === 'LOSS_LIMIT')
   return (
-    <section
-      className="loss-story"
-      aria-labelledby="loss-story-heading"
-      aria-busy={story.isFetching}
-    >
+    <section className="loss-story" aria-labelledby="loss-story-heading">
       <h2 id="loss-story-heading" className="loss-story__heading">
         {t.storyHeading[lang]}
       </h2>
@@ -43,7 +39,7 @@ export function StoryPanel({ collision, lang }: { collision: CollisionReport; la
             </div>
           )
         ) : (
-          <p role="status">{t.storyLoading[lang]}</p>
+          <p>{t.storyLoading[lang]}</p>
         )}
       </div>
     </section>

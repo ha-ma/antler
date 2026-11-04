@@ -39,17 +39,22 @@ const QuerySchema = z.strictObject({
   alert: z.literal('off').optional(),
 })
 
-/** drive が衝突のあとに移る A-6 の URL */
+/** 整数に丸めて範囲に収める（drive は実数の速さ・経過を渡してよい。R1） */
+function clampInt(value: number, max: number): number {
+  return Math.min(max, Math.max(0, Math.round(value)))
+}
+
+/** drive が衝突のあとに移る A-6 の URL。速さは 0〜199、経過は 0〜MAX_SIM_MS の整数に丸める */
 export function lossHref(report: CollisionReport): string {
   const q = new URLSearchParams({
     day: String(report.day),
     leg: String(report.leg),
     at: report.at,
-    speed: String(report.speedKmh),
+    speed: String(clampInt(report.speedKmh, MAX_SPEED_KMH)),
     light: report.light,
     side: report.side,
     stops: report.achievedStops.join(','),
-    t: String(report.simMs),
+    t: String(clampInt(report.simMs, MAX_SIM_MS)),
   })
   if (!report.alertEnabled) q.set('alert', 'off')
   return `/loss/${encodeURIComponent(report.tripId)}?${q.toString()}`

@@ -40,9 +40,13 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-async function setup(writer = new ScriptedLossWriter()) {
+async function setup(
+  writer = new ScriptedLossWriter(),
+  opts: { dailyLimit?: number; slots?: InProcessConcurrencyLimiter } = {},
+) {
   const trips = new DrizzleTripRepository(conn.db)
   await trips.insertTrip(personaTrip())
+  const losses = new DrizzleLossRepository(conn.db)
   const logger = createLogger('error', { sink: () => undefined })
   const app = createApp({
     logger,
@@ -52,13 +56,13 @@ async function setup(writer = new ScriptedLossWriter()) {
     losses: {
       writeLoss: new WriteLossUseCase({
         trips,
-        losses: new DrizzleLossRepository(conn.db),
+        losses,
         writer,
-        writerSlots: new InProcessConcurrencyLimiter(4),
+        writerSlots: opts.slots ?? new InProcessConcurrencyLimiter(4),
         hasher: new NodeSha256Hasher(),
         clock: new SystemClock(),
         log: logger,
-        dailyWriterCallLimit: 400,
+        dailyWriterCallLimit: opts.dailyLimit ?? 400,
       }),
       rateLimitKey: (c) => c.req.header('x-test-ip') ?? 'unknown',
       now: () => T0,
@@ -77,8 +81,11 @@ async function setup(writer = new ScriptedLossWriter()) {
       },
       body: typeof body === 'string' ? body : JSON.stringify(body),
     })
-  return { post, writer }
+  return { post, writer, trips, losses }
 }
+
+const codeOf = async (res: Response) =>
+  ((await res.json()) as { error: { code: string } }).error.code
 
 type LossBody = { loss: { tripId: string; story: Record<string, string>; createdAt: string } }
 
@@ -159,6 +166,55 @@ describe('POST /api/trips/:id/losses', () => {
       expect((await post(body)).status).toBe(400)
     }
     expect(writer.calls).toHaveLength(0)
+  })
+
+  it('AUTH-4: 1 日の上限に達していれば 429 DAILY_LIMIT、Claude を呼ばない', async () => {
+    const { post, writer } = await setup(new ScriptedLossWriter(), { dailyLimit: 0 })
+    const res = await post(PERSONA_COLLISION)
+    expect(res.status).toBe(429)
+    expect(await codeOf(res)).toBe('DAILY_LIMIT')
+    expect(writer.calls).toHaveLength(0)
+  })
+
+  it('UC-5g: 1 つの旅に 20 件あれば新しい鍵は 429 LOSS_LIMIT', async () => {
+    const { post, losses, writer } = await setup()
+    for (let i = 0; i < 20; i++) {
+      await losses.insertLoss({
+        keyHash: String(i).padStart(64, '0'),
+        tripId: PERSONA_TRIP_ID,
+        collision: PERSONA_COLLISION,
+        story: validStory().story,
+        createdAtMs: T0,
+      })
+    }
+    const res = await post(PERSONA_COLLISION)
+    expect(res.status).toBe(429)
+    expect(await codeOf(res)).toBe('LOSS_LIMIT')
+    expect(writer.calls).toHaveLength(0)
+  })
+
+  it('FAIL-4: 同時の枠が埋まっていれば 503 WRITER_BUSY', async () => {
+    const slots = new InProcessConcurrencyLimiter(1)
+    const hold = slots.tryAcquire()
+    const { post } = await setup(new ScriptedLossWriter(), { slots })
+    const res = await post(PERSONA_COLLISION)
+    expect(res.status).toBe(503)
+    expect(await codeOf(res)).toBe('WRITER_BUSY')
+    hold?.()
+  })
+
+  it('UC-6b: 保存したしおりがいまのマスターで作れない旅 → 409 ITINERARY_CHANGED', async () => {
+    const { post, trips } = await setup()
+    const old = personaTrip('Old12345')
+    const [first, ...rest] = old.plan.days
+    if (!first) throw new Error('days が空')
+    await trips.insertTrip({
+      ...old,
+      plan: { ...old.plan, days: [{ ...first, stay: 'kushiro' }, ...rest] },
+    })
+    const res = await post(PERSONA_COLLISION, { id: 'Old12345' })
+    expect(res.status).toBe(409)
+    expect(await codeOf(res)).toBe('ITINERARY_CHANGED')
   })
 
   it('FAIL-1: Claude の時間切れ → 502 WRITER_FAILED、もう一度送ると 201', async () => {

@@ -319,8 +319,8 @@
 .loss-row__mark {
   display: inline-flex;
   align-items: center;
-  flex: 0 0 28px;
-  min-width: 28px;
+  flex: 0 0 auto;
+  min-width: 3ch;
   font-size: var(--num-s-size);
 }
 
