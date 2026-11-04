@@ -25,3 +25,18 @@ cwd = "detector"
 cmd = ["{PYTHON}", "-m", "pytest", "-q"]
 needs_probe = ["{PYTHON}", "-m", "pytest", "--version"]
 hint = "pip install -e \"edge/detector[dev]\""
+
+# edge-day0: リポジトリ直下の入口 scripts/bench_l1.py は detector のパッケージの外なので、同じ設定で明示的に検査する
+[[check]]
+name = "ruff (bench_l1 entry)"
+cwd = "detector"
+cmd = ["{PYTHON}", "-m", "ruff", "check", "--config", "pyproject.toml", "../../scripts/bench_l1.py"]
+needs_probe = ["{PYTHON}", "-m", "ruff", "--version"]
+hint = "python -m ruff check --config edge/detector/pyproject.toml scripts/bench_l1.py"
+
+[[check]]
+name = "ruff format (bench_l1 entry)"
+cwd = "detector"
+cmd = ["{PYTHON}", "-m", "ruff", "format", "--check", "--config", "pyproject.toml", "../../scripts/bench_l1.py"]
+needs_probe = ["{PYTHON}", "-m", "ruff", "--version"]
+hint = "python -m ruff format --config edge/detector/pyproject.toml scripts/bench_l1.py"
