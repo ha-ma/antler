@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import numpy as np
+from pydantic import ValidationError
 
 from detector.config import Config, ConfigError, load_config
 from detector.l0.coreml import COMPUTE_UNIT_NAMES
@@ -128,9 +129,19 @@ class L1Run:
     models: dict[str, int] = dataclasses.field(default_factory=dict)  # 実際に答えたモデル
     warmup_ms: float | None = None
     warmup_failures: dict[str, int] = dataclasses.field(default_factory=dict)
+    attempts: int = 0
+    timeout_ms: float | None = None
 
     def report(self) -> dict[str, object]:
         out = summarize_ms(self.latencies_ms)
+        out["attempts"] = self.attempts
+        out["answered_ratio"] = (
+            _r(len(self.latencies_ms) / self.attempts, 3) if self.attempts else None
+        )
+        # 失敗をタイムアウトの長さで混ぜた p95（成功だけの p95 は遅い呼び出しが落ちて低く見える）
+        if self.timeout_ms is not None and self.attempts:
+            padded = [*self.latencies_ms, *[self.timeout_ms] * sum(self.failures.values())]
+            out["p95_ms_failures_as_timeout"] = _r(percentile(sorted(padded), 95))
         out["failed"] = sum(self.failures.values())
         out["failures"] = dict(sorted(self.failures.items()))
         out["answered_by"] = dict(sorted(self.models.items()))
@@ -169,13 +180,15 @@ async def run_l1(
     warmup: int,
     interval_ms: float = 0.0,
     warmup_client: JudgeClient | None = None,
+    timeout_ms: float | None = None,
 ) -> L1Run:
     """warmup（別に計る）→ n 回。p50/p95 は成功した呼び出しだけ。"""
-    run = L1Run()
+    run = L1Run(timeout_ms=timeout_ms)
     await _warm_up(run, warmup_client or client, requests, warmup)
     for i in range(n):
         started = time.perf_counter()
         ms, model, reason = await _call(client, requests[i % len(requests)])
+        run.attempts += 1
         if reason is None and model is not None:
             run.latencies_ms.append(ms)
             run.models[model] = run.models.get(model, 0) + 1
@@ -286,7 +299,9 @@ async def run_bench(
     warmup_client: JudgeClient | None = None,
 ) -> dict[str, object]:
     report: dict[str, object] = {"mode": "bench"}
-    alone = await run_l1(client, requests, bench.n, bench.warmup, bench.interval_ms, warmup_client)
+    alone = await run_l1(
+        client, requests, bench.n, bench.warmup, bench.interval_ms, warmup_client, bench.timeout_ms
+    )
     report["l1_alone"] = alone.report()
     if detector is None:
         report["verdict"] = {"fps_drop_limit_pct": FPS_DROP_LIMIT_PCT, "fps_drop_pct": None}
@@ -298,7 +313,9 @@ async def run_bench(
         a = loop.snapshot()
         await asyncio.sleep(bench.yolo_seconds)
         b = loop.snapshot()
-        both = await run_l1(client, requests, bench.n, 0, bench.interval_ms)
+        both = await run_l1(
+            client, requests, bench.n, 0, bench.interval_ms, timeout_ms=bench.timeout_ms
+        )
         c = loop.snapshot()
     finally:
         loop.stop()
@@ -307,9 +324,12 @@ async def run_bench(
     fps_alone, fps_with = fps_between(a, b), fps_between(b, c)
     drop = (fps_alone - fps_with) / fps_alone * 100.0 if fps_alone > 0 else math.nan
     enough = len(both.latencies_ms) >= bench.n * MIN_ANSWERED_RATIO
+    errors = int(alone_report["errors"]) + int(with_report["errors"])  # type: ignore[call-overload]
     reason = None
     if not ready:
         reason = "yolo_not_ready"
+    elif errors:
+        reason = "yolo_errors"  # 推論が例外を出した窓の fps は処理能力ではない
     elif not enough:
         # L1 が落ちていると YOLO は負荷なしで回り、低下率が小さく出て合格に見える
         reason = "l1_failed_during_overlap"
@@ -325,7 +345,7 @@ async def run_bench(
         "fps_drop_ok": bool(valid and math.isfinite(drop) and drop <= FPS_DROP_LIMIT_PCT),
         "target_fps": bench.target_fps,
         "l0_meets_target_fps": bool(math.isfinite(fps_with) and fps_with >= bench.target_fps),
-        "l0_errors": int(alone_report["errors"]) + int(with_report["errors"]),  # type: ignore[call-overload]
+        "l0_errors": errors,
     }
     return report
 
@@ -385,6 +405,7 @@ async def run_compare(
     interval_ms: float = 0.0,
     warmup: int = 3,
     warmup_client: JudgeClient | None = None,
+    timeout_ms: float | None = None,
 ) -> dict[str, object]:
     """examples は export_l1_labels の行。systems は local-jev のモデル名。"""
     total = len(examples)
@@ -400,11 +421,12 @@ async def run_compare(
     for name in systems:
         reqs = [{**ex["request"], "model": name} for ex in examples]  # type: ignore[dict-item]
         parsed = [JudgeRequest.model_validate(r) for r in reqs]
-        run = L1Run()
+        run = L1Run(timeout_ms=timeout_ms)
         await _warm_up(run, warmup_client or client, parsed, warmup)  # モデルのロード
         rows = []
         for i, req in enumerate(parsed):
             started = time.perf_counter()
+            run.attempts += 1
             try:
                 answer = await client.judge(req)
             except L1Unavailable as exc:
@@ -588,6 +610,9 @@ def _load_examples(path: Path) -> list[dict[str, object]]:
         if not (isinstance(row, dict) and {"request", "labels"} <= set(row)):
             msg = f"{path.name} {no} 行目: request と labels が要る"
             raise ValueError(msg)
+        if not isinstance(row["labels"], dict) or not set(QUESTIONS) <= set(row["labels"]):
+            msg = f"{path.name} {no} 行目: labels に {list(QUESTIONS)} が要る"
+            raise ValueError(msg)
         rows.append(row)
     if not rows:
         msg = f"{path.name}: 行が無い"
@@ -601,7 +626,11 @@ def _synthetic_requests(
     if loader is None:
         msg = "合成の例を作る入口が無い（scripts/bench_l1.py から呼ぶか --labels を付ける）"
         raise ValueError(msg)
-    return loader(n, seed)
+    rows = loader(n, seed)
+    if not rows:
+        msg = "合成の例が 0 件"
+        raise ValueError(msg)
+    return rows
 
 
 def _detector(config: Config, model: Path) -> Detector:
@@ -614,8 +643,13 @@ def _detector(config: Config, model: Path) -> Detector:
 def _problem(report: dict[str, object]) -> str | None:
     """結果が信用できない理由（あれば exit 3）。JSON は出したうえで知らせる。"""
     if report["mode"] == "bench":
-        if int(report["l1_alone"]["n"]) == 0:  # type: ignore[index]
+        alone = report["l1_alone"]
+        if int(alone["n"]) == 0:  # type: ignore[index]
             return "L1 から 1 件も答えが来ない（local-jev は起動済みか）"
+        if (alone["answered_ratio"] or 0) < MIN_ANSWERED_RATIO:  # type: ignore[index]
+            return f"L1 の回答率が低い（{alone['answered_ratio']}）。p95 は成功分だけで低く見える"  # type: ignore[index]
+        if alone["warmup_ms"] is None and alone["warmup_failures"]:  # type: ignore[index]
+            return "warmup が 1 度も成功していない（モデルを読み込めていない）"
         verdict = report["verdict"]
         if verdict.get("valid") is False:  # type: ignore[attr-defined]
             return f"併走の判定が無効: {verdict['invalid_reason']}"  # type: ignore[index]
@@ -633,8 +667,16 @@ def main(
 ) -> int:
     """examples_loader(n, seed) は合成の例（export_l1_labels の行）を返す。"""
     args = _parser().parse_args(argv)
-    if args.n < 1 or args.warmup < 0 or args.interval_ms < 0 or args.yolo_seconds <= 0:
-        return _fail("--n は 1 以上、--warmup・--interval-ms は 0 以上、--yolo-seconds は正", 2)
+    if (
+        args.n < 1
+        or args.scenarios < 1
+        or args.warmup < 0
+        or args.interval_ms < 0
+        or args.yolo_seconds <= 0
+    ):
+        return _fail(
+            "--n・--scenarios は 1 以上、--warmup・--interval-ms は 0 以上、--yolo-seconds は正", 2
+        )
     try:
         config = load_config(args.config) if args.config else Config()
         if args.compute_units:
@@ -653,6 +695,10 @@ def main(
         detector = detector_factory(config, args.model) if args.model else None
         client = client_factory(base_url, timeout_ms)
         warmup_client = client_factory(base_url, max(args.warmup_timeout_ms, timeout_ms))
+    except ValidationError as exc:  # 文字列に請求の中身(入力値)が出るので件数だけ
+        return _fail(
+            f"ValidationError: {exc.error_count()} 件（入力の形が JudgeRequest と違う）", 2
+        )
     except (ConfigError, L1Unavailable, ValueError, OSError, RuntimeError) as exc:
         return _fail(f"{type(exc).__name__}: {exc}", EXIT_INPUT)
     started = datetime.now(UTC)
@@ -661,7 +707,13 @@ def main(
         try:
             if args.compare:
                 return await run_compare(
-                    examples, args.systems, client, args.interval_ms, args.warmup, warmup_client
+                    examples,
+                    args.systems,
+                    client,
+                    args.interval_ms,
+                    args.warmup,
+                    warmup_client,
+                    timeout_ms,
                 )
             bench = Bench(
                 base_url,
@@ -700,8 +752,11 @@ def main(
         **report,
     }
     text = json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False)
+    sys.stdout.write(text + "\n\n" + render_table(report) + "\n")  # 先に出す(計測は再現できない)
     if args.out:
-        args.out.write_text(text + "\n", encoding="utf-8")
-    sys.stdout.write(text + "\n\n" + render_table(report) + "\n")
+        try:
+            args.out.write_text(text + "\n", encoding="utf-8")
+        except OSError as exc:
+            return _fail(f"--out に書けない（{type(exc).__name__}）。上の出力を貼る", EXIT_INPUT)
     problem = _problem(report)
     return EXIT_OK if problem is None else _fail(problem, EXIT_UNREACHABLE)

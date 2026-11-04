@@ -111,7 +111,7 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 - [Deferred: 担当=ユーザー / 期日=2026-11-05 / 暫定挙動=指示書は Qwen の重みを「約 1 GB・4bit」とするが、local-jev の README（@64a0b31）は `llm-qwen2.5-1.5b` を 3.09 GB（PyTorch で動かす。MLX ではない）とする。手順書は README の値を書く。mlx は extra に入れるが L1 では使われない] 指示書と local-jev の食い違い
 - [Deferred: 担当=メインセッション（Step 6）/ 期日=2026-11-06 / 暫定挙動=`--compare` の系はルールと local-jev のモデル名のみ。fmev（macOS 27）と、NLI の ECE の読み比べは実機で `--systems` に名前を足して試す] 比較の系の拡張
 - [Deferred: 担当=ユーザー / 期日=Day 5 前 / 暫定挙動=Ultralytics と重みは AGPL-3.0。CREDITS.md に書いたが、配布・ネットワーク提供時の扱いは ch9 に判断の行が無い] ライセンスの判断
-- [Deferred: 担当=人 B / 期日=2026-11-05 / 暫定挙動=ANE で動いた証拠は JSON に無い（`cpu_only` との fps の差を手順書で比べる）。併走の計測は L1 を背中合わせに近い間隔（既定 400 ms）で呼ぶ。実運転の GPU 競合（L1）と ANE（YOLO）以外の負荷（カメラ・WebSocket）は含まない] 計測の範囲
+- [Deferred: 担当=人 B / 期日=2026-11-05 / 暫定挙動=併走の fps は単独 → 併走の 1 回ずつ（20% の境界付近は揺らぐので手順書は 2 回打たせる）。入力は乱数画像で NMS が軽く楽観側に出る（鹿の写真を入力に使う案は実機の結果を見て決める）。ANE で動いた証拠は JSON に無い（`cpu_only` との fps の差を手順書で比べる）。併走の計測は L1 を背中合わせに近い間隔（既定 400 ms）で呼ぶ。実運転の GPU 競合（L1）と ANE（YOLO）以外の負荷（カメラ・WebSocket）は含まない] 計測の範囲
 
 ## Test List（Canon TDD Step 1）
 
@@ -163,4 +163,6 @@ spec-adversary の指摘の反映（2026-11-04）:
 - [x] ADV-3: [ADDED adversary C] 比較: 回答率と失敗を不正解にした正解率、別のモデルが答えた系・答えなかった系は無効
 - [x] ADV-4: [ADDED adversary W] warmup は別のクライアント・最初の成功まで再試行・失敗の理由を残す
 - [x] ADV-5: [ADDED adversary W] 書き出しは `models/` を cwd にする。`--compute-units` は一覧の外を引数エラーにする。検出器の読み込み失敗は exit 2
+- [x] ADV-7: [ADDED edge-latency C] `p95_ms_failures_as_timeout` を並べ、L1 の回答率が 80% 未満・warmup が失敗し続けたなら exit 3。YOLO の窓に推論の例外があれば `yolo_errors` で無効
+- [x] ADV-8: [ADDED code-reviewer] `--scenarios 0`・labels の 4 問のキー欠落・不正な請求は exit 2（入力の中身をエラーに出さない）。`--out` に書けなくても結果は先に出す。ultralytics の例外は `ExportError`。`--force` は検証に通るまで旧モデルを残す。`--check-image` で検出が出なければ exit 1
 - [x] ADV-6: [ADDED adversary I] 例外の数は窓ごと。`yolo_seconds` を params に残す。`l0_meets_target_fps`

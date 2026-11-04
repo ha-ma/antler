@@ -39,7 +39,9 @@ xcode-select -p || xcode-select --install
 mkdir -p ~/work && cd ~/work
 git clone https://github.com/ha-ma/antler.git
 cd antler
-git checkout main && git pull
+git fetch origin
+git checkout feat/edge-day0   # PR がマージされた後は main でよい（git checkout main && git pull）
+git pull
 ```
 
 GitHub の認証を聞かれたら、ユーザー名と Personal Access Token（パスワードではない）を入れる。入力はこの端末で人が行う。
@@ -169,13 +171,16 @@ python scripts/bench_l1.py --n 100 --model edge/detector/models/yolov8s-worldv2-
 python scripts/bench_l1.py --n 20 --model edge/detector/models/yolov8s-worldv2-deer.mlpackage --compute-units cpu_only --out ~/day0/bench-yolo-cpu.json
 ```
 
-`l0_alone.fps` が 8b より**大きく下がれば** ANE が効いている。差が小さければ、ANE に載っていない疑い（演算が対応していない）。そのまま貼る。
+`l0_alone.fps`（CPU のみ）が 8b の `l0_alone.fps`（ANE）の **半分以下**なら、ANE が効いている目安。8b とほぼ同じ（0.8 倍〜1.2 倍）なら、ANE に載っていない疑い（演算が対応していない）。どちらもそのまま貼る（判断はメインセッション）。
 
 期待される出力（8b。数字は例）
 
 - 先頭に JSON、続いて表。`"schema": "antler.bench_l1/1"`
 - `l1_alone` と `l1_with_yolo` の `p50_ms` / `p95_ms`。`warmup_ms`（初回のモデル読み込み。数秒〜数十秒でよい）
 - `verdict.valid` が `true`、`fps_drop_ok`（低下 20% 以内で `true`）、`l0_meets_target_fps`（目標 10 fps）
+- `l1_alone.answered_ratio` が 0.8 以上。`p95_ms_failures_as_timeout` は、落ちた呼び出しを 800 ms として混ぜた p95（成功分だけの `p95_ms` は、遅くて落ちた呼び出しが除かれて低く見えるので、**両方を貼る**）
+- fps の読み方: `fps_drop_pct` は YOLO を休みなく回したときの**処理能力**の低下（§6 の 20%）。実運転は 10 fps に抑えるので、`l0_meets_target_fps` が真なら 10 fps は保てる。判定が 20% の境界（15〜25%）なら 8b をもう一度打って、2 回とも貼る
+- 併走の入力は乱数画像で、鹿が写っていない分だけ後処理（NMS）が軽く、fps は実運転より楽観側に出る
 
 終了コード: `0` = 正常、`2` = 引数・ファイル・モデルの読み込みの誤り、`3` = 結果が信用できない（L1 が 1 件も答えない、併走中に L1 が落ちた、など。JSON は出る）。
 
@@ -194,21 +199,23 @@ cat ~/day0/bench-yolo-cpu.json
 
 ## うまくいかないとき
 
-| 症状                                                           | 確かめること                                                                                                             |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `python3` が 3.14 / 3.10 以下                                  | 下の「Python が合わないとき」                                                                                            |
-| `pip install` が `numpy` で衝突                                | `pip install "numpy<=2.3.5"`。Ultralytics の CoreML 書き出しは numpy 2.3.5 までを要る                                    |
-| `export_yolo_world.py` が `ultralytics が無い`                 | venv が有効か（`which python`）。`pip install -e "edge/detector[day0]"`                                                  |
-| 書き出しの途中で CLIP の取得に失敗                             | ネットワークと `git --version`。手順 4 の 2 行目をもう一度。企業のプロキシ内なら `git` の設定                            |
-| `YOLOWorld (original version) export is not supported`         | 重みが v1。既定の `yolov8s-worldv2.pt` を使う（`--weights` を変えていないか）                                            |
-| `l0 の読み方で読めない` / `出力の名前が l0 の読み方と合わない` | スクリプトの出力をそのまま貼る（合わせ方はスクリプト側で直す。l0 は変えない）                                            |
-| `shape_verified: false`                                        | `--check-image` の写真に鹿が写っていない。別の写真で `--force` を付けて再実行                                            |
-| bench が exit 3、`L1 から 1 件も答えが来ない`                  | ターミナル B が動いているか。`curl -s http://127.0.0.1:8766/healthz`。`failures`（`connect` / `timeout` / `http`）を貼る |
-| `warmup_failures` が出る                                       | 初回のモデル読み込みが長い。`--warmup-timeout-ms 300000` で再実行。繰り返すなら B のログを貼る                           |
-| `p95_ms` が 800 を超える                                       | 800 ms は実行時のタイムアウト（超えると L1 は無視される）。数字をそのまま貼る（判断は後）                                |
-| `local-jev serve` が `model_unavailable`                       | 重みの取得中か失敗。B のログ。`~/.cache/huggingface` の空き容量（`df -h ~`）                                             |
-| 併走の判定が無効（`l1_failed_during_overlap`）                 | 併走中に local-jev が落ちた（メモリ不足の疑い）。B のログと `memory_pressure` を貼る                                     |
-| bench が `ConfigError: ... names`                              | モデルが鹿を持たない。手順 7 をやり直す（`--force`）                                                                     |
+| 症状                                                                    | 確かめること                                                                                                                |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `python3` が 3.14 / 3.10 以下                                           | 下の「Python が合わないとき」                                                                                               |
+| `pip install` が `numpy` で衝突                                         | `pip install "numpy<=2.3.5"`。Ultralytics の CoreML 書き出しは numpy 2.3.5 までを要る                                       |
+| `export_yolo_world.py` が `ultralytics が無い`                          | venv が有効か（`which python`）。`pip install -e "edge/detector[day0]"`                                                     |
+| 書き出しの途中で CLIP の取得に失敗                                      | ネットワークと `git --version`。手順 4 の 2 行目をもう一度。企業のプロキシ内なら `git` の設定                               |
+| `YOLOWorld (original version) export is not supported`                  | 重みが v1。既定の `yolov8s-worldv2.pt` を使う（`--weights` を変えていないか）                                               |
+| `l0 の読み方で読めない` / `出力の名前が l0 の読み方と合わない`          | スクリプトの出力をそのまま貼る（合わせ方はスクリプト側で直す。l0 は変えない）                                               |
+| `shape_verified: false`                                                 | `--check-image` の写真に鹿が写っていない。別の写真で `--force` を付けて再実行                                               |
+| bench が exit 3、`L1 の回答率が低い` / `warmup が 1 度も成功していない` | 800 ms を超える呼び出しが多い。`failures`・`warmup_failures` と `p95_ms_failures_as_timeout` を貼る                         |
+| bench が exit 3、`L1 から 1 件も答えが来ない`                           | ターミナル B が動いているか。`curl -s http://127.0.0.1:8766/healthz`。`failures`（`connect` / `timeout` / `http`）を貼る    |
+| `warmup_failures` が出る                                                | 初回のモデル読み込みが長い。`--warmup-timeout-ms 300000` で再実行。繰り返すなら B のログを貼る                              |
+| `p95_ms` が 800 を超える                                                | 800 ms は実行時のタイムアウト（超えると L1 は無視される）。数字をそのまま貼る（判断は後）                                   |
+| `local-jev serve` が `model_unavailable`                                | 重みの取得中か失敗。B のログ。`~/.cache/huggingface` の空き容量（`df -h ~`）                                                |
+| 併走の判定が無効（`yolo_errors` / `yolo_not_ready`）                    | YOLO の推論が例外を出した、または立ち上がらなかった。`l0_alone.last_error` を貼る（モデルのパス・compute units を確かめる） |
+| 併走の判定が無効（`l1_failed_during_overlap`）                          | 併走中に local-jev が落ちた（メモリ不足の疑い）。B のログと `memory_pressure` を貼る                                        |
+| bench が `ConfigError: ... names`                                       | モデルが鹿を持たない。手順 7 をやり直す（`--force`）                                                                        |
 
 ### Python が合わないとき
 

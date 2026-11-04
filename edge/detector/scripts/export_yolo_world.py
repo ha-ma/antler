@@ -185,29 +185,45 @@ def export(
     out_dir.mkdir(parents=True, exist_ok=True)
     factory = model_factory or _yolo_world()
     # ultralytics は重みを cwd に落とす。リポジトリ直下に .pt（AGPL）を残さないよう models/ へ移る
-    with contextlib.chdir(out_dir):
-        model = factory(weights)
-        model.set_classes(list(classes))  # type: ignore[attr-defined]  CLIP を取得する
-        produced = Path(
-            str(
-                model.export(  # type: ignore[attr-defined]
-                    format="coreml", nms=True, imgsz=imgsz, conf=conf, iou=iou
+    try:
+        with contextlib.chdir(out_dir):
+            model = factory(weights)
+            model.set_classes(list(classes))  # type: ignore[attr-defined]  CLIP を取得する
+            produced = Path(
+                str(
+                    model.export(  # type: ignore[attr-defined]
+                        format="coreml", nms=True, imgsz=imgsz, conf=conf, iou=iou
+                    )
                 )
             )
-        )
+    except (RuntimeError, OSError, ValueError, ImportError, AssertionError) as exc:
+        msg = f"ultralytics の書き出しに失敗（{type(exc).__name__}: {exc}）"
+        raise ExportError(msg) from exc
     if not produced.is_absolute():
         produced = out_dir / produced
     if not produced.exists():
         msg = f"書き出した {produced} が無い"
         raise ExportError(msg)
-    if target.exists():
-        if target.is_dir():
-            shutil.rmtree(target)
-        else:
-            target.unlink()
+    backup = None
+    if target.exists():  # --force: 検証に通るまで、使えていた旧モデルを残す
+        backup = target.with_name(f"{target.name}.old")
+        _remove(backup)
+        target.rename(backup)
     shutil.move(str(produced), str(target))
-    patched = (name_fixer or _ensure_names)(target, classes)
-    report = verify(target, classes, image=image) if verifier is None else verifier(target, classes)
+    try:
+        patched = (name_fixer or _ensure_names)(target, classes)
+        report = (
+            verify(target, classes, image=image) if verifier is None else verifier(target, classes)
+        )
+    except ExportError:
+        failed = target.with_name(f"{target.stem}.failed.mlpackage")
+        _remove(failed)
+        target.rename(failed)  # 調べられるように残す
+        if backup is not None:
+            backup.rename(target)
+        raise
+    if backup is not None:
+        _remove(backup)
     report.update(
         {
             "path": str(target),
@@ -219,6 +235,13 @@ def export(
         }
     )
     return report
+
+
+def _remove(path: Path) -> None:
+    if path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
 
 
 def _multiple_of_32(text: str) -> int:
@@ -270,6 +293,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         sys.stderr.write(f"export_yolo_world: {exc}\n")
         return EXIT_FAIL
     sys.stdout.write(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+    if args.check_image and not report.get("shape_verified"):
+        sys.stderr.write(
+            "export_yolo_world: --check-image の写真で検出が出ず、出力の形を確かめられない"
+            "（鹿がはっきり写った別の写真で --force を付けて再実行）\n"
+        )
+        return EXIT_FAIL
     return EXIT_OK
 
 

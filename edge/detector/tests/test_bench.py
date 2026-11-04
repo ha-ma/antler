@@ -133,7 +133,8 @@ def test_bench_without_yolo_counts_failures_and_models() -> None:
     assert len(client.requests) == 7  # warmup 1 + n 6
     assert alone["n"] == 5
     assert alone["failures"] == {"timeout": 1}
-    assert alone["answered_by"]
+    assert alone["answered_by"] == {"other": 5}
+    assert alone["answered_ratio"] == pytest.approx(5 / 6, abs=1e-3)
     assert alone["warmup_ms"] is not None
     assert report["verdict"]["fps_drop_pct"] is None
     assert "l0_alone" not in report
@@ -490,3 +491,100 @@ def test_main_with_dead_overlap_exits_3(capsys: pytest.CaptureFixture[str]) -> N
     assert code == 3
     assert "判定できない" in captured.out
     assert "併走の判定が無効" in captured.err
+
+
+# ---- edge-latency-reviewer / code-reviewer の指摘 ----
+
+
+def test_p95_with_failures_counted_as_timeout() -> None:
+    # 5 回中 2 回が 800 ms で落ちた: 成功だけの p95 は低く見える。タイムアウトを混ぜた p95 を並べる
+    client = FakeClient([answer(), answer(), unavailable("timeout"), unavailable("timeout")])
+    run = asyncio.run(bench.run_l1(client, requests(), n=4, warmup=0, timeout_ms=800.0))
+    report = run.report()
+    assert report["answered_ratio"] == 0.5
+    assert report["p95_ms_failures_as_timeout"] == pytest.approx(800.0, abs=1.0)
+    assert report["p95_ms"] < 100
+
+
+def test_low_answered_ratio_makes_the_run_a_problem() -> None:
+    client = FakeClient([answer(), unavailable("timeout")])
+    cfg = bench.Bench("http://127.0.0.1:1", 800, n=10, warmup=0, interval_ms=0)
+    report = asyncio.run(bench.run_bench(cfg, client, requests(), None))
+    problem = bench._problem({"mode": "bench", **report})
+    assert problem is not None
+    assert "回答率" in problem
+
+
+def test_warmup_never_succeeding_makes_the_run_a_problem() -> None:
+    # warmup は落ち続けたが本計測は答えた(ロードに失敗し続けたのに通った = 数字を信用しない)
+    client = FakeClient([unavailable("timeout"), answer()])
+    cfg = bench.Bench("http://127.0.0.1:1", 800, n=3, warmup=1, interval_ms=0)
+    report = asyncio.run(bench.run_bench(cfg, client, requests(), None))
+    assert report["l1_alone"]["warmup_failures"] == {"timeout": 1}
+    assert "warmup" in bench._problem({"mode": "bench", **report})
+
+
+def test_yolo_errors_invalidate_the_fps_verdict() -> None:
+    class Flaky(SlowDetector):
+        def detect(self, image: object) -> list[Detection]:
+            self.calls += 1
+            time.sleep(0.002)
+            if self.calls == 20:
+                msg = "once"
+                raise RuntimeError(msg)
+            return []
+
+    cfg = bench.Bench("http://127.0.0.1:1", 800, n=20, warmup=0, interval_ms=0, yolo_seconds=0.3)
+    client = FakeClient([answer()], delay=0.01)
+    report = asyncio.run(bench.run_bench(cfg, client, requests(), Flaky()))
+    verdict = report["verdict"]
+    assert verdict["l0_errors"] == 1
+    assert verdict["valid"] is False
+    assert verdict["invalid_reason"] == "yolo_errors"
+    assert verdict["fps_drop_ok"] is False
+
+
+def test_scenarios_zero_and_empty_loader_are_input_errors() -> None:
+    assert bench.main(["--scenarios", "0"], examples_loader=loader) == 2
+    assert bench.main([], examples_loader=lambda n, seed: []) == 2
+
+
+def test_labels_without_the_four_questions_are_rejected(tmp_path: Path) -> None:
+    path = tmp_path / "labels.jsonl"
+    path.write_text(json.dumps({"request": request_dict(), "labels": {"alert_level": "x"}}) + "\n")
+    assert bench.main(["--labels", str(path)]) == 2
+
+
+def test_invalid_request_shape_does_not_echo_the_content(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "labels.jsonl"
+    labels = example()["labels"]
+    row = {"request": {"model": "SECRET-INPUT-VALUE", "state": {}}, "labels": labels}
+    path.write_text(json.dumps(row) + "\n")
+    assert bench.main(["--labels", str(path)]) == 2
+    assert "SECRET-INPUT-VALUE" not in capsys.readouterr().err
+
+
+def test_out_failure_still_prints_the_result(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    server = JevServer(body=jev_body())
+    code = bench.main(
+        [
+            "--n",
+            "2",
+            "--warmup",
+            "1",
+            "--interval-ms",
+            "0",
+            "--out",
+            str(tmp_path / "no" / "x.json"),
+        ],
+        examples_loader=loader,
+        client_factory=factory(server),
+    )
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out.startswith("{")  # 計測は再現できないので先に出す
+    assert "--out に書けない" in captured.err

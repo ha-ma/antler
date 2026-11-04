@@ -161,8 +161,14 @@ def test_main_ok_prints_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, ca
     assert report["names_patched"] is True
 
 
-def test_main_reports_export_failure(tmp_path: Path, capsys) -> None:
-    code = ex.main(["--out-dir", str(tmp_path)])  # ultralytics は dev に無い
+def test_main_reports_export_failure(
+    tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sys
+
+    # Mac mini は dev と day0 を同じ venv に入れる。本物の書き出しが走らないよう無い状態にする
+    monkeypatch.setitem(sys.modules, "ultralytics", None)
+    code = ex.main(["--out-dir", str(tmp_path)])
     assert code == 1
     assert "ultralytics が無い" in capsys.readouterr().err
 
@@ -325,3 +331,57 @@ def test_export_passes_check_image_to_verify(
         check_image=tmp_path / "deer.jpg",
     )
     assert got["image"] is photo
+
+
+def test_ultralytics_errors_become_export_errors(tmp_path: Path) -> None:
+    class Boom(FakeWorld):
+        def set_classes(self, classes: list[str]) -> None:
+            msg = "CLIP を取れない"
+            raise RuntimeError(msg)
+
+    with pytest.raises(ex.ExportError, match=r"ultralytics の書き出しに失敗.*RuntimeError"):
+        ex.export(out_dir=tmp_path / "m", model_factory=lambda w: Boom(tmp_path))
+
+
+def test_force_keeps_the_old_model_when_verification_fails(tmp_path: Path) -> None:
+    run_export(tmp_path)
+    target = tmp_path / "models" / "yolov8s-worldv2-deer.mlpackage"
+    (target / "old-marker").write_text("old", encoding="utf-8")
+
+    def reject(path: Path, classes: object) -> dict:
+        msg = "合わない"
+        raise ex.ExportError(msg)
+
+    with pytest.raises(ex.ExportError):
+        ex.export(
+            out_dir=tmp_path / "models",
+            force=True,
+            model_factory=lambda w: FakeWorld(tmp_path),
+            verifier=reject,
+            name_fixer=lambda p, c: False,
+        )
+    assert (target / "old-marker").exists()  # 旧モデルは戻る
+    assert (tmp_path / "models" / "yolov8s-worldv2-deer.failed.mlpackage").exists()
+    assert not (tmp_path / "models" / "yolov8s-worldv2-deer.mlpackage.old").exists()
+
+
+def test_force_replaces_old_model_on_success(tmp_path: Path) -> None:
+    run_export(tmp_path)
+    target = tmp_path / "models" / "yolov8s-worldv2-deer.mlpackage"
+    (target / "old-marker").write_text("old", encoding="utf-8")
+    run_export(tmp_path, force=True)
+    assert not (target / "old-marker").exists()
+    assert not (tmp_path / "models" / "yolov8s-worldv2-deer.mlpackage.old").exists()
+
+
+def test_main_fails_when_check_image_finds_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys
+) -> None:
+    world = FakeWorld(tmp_path)
+    monkeypatch.setattr(ex, "_yolo_world", lambda: lambda weights: world)
+    monkeypatch.setattr(ex, "_read_image", lambda path: np.zeros((4, 4, 3)))
+    monkeypatch.setattr(ex, "verify", lambda path, classes, **kw: {"shape_verified": False})
+    monkeypatch.setattr(ex, "_ensure_names", lambda path, classes: False)
+    code = ex.main(["--out-dir", str(tmp_path / "m"), "--check-image", "deer.jpg"])
+    assert code == 1
+    assert "検出が出ず" in capsys.readouterr().err
