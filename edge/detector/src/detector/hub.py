@@ -75,7 +75,7 @@ class AlertHub:
         self._clients = 0
         # PWA から届いた車の状態の最新 1 件（pwa-uplink）。赤の経路には使わない（L1 の入力だけ）
         self._vehicle: VehicleReport | None = None
-        self._vehicle_key: tuple[object, object, bool] | None = None
+        self._vehicle_key: tuple[object, object] | None = None
         self._vehicle_stale_logged = False
         self._vehicle_logs: dict[str, float] = {}
 
@@ -297,7 +297,7 @@ class AlertHub:
         }
 
     def on_client_message(self, raw: object) -> None:
-        """ack と label だけ読む。余分な項目は捨て、本文はログに残さない。"""
+        """ack・label・vehicle だけ読む。余分な項目は捨て、本文はログに残さない。"""
         message = None
         if isinstance(raw, str):
             try:
@@ -334,12 +334,19 @@ class AlertHub:
             return
         self._vehicle = report
         self._vehicle_stale_logged = False
-        key = (report.zone, report.light, report.speed_kmh is not None)
+        key = (
+            report.zone,
+            report.light,
+        )  # 速度の有無では出さない（null と数値の行き来で毎秒出ない）
         if key != self._vehicle_key and self._vehicle_log_ready("updated", now):
             self._vehicle_key = key
             logger.info(
                 "vehicle.updated",
-                extra={"zone": report.zone, "light": report.light, "has_speed": key[2]},
+                extra={
+                    "zone": report.zone,
+                    "light": report.light,
+                    "has_speed": report.speed_kmh is not None,
+                },
             )
 
     def _vehicle_log_ready(self, name: str, now: float) -> bool:

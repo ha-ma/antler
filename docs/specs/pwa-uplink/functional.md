@@ -170,7 +170,7 @@ Story: ドライバー（同乗者）として、いま何 km/h で、鹿ゾー�
 
 - 光の区分は edge か PWA か → **PWA**。`lightPeriod` は位置が要る。edge は位置を持たない（持たせない）。位置は `useGpsZone` の中だけで使う
 - 「分からない」の表し方 → 項目を送らない。`zone: "unknown"`・`null` は作らない（JudgeRequest に席が無い）。edge が固定値で埋める
-- 新しさの測り方 → edge が受け取った時刻（単調時計）。メッセージに時刻を持たせない。PWA は測位が 5 秒より古い（または負）ければ 3 項目とも送らない。edge は速度を 3 秒、ゾーンと光を 10 秒で固定値へ戻す（最悪でゾーンと光は約 15 秒古い）。古い `outside` は固定値の `inside` に倒れる（降格に寄る値が残らない向き）''
+- 新しさの測り方 → edge が受け取った時刻（単調時計）。メッセージに時刻を持たせない。PWA は測位が 5 秒より古い（または経過が負）なら 3 項目とも送らない。edge は速度を 3 秒、ゾーンと光を 10 秒で固定値へ戻す（最悪でゾーンと光は約 15 秒古い）。古い `outside` は固定値の `inside` に倒れる（降格に寄る値が残らない向き）
 - 実値は降格に寄るか（spec-adversary Critical）→ 寄る。校正（`calibration.json`）は固定値で学習したもので、低速・ゾーン外・昼は学習に無い。**校正が `context: "fixed"`（既定）のあいだは実値を使わない**。`context: "real"` と宣言された校正のとき（または校正なし）だけ実値を使い、速度は学習の下限 30 km/h で持ち上げる。ユーザーの「既定は pwa」はそのまま（設定の既定は `pwa`。実際に使うかは校正の宣言しだい）
 - 部分更新か置き換えか → 置き換え（無い項目は分からない）。速度だけ古い値が残り続けない
 - 残り km・ゾーン ID・路線名を送るか → 送らない（L1 の入力に無い。位置の手がかりを減らす）
@@ -180,7 +180,7 @@ Story: ドライバー（同乗者）として、いま何 km/h で、鹿ゾー�
 - 実値の既定 → `vehicle_state = "pwa"`（ユーザーの指示）。校正のずれに備えて `"fixed"` で切り離せる
 - ch9 ④（B の判断モデル）は推奨（local-jev＋Qwen2.5-1.5B、L1 を赤の経路に入れない）を**仮採用**中
 
-- [Deferred: 担当=人 B（edge-l1-calibration の続き。実値のモードで `dataset/export_l1_labels.py` を回し、`calibrate.py` で温度を学習し直して、`calibration.json` に `"context": "real"` を足す。`calibrate.py` の書き出しに `--context` を足すのもここ）/ 期日=2026-11-06 / 暫定挙動=`calibration.json` は固定値の状態で学習したもの（`context` が無い = `fixed`）。そのあいだ edge は `vehicle` が届いても固定値で L1 に聞く（`state_source=fixed`、`l1.vehicle_ignored` を 1 回）。校正なしのあいだは実値で聞く（降格は起きない）] 実値での温度の再学習
+- [Deferred: 担当=人 B（edge-l1-calibration の続き。実値のモードで `dataset/export_l1_labels.py` を回し、`calibrate.py` で温度を学習し直して、`calibration.json` に `"context": "real"` を足す。`calibrate.py` の書き出しに `--context` を足すのもここ。注意: エクスポートの実値のモードの名前は `actual`、校正側は `"real"` で綴りが違う。合成 trace の zone は常に `inside` なので、合成だけで学習したものに `"real"` を付けない。ゾーン外・低速・昼を含む実走行・sim のトレースで学習したときだけ付ける）/ 期日=2026-11-06 / 暫定挙動=`calibration.json` は固定値の状態で学習したもの（`context` が無い = `fixed`）。そのあいだ edge は `vehicle` が届いても固定値で L1 に聞く（`state_source=fixed`、`l1.vehicle_ignored` を 1 回）。校正なしのあいだは実値で聞く（降格は起きない）] 実値での温度の再学習
 - [Deferred: 担当=人 B（実機の調査走行）/ 期日=2026-11-07 / 暫定挙動=`headlight` は PWA に分からないので、光からの推定（昼は `off`、それ以外は `low`）。固定値のときは `low`。車の実際のライトは未確認] ヘッドライトの実値
 - [Deferred: 担当=ユーザー（Mac mini とスマホの実機）/ 期日=2026-11-07 / 暫定挙動=実機のスマホの GPS の `speed` が `null` の端末では速度は固定値の 60 のまま。偽 edge と単体テストで確かめた。実機の速度の取れ方は未確認] 実機の速度の取得
 
@@ -188,86 +188,86 @@ Story: ドライバー（同乗者）として、いま何 km/h で、鹿ゾー�
 
 外側ループ（受け入れ）:
 
-- [ ] AC-a: 校正なしの構成で、本物の WebSocket クライアントが `vehicle`（outside・45 km/h・day）を送ると、次の L1 の問い合わせ（偽の local-jev）の `state` が `zone=outside`・`speedKmh=45.0`・`light=day`・`headlight=off`。注入した時計を 10 秒進めると固定値（60・inside・night・low）に戻り、`vehicle.stale` が 1 回残る
-- [ ] AC-d: 固定値で学習した校正（`context` なし）の構成では、`vehicle` を送っても問い合わせの `state` が `vehicle` を送らないときと同じ（固定値）で、`l1.vehicle_ignored` が 1 回残り、`state_source=fixed`。`context: "real"` の校正に差し替えると実値になる
-- [ ] AC-b: `vehicle` を送り続けても、L0 の赤の `t_frame`・距離・方向・送信の回数は、`vehicle` を送らない場合と同じ（赤の経路に触れない）。校正なしの L1 が false_positive 0.99 と答え、`vehicle` が outside・0 km/h でも赤は下がらない
-- [ ] AC-c: PWA の `DriveScreen` を 1 Hz で 5 秒回すと、偽 socket に `vehicle` が 5 通届き、どれも `ClientMessageSchema` に通り、緯度経度・精度・時刻の項目が無い。測位が 5 秒より古くなると送られなくなる
+- [x] AC-a: 校正なしの構成で、本物の WebSocket クライアントが `vehicle`（outside・45 km/h・day）を送ると、次の L1 の問い合わせ（偽の local-jev）の `state` が `zone=outside`・`speedKmh=45.0`・`light=day`・`headlight=off`。注入した時計を 10 秒進めると固定値（60・inside・night・low）に戻り、`vehicle.stale` が 1 回残る
+- [x] AC-d: 固定値で学習した校正（`context` なし）の構成では、`vehicle` を送っても問い合わせの `state` が `vehicle` を送らないときと同じ（固定値）で、`l1.vehicle_ignored` が 1 回残り、`state_source=fixed`。`context: "real"` の校正に差し替えると実値になる
+- [x] AC-b: `vehicle` を送り続けても、L0 の赤の `t_frame`・距離・方向・送信の回数は、`vehicle` を送らない場合と同じ（赤の経路に触れない）。校正なしの L1 が false_positive 0.99 と答え、`vehicle` が outside・0 km/h でも赤は下がらない
+- [x] AC-c: PWA の `DriveScreen` を 1 Hz で 5 秒回すと、偽 socket に `vehicle` が 5 通届き、どれも `ClientMessageSchema` に通り、緯度経度・精度・時刻の項目が無い。測位が 5 秒より古くなると送られなくなる
 
 UC-1 メッセージの形（packages/schema・Python）:
 
-- [ ] VM-1a: 3 項目すべて・一部・空（`{"type":"vehicle"}`）が通る（見本 valid）
-- [ ] VM-1b: 範囲外の速度（-1・301）・NaN・Infinity・文字列の数・bool・`zone: "unknown"`・`zone: null`・`light: "noon"`・知らない型 → 拒否（見本 invalid）
-- [ ] VM-1c: [MASS] `lat`・`lon`・`accuracy`・`timestamp`・`t_shown`・`deviceId`・`remainingKm` を足すと拒否
-- [ ] VM-1d: ack・label の見本の通る・通らないが今までと同じ。flag の形はクライアント → サーバーで拒否のまま
-- [ ] VM-1e: 書き出した JSON Schema が定義から作り直したものと一致する（UC-1i）。Python のモデルが最新（`generate_models.py --check`）。`judge_request.py` のバイト列は変わらない
-- [ ] VM-1f: Python のモデルが、同じ見本で TS と同じ結果。JSON の整数（`60`）の速度を通す。NaN を拒否
+- [x] VM-1a: 3 項目すべて・一部・空（`{"type":"vehicle"}`）が通る（見本 valid）
+- [x] VM-1b: 範囲外の速度（-1・301）・NaN・Infinity・文字列の数・bool・`zone: "unknown"`・`zone: null`・`light: "noon"`・知らない型 → 拒否（見本 invalid）
+- [x] VM-1c: [MASS] `lat`・`lon`・`accuracy`・`timestamp`・`t_shown`・`deviceId`・`remainingKm` を足すと拒否
+- [x] VM-1d: ack・label の見本の通る・通らないが今までと同じ。flag の形はクライアント → サーバーで拒否のまま
+- [x] VM-1e: 書き出した JSON Schema が定義から作り直したものと一致する（UC-1i）。Python のモデルが最新（`generate_models.py --check`）。`judge_request.py` のバイト列は変わらない
+- [x] VM-1f: Python のモデルが、同じ見本で TS と同じ結果。JSON の整数（`60`）の速度を通す。NaN を拒否
 
 UC-2 PWA が値を作る:
 
-- [ ] VR-2a: `speedMps` 10 → 36。0 → 0。`speedMps` が無い・負・NaN → 項目なし（0 にしない）。301 km/h 以上 → 300 に収める
-- [ ] VR-2f: 測位が 5 秒より古い、または 5 秒ちょうどまでは新しい、端末の時計が戻って経過が負 → 3 項目とも無し（`null` の報告）。空のときは `useVehicleUplink` が送らない
-- [ ] VR-2b: `judgeZone` が inside / outside → `zone` に入る。unknown・判定なし → 項目なし
-- [ ] VR-2c: `light` は `lightPeriod` の結果（昼・夕・夜・朝の測位で確かめる）。`zone` が分からないとき → 項目なし
-- [ ] VR-2d: 出力に座標・精度・時刻が出ない（キーは 3 つ以内）。`useGpsZone` が返す `GpsView` にも座標が出ない
-- [ ] VR-2e: 位置の許可なし・GPS なし → 空の報告（送られない）
+- [x] VR-2a: `speedMps` 10 → 36。0 → 0。`speedMps` が無い・負・NaN → 項目なし（0 にしない）。301 km/h 以上 → 300 に収める
+- [x] VR-2f: 測位が 5 秒より古い、または 5 秒ちょうどまでは新しい、端末の時計が戻って経過が負 → 3 項目とも無し（`null` の報告）。空のときは `useVehicleUplink` が送らない
+- [x] VR-2b: `judgeZone` が inside / outside → `zone` に入る。unknown・判定なし → 項目なし
+- [x] VR-2c: `light` は `lightPeriod` の結果（昼・夕・夜・朝の測位で確かめる）。`zone` が分からないとき → 項目なし
+- [x] VR-2d: 出力に座標・精度・時刻が出ない（キーは 3 つ以内）。`useGpsZone` が返す `GpsView` にも座標が出ない
+- [x] VR-2e: 位置の許可なし・GPS なし → 空の報告（送られない）
 
 UC-3 PWA が送る:
 
-- [ ] EC-3a: `sendVehicle` は open のときだけ socket に送る。connecting・closed では送らず、溜めない
-- [ ] EC-3b: 送る文字列は `ClientMessageSchema` に通る。通らない値（NaN など）は送らず `vehicle.skipped`
-- [ ] EC-3c: 0.9 秒以内の 2 回目は送らない。1 秒後はまた送る。間隔は `performance.now()` で測り、壁時計を戻しても送り続ける
-- [ ] UP-3a: `DriveScreen` が 1 Hz で送る。B-0 では送らない。アンマウントで止まる。StrictMode の二重の effect でも 1 秒に 1 通
-- [ ] UP-3b: 再接続したら、次の更新で送る（切れているあいだの分は送らない）
-- [ ] UP-3c: ack は今までどおり danger を表示し始めたときに 1 回（vehicle が ack を邪魔しない・数えない）
+- [x] EC-3a: `sendVehicle` は open のときだけ socket に送る。connecting・closed では送らず、溜めない
+- [x] EC-3b: 送る文字列は `ClientMessageSchema` に通る。通らない値（NaN など）は送らず `vehicle.skipped`
+- [x] EC-3c: 0.9 秒以内の 2 回目は送らない。1 秒後はまた送る。間隔は `performance.now()` で測り、壁時計を戻しても送り続ける
+- [x] UP-3a: `DriveScreen` が 1 Hz で送る。B-0 では送らない。アンマウントで止まる。StrictMode の二重の effect でも 1 秒に 1 通
+- [x] UP-3b: 再接続したら、次の更新で送る（切れているあいだの分は送らない）
+- [x] UP-3c: ack は今までどおり danger を表示し始めたときに 1 回（vehicle が ack を邪魔しない・数えない）
 
 UC-4 edge が受ける:
 
-- [ ] HV-4a: 有効な `vehicle` を保持する。次の `vehicle` が全部を置き換える（前の速度が残らない）
-- [ ] HV-4b: 無効（範囲外・NaN・余分な項目・bool）→ 前の値が残り、`vehicle.invalid` が 1 秒に 1 回まで。本文がログに出ない
-- [ ] HV-4c: 2 つの接続から交互に届く → 最後の有効なものが勝つ
-- [ ] HV-4d: `ack`・`label`・未知の型の扱いが今までと同じ（既存のテストが Green）
-- [ ] HV-4e: `vehicle` の受信で `sender` が呼ばれない・fusion の状態が変わらない（赤の経路に触れない）
-- [ ] HV-4f: `vehicle.updated` は zone / light が変わったときだけ。速度の値を出さない
+- [x] HV-4a: 有効な `vehicle` を保持する。次の `vehicle` が全部を置き換える（前の速度が残らない）
+- [x] HV-4b: 無効（範囲外・NaN・余分な項目・bool）→ 前の値が残り、`vehicle.invalid` が 1 秒に 1 回まで。本文がログに出ない
+- [x] HV-4c: 2 つの接続から交互に届く → 最後の有効なものが勝つ
+- [x] HV-4d: `ack`・`label`・未知の型の扱いが今までと同じ（既存のテストが Green）
+- [x] HV-4e: `vehicle` の受信で `sender` が呼ばれない・fusion の状態が変わらない（赤の経路に触れない）
+- [x] HV-4f: `vehicle.updated` は zone / light が変わったときだけ。速度の値を出さない
 
 UC-5 edge が L1 に使う:
 
-- [ ] RQ-5a: 新しい報告（校正なし）→ 3 項目の実値（速度は下限 30 で持ち上げ）。`JudgeRequest` に通る
-- [ ] RQ-5b: 一部の項目だけ有る → 有る項目は実値、無い項目は固定値。`state_source=partial`
-- [ ] RQ-5c: `received_at` から `vehicle_max_age_s` を超えた → 全部固定値、`state_source=fixed`、`vehicle.stale` は 1 回
-- [ ] RQ-5d: 境界: ちょうど `vehicle_max_age_s`（速度は 3 秒）は新しい扱い、それを超えたら古い
-- [ ] RQ-5e: `vehicle_state = "fixed"` → 実値が届いていても固定値
-- [ ] RQ-5f: 報告が無い（一度も届かない）→ 固定値。今までの L1 のテストが Green
-- [ ] RQ-5g: 実値の速度は 30 km/h で持ち上げる（0 → 30.0、12 → 30.0、45 → 45.0、300 → 300.0）。60 に戻さない
-- [ ] RQ-5k: 速度が 3 秒より古く、zone と light は 10 秒以内 → 速度だけ固定値の 60（`state_source=partial`）
-- [ ] RQ-5l: 校正が `context` なし（fixed）→ `vehicle` が届いていても全部固定値、`state_source=fixed`、起動時に `l1.vehicle_ignored` を 1 回。`context: "real"` → 実値。校正なし → 実値
-- [ ] RQ-5m: 実値のとき `headlight` は `light=day` で `off`、それ以外で `low`。光が分からない（固定値の night）なら `low`
-- [ ] CAL-5n: `calibration.json` の `context` は無い → `fixed`、`"real"`・`"fixed"` → その値、ほかの値・型違い → 形が違う（校正なし）。既存の校正のテストが Green のまま
-- [ ] RQ-5h: `l1.result` に `state_source` が出る（`pwa` / `partial` / `fixed`）
-- [ ] RQ-5i: `VehicleContext()` の引数なしの既定は 60・inside・night・low のまま
-- [ ] RQ-5j: `detector.hub` と `detector.fusion` が `detector.l1` を import しない（LAC-1 のテストが Green）
+- [x] RQ-5a: 新しい報告（校正なし）→ 3 項目の実値（速度は下限 30 で持ち上げ）。`JudgeRequest` に通る
+- [x] RQ-5b: 一部の項目だけ有る → 有る項目は実値、無い項目は固定値。`state_source=partial`
+- [x] RQ-5c: `received_at` から `vehicle_max_age_s` を超えた → 全部固定値、`state_source=fixed`、`vehicle.stale` は 1 回
+- [x] RQ-5d: 境界: ちょうど `vehicle_max_age_s`（速度は 3 秒）は新しい扱い、それを超えたら古い
+- [x] RQ-5e: `vehicle_state = "fixed"` → 実値が届いていても固定値
+- [x] RQ-5f: 報告が無い（一度も届かない）→ 固定値。今までの L1 のテストが Green
+- [x] RQ-5g: 実値の速度は 30 km/h で持ち上げる（0 → 30.0、12 → 30.0、45 → 45.0、300 → 300.0）。60 に戻さない
+- [x] RQ-5k: 速度が 3 秒より古く、zone と light は 10 秒以内 → 速度だけ固定値の 60（`state_source=partial`）
+- [x] RQ-5l: 校正が `context` なし（fixed）→ `vehicle` が届いていても全部固定値、`state_source=fixed`、起動時に `l1.vehicle_ignored` を 1 回。`context: "real"` → 実値。校正なし → 実値
+- [x] RQ-5m: 実値のとき `headlight` は `light=day` で `off`、それ以外で `low`。光が分からない（固定値の night）なら `low`
+- [x] CAL-5n: `calibration.json` の `context` は無い → `fixed`、`"real"`・`"fixed"` → その値、ほかの値・型違い → 形が違う（校正なし）。既存の校正のテストが Green のまま
+- [x] RQ-5h: `l1.result` に `state_source` が出る（`pwa` / `partial` / `fixed`）
+- [x] RQ-5i: `VehicleContext()` の引数なしの既定は 60・inside・night・low のまま
+- [x] RQ-5j: `detector.hub` と `detector.fusion` が `detector.l1` を import しない（LAC-1 のテストが Green）
 
 UC-6 設定:
 
-- [ ] CFG-6a: 空の TOML で `vehicle_state="pwa"`・`vehicle_max_age_s=10.0`
-- [ ] CFG-6b: 指定した値が読める
-- [ ] CFG-6c: `vehicle_state` の値違い・`vehicle_max_age_s` が 0.9 / 60.1・型違い → `ConfigError`（キー名つき）
-- [ ] CFG-6d: `config.example.toml` が読め、既定値と一致する
+- [x] CFG-6a: 空の TOML で `vehicle_state="pwa"`・`vehicle_max_age_s=10.0`
+- [x] CFG-6b: 指定した値が読める
+- [x] CFG-6c: `vehicle_state` の値違い・`vehicle_max_age_s` が 0.9 / 60.1・型違い → `ConfigError`（キー名つき）
+- [x] CFG-6d: `config.example.toml` が読め、既定値と一致する
 
 認可（threat.md の ❌ セル）:
 
-- [ ] AUTH-1: `vehicle` だけでは赤にならない・赤が解けない・L1 の降格が起きない（校正なし・前のエピソード・赤の候補でないトラックのままなら降格しない）
-- [ ] AUTH-6: 古い `vehicle`（端末の時刻つきの偽の新しさを含む）を使い続けさせられない。edge が受け取った時刻から 10 秒で固定値に戻る
-- [ ] AUTH-7: `vehicle` の値（速度・光）は配信するフラグにも snapshot にも載らない
-- [ ] AUTH-5: 固定値で学習した校正のもとで、降格する答えを返す偽の L1 に、`vehicle`（outside・0 km/h・day）を送り続けても、降格の回数が `vehicle` を送らない場合と同じ（実値が降格を増やさない。spec-adversary Critical の回帰）
-- [ ] AUTH-2: `vehicle` に緯度経度・端末識別子の項目があっても、保持も記録もしない（拒否して前の値を残す）
-- [ ] AUTH-3: `vehicle` のメッセージで設定・閾値・校正は変わらない
-- [ ] AUTH-4: 64 KB を超える `vehicle`・1 秒 5 通を超える `vehicle` は edge-judge の上限で捨てられ、赤の送信は止まらない
+- [x] AUTH-1: `vehicle` だけでは赤にならない・赤が解けない・L1 の降格が起きない（校正なし・前のエピソード・赤の候補でないトラックのままなら降格しない）
+- [x] AUTH-6: 古い `vehicle`（端末の時刻つきの偽の新しさを含む）を使い続けさせられない。edge が受け取った時刻から 10 秒で固定値に戻る
+- [x] AUTH-7: `vehicle` の値（速度・光）は配信するフラグにも snapshot にも載らない
+- [x] AUTH-5: 固定値で学習した校正のもとで、降格する答えを返す偽の L1 に、`vehicle`（outside・0 km/h・day）を送り続けても、降格の回数が `vehicle` を送らない場合と同じ（実値が降格を増やさない。spec-adversary Critical の回帰）
+- [x] AUTH-2: `vehicle` に緯度経度・端末識別子の項目があっても、保持も記録もしない（拒否して前の値を残す）
+- [x] AUTH-3: `vehicle` のメッセージで設定・閾値・校正は変わらない
+- [x] AUTH-4: 64 KB を超える `vehicle`・1 秒 5 通を超える `vehicle` は edge-judge の上限で捨てられ、赤の送信は止まらない
 
 障害（resilience.md の失敗モード）:
 
-- [ ] FAIL-1: 送れなかった `vehicle`（socket が閉じかけ）で例外が出ても、ack・描画・再接続は止まらない
-- [ ] FAIL-2: 時計が後ろへ戻る → 報告は新しいまま扱い、負の経過で例外を出さない
-- [ ] FAIL-3: 報告の保持で例外が出ても、`on_client_message` が例外を外へ出さない（接続を落とさない）
+- [x] FAIL-1: 送れなかった `vehicle`（socket が閉じかけ）で例外が出ても、ack・描画・再接続は止まらない
+- [x] FAIL-2: 時計が後ろへ戻る → 報告は新しいまま扱い、負の経過で例外を出さない
+- [x] FAIL-3: 報告の保持で例外が出ても、`on_client_message` が例外を外へ出さない（接続を落とさない）
 
 ## Rule → ドメイン語彙対応（Tier 2 推奨）
 
@@ -283,8 +283,8 @@ UC-6 設定:
 
 ## 非機能要件
 
-- [ ] 遅延: 受信の処理は同期で 1 ms 未満。赤の送信経路（`on_result`）に await・処理を足さない。PWA の送信は 1 通 約 100 バイト
-- [ ] プライバシー: 位置（緯度経度）は端末の外に出ない。メッセージ・ログ・storage のどこにも出ない
-- [ ] 凍結 API: `@antler/schema` の既存の型（ack・label・flag・Capture・TripPlan・JudgeRequest）を変えない。追加だけ
-- [ ] 決定性: 乱数を使わない。時計は注入できる
-- [ ] 既存のテストが Green のまま（edge pytest・schema・pwa の vitest）。カバレッジ 70% 以上
+- [x] 遅延: 受信の処理は同期で 1 ms 未満。赤の送信経路（`on_result`）に await・処理を足さない。PWA の送信は 1 通 約 100 バイト
+- [x] プライバシー: 位置（緯度経度）は端末の外に出ない。メッセージ・ログ・storage のどこにも出ない
+- [x] 凍結 API: `@antler/schema` の既存の型（ack・label・flag・Capture・TripPlan・JudgeRequest）を変えない。追加だけ
+- [x] 決定性: 乱数を使わない。時計は注入できる
+- [x] 既存のテストが Green のまま（edge pytest・schema・pwa の vitest）。カバレッジ 70% 以上

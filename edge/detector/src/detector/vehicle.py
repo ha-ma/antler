@@ -17,6 +17,8 @@ __all__ = ["SPEED_MAX_AGE_S", "VehicleReport", "parse_vehicle"]
 
 # 速度はすぐ変わるので、ゾーンと光（vehicle_max_age_s）より短く。これを超えた速度は固定値に戻す
 SPEED_MAX_AGE_S = 3.0
+# type と 3 項目で 4 つ。これを超える辞書（余分なキーを大量に入れた 64 KB など）は検証にかけず捨てる
+MAX_KEYS = 4
 
 
 @dataclass(frozen=True)
@@ -40,7 +42,7 @@ def parse_vehicle(message: object, received_at: float = 0.0) -> VehicleReport:
     JSON Schema は「無い」だけを許し、`null` を許さない（Zod の optional）。生成された pydantic は
     `| None = None` なので、明示された `null` はここで止める（TS と同じ結果にする）。
     """
-    if not isinstance(message, dict):
+    if not isinstance(message, dict) or len(message) > MAX_KEYS:
         raise ValueError("vehicle: not an object")
     try:
         model = VehicleMessage.model_validate(message)

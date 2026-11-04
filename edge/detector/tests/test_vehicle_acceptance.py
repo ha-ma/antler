@@ -136,8 +136,12 @@ def test_acb_vehicleを送っても赤の経路は変わらず校正なしでは
         return [f for f in o.strip() if f["deer"]]
 
     assert reds(with_vehicle), "赤が鳴る"
-    assert reds(with_vehicle)[0]["distanceM"] == reds(without)[0]["distanceM"]
-    assert reds(with_vehicle)[0]["side"] == reds(without)[0]["side"]
+    first = ("t_frame", "distanceM", "side", "conf")
+    # 赤が鳴る最初のフラグ（時刻・距離・方向・確信度）は vehicle の有無で変わらない
+    assert [reds(with_vehicle)[0][k] for k in first] == [reds(without)[0][k] for k in first]
+    assert [f["t_frame"] for f in reds(with_vehicle)][:3] == [f["t_frame"] for f in reds(without)][
+        :3
+    ]
     for o in (with_vehicle, without):
         assert all("l1" not in f for f in o.flags)  # 校正なしは l1 を付けない
         first = next(i for i, f in enumerate(o.flags) if f["deer"])

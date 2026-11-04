@@ -117,3 +117,9 @@ def test_vm1e_生成は2回で同じバイト列でjudge_requestは変わらな�
         first = module.render(name)
         assert first == module.render(name)
         assert first == (schema_dir / filename).read_bytes()
+
+
+def test_vm1c_キーを大量に足した辞書は検証にかけず捨てる() -> None:
+    big = {"type": "vehicle", **{f"k{i}": i for i in range(5000)}}
+    assert not _ok(big)
+    assert not _ok({"type": "vehicle", "speedKmh": 1, "zone": "inside", "light": "day", "x": 1})

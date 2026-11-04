@@ -103,7 +103,7 @@ async def run_l1(
     """キャンセルされるまで回る。例外を外へ出さない（検知を止めない）。"""
     interval = 1.0 / config.rate_hz
     failures = 0
-    if config.vehicle_state == "pwa" and calibration is not None and calibration.context != "real":
+    if config.vehicle_state == "pwa" and not _live_vehicle(config, calibration):
         # 固定値で学習した校正のあいだは、PWA の実値で聞かない（学習に無い入力は降格に寄る）
         logger.info("l1.vehicle_ignored", extra={"reason": "calibration_fixed"})
     fail_log = _Throttle(FAIL_LOG_INTERVAL_S, clock)
@@ -150,8 +150,7 @@ async def _ask_once(
     if picked is None:
         return None
     target, recent = picked
-    # PWA の実値は、設定が pwa で、校正が実値で学習したもの（または校正なし）のときだけ使う
-    live = config.vehicle_state == "pwa" and (calibration is None or calibration.context == "real")
+    live = _live_vehicle(config, calibration)
     report = hub.vehicle_report(config.vehicle_max_age_s) if live else None
     context, state_source = context_from_report(report)
     request = build_request(target, recent, config.model, context)
@@ -165,6 +164,15 @@ async def _ask_once(
     )
     hub.on_l1(verdict)
     return verdict, stale
+
+
+def _live_vehicle(config: L1Config, calibration: Calibration | None) -> bool:
+    """PWA の実値を L1 に渡してよいか。設定が pwa で、校正が real か校正なしのとき。
+
+    校正なしなら降格は起きない。固定値で学習した校正のもとでは、学習に無い入力
+    （低速・ゾーン外・昼）が降格に寄るので、固定値で聞く（pwa-uplink R5）。
+    """
+    return config.vehicle_state == "pwa" and (calibration is None or calibration.context == "real")
 
 
 def _failed(hub: AlertHub, exc: Exception, failures: int, log: _Throttle) -> None:
