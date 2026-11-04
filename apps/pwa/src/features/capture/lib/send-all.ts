@@ -24,6 +24,23 @@ export type SendTotals = {
   removed: number
 }
 export type SendOutcome = SendTotals & { stopped: SendStop | null }
+
+/**
+ * 「もう一度」をまたいで持つ記録。件数は id の集合の大きさで出す（同じ id を再実行で二度数えない）。
+ * 呼び出し側が 1 つ作って sendAll に渡し続ける（sendAll が書き足す）。
+ */
+export type SendLedger = {
+  /** 提供が確定した id（api が 200 か 201 を返した） */
+  provided: Set<string>
+  /** 失敗として数えた id（edge に残っていても、再実行で二重に数えない） */
+  failed: Set<string>
+  /** 「提供しない」で edge から消した件数（消えるので再実行で重ならない） */
+  removed: number
+}
+
+export function createLedger(): SendLedger {
+  return { provided: new Set(), failed: new Set(), removed: 0 }
+}
 export type SendProgress = SendTotals & { waiting: boolean }
 
 export type SendDeps = {
@@ -32,8 +49,8 @@ export type SendDeps = {
   edge: EdgeApi
   upload: (capture: Capture, image: Blob) => Promise<UploadResult>
   sleep: (ms: number) => Promise<void>
-  /** 前回までに扱った件数（「もう一度」で足し続ける） */
-  carry?: SendTotals
+  /** 前回までに扱った記録（「もう一度」で渡し続ける）。無ければ新しく作る */
+  ledger?: SendLedger
   onProgress?: (progress: SendProgress) => void
 }
 
@@ -63,19 +80,27 @@ async function viaEdge<T>(call: Promise<T>): Promise<T> {
 
 export async function sendAll(deps: SendDeps): Promise<SendOutcome> {
   const { consent, edge, upload, sleep, onProgress } = deps
-  const totals: SendTotals = { provided: 0, failed: 0, removed: 0, ...deps.carry }
+  const ledger = deps.ledger ?? createLedger()
+  const totals = (): SendTotals => ({
+    provided: ledger.provided.size,
+    failed: ledger.failed.size,
+    removed: ledger.removed,
+  })
+  const fail = (id: string) => {
+    ledger.failed.add(id)
+    report()
+  }
   /** このセッションで扱った id。送信済みか削除になって未送信から消えるが、失敗して残ったものも二度扱わない */
   const handled = new Set<string>()
   const report = (waiting = false) => {
-    onProgress?.({ ...totals, waiting })
+    onProgress?.({ ...totals(), waiting })
   }
 
   async function sendOne(item: PendingItem): Promise<void> {
     const raw = item.capture
     // 同意のあるものだけ（AUTH-12）。形が壊れたものも送らない
     if (!isUploadable(raw)) {
-      totals.failed += 1
-      report()
+      fail(item.id)
       return
     }
     const capture = CaptureSchema.parse(raw)
@@ -84,8 +109,7 @@ export async function sendAll(deps: SendDeps): Promise<SendOutcome> {
       image = await edge.fetchImage(item.id)
     } catch (error) {
       if (error instanceof EdgeError && error.status === 404) {
-        totals.failed += 1
-        report()
+        fail(item.id)
         return
       }
       throw new Stop('edge')
@@ -103,14 +127,17 @@ export async function sendAll(deps: SendDeps): Promise<SendOutcome> {
     switch (result.kind) {
       case 'ok':
       case 'replayed':
-        totals.provided += 1
+        ledger.provided.add(item.id)
+        ledger.failed.delete(item.id)
         report()
         // 送信済みの更新が失敗しても、次回の再送で api は 200 を返す（二重保存にならない。FAIL-10）
         await viaEdge(edge.markUploaded([item.id]))
         return
       case 'permanent':
-        totals.failed += 1
-        report()
+        fail(item.id)
+        // 画像の中身の食い違い（INVALID_IMAGE）は、エンコーダ側の不具合で同意済みの正しいデータを失わないよう消さない。
+        // 未送信のまま保持期間（24 時間）に任せる。それ以外（409・413・422・INVALID_INPUT か不明な 400）は消す
+        if (result.status === 400 && result.code === 'INVALID_IMAGE') return
         try {
           await edge.setConsent([item.id], false)
         } catch {
@@ -139,7 +166,7 @@ export async function sendAll(deps: SendDeps): Promise<SendOutcome> {
       // この POST が成功しなければ、api へ何も送らない
       const updated = await viaEdge(edge.setConsent(ids, consent))
       if (!consent) {
-        totals.removed += updated
+        ledger.removed += updated
         report()
         continue
       }
@@ -154,15 +181,14 @@ export async function sendAll(deps: SendDeps): Promise<SendOutcome> {
         if (!item) continue // 保持期間で消えた等
         const record = item.capture as { consent?: unknown }
         if (record.consent !== true) {
-          totals.failed += 1
-          report()
+          fail(id)
           continue
         }
         await sendOne(item)
       }
     }
   } catch (error) {
-    return { ...totals, stopped: error instanceof Stop ? error.reason : 'network' }
+    return { ...totals(), stopped: error instanceof Stop ? error.reason : 'network' }
   }
-  return { ...totals, stopped: null }
+  return { ...totals(), stopped: null }
 }

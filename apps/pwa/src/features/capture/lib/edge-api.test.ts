@@ -136,7 +136,49 @@ describe('withTimeout', () => {
     const response = await withTimeout(fetch, 1000)(`${API_BASE}/x`, {})
     expect(response.status).toBe(200)
     expect(signal?.aborted).toBe(false)
+    // 本文を読み終えたら timer を片づける
+    await response.json()
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('FAIL-9: 打ち切りは本文（json()・blob()）の読み取りにも効く。期限は 1 本で、本文が止まれば TimeoutError', async () => {
+    vi.useFakeTimers()
+    const stalled: FetchLike = () =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: () => new Promise<unknown>(() => undefined),
+        blob: () => new Promise<Blob>(() => undefined),
+      })
+    const json = expect(
+      withTimeout(stalled, 1000)('http://x').then((r) => r.json()),
+    ).rejects.toBeInstanceOf(TimeoutError)
+    const blob = expect(
+      withTimeout(stalled, 1000)('http://x').then((r) => r.blob()),
+    ).rejects.toBeInstanceOf(TimeoutError)
+    await vi.advanceTimersByTimeAsync(1000)
+    await Promise.all([json, blob])
+  })
+
+  it('FAIL-9: 本文が止まった edge の一覧・画像・同意は edge のエラー扱い（EdgeError か TimeoutError で止まる）', async () => {
+    vi.useFakeTimers()
+    const stalled: FetchLike = () =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: () => new Promise<unknown>(() => undefined),
+        blob: () => new Promise<Blob>(() => undefined),
+      })
+    const edge = api(stalled)
+    const results = [
+      expect(edge.listPending(200)).rejects.toBeInstanceOf(TimeoutError),
+      expect(edge.fetchImage(captureId(1))).rejects.toBeInstanceOf(TimeoutError),
+      expect(edge.setConsent([captureId(1)], true)).rejects.toBeInstanceOf(TimeoutError),
+    ]
+    await vi.advanceTimersByTimeAsync(5000)
+    await Promise.all(results)
   })
 
   it('打ち切ると signal を abort して TimeoutError。fetch が失敗したときはその例外', async () => {

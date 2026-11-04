@@ -110,7 +110,7 @@ Story: 運転手として、鹿が出た場面の写真を、あとで自分で�
 
 - A1: `POST /api/captures`（multipart/form-data）。欄名は固定（sim からも同じ）
   - `capture`: Capture の JSON 文字列（8 KB まで）。`CaptureSchema`（strict。知らない欄は拒否）に通す
-  - `image`: JPEG か PNG のファイル（1 MB まで）。全体の本文は 1.25 MB まで（超えたら 413）
+  - `image`: JPEG か PNG のファイル（512 KiB まで。320 px の JPEG は数十 KB、sim の 1280×720 の JPEG は 100〜300 KB）。全体の本文は 640 KiB まで（超えたら 413）
   - IP あたり 1 分 60 件（バッチで送るため trips より緩い）。認証なし（登録なし。#9）
 - A2: 検証の順（最初に外れたもので止める。画像の保存は最後）
   1. 本文の大きさ → 2. `capture`・`image` が揃っている → 3. JSON が読める → 4. `CaptureSchema`（400 `INVALID_INPUT`、欄名つき）→ 5. **`consent` が `true`**（`isUploadable`。false は 422 `CONSENT_REQUIRED`。保存しない）→ 6. 画像（下の A3）→ 7. 同じ `id` の扱い（A4）→ 8. 空き（A5）→ 9. 保存
@@ -147,7 +147,7 @@ Story: 運転手として、鹿が出た場面の写真を、あとで自分で�
   4. 失敗の扱い:
      - **ネットワークの失敗・5xx**: そこで止めて「回線がつながったら、もう一度送ってください」を出す（残りは未送信のまま）
      - **429**: `Retry-After` の秒（最大 65 秒）だけ待って同じ 1 件をもう一度送る。それでも 429 なら止めて「混み合っています。しばらくしてからもう一度」を出す（回線のせいではないと分かる文言。1 分 60 件の上限は IP ごとなので、携帯回線の共有でも起きる）
-     - **400・409・422・413（再送しても直らない）**: その 1 件を失敗に数え、edge に `consent:false`（= 削除）を送って未送信から外し、続ける
+     - **409・422・413・400 `INVALID_INPUT`（再送しても直らない）**: その 1 件を失敗に数え、edge に `consent:false`（= 削除）を送って未送信から外し、続ける
      - **それ以外の status（404・405 など。送り先の設定違い）**: 止めて「送り先に届きませんでした」を出す（全件を失敗にしない）
   5. 全部終わったら「N 件を提供しました（失敗 M 件）」と閉じるボタン
 - P4: 送るもの・送らないもの。送るのは Capture の JSON と画像だけ。端末の位置・識別子・クッキー・Referer を付けない。api の URL は `VITE_API_BASE_URL`（**必須**。本番の PWA は Mac mini の静的配信で `/api` が無いので、同じオリジンへの代わりは作らない。無ければ画面を出さない = `CaptureGate` は何も描かない）、edge の URL は WebSocket と同じホストの `capture_server.port`（8767。`?edge=host[:port]` の host だけを使う開発用の上書きは今の `resolveEdgeUrl` に合わせる）
@@ -247,7 +247,7 @@ Story: 運転手として、鹿が出た場面の写真を、あとで自分で�
 - [x] 赤の経路: `offer` の追加の遅延は 1 フレームあたり 1 ms 未満（縮小のコピーだけ）。JPEG 変換・書き込みは別スレッド。キューが溢れても赤は遅れない
 - [x] 個人情報: Capture と api のログに氏名・メール・電話・端末識別子・緯度経度が出ない。位置は `roadSegment` だけ。車内を写すカメラの経路が無い
 - [x] 同意: `consent: false` の Capture は PWA から api に送られず、api も受けない（二重の確認）
-- [x] 画像: 1 枚 1 MB 以下（320 px の JPEG は約 20〜40 KB）。メタデータを持つ画像を保存しない
+- [x] 画像: 1 枚 512 KiB 以下（320 px の JPEG は約 20〜40 KB）。メタデータを持つ画像を保存しない
 - [x] 決定性: `id`・時刻・乱数・エンコーダは注入できる（テストで同じ結果になる）
 - [x] 保存の上限: edge は `max_items`（2000）、api は `CAPTURES_MAX_ITEMS`（50,000）
 - [x] 依存を足さない（edge: numpy と標準ライブラリ、api と PWA: npm の追加なし）
@@ -379,7 +379,7 @@ UC-8 POST /api/captures:
 - [x] API-1d: `consent: false` は 422 `CONSENT_REQUIRED`。何も保存されない
 - [x] API-1e: `capture` が無い・`image` が無い・JSON でない・スキーマ違反・知らない欄（`email`・`lat`）は 400 `INVALID_INPUT`
 - [x] API-1f: クライアントの `image` のパス（`/etc/passwd`・`../x.jpg`）は使われず、サーバーが決めたパスで保存される（`image` の形が合わなければスキーマで 400）
-- [x] API-1g: 本文が 1.25 MB を超えたら 413。`capture` が 8 KB を超えたら 400
+- [x] API-1g: 本文が 640 KiB を超えたら 413、画像が 512 KiB を超えたら 400 `INVALID_IMAGE`。`capture` が 8 KB を超えたら 400
 - [x] API-1h: 1 分 60 件を超えたら 429
 - [x] API-1i: 保存件数が上限なら 503 `STORE_FULL`。上限の判定は件数の数え直しなしでも正しい（保存のたびに増える）
 - [x] API-1j: 同じ `id` の同時の 2 リクエストで、保存されるのは片方だけ（もう片方は 200 か 409）
@@ -410,7 +410,7 @@ UC-10 PWA:
 - [x] UP-1b: ON で「送る」→ edge に `consent:true` →画像を取る → api に multipart（`capture`・`image`）→ 成功した id だけ edge に送信済みを送る
 - [x] UP-1c: `isUploadable` でない Capture（壊れた形）は api に送らず失敗に数える
 - [x] UP-1d: ネットワークの失敗・5xx で止めて残りは未送信のまま「もう一度」が出る。「もう一度」で続きから（送信済みは飛ばす）
-- [x] UP-1e: 400・409・413・422 はその 1 件を失敗に数え、edge に `consent:false`（削除）を送って未送信から外し、続ける
+- [x] UP-1e: 409・413・422・400 `INVALID_INPUT` はその 1 件を失敗に数え、edge に `consent:false`（削除）を送って未送信から外し、続ける。400 `INVALID_IMAGE` は失敗に数えるが削除しない（エンコーダと検査の食い違いで同意済みのデータを失わない。保持期間に任せる。alert-contract-guard W-1）
 - [x] UP-1i: 429 は `Retry-After`（最大 65 秒）を待って同じ 1 件をもう一度送る。それでも 429 なら止めて「混み合っています」（回線の文言ではない）。404・405 は「送り先に届きませんでした」で止める
 - [x] UP-1j: 200 件を超える未送信はページを繰り返して全部扱う。同意の POST が失敗したら api に何も送らない。一覧を取り直して `consent === true` のものだけを送る
 - [x] UP-1k: OFF で「提供しない」は edge に `consent:false`（削除）を送る

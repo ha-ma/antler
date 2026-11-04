@@ -2,7 +2,13 @@ import { useMutation } from '@tanstack/react-query'
 import { useMemo, useRef, useState } from 'react'
 import { createEdgeApi } from '../lib/edge-api'
 import { withTimeout } from '../lib/http'
-import { sendAll, type SendProgress, type SendStop, type SendTotals } from '../lib/send-all'
+import {
+  createLedger,
+  sendAll,
+  type SendProgress,
+  type SendStop,
+  type SendTotals,
+} from '../lib/send-all'
 import { uploadCapture } from '../lib/upload'
 import type { CaptureServices } from '../types'
 
@@ -12,11 +18,12 @@ const ZERO: SendProgress = { provided: 0, failed: 0, removed: 0, waiting: false 
 
 /**
  * 「送る」「提供しない」の実行。1 件ずつ順番に（P3）。
- * 止まったあとの「もう一度」は同じ send を呼ぶ: 送信済みは edge の一覧から消えているので続きから進み、件数は足し続ける。
+ * 止まったあとの「もう一度」は同じ send を呼ぶ: 送信済みは edge の一覧から消えているので続きから進む。件数は id の集合の大きさで、再実行で二重に数えない。
  */
 export function useSend(svc: CaptureServices, apiBaseUrl: string) {
   const [progress, setProgress] = useState<SendProgress>(ZERO)
-  const carry = useRef<SendTotals>({ provided: 0, failed: 0, removed: 0 })
+  // 「もう一度」をまたぐ記録（提供・失敗した id の集合）。件数は集合の大きさで出す
+  const ledger = useRef(createLedger())
   const deps = useMemo(
     () => ({
       edge: createEdgeApi({
@@ -38,12 +45,9 @@ export function useSend(svc: CaptureServices, apiBaseUrl: string) {
         upload: (capture, image) =>
           uploadCapture({ baseUrl: apiBaseUrl, capture, image, fetch: deps.apiFetch }),
         sleep: svc.sleep,
-        carry: carry.current,
+        ledger: ledger.current,
         onProgress: setProgress,
       }),
-    onSuccess: ({ provided, failed, removed }) => {
-      carry.current = { provided, failed, removed }
-    },
   })
 
   let phase: SendPhase = 'idle'

@@ -224,6 +224,51 @@ describe('sendAll（P3）', () => {
     },
   )
 
+  it('UP-1e: 400 でも code が INVALID_INPUT か本文が読めない（不明）なら削除する', async () => {
+    for (const body of [
+      status(400, {}, 'INVALID_INPUT'),
+      (): ReturnType<ApiBehavior> => jsonResponse(400, 'not an error object'),
+    ]) {
+      const { backend, run } = setup({ items: [makeCapture(1)], api: body })
+      const outcome = await run(true)
+      expect(outcome).toEqual({ provided: 0, failed: 1, removed: 0, stopped: null })
+      expect(backend.state.items).toHaveLength(0)
+    }
+  })
+
+  it('UP-1e: 400 INVALID_IMAGE は失敗に数えるが、edge に consent:false（削除）を送らない（未送信のまま保持期間に任せる）', async () => {
+    const { backend, run } = setup({
+      items: [makeCapture(1), makeCapture(2)],
+      api: (call, n) => (n === 1 ? status(400, {}, 'INVALID_IMAGE')(call, n) : created(call, n)),
+    })
+    const outcome = await run(true)
+
+    expect(outcome).toEqual({ provided: 1, failed: 1, removed: 0, stopped: null })
+    const consentBodies = backend.edgeCalls.filter((c) => c.route === 'consent').map((c) => c.body)
+    expect(consentBodies).toEqual([{ consent: true, ids: [captureId(1), captureId(2)] }])
+    expect(backend.state.items.map((i) => i.capture.id)).toEqual([captureId(1), captureId(2)])
+    expect(backend.state.items[0]?.uploaded).toBe(false)
+  })
+
+  it('UP-1d: 「もう一度」で、edge に残った失敗を二重に数えない（件数は id の集合）', async () => {
+    let offline = true
+    const { run } = setup({
+      items: [makeCapture(1), makeCapture(2), makeCapture(3)],
+      api: (call, n) =>
+        call.capture.id === captureId(1)
+          ? status(400, {}, 'INVALID_IMAGE')(call, n)
+          : call.capture.id === captureId(3) && offline
+            ? 'network'
+            : created(call, n),
+    })
+    const first = await run(true)
+    expect(first).toEqual({ provided: 1, failed: 1, removed: 0, stopped: 'network' })
+    offline = false
+    // id1（INVALID_IMAGE で edge に残る）は再実行でもう一度送られて失敗する。failed は 1 のまま
+    const second = await run(true)
+    expect(second).toEqual({ provided: 2, failed: 1, removed: 0, stopped: null })
+  })
+
   it('UP-1e: 削除の POST が失敗しても続ける（未送信に残るだけ）', async () => {
     const { run, backend } = setup({
       items: [makeCapture(1), makeCapture(2)],

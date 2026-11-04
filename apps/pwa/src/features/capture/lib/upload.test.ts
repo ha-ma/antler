@@ -70,10 +70,10 @@ describe('uploadCapture（P5）', () => {
   it.each([
     [201, { kind: 'ok' }],
     [200, { kind: 'replayed' }],
-    [400, { kind: 'permanent', status: 400 }],
-    [409, { kind: 'permanent', status: 409 }],
-    [413, { kind: 'permanent', status: 413 }],
-    [422, { kind: 'permanent', status: 422 }],
+    [400, { kind: 'permanent', status: 400, code: null }],
+    [409, { kind: 'permanent', status: 409, code: null }],
+    [413, { kind: 'permanent', status: 413, code: null }],
+    [422, { kind: 'permanent', status: 422, code: null }],
     [500, { kind: 'retryable', status: 500 }],
     [503, { kind: 'retryable', status: 503 }],
     [404, { kind: 'misconfigured', status: 404 }],
@@ -82,6 +82,62 @@ describe('uploadCapture（P5）', () => {
     [204, { kind: 'misconfigured', status: 204 }],
   ])('UP-1e/UP-1i: status %i の分類', (status, expected) => {
     expect(classifyStatus(status, null)).toEqual(expected)
+  })
+
+  it('UP-1c: isUploadable でない Capture（同意なし・壊れた形）は fetch せず permanent を返す（sim が共用しても同意のないものを送らない）', async () => {
+    const fetch = vi.fn<FetchLike>(() => Promise.resolve(jsonResponse(201, {})))
+    const noConsent = makeCapture(1, { consent: false })
+    const broken = makeCapture(2, { consent: true, roadSegment: '43.1,144.3' })
+    for (const capture of [noConsent, broken]) {
+      const result = await uploadCapture({
+        baseUrl: 'http://x',
+        capture,
+        image: image(),
+        fetch,
+      })
+      expect(result).toEqual({ kind: 'permanent', status: 0, code: null })
+    }
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('UP-1e: 400 はエラー本文 {error:{code}} の code を読む。読めなければ null。ほかの status では本文を読まない', async () => {
+    const send = (response: Awaited<ReturnType<FetchLike>> | 'throws') =>
+      uploadCapture({
+        baseUrl: 'http://x',
+        capture: makeCapture(1, { consent: true }),
+        image: image(),
+        fetch: () => Promise.resolve(response === 'throws' ? brokenBody() : response),
+      })
+    const brokenBody = () => ({
+      ...jsonResponse(400, {}),
+      json: () => Promise.reject(new Error('bad json')),
+    })
+    expect(
+      await send(jsonResponse(400, { error: { code: 'INVALID_IMAGE', message: 'x' } })),
+    ).toEqual({
+      kind: 'permanent',
+      status: 400,
+      code: 'INVALID_IMAGE',
+    })
+    expect(await send(jsonResponse(400, { error: { code: 5 } }))).toMatchObject({ code: null })
+    expect(await send(jsonResponse(400, 'text'))).toMatchObject({ code: null })
+    expect(await send(jsonResponse(400, null))).toMatchObject({ code: null })
+    expect(await send('throws')).toEqual({ kind: 'permanent', status: 400, code: null })
+    // 422 は本文を読まない（code は不要）
+    expect(await send(jsonResponse(422, { error: { code: 'CONSENT_REQUIRED' } }))).toEqual({
+      kind: 'permanent',
+      status: 422,
+      code: null,
+    })
+  })
+
+  it('UP-1i: 429 以外の Retry-After は無視する（500 に付いていても待たない分類のまま）', () => {
+    expect(classifyStatus(503, '30')).toEqual({ kind: 'retryable', status: 503 })
+    expect(classifyStatus(400, '30', 'INVALID_INPUT')).toEqual({
+      kind: 'permanent',
+      status: 400,
+      code: 'INVALID_INPUT',
+    })
   })
 
   it('UP-1d: 回線の失敗（fetch の例外）は retryable', async () => {
