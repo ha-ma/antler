@@ -3,7 +3,7 @@ import { Hono, type Context } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { RecordTripEventsUseCase } from '../../../application/usecases/stop-events/record-trip-events.usecase.js'
 import { rateLimit } from '../middleware/rate-limit.js'
-import { OWNER_TOKEN_HEADER } from '../schemas/stop-deck.schema.js'
+import { bearerToken } from '../schemas/stop-deck.schema.js'
 import { recordTripEventsBodySchema, tripEventParamsSchema } from '../schemas/trip-event.schema.js'
 import { throwOnInvalidTripBody } from '../validation.js'
 
@@ -46,7 +46,7 @@ export function tripEventRoutes({
       const body = c.req.valid('json')
       const result = await recordTripEvents.execute({
         tripId: id,
-        ownerToken: c.req.header(OWNER_TOKEN_HEADER),
+        ownerToken: bearerToken(c.req.header('authorization')),
         runId: body.runId,
         alertEnabled: body.alertEnabled,
         events: body.events,

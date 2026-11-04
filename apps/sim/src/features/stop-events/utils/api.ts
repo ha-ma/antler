@@ -1,6 +1,9 @@
 // api の URL と所有者トークンのヘッダ（docs/specs/stop-events/functional.md R9）。
 
-export const OWNER_TOKEN_HEADER = 'X-Owner-Token'
+/** 所有者トークンのヘッダ（`Authorization: Bearer <ownerToken>`。record の API と同じ渡し方） */
+export function ownerAuthHeader(ownerToken: string): Record<string, string> {
+  return { Authorization: `Bearer ${ownerToken}` }
+}
 
 export function apiBase(): string {
   const base = import.meta.env.VITE_API_BASE_URL as string | undefined

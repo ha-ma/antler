@@ -56,8 +56,8 @@ export function createApp({
     cors({
       origin: [...corsOrigins],
       allowMethods: ['GET', 'POST', 'DELETE'],
-      // X-Owner-Token: stop-events の書き込みの権利（docs/specs/stop-events/threat.md）
-      allowHeaders: ['Content-Type', 'Idempotency-Key', 'X-Owner-Token'],
+      // Authorization: Bearer <ownerToken>（stop-events・record の書き込みの権利。docs/specs/stop-events/threat.md）
+      allowHeaders: ['Content-Type', 'Idempotency-Key', 'Authorization'],
       exposeHeaders: ['Idempotent-Replayed', 'Retry-After'],
       maxAge: 600,
     }),

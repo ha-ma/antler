@@ -40,7 +40,7 @@ function setup(withOwner = true) {
 }
 
 describe('StopScenesPage', () => {
-  it('UI-4h・AC-32: 場面の一覧を出し、押すとモーダル。選ぶと choice を X-Owner-Token つきで送る', async () => {
+  it('UI-4h・AC-32: 場面の一覧を出し、押すとモーダル。選ぶと choice を Bearer の ownerToken つきで送る', async () => {
     const user = userEvent.setup()
     const calls = setup()
     await user.click(await screen.findByRole('button', { name: /群れがまだ残っていた/ }))
@@ -69,7 +69,7 @@ describe('StopScenesPage', () => {
       choiceId: 'linger',
       leg: 1,
     })
-    expect(new Headers(sent?.init.headers).get('X-Owner-Token')).toBe(STOP_OWNER_TOKEN)
+    expect(new Headers(sent?.init.headers).get('Authorization')).toBe(`Bearer ${STOP_OWNER_TOKEN}`)
   })
 
   it('UI-4h: トークンが無い端末では束を取りに行かず、案内を出す', () => {

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ownerTokenOf } from '@/features/plan-trip'
 import { logger } from '@/shared/utils/logger'
 import type { StopDeckResponse } from '../types'
-import { apiBase, errorCode, OWNER_TOKEN_HEADER } from '../utils/api'
+import { apiBase, errorCode, ownerAuthHeader } from '../utils/api'
 import { parseStopDeckResponse } from '../utils/parse-deck'
 
 // その日の束（POST /api/trips/:id/day/:n/stop-deck。docs/specs/stop-events/functional.md R2・R9・R12、resilience.md）。
@@ -37,7 +37,7 @@ export async function fetchStopDeck(
   try {
     res = await fetch(url, {
       method: 'POST',
-      headers: { [OWNER_TOKEN_HEADER]: ownerToken },
+      headers: ownerAuthHeader(ownerToken),
       signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
     })
   } catch {

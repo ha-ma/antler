@@ -78,7 +78,7 @@ Questions は 2026-11-04 に推奨で決定（CLAUDE.md の方針「推奨案の
   - モデル `claude-sonnet-5-5`、決まった形の JSON、出力の上限 8,000 トークン、時間切れ 45 秒（推奨で決定。1 日 6 場面 × 4 言語の量）。プロンプトは plan-trip の 2 部品（観光知識・鹿事故の注意喚起の書き方）を使う
   - Claude が失敗 → 保存せずに 502。代わりの文は作らない。sim はその日の A-4 を出さず、運転は続く（drive-link が決める）
 - R8 費用の抑え（plan-trip R9 を共有）: 1 日の Claude の呼び出しの上限（`CLAUDE_DAILY_CALL_LIMIT`）と同時呼び出しの上限（`CLAUDE_MAX_CONCURRENT_CALLS`）は plan-trip と同じ数え上げ・同じ枠を使う（2 つの feature で 1 つの予算）。束の POST は IP あたり 1 分 10 件
-- R9 書き込みの権利（推奨で決定）: 束の POST とイベントの POST は、旅を作った端末が持つ ownerToken（ヘッダ `X-Owner-Token`）を求める。無い・違う → 403 `OWNER_REQUIRED`（どちらも同じ応答）。旅が無い → 404
+- R9 書き込みの権利（推奨で決定）: 束の POST とイベントの POST は、旅を作った端末が持つ ownerToken（ヘッダ `Authorization: Bearer`）を求める。無い・違う → 403 `OWNER_REQUIRED`（どちらも同じ応答）。旅が無い → 404
   - 理由: 記録 `/t/{id}`（A7-1）はログインなしで共有するので、旅の id は公開の値になる。id だけで書けると、他人の記録に偽の衝突を書けて、Claude の費用も使える
   - ownerToken の役割を「削除の権利」（plan-trip）から「その旅の記録への書き込みの権利」に広げる（record のセッションに PR で知らせる）
   - トークンを持たない端末（共有リンクから開いた人）は、束を受け取れず（A-4 を出さない）、イベントも送らない（hook は何もしない。エラーを出さない）
@@ -91,6 +91,9 @@ Questions は 2026-11-04 に推奨で決定（CLAUDE.md の方針「推奨案の
     - `avoidance`（回避。A5-7）: `pattern`、`closestM`（最接近距離 0〜500）、`alertToBrakeMs`（アラートからブレーキまで。アラートが無い・ブレーキを踏まない → null）
   - 位置は `leg`・`km` だけで持ち、緯度経度を受けない（知らない欄は 400）。leg・km の範囲は端末の申告として保存する（record が丸める）
   - 欄どうしの整合（400）: `at` の日本時間の暦日が、その旅の `day` の日付か翌日（深夜の運転）であること。`alerted: false` なら `alertDistanceM` は null。`alertEnabled: false` の run で `alerted: true` は無い
+  - record の `POST /api/trips/:id/runs`（1 日の運転の要約。A-7 の集計はこれだけを使う）と runId を共有する（同じ走行は同じ UUID v4。drive-link が両方に渡す）。events は場所（leg・km）つきの細かいログと立ち寄りの選択（推奨で決定。2026-11-04 に record と合意）
+  - 所有者トークンの渡し方は record と同じ `Authorization: Bearer <ownerToken>`（はじめ X-Owner-Token にしていたのを、record にそろえた）
+  - 旅の削除（record の `DELETE /api/trips/:id`）は `stop_decks`・`trip_events` の行も消す。後からマージする側が削除のトランザクションに 2 表を足す
   - 記録は自己申告。choice の値（束から写す）以外は端末が送った値で、所有者は自分の記録を書き換えられる（threat.md）
   - 同じ `(runId, seq)` の再送は、中身が同じなら重複として数えて成功（冪等）。中身が違えば 409 `EVENT_CONFLICT`（その POST の全件を入れない）。1 つの POST の中で seq が重なる → 400
   - 1 つの旅に保存できるのは 5,000 件まで（超える POST → 409 `EVENT_LIMIT`。所有者でも記録を無限に増やせない。推奨で決定）。IP あたり 1 分 60 件
@@ -113,7 +116,7 @@ Questions は 2026-11-04 に推奨で決定（CLAUDE.md の方針「推奨案の
 
 ### POST /api/trips/:id/day/:n/stop-deck
 
-- **認証**: ownerToken（ヘッダ `X-Owner-Token`、16 進 64 文字）。詳細は threat.md
+- **認証**: ownerToken（ヘッダ `Authorization: Bearer`、16 進 64 文字）。詳細は threat.md
 - **リクエスト**: body なし（送られても読まない）
 - **レスポンス 201**（作った）/ **200**（保存済み。ヘッダ `Idempotent-Replayed: true`）: `{ deck: StopDeck, writing: StopWriting }`
   - `StopDeck`: `{ tripId, day, date, dayBudgetJPY, scenes: StopScene[], data: { routes, zones } }`
@@ -124,7 +127,7 @@ Questions は 2026-11-04 に推奨で決定（CLAUDE.md の方針「推奨案の
 
 ### POST /api/trips/:id/events
 
-- **認証**: ownerToken（`X-Owner-Token`）
+- **認証**: ownerToken（`Authorization: Bearer`）
 - **リクエスト**（strict）: `{ runId, alertEnabled, events: TripEventInput[] (1〜50) }`。TripEventInput は R10
 - **レスポンス 200**: `{ accepted: number, duplicates: number }`
 - **保存する行**（record が `TripEventRepository.listByTrip` で読む）: `{ tripId, runId, seq, day, kind, at, alertEnabled, leg | null, km | null, receivedAt, data }`。`data` は kind ごと:
@@ -206,7 +209,7 @@ ID は plan-trip・brief-map のテストと重ならないよう、AUTH など�
 外側ループ（受け入れ）:
 
 - [x] AC-31: ペルソナの旅の D2 で束の POST（Claude はフェイク）→ 201。場面に楽しみと選択肢、選択肢に失うもの、writing は 4 言語。D1（同梱の鹿ゾーンを通る移動がある日）では選択肢に鹿ゾーンの光が付く。2 回目は 200 で Claude を呼ばない。choice のイベントを POST → 200、保存した行に束の値が写っている
-- [x] AC-32: A-4 のモーダルを束のフィクスチャで開くと、見出し・滞在・使った・到着予定・選択肢 3 つ（鹿ゾーンの帯つき）が出て、選択肢を押すと onChoose が呼ばれ、choice が X-Owner-Token つきで送られる
+- [x] AC-32: A-4 のモーダルを束のフィクスチャで開くと、見出し・滞在・使った・到着予定・選択肢 3 つ（鹿ゾーンの帯つき）が出て、選択肢を押すと onChoose が呼ばれ、choice が Authorization: Bearer つきで送られる
 
 UC-1 束の組み立て:
 
@@ -246,7 +249,7 @@ UC-4 A-4 の画面:
 - [x] UI-4b: 光の言い方（昼・薄暮・薄明・日没後・夜明け前）と「鹿ゾーンを通らない」「返却に遅れる」を 4 言語で出す。束の日付より後の時刻には「翌」
 - [x] UI-4c: dialog の役割と見出しの名前、開いたら最初の選択肢にフォーカス、Esc で閉じない、ボタンは 44px 以上
 - [x] UI-4d: writing が無い場面は楽しみの名前と決まった言い回しで出す（Claude の代わりの文は作らない）
-- [x] UI-4e: useStopDeck はトークンがあれば X-Owner-Token つきで POST し、応答の形を確かめる。トークンが無ければ取りに行かない
+- [x] UI-4e: useStopDeck はトークンがあれば Authorization: Bearer つきで POST し、応答の形を確かめる。トークンが無ければ取りに行かない
 - [x] UI-4f: useTripEventLog は seq を 0 から振って送り、トークンが無ければ何もしない
 - [x] UI-4g: scenesBeforeLeg・roadScenesBetween がその場所の場面を返す
 - [x] UI-4h: 確認用の画面 `/trip/:id/day/:n/stops` が場面の一覧を出し、押すとモーダルが開く

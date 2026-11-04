@@ -3,7 +3,7 @@
 この feature の HTTP の操作は `POST /api/trips/:id/day/:n/stop-deck`（束の生成。Claude の費用）と `POST /api/trips/:id/events`（イベントログ。record の材料）の 2 つ。
 守るものは「Claude の費用」「他人の記録の正しさ（偽の衝突を書かせない）」「保存する欄（端末の計算値を信じない）」の 3 つ。
 
-旅の id は記録 `/t/{id}`（A7-1、ログインなし）で共有される公開の値なので、書き込みの権利にはしない。旅を作った端末だけが持つ ownerToken（plan-trip R7。HMAC で作り、api はハッシュだけを持つ）をヘッダ `X-Owner-Token` で求める（推奨で決定。ownerToken の役割を「削除」から「その旅への書き込み」に広げる。record に PR で知らせる）。
+旅の id は記録 `/t/{id}`（A7-1、ログインなし）で共有される公開の値なので、書き込みの権利にはしない。旅を作った端末だけが持つ ownerToken（plan-trip R7。HMAC で作り、api はハッシュだけを持つ）をヘッダ `Authorization: Bearer` で求める（推奨で決定。ownerToken の役割を「削除」から「その旅への書き込み」に広げる。record に PR で知らせる）。
 
 ## Authorization Matrix
 
@@ -28,7 +28,7 @@
 
 ### POST /api/trips/:id/day/:n/stop-deck
 
-- **クライアントから受け取るフィールド**: パスの id・n、ヘッダ X-Owner-Token
+- **クライアントから受け取るフィールド**: パスの id・n、ヘッダ Authorization: Bearer
 - **サーバー側で設定するフィールド**: 束の全部（場面・選択肢・時刻・光・失うもの・支出）と Claude の文
 - **クライアントから受け取ってはいけないフィールド**: 束と文の全部（body は読まない）
 - **検証方法**: n は 1 以上の整数（zod）。トークンは 16 進 64 文字（形が違えば 403）。旅の行の ownerTokenHash と、受けたトークンの SHA-256 を比べる
@@ -65,7 +65,7 @@
 
 ## 横断的セキュリティチェック
 
-- [x] CORS: 許可オリジンは既存の `CORS_ORIGINS`。許可ヘッダに `X-Owner-Token` を足す（app.ts の最小の追加）
+- [x] CORS: 許可オリジンは既存の `CORS_ORIGINS`。許可ヘッダに `Authorization: Bearer` を足す（app.ts の最小の追加）
 - [x] レートリミット: 束 1 分 10 件 / IP、イベント 1 分 60 件 / IP（認可より先）。Claude の 1 日の上限と同時呼び出しの上限は plan-trip と共有
 - [x] body の上限: 束 1 KB（読まない）、イベント 32 KB
 - [x] エラーメッセージ: error-mapper の code と短い文だけ。Claude の応答・スタックトレースは返さない

@@ -70,7 +70,7 @@ function app(writer = new ScriptedSceneWriter()) {
 
 const deckUrl = (day = 2) => `/api/trips/${TRIP_ID}/day/${String(day)}/stop-deck`
 const owner = (token: string | null = OWNER_TOKEN): Record<string, string> =>
-  token ? { 'X-Owner-Token': token } : {}
+  token ? { Authorization: `Bearer ${token}` } : {}
 
 function postEvents(a: ReturnType<typeof app>, body: unknown, token: string | null = OWNER_TOKEN) {
   return a.request(`/api/trips/${TRIP_ID}/events`, {
@@ -136,7 +136,7 @@ describe('stop-events の HTTP', { timeout: SLOW_TEST_MS }, () => {
     expect(d1Body.deck.scenes.some((s) => s.choices.some((c) => c.zone?.light))).toBe(true)
   })
 
-  it('AUTH-38: 正しいトークンなら束もイベントも通る。CORS は X-Owner-Token を許す', async () => {
+  it('AUTH-38: 正しいトークンなら束もイベントも通る。CORS は Authorization を許す', async () => {
     const a = app()
     expect((await a.request(deckUrl(), { method: 'POST', headers: owner() })).status).toBe(201)
     expect((await postEvents(a, choiceBody())).status).toBe(200)
@@ -145,12 +145,20 @@ describe('stop-events の HTTP', { timeout: SLOW_TEST_MS }, () => {
       headers: {
         Origin: 'http://localhost:5173',
         'Access-Control-Request-Method': 'POST',
-        'Access-Control-Request-Headers': 'x-owner-token',
+        'Access-Control-Request-Headers': 'authorization',
       },
     })
     expect(preflight.headers.get('Access-Control-Allow-Headers')?.toLowerCase()).toContain(
-      'x-owner-token',
+      'authorization',
     )
+  })
+
+  it('AUTH-31: Bearer でない Authorization（Basic・トークンだけ）→ 403', async () => {
+    const a = app()
+    for (const value of [`Basic ${OWNER_TOKEN}`, OWNER_TOKEN, 'Bearer']) {
+      const res = await a.request(deckUrl(), { method: 'POST', headers: { Authorization: value } })
+      expect(res.status).toBe(403)
+    }
   })
 
   it('AUTH-31・AUTH-32・AUTH-33: トークンが無い・違う → 403 OWNER_REQUIRED（束もイベントも）', async () => {

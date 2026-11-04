@@ -38,7 +38,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe('useStopDeck', () => {
-  it('UI-4e: トークンがあれば X-Owner-Token つきで POST し、形を確かめて返す', async () => {
+  it('UI-4e: トークンがあれば Authorization: Bearer つきで POST し、形を確かめて返す', async () => {
     localStorage.setItem(OWNER_KEY, STOP_OWNER_TOKEN)
     const calls = stubFetch(() => ({ status: 201, body: stopDeckBody() }))
     const { result } = renderHook(() => useStopDeck(STOP_TRIP_ID, 2), { wrapper })
@@ -49,7 +49,9 @@ describe('useStopDeck', () => {
     expect(result.current.data?.deck.scenes).toHaveLength(2)
     expect(calls[0]?.url).toBe(`/api/trips/${STOP_TRIP_ID}/day/2/stop-deck`)
     expect(calls[0]?.init.method).toBe('POST')
-    expect(new Headers(calls[0]?.init.headers).get('X-Owner-Token')).toBe(STOP_OWNER_TOKEN)
+    expect(new Headers(calls[0]?.init.headers).get('Authorization')).toBe(
+      `Bearer ${STOP_OWNER_TOKEN}`,
+    )
   })
 
   it('UI-4e: トークンが無ければ取りに行かない', () => {
@@ -91,7 +93,7 @@ describe('useTripEventLog', () => {
     choiceId: 'leave',
   }
 
-  it('UI-4f: seq を 0 から振り、runId・alertEnabled・X-Owner-Token をつけて送る', async () => {
+  it('UI-4f: seq を 0 から振り、runId・alertEnabled・Bearer の ownerToken をつけて送る', async () => {
     localStorage.setItem(OWNER_KEY, STOP_OWNER_TOKEN)
     const calls = stubFetch(() => ({ status: 200, body: { accepted: 1, duplicates: 0 } }))
     const { result } = renderHook(() =>
@@ -107,7 +109,9 @@ describe('useTripEventLog', () => {
     expect(bodies[0]).toEqual({ runId: RUN, alertEnabled: false, events: [{ ...choice, seq: 0 }] })
     expect((bodies[1]?.['events'] as { seq: number }[])[0]?.seq).toBe(1)
     expect(calls[0]?.url).toBe(`/api/trips/${STOP_TRIP_ID}/events`)
-    expect(new Headers(calls[0]?.init.headers).get('X-Owner-Token')).toBe(STOP_OWNER_TOKEN)
+    expect(new Headers(calls[0]?.init.headers).get('Authorization')).toBe(
+      `Bearer ${STOP_OWNER_TOKEN}`,
+    )
   })
 
   it('UI-4f: トークンが無ければ何もしない', () => {

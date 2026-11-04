@@ -11,5 +11,11 @@ export const stopDeckParamsSchema = z.strictObject({
     .transform(Number),
 })
 
-/** 所有者トークンのヘッダ（形は UseCase が確かめ、無い・違うを同じ 403 にする） */
-export const OWNER_TOKEN_HEADER = 'x-owner-token'
+/**
+ * 所有者トークン（`Authorization: Bearer <ownerToken>`。record の API と同じ渡し方）。
+ * 形は UseCase が確かめ、無い・違うを同じ 403 にする
+ */
+export function bearerToken(authorization: string | undefined): string | undefined {
+  const match = /^Bearer\s+(\S+)$/i.exec(authorization?.trim() ?? '')
+  return match?.[1]
+}

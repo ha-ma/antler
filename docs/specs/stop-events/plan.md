@@ -47,7 +47,7 @@
 
 ## 共有ファイルへの最小の追加（PR に明記する）
 
-- `apps/api/src/infrastructure/http/app.ts`: 2 つの route の登録と、CORS の許可ヘッダ `X-Owner-Token`
+- `apps/api/src/infrastructure/http/app.ts`: 2 つの route の登録と、CORS の許可ヘッダ `Authorization（Bearer）`
 - `apps/api/src/infrastructure/http/error-mapper.ts`: OwnerRequiredError・EventConflictError・EventLimitError・SceneWriterError
 - `apps/api/src/di/container.ts`: 2 つの usecase の組み立て。Claude の同時の枠（InProcessConcurrencyLimiter）は plan-trip と同じインスタンスを渡す
 - `apps/api/src/infrastructure/db/schema.ts`・`migrate.ts`: 2 つの表

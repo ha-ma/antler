@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger'
 import type { TripEventDraft } from '../types'
-import { apiBase, errorCode, OWNER_TOKEN_HEADER } from './api'
+import { apiBase, errorCode, ownerAuthHeader } from './api'
 
 // イベントの送信（POST /api/trips/:id/events。docs/specs/stop-events/functional.md R10・R12、resilience.md）。
 // - seq は 0 から 1 つずつ振る。runId と seq はメモリだけ（再読み込みは新しい run。seq が戻って衝突しない）
@@ -50,7 +50,7 @@ export class TripEventSender {
       try {
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', [OWNER_TOKEN_HEADER]: ownerToken },
+          headers: { 'Content-Type': 'application/json', ...ownerAuthHeader(ownerToken) },
           body,
           signal: AbortSignal.timeout(TIMEOUT_MS),
         })

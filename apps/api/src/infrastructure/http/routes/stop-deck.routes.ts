@@ -3,7 +3,7 @@ import { Hono, type Context } from 'hono'
 import { bodyLimit } from 'hono/body-limit'
 import type { PrepareStopDeckUseCase } from '../../../application/usecases/stop-events/prepare-stop-deck.usecase.js'
 import { rateLimit } from '../middleware/rate-limit.js'
-import { OWNER_TOKEN_HEADER, stopDeckParamsSchema } from '../schemas/stop-deck.schema.js'
+import { bearerToken, stopDeckParamsSchema } from '../schemas/stop-deck.schema.js'
 import { throwOnInvalidTripBody } from '../validation.js'
 
 // POST /api/trips/:id/day/:n/stop-deck（docs/specs/stop-events/functional.md「API エンドポイント」、threat.md）。
@@ -41,7 +41,7 @@ export function stopDeckRoutes({ prepareStopDeck, rateLimitKey, now }: StopDeckR
       const result = await prepareStopDeck.execute({
         tripId: id,
         day: n,
-        ownerToken: c.req.header(OWNER_TOKEN_HEADER),
+        ownerToken: bearerToken(c.req.header('authorization')),
       })
       if (result.replayed) c.header('Idempotent-Replayed', 'true')
       return c.json({ deck: result.deck, writing: result.writing }, result.replayed ? 200 : 201)
