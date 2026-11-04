@@ -106,7 +106,7 @@ JSON のハードリンクで片方だけが通る。負けた側は既存の JS
 - [ ] FAIL-4: 起動時の掃除: 孤児の一時ファイルと JSON の無い画像が消え、完成品は残る
 - [ ] FAIL-5: `l1Probs` の書き足しで書き込みが失敗しても、元の JSON が残る
 - [ ] FAIL-6: 観察者が例外を出しても `run_l1` は降格・ログを続ける
-- [ ] FAIL-7: edge のポートが使用中 → `CaptureServer.start` が `ServerError`（保存は動く）
+- [ ] FAIL-7: edge のポートが使用中 → `CaptureServer.start` が `CaptureServerError`（保存は動く）
 - [ ] FAIL-8: api の保存が失敗（書けない）→ 500、JSON が残らない、同じ `id` の再送で保存できる
 - [ ] FAIL-9: PWA の api への送信が途中でネットワークの失敗 → 送れた分だけ edge に送信済みが付き、残りは未送信。「もう一度」で続きから
 - [ ] FAIL-10: PWA の送信済みの更新だけ失敗 → 次回の再送で api は 200（二重保存にならない）

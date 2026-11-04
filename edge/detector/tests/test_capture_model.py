@@ -1,4 +1,8 @@
-"""capture.model（docs/specs/edge-capture UC-1・UC-4 の値の検査）: Capture の組み立て。"""
+"""capture.model（docs/specs/edge-capture UC-1・UC-4 の値の検査）: Capture の組み立て。
+
+Test List: CAP-1a CAP-1b CAP-1c CAP-1d CAP-1e CAP-1f CAP-1g CAP-1h L1P-1c L1P-1d
+（関数名は `test_CAP_1a_...` の形で、ID のハイフンをアンダースコアにしてある）
+"""
 
 from __future__ import annotations
 

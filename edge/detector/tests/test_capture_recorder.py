@@ -1,4 +1,9 @@
-"""capture.recorder（docs/specs/edge-capture UC-3・UC-4）: 何を保存するか、赤の経路を待たせない。"""
+"""capture.recorder（docs/specs/edge-capture UC-3・UC-4）: 何を保存するか、赤の経路を待たせない。
+
+Test List: REC-1a REC-1b REC-1c REC-1d REC-1e（FAIL_1・FAIL_2）REC-1f REC-1g REC-1h REC-1i REC-1j
+REC-1k REC-1l L1P-1a L1P-1b L1P-1c L1P-1d L1P-1f
+障害: FAIL-1 FAIL-2 FAIL-3 FAIL-5、競合: CONC-2 CONC-3
+"""
 
 from __future__ import annotations
 
@@ -395,13 +400,44 @@ def test_L1P_1a_直前の答えは後から来た保存に付く(tmp_path: Path)
     rec.close()
 
 
-def test_L1P_1b_3秒より離れた保存には付けない(tmp_path: Path) -> None:
+def test_L1P_1b_窓より離れた答えは付けない(tmp_path: Path) -> None:
     rec, store, _, clock = make(tmp_path)
     rec.offer(frame(0))
     assert rec.flush()
-    rec.on_l1_answer(ANSWER, at=clock.now + 3.5, fresh=True)
+    rec.on_l1_answer(ANSWER, at=clock.now + 3.5, fresh=True)  # 後 3 秒を超えた
     assert rec.flush()
     assert "l1Probs" not in store.list()[0][0]["capture"]
+    rec.close()
+
+
+def test_L1P_1b_古い答えを先に付けて正しい答えを捨てない(tmp_path: Path) -> None:
+    # 保存の 1.5 秒前の答え（前の場面）は付かず、そのあとに届いた正しい答えが付く
+    rec, store, _, clock = make(tmp_path)
+    old = L1Answer("jev-test", {"none": 0.9, "zone": 0.05, "danger": 0.05}, 0.0, 0.0, 0.9)
+    rec.on_l1_answer(old, at=clock.now - 1.5, fresh=True)
+    rec.offer(frame(0))
+    assert rec.flush()
+    assert "l1Probs" not in store.list()[0][0]["capture"]
+    rec.on_l1_answer(ANSWER, at=clock.now + 0.4, fresh=True)
+    assert rec.flush()
+    assert store.list()[0][0]["capture"]["l1Probs"]["alert_level"]["danger"] == 0.7
+    rec.close()
+
+
+def test_REC_1l_offerの同期の仕事は軽い_縮小と変換はワーカー(tmp_path: Path) -> None:
+    encoder = FakeEncoder()
+    encoder.gate = threading.Event()  # ワーカーを止めておく（offer だけを測る）
+    rec, _, _, _ = make(tmp_path, encoder, queue_size=64, max_per_run=500, min_interval_s=0.5)
+    frames = [frame(1000 * i, seq=i) for i in range(60)]
+    durations = []
+    for f in frames:
+        started = time.perf_counter()
+        rec.offer(f)
+        durations.append(time.perf_counter() - started)
+    durations.sort()
+    assert durations[len(durations) // 2] < 0.001  # 中央値が 1 ms 未満
+    assert not encoder.shapes  # 縮小・変換はまだ（ワーカーの仕事）
+    encoder.gate.set()
     rec.close()
 
 

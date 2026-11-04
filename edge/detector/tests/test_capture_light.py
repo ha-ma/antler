@@ -1,6 +1,8 @@
 """capture.light（docs/specs/edge-capture UC-2）: 太陽の高さで光の区分を決める。
 
 期待値は packages/zones の lightPeriod（北緯 43.0・東経 144.4）を tsx で実行した結果。
+
+Test List: LIGHT-1a LIGHT-1b LIGHT-1c LIGHT-1d
 """
 
 from datetime import datetime, timedelta, timezone

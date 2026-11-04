@@ -1,4 +1,7 @@
-"""CFG-1: [capture]・[capture_server] の設定（docs/specs/edge-capture UC-7）。"""
+"""CFG-1: [capture]・[capture_server] の設定（docs/specs/edge-capture UC-7）。
+
+Test List: CFG-1a CFG-1b CFG-1c CFG-1d
+"""
 
 from pathlib import Path
 

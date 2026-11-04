@@ -155,7 +155,7 @@ class CaptureApi:
                 return _error(404, "NOT_FOUND", "見つかりません"), "other"
         if method == "OPTIONS":
             return self._preflight(origin, cors), name
-        if method not in allow:
+        if method not in allow.split(", "):
             return Response(405, b"", {"Allow": allow}), name
         # Origin があるのに許されない: 書き込みは 403。読み取りは CORS ヘッダ無しで返す
         # （ブラウザはその応答を読めない）

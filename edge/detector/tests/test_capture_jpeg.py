@@ -1,4 +1,7 @@
-"""capture.jpeg（docs/specs/edge-capture E1・REC-1f）: 縮小とエンコーダの port。"""
+"""capture.jpeg（docs/specs/edge-capture E1・REC-1f）: 縮小とエンコーダの port。
+
+Test List: REC-1f（縮小・JPEG の幅と高さ）。エンコードの失敗は FAIL-1。
+"""
 
 from __future__ import annotations
 

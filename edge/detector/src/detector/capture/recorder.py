@@ -43,6 +43,7 @@ __all__ = ["CaptureRecorder"]
 logger = logging.getLogger("detector.capture")
 
 DEGRADED_AFTER = 20
+PRE_WINDOW_S = 1.0  # 保存より前に届いた答えを使う長さ（L1 は 2.5 Hz。同じ場面の答え）
 RECENT_KEEP = 64
 CLOSE_TIMEOUT_S = 2.0
 
@@ -148,8 +149,9 @@ class CaptureRecorder:
             # 間隔の基準は、キューに入れようとした時点で置く（満杯で捨てても毎フレーム縮めない）。
             # elapsed < 0（時計の巻き戻し）はここを通って基準を置き直す
             self._last_saved_t = t_frame
-        # コピーを持つ（元の画像は次の推論でも使われる）
-        small = shrink(result.image, self._cfg.image_width)
+        # 画像は参照を渡す（縮小と JPEG 化はワーカー）。pipeline は 1 フレームごとに新しい配列を
+        # 作るので、あとから書き換えられない。offer の同期の仕事は軽いままにする
+        image = result.image
         pending = _Pending(self._new_id(), now)
         with self._cond:
             if self._closing:
@@ -161,18 +163,20 @@ class CaptureRecorder:
                 return False
             if self._last_answer is not None:
                 probs, at = self._last_answer
-                if abs(at - now) <= self._cfg.l1_attach_window_s:
+                # 直前の答えは、同じ場面のもの（L1 は 2.5 Hz）だけ。古い答えを先に付けて、
+                # あとから来る正しい答えを「一度だけ」の規則で捨てさせない
+                if 0.0 <= now - at <= PRE_WINDOW_S:
                     pending.probs = probs
             self._recent.append(pending)
             self._offered += 1
-            self._jobs.append(_Save(pending, list(result.detections), t_frame, small))
+            self._jobs.append(_Save(pending, list(result.detections), t_frame, image))
             self._cond.notify()
         return True
 
     # --- L1 のイベントループから（ディスクに触れない） ---
 
     def on_l1_answer(self, answer: object, at: float, fresh: bool = True) -> None:
-        """L1 の答え（校正前の生の確率）を、前後 l1_attach_window_s 秒の保存に付ける。
+        """L1 の答え（校正前の生の確率）を、前 1 秒から後 l1_attach_window_s 秒の保存に付ける。
 
         確率を検査して記録し、保存済みのものはワーカーに書き足しを頼むだけ（待たない）。
         """
@@ -190,7 +194,8 @@ class CaptureRecorder:
             self._last_answer = (probs, at)
             window = self._cfg.l1_attach_window_s
             for pending in self._recent:
-                if pending.probs is None and abs(pending.offered_at - at) <= window:
+                # 保存の前 PRE_WINDOW_S 秒から後 window 秒までの答え
+                if pending.probs is None and -PRE_WINDOW_S <= at - pending.offered_at <= window:
                     pending.probs = probs
                     if pending.saved:
                         self._jobs.append(_Attach(pending.capture_id, probs))
@@ -237,7 +242,8 @@ class CaptureRecorder:
     def _save(self, job: _Save) -> None:
         pending = job.pending
         started = perf_counter()
-        data = self._encoder.encode(job.image, self._cfg.jpeg_quality)
+        small = shrink(job.image, self._cfg.image_width)
+        data = self._encoder.encode(small, self._cfg.jpeg_quality)
         encoded = perf_counter()
         if self._store.has(pending.capture_id):
             with self._cond:  # 乱数の衝突（まれ）。作り直す
@@ -248,7 +254,7 @@ class CaptureRecorder:
             capture_id=pending.capture_id,
             detections=job.detections,
             t_frame=job.t_frame,
-            image_size=(job.image.shape[1], job.image.shape[0]),
+            image_size=(small.shape[1], small.shape[0]),
             distance_table=self._table,
             min_box_conf=self._min_box_conf,
             segment=self._segment_now(),

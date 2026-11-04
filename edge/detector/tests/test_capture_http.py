@@ -1,4 +1,9 @@
-"""capture.http（docs/specs/edge-capture UC-6）: PWA 向けの HTTP。Host・Origin・本文の制限。"""
+"""capture.http（docs/specs/edge-capture UC-6）: PWA 向けの HTTP。Host・Origin・本文の制限。
+
+Test List: HTTP-1a HTTP-1b HTTP-1c HTTP-1d HTTP-1e（同時接続と打ち切り: AUTH_11）HTTP-1f HTTP-1g
+HTTP-1h HTTP-1i HTTP-1j HTTP-1k
+認可: AUTH-7 AUTH-8 AUTH-10（HTTP_1b）AUTH-11 AUTH-13、障害: FAIL-7
+"""
 
 from __future__ import annotations
 

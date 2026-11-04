@@ -1,4 +1,7 @@
-"""L1P-1e・FAIL-6: run_l1 の観察者（docs/specs/edge-capture E3）。降格・ログの動作を変えない。"""
+"""L1P-1e・FAIL-6: run_l1 の観察者（docs/specs/edge-capture E3）。降格・ログの動作を変えない。
+
+Test List: L1P-1e L1P-1f、障害: FAIL-6
+"""
 
 from __future__ import annotations
 

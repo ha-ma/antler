@@ -30,6 +30,10 @@ def shrink(image: np.ndarray, width: int) -> np.ndarray:
         raise ValueError(msg)
     source_h, source_w = image.shape[:2]
     height = max(1, round(source_h * width / source_w))
+    if source_w % width == 0 and source_h % height == 0:
+        # 整数倍（640×480 → 320×240 など）は間引きの切り出しで済む（fancy index より速い）
+        view = image[:: source_h // height, :: source_w // width]
+        return np.array(view, copy=True, order="C")
     rows = np.arange(height) * source_h // height
     cols = np.arange(width) * source_w // width
     return np.ascontiguousarray(image[rows[:, None], cols[None, :]])

@@ -1,4 +1,7 @@
-"""capture.service（docs/specs/edge-capture UC-7・AC-1）: つなぎ。結果は先に下流へ渡る。"""
+"""capture.service（docs/specs/edge-capture UC-7・AC-1）: つなぎ。結果は先に下流へ渡る。
+
+Test List: AC-1 WIRE-1a WIRE-1b WIRE-1c
+"""
 
 from __future__ import annotations
 

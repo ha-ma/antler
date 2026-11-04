@@ -1,4 +1,10 @@
-"""capture.store（docs/specs/edge-capture UC-5）: ローカル保存。JSON が最後、完成品だけが見える。"""
+"""capture.store（docs/specs/edge-capture UC-5）: ローカル保存。JSON が最後、完成品だけが見える。
+
+Test List: STO-1a STO-1b STO-1c STO-1d STO-1e STO-1f STO-1g STO-1h STO-1i STO-1j STO-1k
+認可: AUTH-9（送信済みの consent を変えない: STO_1d）
+AUTH-10（id の形が違えばパスに使わない: STO_1b）
+障害: FAIL-3 FAIL-4（起動時の掃除: STO_1c）FAIL-5 IDEM-3
+"""
 
 from __future__ import annotations
 
