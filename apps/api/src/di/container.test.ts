@@ -23,6 +23,7 @@ describe('buildContainer', () => {
     ANTHROPIC_API_KEY: 'test-key',
     OWNER_TOKEN_SECRET: 'test-owner-token-secret-0123456789abcdef',
     TRIPS_DB_URL: `file:${join(dir, 'data', dbFile)}`,
+    CAPTURES_DIR: join(dir, 'captures-received'),
   })
 
   it('環境変数からアプリを組み立て、SQLite の表を作る（readiness も通る）', async () => {

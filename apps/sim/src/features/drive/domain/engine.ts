@@ -4,6 +4,7 @@ import type { LightPeriod, ZoneCollection } from '@antler/zones'
 import type {
   DriveInput,
   DriveOutcome,
+  DriveResult,
   DriveScenario,
   Encounter,
   Playback,
@@ -15,7 +16,16 @@ import type {
 } from '../types'
 import { etaMs, sunsetOf } from './clock'
 import { summarizeFrames, type FrameSummary } from './frame-stats'
-import { advance, createWorld, pause, setInput, setRate, type SimEvent } from './simulation'
+import {
+  advance,
+  clockMs as simClockMs,
+  createWorld,
+  driveResult,
+  pause,
+  setInput,
+  setRate,
+  type SimEvent,
+} from './simulation'
 
 // シミュレーションの持ち手（React から使う）。World を持ち、フレームごとに進め、HUD に出す値（スナップショット）を配る。
 // HUD は useSyncExternalStore で購読する（hooks/use-drive-snapshot.ts）。3D は world() を毎フレーム読む。
@@ -59,8 +69,9 @@ export class DriveEngine {
   constructor(scenario: DriveScenario, zones: ZoneCollection) {
     this.zones = zones
     this.current = createWorld(scenario, zones)
-    const start = scenario.route[0]
-    this.sunsetMs = start ? sunsetOf(this.current.internal.startMs, start) : null
+    // 日没はその日の到着地で測る（A-2 の日没と同じ地点。brief-map の sun.place）
+    const end = scenario.route[scenario.route.length - 1]
+    this.sunsetMs = end ? sunsetOf(this.current.internal.startMs, end) : null
     this.snapshot = this.makeSnapshot()
   }
 
@@ -117,6 +128,11 @@ export class DriveEngine {
     return summarizeFrames(this.frameMs)
   }
 
+  /** 走行の結果（drive-link R8）。衝突か完走のあとだけ。走っている間は null */
+  result(): DriveResult | null {
+    return driveResult(this.current, this.frameSummary())
+  }
+
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
@@ -132,7 +148,7 @@ export class DriveEngine {
 
   private makeSnapshot(): DriveSnapshot {
     const w = this.current
-    const clockMs = w.internal.startMs + w.t
+    const clockMs = simClockMs(w)
     const toNextKm = w.zone.nextEntryKm === null ? null : w.zone.nextEntryKm - w.zone.positionKm
     return {
       t: w.t,
