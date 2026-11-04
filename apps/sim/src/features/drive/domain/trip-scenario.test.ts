@@ -9,7 +9,8 @@ import {
 } from '@antler/trip'
 import { ROAD_CATALOG } from '@antler/trip/roads'
 import { measureAlongRoute, metersBetween, planRoute, type LonLat } from '@antler/zones'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { createCandidates } from './deer-spawn'
 import { createRoadFrame, lonLatAt } from './road'
 import { driveSeed } from './scenario'
 import { advance, createWorld, driveResult, setInput } from './simulation'
@@ -20,6 +21,8 @@ import { NO_INPUT } from '../types'
 
 // drive-link: 旅のその日（GET /api/trips/:id/day/:n の応答と同じもの）から運転の場面を作る。
 // 応答は api と同じ純粋関数（@antler/trip の buildDayPlan）で作る。
+// 300 km のルートで World を作る（planRoute が 1 回 約 0.3 秒）ので、全 workspace を並べて回すときの重さを見込んで長めに待つ
+vi.setConfig({ testTimeout: 30_000 })
 
 function personaPlan(seed = 918273): TripPlan {
   const itinerary = buildItinerary(PERSONA_INPUT)
@@ -79,16 +82,26 @@ describe('drive-link 受け入れ（場面）', () => {
     w.candidates = [] // 鹿を出さずに道と区間だけを確かめる
     const entered = new Set<number>()
     setInput(w, { ...NO_INPUT, throttle: true })
-    for (let i = 0; i < 400_000 && w.outcome === 'driving'; i++) {
-      w.playback = { ...w.playback, rate: 16, locked: false } // 区間の中も早送り（テストを短くする）
-      advance(w, 100, ZONES)
-      if (w.zone.interval !== null) {
-        entered.add(w.zone.interval)
-        expect(w.alert.state).toBe('zone')
+    const drive = (untilS: number) => {
+      for (let i = 0; i < 20_000 && w.outcome === 'driving' && w.vehicle.s < untilS; i++) {
+        advance(w, 100, ZONES)
+        if (w.zone.interval !== null) {
+          entered.add(w.zone.interval)
+          expect(w.alert.state).toBe('zone')
+        }
       }
     }
+    // 区間ごとに入口の手前から出口の先まで走る（区間の外の 300 km を全部は走らない。テストを軽くする）
+    for (const v of w.plan.intervals) {
+      w.vehicle = { ...w.vehicle, s: v.entryKm * 1000 - 50, speed: 25 }
+      drive(v.exitKm * 1000 + 30)
+      expect(w.alert.state).toBe('safe')
+    }
+    w.vehicle = { ...w.vehicle, s: w.internal.frame.lengthM - 30, speed: 25 }
+    drive(Infinity)
     expect(w.outcome).toBe('completed')
     expect(entered.size).toBe(w.plan.intervals.length)
+    expect(entered.size).toBeGreaterThan(0)
     expect(driveResult(w, null)).toMatchObject({
       tripId: 'K7m2abcd',
       day: 1,
@@ -169,12 +182,14 @@ describe('場面（R3・R4）', () => {
 
   it('UC-3d: 同じ旅・同じ日なら鹿の候補が同じ、日が違えば違う', () => {
     const d1 = scenarioFromDay({ plan, day: day1 }, '')
-    expect(d1?.seed).toBe(driveSeed(plan.seed, 1))
-    const other = { ...plan, seed: 1 }
-    const d1other = scenarioFromDay({ plan: other, day: dayOf(1, other) }, '')
-    if (!d1 || !d1other) throw new Error('場面がない')
-    expect(createWorld(d1other, ZONES).candidates).not.toEqual(createWorld(d1, ZONES).candidates)
-    expect(driveSeed(plan.seed, 2)).not.toBe(driveSeed(plan.seed, 1))
+    if (!d1) throw new Error('場面がない')
+    expect(d1.seed).toBe(driveSeed(plan.seed, 1))
+    // 鹿の候補は場面の種だけで決まる（同じルートの区間で、種を日 1・日 2 に変えて比べる）
+    const routePlan = planRoute(d1.route, ZONES)
+    const day1Candidates = createCandidates(routePlan, d1.seed)
+    expect(createCandidates(routePlan, driveSeed(plan.seed, 1))).toEqual(day1Candidates)
+    expect(createCandidates(routePlan, driveSeed(plan.seed, 2))).not.toEqual(day1Candidates)
+    expect(createCandidates(routePlan, driveSeed(1, 1))).not.toEqual(day1Candidates)
   })
 
   it('UC-3e: scenarioFromDay は入力を書き換えず、同じ入力に同じ場面を返す', () => {

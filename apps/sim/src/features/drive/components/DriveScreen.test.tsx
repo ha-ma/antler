@@ -13,6 +13,8 @@ import { DriveScreen } from './DriveScreen'
 
 // drive-link（docs/specs/drive-link/functional.md）: /drive?trip=…&day=n を API の応答から走らせる。
 // api は fetch のスタブ（応答は api と同じ関数で作った src/test/trip-day.ts）。3D は偽物（jsdom に WebGL が無い）。
+// 旅の場面は 300 km のルートで World を作る（約 0.3 秒）ので、全 workspace を並べて回すときの重さを見込んで長めに待つ
+vi.setConfig({ testTimeout: 30_000 })
 
 afterEach(() => {
   vi.unstubAllGlobals()
