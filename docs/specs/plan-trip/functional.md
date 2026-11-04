@@ -5,7 +5,7 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 66cdbee
+spec_confirmed_at: 541cfb5
 tier: 2
 ---
 
@@ -61,7 +61,7 @@ Questions は 2026-11-03 のラウンドで 18 問すべて推奨で決定（ユ
   - プロンプトは 2 つの部品（「道東・道央の観光知識」「鹿事故の注意喚起の書き方」）をファイルで持つ
   - 保存したしおりは Claude を呼び直さずに読める
 - R6 言語と通貨（A1-6）: ja / en / zh（繁体字）/ ko を切り替え。初期言語はブラウザの言語（zh-TW・zh-HK・zh-Hant → zh、それ以外 → ja、en・ko はそのまま）。予算は ¥ と概算 USD（固定レート、出典と日付を設定に持つ。10 ドル単位に丸める）
-- R7 ID・シード・所有者: id は暗号論的乱数の英数 8 文字（衝突したら作り直す）、seed は 0〜2³²−1。作成時に所有者トークンを返し、api はハッシュだけを保存する（削除は record の feature）
+- R7 ID・シード・所有者: id は暗号論的乱数の英数 8 文字（衝突したら作り直す）、seed は 0〜2³²−1。作成時に所有者トークンを返し、api はハッシュだけを保存する（削除は record の feature。sim は barrel の `ownerTokenOf`・`forgetOwnerToken` で record に渡す）
 - R8 二重押し: 端末は「決める」を押すごとに冪等キーを作る。同じキーの 2 回目は作り終えた旅を返す。処理中なら 409。端末があきらめたあとに生成が終わった旅も保存し、同じキーの再試行で返す
 - R9 濫用の抑え: `POST /api/trips` は IP あたり 1 分 10 件（ch6）と、全体の 1 日の上限。超えたら 429 と「本日の生成上限に達しました」。プロキシの IP ヘッダは設定したときだけ信じる（`TRUST_PROXY`）。`ANTHROPIC_API_KEY` と `OWNER_TOKEN_SECRET` は必須（無ければ起動しない）
   - 1 日の上限は **Claude の呼び出しの数**で数える（`CLAUDE_DAILY_CALL_LIMIT`、既定 400 回 ≒ 旅 200 件）。作り直し・時間切れ・検証の外れも数える。保存した旅の数で数えると、失敗させ続ける濫用を止められないため（security-auditor W1、推奨で決定）

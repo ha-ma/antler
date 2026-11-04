@@ -20,6 +20,7 @@ import type {
 import { TripIdCollisionError } from '../../src/domain/trips/errors/trip-errors.js'
 import type { TripRequest, TripRequestStatus } from '../../src/domain/trips/models/trip-request.js'
 import type { TripWriting, TripWritingBrief } from '../../src/domain/trips/models/trip-writing.js'
+import { InMemoryRecordRepository } from './records.js'
 
 export const KEY_A = '0b6f6f0e-4f7e-4b0e-9a57-2f1d8f3c9a01'
 export const KEY_B = '7d1c2e55-8b8a-4c3f-b1d2-5e6f7a8b9c02'
@@ -174,12 +175,15 @@ export class InMemoryTripRepository implements TripRepository {
 
 /** 投げたら中身を元に戻す UnitOfWork（InMemoryTripRepository 用） */
 export class InMemoryUnitOfWork implements UnitOfWork {
-  constructor(private readonly repo: InMemoryTripRepository) {}
+  readonly records: InMemoryRecordRepository
+  constructor(private readonly repo: InMemoryTripRepository) {
+    this.records = new InMemoryRecordRepository(repo)
+  }
   async transaction<T>(fn: (repos: TransactionalRepositories) => Promise<T>): Promise<T> {
     const requests = new Map(this.repo.requests)
     const trips = new Map(this.repo.trips)
     try {
-      return await fn({ trips: this.repo })
+      return await fn({ trips: this.repo, records: this.records })
     } catch (error) {
       this.repo.requests = requests
       this.repo.trips = trips

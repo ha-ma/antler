@@ -1,5 +1,5 @@
 import type { TripDetails, TripPlan } from '@antler/schema'
-import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
 // 旅（TripPlan・TripDetails・所有者トークンのハッシュ）と冪等キーの行（docs/specs/plan-trip/plan.md「マイグレーション統合」）。
 // 表は起動時に migrate.ts の CREATE TABLE IF NOT EXISTS で作る。列を変えるときは両方を直す。
@@ -23,6 +23,28 @@ export const tripWriterCalls = sqliteTable('trip_writer_calls', {
   dayStart: integer('day_start').primaryKey(),
   calls: integer('calls').notNull(),
 })
+
+/**
+ * 走行の記録（run）。1 日の運転 1 回の要約（docs/specs/record/plan.md「マイグレーション統合」）。
+ * payload は DriveRunInput の JSON（読むときに形を確かめる）。外部キーは張らない（削除は usecase が明示的に消す）
+ */
+export const tripRuns = sqliteTable(
+  'trip_runs',
+  {
+    tripId: text('trip_id').notNull(),
+    runId: text('run_id').notNull(),
+    day: integer('day').notNull(),
+    payload: text('payload', { mode: 'json' }).$type<unknown>().notNull(),
+    /** 保存した時刻（ms） */
+    createdAt: integer('created_at').notNull(),
+    /** 旅の中の保存の順番（1 始まり）。日ごとの最新を決める */
+    seq: integer('seq').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.tripId, t.runId] }),
+    index('trip_runs_trip_seq').on(t.tripId, t.seq),
+  ],
+)
 
 export const tripRequests = sqliteTable('trip_requests', {
   /** 冪等キーのハッシュ（キーそのものは保存しない） */
