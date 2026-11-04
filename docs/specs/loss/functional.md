@@ -76,6 +76,7 @@ spec-adversary の指摘（`docs/reports/2026-11-04-spec-adversary-loss.md`）�
   - `at` は暦日だけを確かめ、移動の時刻（departAt〜arriveAt）とは照合しない（運転の速さ・止まった時間でずれるため。推奨で決定）
 - R8 濫用の抑え: `POST /api/trips/:id/losses` は IP あたり 1 分 10 件。Claude の 1 日の上限（`CLAUDE_DAILY_CALL_LIMIT`）と同時呼び出しの枠（`CLAUDE_MAX_CONCURRENT_CALLS`）は plan-trip と**同じ数え上げ・同じ枠**を使う（別に数えると上限が 2 倍になる）。保存済みの文を返すときは数えない
 - R9 A6-4 の導線: 主ボタン（1 つだけ大きく、`spruce`）「鹿アラートを ON にして、同じ道をやり直す」→ `/trip/:id/brief?day={day}`（alert のクエリ無し ＝ ON。brief-map の R6）。同じ旅 ＝ 同じ seed なので同じ条件で再生される。アラート ON のまま衝突したときは文言を「同じ道を、もう一度走る」にする（行き先は同じ。推奨で決定）。副: 「衝突の 3 秒前を見る」→ `/drive?trip={id}&day={day}(&alert=off)&replay={max(0, simMs − 3000)}`（巻き戻しは drive の機能。Deferred）、「別の旅をつくる」→ `/plan`
+  - 3 つの下に控えめな文字のリンク「この旅の記録を見る」→ A-7（record の `recordHref`、`/t/:id`）。その日は衝突として記録に残る（record の run。2026-11-04、record のマージ後に追加。推奨で決定）
 - R10 言語: 画面の文言は `plan.lang`（4 言語）。文言の表は 4 言語の欠けを `text.test.ts` で落とす。画面は音を出さない
 
 ## API エンドポイント

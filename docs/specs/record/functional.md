@@ -94,6 +94,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 - R11 走行の保存の hook（barrel）: `useSaveRun()` は旅の id の所有者トークンを読み、あれば POST、無ければ保存しない（`not-owner` を返す）。`recordHref(id)` は `/t/{id}`
   - 呼び出し側（drive・loss）との約束: `not-owner` のときは `/t/:id` へ移らず、その運転の結果をその場で見せる（記録に移ると、自分の運転が消えたように見える）
   - 配線（app 層の `DriveRoute`、drive-link マージ後に追加）: drive の `onFinish(DriveResult)` を `toDriveRun` で run にして保存。旅の場面だけ（見本の場面は残さない）。完走して残せたら `/t/:id` へ（A5-6）、衝突は終了の帯のまま（A-6 は loss）
+    - 2026-11-04 loss の取り込み（PR #31）: 衝突は run を残したうえで、同じ `DriveRoute` が loss の `lossReportFromDrive`・`lossHref` で A-6（`/loss/:id?…`）へ移る（保存の結果は待たない。トークンの無い端末でも移る）。A-6 から A-7 へは「この旅の記録を見る」のリンク（`recordHref`）。record の保存と完走の挙動は変わらない
   - `toDriveRun`: pending の遭遇は送らない、遭遇の時刻は `alertClockAt`（drive-link。移動の始まりで時計を進めるので startAt + alertAt ではない）、範囲はスキーマの上限に丸める、runId は運転ごとに新しい UUID（推奨で決定）
 - R12 レート制限（IP あたり 1 分）: 書き込み（runs・DELETE）10 件（ch6 の記録作成）、読み出し（record・`/t/:id`）60 件、`og.png` 20 件
 
