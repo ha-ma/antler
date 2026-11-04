@@ -148,52 +148,52 @@ R1〜R10 のとおり。4 指標・取り消し線（R2・R3）は sim の純粋
 
 外側ループ（受け入れ）:
 
-- [ ] AC-1: 保存したペルソナの旅に `POST /api/trips/:id/losses`（Claude はフェイク）→ 201、story は 4 言語。同じ body の 2 回目は 200 で同じ story、Claude は 1 回だけ
-- [ ] AC-2: `/loss/:id?…` を開くと（api はフェイクの fetch）、しおりに ✕ と取り消し線、4 指標（STATS の平均・達成 n/N・失った日数・概算）、統計カードの出典、Claude の文が出て、主ボタンが `/trip/:id/brief?day=n` を指す
+- [x] AC-1: 保存したペルソナの旅に `POST /api/trips/:id/losses`（Claude はフェイク）→ 201、story は 4 言語。同じ body の 2 回目は 200 で同じ story、Claude は 1 回だけ
+- [x] AC-2: `/loss/:id?…` を開くと（api はフェイクの fetch）、しおりに ✕ と取り消し線、4 指標（STATS の平均・達成 n/N・失った日数・概算）、統計カードの出典、Claude の文が出て、主ボタンが `/trip/:id/brief?day=n` を指す
 
 UC-1 入口:
 
-- [ ] UC-1a: `lossHref` の URL を `parseCollision` で読むと同じ CollisionReport に戻る（alert ON は alert のクエリ無し、stops は空でもよい）
-- [ ] UC-1b: 欠け・範囲外・知らない値の URL は読めない（null）。画面は「読めません」と `/plan` への導線だけで、fetch しない
+- [x] UC-1a: `lossHref` の URL を `parseCollision` で読むと同じ CollisionReport に戻る（alert ON は alert のクエリ無し、stops は空でもよい）
+- [x] UC-1b: 欠け・範囲外・知らない値の URL は読めない（null）。画面は「読めません」と `/plan` への導線だけで、fetch しない
 
 UC-2 取り消し線:
 
-- [ ] UC-2a: D2 の移動で衝突・タンチョウ達成 → D1 は achieved、D2 のタンチョウは achieved、✕ の行は D2 のタンチョウの後、D2 の宿と D3 以降は lost
-- [ ] UC-2b: D1 の最初の移動で衝突・達成なし → ✕ が先頭、残りはすべて lost
-- [ ] UC-2c: LossCard はタイトルに `<s>`、✕ の行に「衝突」の文と時刻、lost の行に読み上げ用の「取り消し」がある
+- [x] UC-2a: D2 の移動で衝突・タンチョウ達成 → D1 は achieved、D2 のタンチョウは achieved、✕ の行は D2 のタンチョウの後、D2 の宿と D3 以降は lost
+- [x] UC-2b: D1 の最初の移動で衝突・達成なし → ✕ が先頭、残りはすべて lost
+- [x] UC-2c: LossCard はタイトルに `<s>`、✕ の行に「衝突」の文と時刻、lost の行に読み上げ用の「取り消し」がある
 
 UC-3 4 指標:
 
-- [ ] UC-3a: 失った日数は `N − day + 1`、達成 n / N と重さの合計（skipped は N に入れない）
-- [ ] UC-3b: キャンセルは `(泊数 × 宿単価 ＋ 楽しみ数 × 体験単価) × 人数`。泊数は衝突した日以降で stay のある日
-- [ ] UC-3c: 車両の損害は STATS の平均と最大、免責・NOC はプレースホルダの文言
-- [ ] UC-3d: 最終日に衝突 → 失った日数 1、宿 0 泊
+- [x] UC-3a: 失った日数は `N − day + 1`、達成 n / N と重さの合計（skipped は N に入れない）
+- [x] UC-3b: キャンセルは `(泊数 × 宿単価 ＋ 楽しみ数 × 体験単価) × 人数`。泊数は衝突した日以降で stay のある日
+- [x] UC-3c: 車両の損害は STATS の平均と最大、免責・NOC はプレースホルダの文言
+- [x] UC-3d: 最終日に衝突 → 失った日数 1、宿 0 泊
 
 UC-4 統計カード:
 
-- [ ] UC-4a: 統計カードは STATS の件数（年・全体・前年・釧路方面）と保険の平均を出し、出典名をすべて書く。`verified:false` には再照合中の注記
+- [x] UC-4a: 統計カードは STATS の件数（年・全体・前年・釧路方面）と保険の平均を出し、出典名をすべて書く。`verified:false` には再照合中の注記
 
 UC-5 喪失文:
 
-- [ ] UC-5a: 材料は名前と選択肢由来の値だけ（道路番号・統計の数字・自由入力が無い）。失った楽しみ・宿の町・達成した楽しみが正しく分かれる
-- [ ] UC-5b: 検証は 4 言語・空・400 字・絵文字・3 桁以上の数・%・件・円・文字種で外れる
-- [ ] UC-5c: 1 回目が外れたら作り直し、2 回目が通れば保存して返す。2 回とも外れたら LossWriterError、保存しない
-- [ ] UC-5d: 画面は文を待つあいだも 4 指標を出し、文の失敗では文の欄だけ「用意できませんでした」と「もう一度」（自動の再試行なし）。429 は「本日の上限」だけでボタンなし
-- [ ] UC-5e: [ADDED spec-adversary] アラート ON の衝突 → 材料は alertEnabled:true、主ボタンは「同じ道を、もう一度走る」、事実の 1 文に「OFF でした」が無い
-- [ ] UC-5f: [ADDED spec-adversary] 同じ鍵の同時の 2 要求 → Claude は 1 回、両方に同じ文
-- [ ] UC-5g: [ADDED spec-adversary] 1 つの旅に 20 件保存したあと、新しい鍵 → 429 LOSS_LIMIT、Claude を呼ばない。保存済みの鍵は 200
-- [ ] UC-2d: [ADDED spec-adversary] しおりの読み込み中・404・5xx の画面（brief-map と同じ）
+- [x] UC-5a: 材料は名前と選択肢由来の値だけ（道路番号・統計の数字・自由入力が無い）。失った楽しみ・宿の町・達成した楽しみが正しく分かれる
+- [x] UC-5b: 検証は 4 言語・空・400 字・絵文字・3 桁以上の数・%・件・円・文字種で外れる
+- [x] UC-5c: 1 回目が外れたら作り直し、2 回目が通れば保存して返す。2 回とも外れたら LossWriterError、保存しない
+- [x] UC-5d: 画面は文を待つあいだも 4 指標を出し、文の失敗では文の欄だけ「用意できませんでした」と「もう一度」（自動の再試行なし）。429 は「本日の上限」だけでボタンなし
+- [x] UC-5e: [ADDED spec-adversary] アラート ON の衝突 → 材料は alertEnabled:true、主ボタンは「同じ道を、もう一度走る」、事実の 1 文に「OFF でした」が無い
+- [x] UC-5f: [ADDED spec-adversary] 同じ鍵の同時の 2 要求 → Claude は 1 回、両方に同じ文
+- [x] UC-5g: [ADDED spec-adversary] 1 つの旅に 20 件保存したあと、新しい鍵 → 429 LOSS_LIMIT、Claude を呼ばない。保存済みの鍵は 200
+- [x] UC-2d: [ADDED spec-adversary] しおりの読み込み中・404・5xx の画面（brief-map と同じ）
 
 UC-6 入力の検証:
 
-- [ ] UC-6a: 無い旅・形の違う id → 404（区別しない）
-- [ ] UC-6b: day が範囲外・leg が範囲外・at の暦日が違う・その日に無い楽しみ・重複・衝突した移動より先の町の楽しみ → 400、Claude を呼ばない
-- [ ] UC-6c: 知らない欄・読めない JSON → 400
+- [x] UC-6a: 無い旅・形の違う id → 404（区別しない）
+- [x] UC-6b: day が範囲外・leg が範囲外・at の暦日が違う・その日に無い楽しみ・重複・衝突した移動より先の町の楽しみ → 400、Claude を呼ばない
+- [x] UC-6c: 知らない欄・読めない JSON → 400
 
 UC-7 文言と導線:
 
-- [ ] UC-7a: 画面の文言の表は 4 言語とも全項目が空でない
-- [ ] UC-7b: 主ボタンは `/trip/:id/brief?day=n`（alert のクエリ無し）、副は `/drive?…&replay=`（alert OFF の衝突なら alert=off、simMs が 3000 未満なら replay=0）と `/plan`
+- [x] UC-7a: 画面の文言の表は 4 言語とも全項目が空でない
+- [x] UC-7b: 主ボタンは `/trip/:id/brief?day=n`（alert のクエリ無し）、副は `/drive?…&replay=`（alert OFF の衝突なら alert=off、simMs が 3000 未満なら replay=0）と `/plan`
 
 ## Rule → ドメイン語彙対応
 
@@ -209,8 +209,8 @@ UC-7 文言と導線:
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-1・AC-2 が Green
-- [ ] 全 UC / 全エラーパターンのテストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（lint / format / 型 / 依存方向）
-- [ ] レビュー（code-reviewer・layer-guard・component-guard・accessibility-checker・security-auditor）の Critical 0
+- [x] 受け入れテスト AC-1・AC-2 が Green
+- [x] 全 UC / 全エラーパターンのテストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（lint / format / 型 / 依存方向）
+- [x] レビュー（code-reviewer・layer-guard・component-guard・accessibility-checker・security-auditor）の Critical 0

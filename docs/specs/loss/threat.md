@@ -54,21 +54,21 @@
 
 ## 横断的セキュリティチェック
 
-- [ ] CORS: 既存の `CORS_ORIGINS`（`*` は起動で拒否）をこの route にも当てる
-- [ ] レートリミット: IP あたり 1 分 10 件（既存の rate-limit の middleware）。Claude の 1 日の上限と同時の枠は plan-trip と共有
-- [ ] エラーメッセージ: error-mapper で code と短い文だけ。スタックトレースは返さない
-- [ ] ログマスキング: Claude の本文・材料・API キーを出さない
-- [ ] secrets: `ANTHROPIC_API_KEY` は既存の env（必須）。新しい秘密は無い
-- [ ] body の上限: 4 KB（入力は選択肢と短い値だけ）
-- [ ] ファイルアップロード: N/A（この feature はファイルを受けない）
+- [x] CORS: 既存の `CORS_ORIGINS`（`*` は起動で拒否）をこの route にも当てる
+- [x] レートリミット: IP あたり 1 分 10 件（既存の rate-limit の middleware）。Claude の 1 日の上限と同時の枠は plan-trip と共有
+- [x] エラーメッセージ: error-mapper で code と短い文だけ。スタックトレースは返さない
+- [x] ログマスキング: Claude の本文・材料・API キーを出さない
+- [x] secrets: `ANTHROPIC_API_KEY` は既存の env（必須）。新しい秘密は無い
+- [x] body の上限: 4 KB（入力は選択肢と短い値だけ）
+- [x] ファイルアップロード: N/A（この feature はファイルを受けない）
 
 ## Test List への追加
 
-- [ ] AUTH-1: 未認証（ヘッダなし）で保存した旅に `POST /api/trips/:id/losses` → 201（意図的な公開が塞がれていない）
-- [ ] AUTH-2: 無い id と形の違う id は同じ 404 TRIP_NOT_FOUND、Claude を呼ばない
-- [ ] AUTH-3: 同じ IP から 1 分に 11 件目 → 429 RATE_LIMITED
-- [ ] AUTH-4: 1 日の上限（plan-trip と共有の数え上げ）に達したあと → 429 DAILY_LIMIT、Claude を呼ばない
-- [ ] AUTH-5: body に story・tripId・createdAt を混ぜる → 400、保存しない
-- [ ] AUTH-6: 保存済みの記述子をもう一度送っても、保存した文は変わらない（Claude を呼ばず同じ文）
-- [ ] AUTH-7: 応答の JSON のどこにも ownerTokenHash（とその値）が無い
-- [ ] AUTH-8: ownerToken を付けて送っても応答の形は同じ（トークンもハッシュも返さない）
+- [x] AUTH-1: 未認証（ヘッダなし）で保存した旅に `POST /api/trips/:id/losses` → 201（意図的な公開が塞がれていない）
+- [x] AUTH-2: 無い id と形の違う id は同じ 404 TRIP_NOT_FOUND、Claude を呼ばない
+- [x] AUTH-3: 同じ IP から 1 分に 11 件目 → 429 RATE_LIMITED
+- [x] AUTH-4: 1 日の上限（plan-trip と共有の数え上げ）に達したあと → 429 DAILY_LIMIT、Claude を呼ばない
+- [x] AUTH-5: body に story・tripId・createdAt を混ぜる → 400、保存しない
+- [x] AUTH-6: 保存済みの記述子をもう一度送っても、保存した文は変わらない（Claude を呼ばず同じ文）
+- [x] AUTH-7: 応答の JSON のどこにも ownerTokenHash（とその値）が無い
+- [x] AUTH-8: ownerToken を付けて送っても応答の形は同じ（トークンもハッシュも返さない）

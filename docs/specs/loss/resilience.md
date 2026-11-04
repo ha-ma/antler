@@ -65,12 +65,12 @@ A-6 はデモの核（付録 A #3 の 30–75 秒）なので、**Claude が落�
 
 ## Test List への追加
 
-- [ ] FAIL-1: Claude が時間切れ → 502 WRITER_FAILED、保存しない。もう一度送ると Claude を呼び直して 201
-- [ ] FAIL-2: Claude の応答が 2 回とも検証で外れる → 502、保存しない（1 回目だけ外れたら 2 回目の結果で 201）
-- [ ] FAIL-3: max_tokens で切れた・断られた・JSON の形が違う応答 → 外れとして扱う
-- [ ] FAIL-4: 同時の枠が埋まっている → 503 WRITER_BUSY、Claude を呼ばない（plan-trip と同じ枠）
-- [ ] FAIL-5: 保存済みの文を返すときは 1 日の上限を数えない
-- [ ] IDEM-1: 同じ記述子で 2 回 → 2 回目は 200 で同じ文、Claude は 1 回だけ。`achievedStops` の順が違っても同じ鍵
-- [ ] IDEM-2: `at` だけが違う要求は同じ鍵（Claude を呼ばない）。leg・alertEnabled・achievedStops が違えば別の鍵で新しく作る
-- [ ] CONC-1: 保存の INSERT が衝突した（負け側）→ 保存済みの文を返す（200）
-- [ ] MIGR-1: 空のデータファイルから起動すると `trip_losses` が作られ、2 回目の起動でも壊れない
+- [x] FAIL-1: Claude が時間切れ → 502 WRITER_FAILED、保存しない。もう一度送ると Claude を呼び直して 201
+- [x] FAIL-2: Claude の応答が 2 回とも検証で外れる → 502、保存しない（1 回目だけ外れたら 2 回目の結果で 201）
+- [x] FAIL-3: max_tokens で切れた・断られた・JSON の形が違う応答 → 外れとして扱う
+- [x] FAIL-4: 同時の枠が埋まっている → 503 WRITER_BUSY、Claude を呼ばない（plan-trip と同じ枠）
+- [x] FAIL-5: 保存済みの文を返すときは 1 日の上限を数えない
+- [x] IDEM-1: 同じ記述子で 2 回 → 2 回目は 200 で同じ文、Claude は 1 回だけ。`achievedStops` の順が違っても同じ鍵
+- [x] IDEM-2: `at` だけが違う要求は同じ鍵（Claude を呼ばない）。leg・alertEnabled・achievedStops が違えば別の鍵で新しく作る
+- [x] CONC-1: 保存の INSERT が衝突した（負け側）→ 保存済みの文を返す（200）
+- [x] MIGR-1: 空のデータファイルから起動すると `trip_losses` が作られ、2 回目の起動でも壊れない
