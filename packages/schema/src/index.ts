@@ -13,7 +13,9 @@ export {
   AckMessageSchema,
   ClientMessageSchema,
   LabelMessageSchema,
+  VehicleMessageSchema,
   type ClientMessage,
+  type VehicleMessage,
 } from './client-message'
 export { CaptureSchema, isUploadable, type Capture } from './capture'
 export { L1ProbsSchema, L1ResultSchema, type L1Probs, type L1Result } from './l1'

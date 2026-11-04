@@ -114,6 +114,10 @@ class L1Config:
     l2_route_conf: tuple[float, float] = (0.5, 0.9)
     wait_for_l1_before_red: bool = False  # B2-8（MAY）。true でも保留は 150 ms まで
     calibration_path: str = "calibration.json"  # 相対パスは設定ファイルのディレクトリから
+    # PWA の車の状態（pwa-uplink）。"pwa" = 届いた実値を使う（校正が real か校正なしのときだけ）。
+    # "fixed" = 常に固定値（60 km/h・inside・night・low）。校正のずれを疑うときの安全弁
+    vehicle_state: str = "pwa"
+    vehicle_max_age_s: float = 10.0  # ゾーンと光の期限（受け取った時刻から）。速度は 3 秒
 
 
 @dataclass(frozen=True)
@@ -140,6 +144,7 @@ class Config:
 # JudgeRequest の model と同じ字種（schema-judge R1）
 MODEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,63}")
 L2_MODES = ("auto", "off")
+VEHICLE_STATES = ("pwa", "fixed")
 
 _RANGES = {
     "device": (0, 64),
@@ -162,6 +167,7 @@ _RANGES = {
     "rate_hz": (2.0, 3.0),
     "timeout_ms": (50, 800),
     "override_conf": (0.9, 1.0),
+    "vehicle_max_age_s": (1.0, 60.0),
 }
 
 
@@ -212,6 +218,9 @@ def _text(name: str, key: str, value: str) -> None:
         raise ConfigError(msg)
     if name == "l2" and key == "enabled" and value not in L2_MODES:
         msg = f"{where} は {' / '.join(L2_MODES)} のどれか: {value!r}"
+        raise ConfigError(msg)
+    if name == "l1" and key == "vehicle_state" and value not in VEHICLE_STATES:
+        msg = f"{where} は {' / '.join(VEHICLE_STATES)} のどれか: {value!r}"
         raise ConfigError(msg)
     if key == "calibration_path" and not value.strip():
         msg = f"{where} は空にできない"

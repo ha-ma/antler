@@ -25,7 +25,7 @@ from detector.l1.client import (
     make_client,
     resolve_base_url,
 )
-from detector.l1.request import build_request
+from detector.l1.request import build_request, context_from_report
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Coroutine, Mapping
@@ -53,6 +53,7 @@ def make_verdict(
     latency_ms: float,
     calibration: Calibration | None,
     override_conf: float,
+    state_source: str = "fixed",
 ) -> L1Verdict:
     """答えに校正を当て、結論を出す。校正なし・モデル違いは calibrated=False（降格しない）。"""
     raw_level, raw_conf, _ = conclude(answer.alert_level, answer.false_positive, override_conf)
@@ -70,6 +71,7 @@ def make_verdict(
         conf=conf if calibrated else raw_conf,
         conf_raw=raw_conf,
         reason=reason if calibrated else None,
+        state_source=state_source,
     )
 
 
@@ -101,6 +103,9 @@ async def run_l1(
     """キャンセルされるまで回る。例外を外へ出さない（検知を止めない）。"""
     interval = 1.0 / config.rate_hz
     failures = 0
+    if config.vehicle_state == "pwa" and calibration is not None and calibration.context != "real":
+        # 固定値で学習した校正のあいだは、PWA の実値で聞かない（学習に無い入力は降格に寄る）
+        logger.info("l1.vehicle_ignored", extra={"reason": "calibration_fixed"})
     fail_log = _Throttle(FAIL_LOG_INTERVAL_S, clock)
     mismatch_log = _Throttle(MISMATCH_LOG_INTERVAL_S, clock)
     while True:
@@ -145,13 +150,19 @@ async def _ask_once(
     if picked is None:
         return None
     target, recent = picked
-    request = build_request(target, recent, config.model)
+    # PWA の実値は、設定が pwa で、校正が実値で学習したもの（または校正なし）のときだけ使う
+    live = config.vehicle_state == "pwa" and (calibration is None or calibration.context == "real")
+    report = hub.vehicle_report(config.vehicle_max_age_s) if live else None
+    context, state_source = context_from_report(report)
+    request = build_request(target, recent, config.model, context)
     async with asyncio.timeout(config.timeout_ms / 1000.0):  # どのクライアントでも打ち切る
         answer = await client.judge(request)
     latency_ms = (clock() - started) * 1000.0
     # 聞いているあいだに赤のエピソードが変わった: 降格に使えないので、すぐ聞き直す
     stale = hub.fusion is not None and target.episode != hub.fusion.episode
-    verdict = make_verdict(answer, target, started, latency_ms, calibration, config.override_conf)
+    verdict = make_verdict(
+        answer, target, started, latency_ms, calibration, config.override_conf, state_source
+    )
     hub.on_l1(verdict)
     return verdict, stale
 

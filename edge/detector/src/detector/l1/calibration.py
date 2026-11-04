@@ -1,6 +1,7 @@
 """L1 の校正（B2-5 の前提、B2-7 のファイルの形）: 質問ごとの温度で確率を当て直す。
 
 calibration.json = {"version": 1, "model": "<実体のモデル名>", "temperatures": {4 問: T}}。
+任意の "context": "fixed"（既定。固定値で学習）か "real"（実値のモードで学習）を足せる。
 無い・壊れている → None（校正なし。上書きしない）。学習（l1/calibrate.py）は Step 4。
 """
 
@@ -40,10 +41,16 @@ def _sigmoid(x: float) -> float:
     return e / (1.0 + e)
 
 
+CONTEXTS = ("fixed", "real")  # 学習したときの車の状態（pwa-uplink R5）
+
+
 @dataclass(frozen=True)
 class Calibration:
     model: str
     temperatures: dict[str, float]
+    # fixed = 固定値（60 km/h・inside・night・low）で学習した。real = 実値のモード
+    # （dataset/export_l1_labels.py）で学習した。実値を L1 に渡してよいのは real のときだけ
+    context: str = "fixed"
 
     def matches(self, model: str) -> bool:
         return bool(model) and model not in MODEL_ALIASES and model == self.model
@@ -92,7 +99,10 @@ def _parse(raw: object) -> Calibration:
         if not (math.isfinite(t) and MIN_T <= t <= MAX_T):
             raise _Invalid
         out[qid] = float(t)
-    return Calibration(model=model, temperatures=out)
+    context = raw.get("context", "fixed")  # 任意。無ければ固定値で学習したものとみなす
+    if not isinstance(context, str) or context not in CONTEXTS:
+        raise _Invalid
+    return Calibration(model=model, temperatures=out, context=context)
 
 
 def load_calibration(path: Path) -> Calibration | None:

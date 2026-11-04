@@ -15,8 +15,13 @@ from detector.schema import JUDGE_QUESTIONS, JudgeRequest
 
 if TYPE_CHECKING:
     from detector.fusion import L1Target
+    from detector.vehicle import VehicleReport
 
-__all__ = ["VehicleContext", "build_request"]
+__all__ = ["MIN_SPEED_KMH", "VehicleContext", "build_request", "context_from_report"]
+
+# 校正の実値のモード（dataset/export_l1_labels.py の CAR_KMH）の下限。これより遅い速度は
+# 学習に無く、降格（見逃しの向き）に寄るので、渡すときはここまで持ち上げる
+MIN_SPEED_KMH = 30.0
 
 
 @dataclass(frozen=True)
@@ -27,6 +32,26 @@ class VehicleContext:
     zone: str = "inside"
     light: str = "night"
     headlight: str = "low"
+
+
+def context_from_report(report: VehicleReport | None) -> tuple[VehicleContext, str]:
+    """PWA の報告（新しい項目だけ入っている）から車の状態を作る。(状態, state_source)。
+
+    項目ごとに: 有れば実値、無ければ固定値。速度は MIN_SPEED_KMH で持ち上げる。ヘッドライトは
+    PWA に分からないので、実値の光が昼なら off、それ以外は low（校正の実値のモードと同じ規則）。
+    使ってよいかの判断（校正の context・設定）は呼び出し側（run_l1）が行う。
+    """
+    default = VehicleContext()
+    if report is None or report.known == 0:
+        return default, "fixed"
+    speed = default.speed_kmh if report.speed_kmh is None else max(report.speed_kmh, MIN_SPEED_KMH)
+    context = VehicleContext(
+        speed_kmh=speed,
+        zone=report.zone or default.zone,
+        light=report.light or default.light,
+        headlight="off" if report.light == "day" else default.headlight,
+    )
+    return context, "pwa" if report.known == 3 else "partial"
 
 
 def build_request(

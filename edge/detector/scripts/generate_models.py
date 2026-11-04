@@ -3,8 +3,9 @@
     python edge/detector/scripts/generate_models.py          # 書き出す
     python edge/detector/scripts/generate_models.py --check  # 最新か確かめる（違えば exit 1）
 
-入力は packages/schema/json/judge-request.schema.json（Zod から作った生成物）。出力は
-src/detector/schema/judge_request.py。生成物を手で直さない。
+入力は packages/schema/json/ の JSON Schema（Zod から作った生成物）。出力は
+src/detector/schema/ の judge_request.py（JudgeRequest）と client_message.py（ClientMessage。
+pwa-uplink で足した）。生成物を手で直さない。
 生成ツールのバージョンは pyproject.toml の dev 依存で固定してある。
 同じ入力から毎回同じバイト列になる（タイムスタンプを入れない）。
 """
@@ -21,8 +22,15 @@ from pathlib import Path
 
 DETECTOR = Path(__file__).resolve().parents[1]
 ROOT = DETECTOR.parents[1]
-SCHEMA = ROOT / "packages" / "schema" / "json" / "judge-request.schema.json"
-TARGET = DETECTOR / "src" / "detector" / "schema" / "judge_request.py"
+SCHEMA_DIR = ROOT / "packages" / "schema" / "json"
+TARGET_DIR = DETECTOR / "src" / "detector" / "schema"
+# (JSON Schema の名前, 出力のファイル名)。先頭が既定（render() の引数なし）
+TARGETS: tuple[tuple[str, str], ...] = (
+    ("judge-request", "judge_request.py"),
+    ("client-message", "client_message.py"),
+)
+SCHEMA = SCHEMA_DIR / "judge-request.schema.json"
+TARGET = TARGET_DIR / "judge_request.py"
 
 # ruff の整形・lint は対象外にする（lint-staged が除外設定を使わずにファイル名を渡すため、
 # pyproject.toml の extend-exclude だけでは足りない）。
@@ -65,15 +73,16 @@ ARGS = [
 ]
 
 
-def render() -> bytes:
+def render(name: str = "judge-request") -> bytes:
+    filename = dict(TARGETS)[name]
     with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp) / "judge_request.py"
+        out = Path(tmp) / filename
         command = [
             sys.executable,
             "-m",
             "datamodel_code_generator",
             "--input",
-            str(SCHEMA),
+            str(SCHEMA_DIR / f"{name}.schema.json"),
             "--output",
             str(out),
             *ARGS,
@@ -106,26 +115,31 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="書き出さず、最新かだけ確かめる")
     args = parser.parse_args()
-    generated = render()
-    current = TARGET.read_bytes() if TARGET.exists() else b""
-    if args.check:
-        if generated == current:
-            return 0
-        diff = difflib.unified_diff(
-            current.decode("utf-8").splitlines(),
-            generated.decode("utf-8").splitlines(),
-            "committed",
-            "regenerated",
-            lineterm="",
-        )
-        sys.stderr.write("\n".join(list(diff)[:60]) + "\n")
-        sys.stderr.write(
-            f"{TARGET.relative_to(ROOT)} が古い。python edge/detector/scripts/generate_models.py\n"
-        )
-        return 1
-    TARGET.write_bytes(generated)
-    sys.stdout.write(f"wrote {TARGET.relative_to(ROOT)}\n")
-    return 0
+    stale = False
+    for name, filename in TARGETS:
+        target = TARGET_DIR / filename
+        generated = render(name)
+        current = target.read_bytes() if target.exists() else b""
+        if args.check:
+            if generated == current:
+                continue
+            stale = True
+            diff = difflib.unified_diff(
+                current.decode("utf-8").splitlines(),
+                generated.decode("utf-8").splitlines(),
+                "committed",
+                "regenerated",
+                lineterm="",
+            )
+            sys.stderr.write("\n".join(list(diff)[:60]) + "\n")
+            sys.stderr.write(
+                f"{target.relative_to(ROOT)} が古い。"
+                "python edge/detector/scripts/generate_models.py\n"
+            )
+            continue
+        target.write_bytes(generated)
+        sys.stdout.write(f"wrote {target.relative_to(ROOT)}\n")
+    return 1 if stale else 0
 
 
 if __name__ == "__main__":
