@@ -36,6 +36,9 @@ if TYPE_CHECKING:
     from detector.l1.calibration import Calibration
     from detector.l1.client import JudgeClient, L1Answer
 
+    # 答え（校正前）・単調時計の時刻・新しい答えか（edge-capture の l1Probs）
+    AnswerObserver = Callable[[L1Answer, float, bool], None]
+
 __all__ = ["MAX_BACKOFF_S", "backoff_s", "make_verdict", "run_l1", "start_l1"]
 
 logger = logging.getLogger("detector.l1")
@@ -97,8 +100,13 @@ async def run_l1(
     calibration: Calibration | None,
     clock: Callable[[], float] = monotonic,
     sleep: Callable[[float], Awaitable[None]] = asyncio.sleep,
+    observer: AnswerObserver | None = None,
 ) -> None:
-    """キャンセルされるまで回る。例外を外へ出さない（検知を止めない）。"""
+    """キャンセルされるまで回る。例外を外へ出さない（検知を止めない）。
+
+    observer(answer, at, fresh) は答え（校正前）ごとに降格のあとで呼ばれる。イベントループの上なので
+    重い処理をしない。fresh は聞いているあいだに赤のエピソードが変わっていないか。
+    """
     interval = 1.0 / config.rate_hz
     failures = 0
     fail_log = _Throttle(FAIL_LOG_INTERVAL_S, clock)
@@ -107,7 +115,7 @@ async def run_l1(
         started = clock()
         stale = False
         try:
-            outcome = await _ask_once(hub, client, config, calibration, started, clock)
+            outcome = await _ask_once(hub, client, config, calibration, started, clock, observer)
             if outcome is not None:
                 verdict, stale = outcome
                 if calibration is not None and not verdict.calibrated and mismatch_log.ready():
@@ -139,6 +147,7 @@ async def _ask_once(
     calibration: Calibration | None,
     started: float,
     clock: Callable[[], float],
+    observer: AnswerObserver | None = None,
 ) -> tuple[L1Verdict, bool] | None:
     """1 回聞いて hub に渡す。聞く対象が無ければ None。(答え, エピソードが変わったか) を返す。"""
     picked = hub.l1_target()
@@ -153,7 +162,18 @@ async def _ask_once(
     stale = hub.fusion is not None and target.episode != hub.fusion.episode
     verdict = make_verdict(answer, target, started, latency_ms, calibration, config.override_conf)
     hub.on_l1(verdict)
+    _observe(observer, answer, clock(), fresh=not stale)
     return verdict, stale
+
+
+def _observe(observer: AnswerObserver | None, answer: L1Answer, at: float, *, fresh: bool) -> None:
+    """答えを観察者（edge-capture の保存）に渡す。降格・ログの後で、失敗は握りつぶす。"""
+    if observer is None:
+        return
+    try:
+        observer(answer, at, fresh)
+    except Exception as exc:  # noqa: BLE001  観察者は L1 の動作（降格・ログ）を変えない
+        logger.warning("l1.observer_failed", extra={"error_type": type(exc).__name__})
 
 
 def _failed(hub: AlertHub, exc: Exception, failures: int, log: _Throttle) -> None:
@@ -196,10 +216,11 @@ def start_l1(
     hub: AlertHub,
     environ: Mapping[str, str] | None = None,
     transport: object | None = None,
+    observer: AnswerObserver | None = None,
 ) -> Coroutine[object, object, None] | None:
     """L1 のタスク（コルーチン）を作る。動かせなければ理由を残して None（L0 だけで動く）。
 
-    `pump(results, hub, background=[coro])` に渡す。
+    `pump(results, hub, background=[coro])` に渡す。observer は run_l1 のもの（edge-capture）。
     """
     cfg = config.l1
     if not cfg.enabled or hub.fusion is None:
@@ -220,7 +241,7 @@ def start_l1(
 
     async def task() -> None:
         try:
-            await run_l1(hub, client, cfg, calibration)
+            await run_l1(hub, client, cfg, calibration, observer=observer)
         finally:
             await client.aclose()
 
