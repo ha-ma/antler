@@ -7,7 +7,7 @@ target_paths:
   - edge/detector/tests/test_judge_request_model.py
   - edge/detector/tests/test_schema_contract.py
   - edge/detector/pyproject.toml
-spec_confirmed_at: ea1958f
+spec_confirmed_at: c527e94
 tier: 2
 ---
 
