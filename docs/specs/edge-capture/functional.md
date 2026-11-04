@@ -21,6 +21,7 @@ target_paths:
   - apps/pwa/src/app/App.tsx
   - apps/pwa/vite.config.ts
   - apps/pwa/.env.example
+spec_confirmed_at: 66cdbee
 tier: 2
 ---
 
@@ -454,4 +455,4 @@ UC-10 PWA:
 - [x] 全 UC / 全状態パターンのテストが Green、既存テストが Green
 - [x] Test List の全項目にチェック
 - [x] 静的解析ゲート通過（edge: ruff、api・PWA: lint・typecheck）
-- [ ] alert-contract-guard・security-auditor・edge-latency-reviewer・code-reviewer の Critical 0
+- [x] alert-contract-guard・security-auditor・edge-latency-reviewer・code-reviewer の Critical 0（docs/reports/2026-11-04-{security-auditor,code-reviewer,edge-latency-reviewer}-edge-capture.md。alert-contract-guard は返答のみで Critical 0・Warning 4（W-1〜W-4）。W-1・W-2 は直し、W-3・W-4 は Deferred に記録）
