@@ -26,7 +26,7 @@ target_paths:
   - apps/pwa/src/features/connect/hooks/use-vehicle-uplink.ts
   - apps/pwa/src/features/connect/components/DriveScreen.tsx
   - apps/pwa/scripts/fake-edge.mjs
-spec_confirmed_at: 9fecde3
+spec_confirmed_at: f91683b
 tier: 2
 ---
 
