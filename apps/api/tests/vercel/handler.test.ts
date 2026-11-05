@@ -24,8 +24,12 @@ describe('Vercel の関数の入口（deploy-a R3）', () => {
     dir = mkdtempSync(join(tmpdir(), 'antler-vercel-'))
     lines = []
     vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    // 数えの窓は時計の分にそろうので、分の境目をまたがない時刻に止める（code-reviewer W8）
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-05T10:00:05.000Z'))
   })
   afterEach(() => {
+    vi.useRealTimers()
     for (const c of connections.splice(0)) c.client.close()
     vi.restoreAllMocks()
     rmSync(dir, { recursive: true, force: true })
@@ -225,7 +229,9 @@ describe('Vercel の関数の入口（deploy-a R3）', () => {
     const ready = await handler(req('/health/ready'))
     expect(ready.status).toBe(503)
     expect(await ready.json()).toEqual({ status: 'error', details: { database: 'unavailable' } })
-    for (let i = 0; i < 12; i++) {
+    // 数えられないあいだは、このインスタンスのメモリで数える（上限なしにしない）
+    const statuses: number[] = []
+    for (let i = 0; i < 11; i++) {
       const res = await handler(
         req('/api/trips', {
           method: 'POST',
@@ -233,8 +239,10 @@ describe('Vercel の関数の入口（deploy-a R3）', () => {
           body: '{}',
         }),
       )
-      expect(res.status).not.toBe(429)
+      statuses.push(res.status)
     }
+    expect(statuses.slice(0, 10).every((s) => s !== 429 && s !== 503)).toBe(true)
+    expect(statuses[10]).toBe(429)
     // 組み立てたアプリのログ（標準出力）に warn が出る
     const stdout = vi.mocked(process.stdout.write).mock.calls.map((c) => String(c[0]))
     expect(stdout.some((l) => l.includes('rate_limit.counter_unavailable'))).toBe(true)

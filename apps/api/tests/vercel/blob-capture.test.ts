@@ -3,15 +3,16 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { NewStoredCapture } from '../../src/application/ports/repositories/capture.repository.js'
 import type { Connection } from '../../src/infrastructure/db/connection.js'
-import {
-  VercelBlobImageGateway,
-  type BlobClient,
-} from '../../src/infrastructure/gateways/vercel-blob-image.gateway.js'
+import { isStalePending } from '../../src/domain/captures/policies/capture-claim-policy.js'
+import { CAPTURE_STALE_PENDING_MS as STALE_PENDING_MS } from '../../src/domain/captures/rules/capture-rules.js'
 import {
   BlobCaptureRepository,
   blobImagePath,
-  STALE_PENDING_MS,
 } from '../../src/infrastructure/repositories/blob-capture.repository.js'
+import {
+  VercelBlobImageStore,
+  type BlobClient,
+} from '../../src/infrastructure/repositories/vercel-blob-image-store.js'
 import { buildCapture } from '../factories/captures.js'
 import { FakeImageGateway, openTestDb } from './harness.js'
 
@@ -157,21 +158,70 @@ describe('BlobCaptureRepository（deploy-a R9）', () => {
     expect(images.images.size).toBe(1)
     expect((await rows())[0]?.['status']).toBe('done')
   })
+
+  it('CAP-6b: 同時の同じ id は片方だけが行を取り、もう片方は exists（画像は 1 回だけ置く）', async () => {
+    const results = await Promise.all([repo().create(item()), repo().create(item())])
+    expect(results.map((r) => r.status).sort()).toEqual(['created', 'exists'])
+    expect(images.puts).toBe(1)
+    expect(await rows()).toHaveLength(1)
+  })
+
+  it('CAP-6h: done にする前に引き継がれていたら例外（created と言わない）', async () => {
+    const slow = new FakeImageGateway()
+    const original = slow.put.bind(slow)
+    let takeOver: (() => Promise<void>) | undefined
+    slow.put = async (p, b, t) => {
+      await original(p, b, t)
+      await takeOver?.()
+    }
+    takeOver = async () => {
+      takeOver = undefined
+      // 画像を置いているあいだに古い扱いになり、別の要求が引き継いだ
+      clock.t += STALE_PENDING_MS
+      await repo().create(item())
+    }
+    const first = new BlobCaptureRepository({ db: conn.db, images: slow, nowMs: () => clock.t })
+    await expect(first.create(item())).rejects.toThrow('capture claim lost')
+    expect((await rows())[0]?.['status']).toBe('done')
+  })
+
+  it('CAP-6b: 取れなかったのに行が無い（相手が消した直後）→ 409 にせず例外（再送で直る）', async () => {
+    // INSERT は競合で 0 行、そのあとの読み出しでは行が無い（本物の DB の select は空の表を読む）
+    const vanishing = new BlobCaptureRepository({
+      db: {
+        select: conn.db.select.bind(conn.db),
+        insert: () => ({
+          values: () => ({
+            onConflictDoUpdate: () => ({ returning: () => Promise.resolve([]) }),
+          }),
+        }),
+      } as unknown as Connection['db'],
+      images,
+      nowMs: () => clock.t,
+    })
+    await expect(vanishing.create(item())).rejects.toThrow('vanished')
+    expect(images.puts).toBe(0)
+  })
 })
 
-describe('VercelBlobImageGateway（deploy-a R9）', () => {
-  it('CAP-6f: put に非公開・上書き可・接尾辞なし・contentType を渡す。del は名前で消す', async () => {
+describe('VercelBlobImageStore（deploy-a R9）', () => {
+  it('CAP-6f: put に非公開・上書き可・接尾辞なし・contentType を渡す', async () => {
     const put = vi.fn().mockResolvedValue({})
-    const del = vi.fn().mockResolvedValue(undefined)
-    const gateway = new VercelBlobImageGateway({ put, del } as unknown as BlobClient)
-    await gateway.put('captures/images/x.jpg', new Uint8Array([1, 2]), 'image/jpeg')
+    const store = new VercelBlobImageStore({ put } as unknown as Pick<BlobClient, 'put'>)
+    await store.put('captures/images/x.jpg', new Uint8Array([1, 2]), 'image/jpeg')
     expect(put).toHaveBeenCalledWith('captures/images/x.jpg', Buffer.from([1, 2]), {
       access: 'private',
       addRandomSuffix: false,
       allowOverwrite: true,
       contentType: 'image/jpeg',
     })
-    await gateway.delete('captures/images/x.jpg')
-    expect(del).toHaveBeenCalledWith('captures/images/x.jpg')
+  })
+})
+
+describe('書きかけの扱い（deploy-a R9）', () => {
+  it('CAP-6h: isStalePending は 90 秒ちょうどから古い扱い', () => {
+    expect(STALE_PENDING_MS).toBe(90_000)
+    expect(isStalePending(1_000_000, 1_000_000 + 89_999)).toBe(false)
+    expect(isStalePending(1_000_000, 1_000_000 + 90_000)).toBe(true)
   })
 })

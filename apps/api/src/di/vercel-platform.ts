@@ -1,11 +1,15 @@
-import type { CaptureImageGateway } from '../application/ports/gateways/capture-image.gateway.js'
+import type { Context } from 'hono'
 import { EnvError } from '../infrastructure/config/env.js'
 import type { Connection } from '../infrastructure/db/connection.js'
 import { checkSchema } from '../infrastructure/db/migrate.js'
 import { openRemoteDatabase } from '../infrastructure/db/remote-connection.js'
-import { VercelBlobImageGateway } from '../infrastructure/gateways/vercel-blob-image.gateway.js'
 import { vercelClientIp } from '../infrastructure/http/middleware/vercel-client-ip.js'
+import type { Logger } from '../infrastructure/logging/logger.js'
 import { BlobCaptureRepository } from '../infrastructure/repositories/blob-capture.repository.js'
+import {
+  VercelBlobImageStore,
+  type CaptureImageStore,
+} from '../infrastructure/repositories/vercel-blob-image-store.js'
 import {
   deriveRateLimitSecret,
   LibsqlRateLimitCounter,
@@ -16,13 +20,27 @@ import type { PlatformFactory } from './platform.js'
 // - DB: Turso に HTTP でつなぐ（ネイティブの libsql を読まない）。表は作らず、版だけを確かめる（古ければ組み立ての失敗）
 // - レート制限: Turso の rate_limit_hits（鍵は HMAC）
 // - Capture: 本文と数えは Turso、画像は Vercel Blob（非公開）
-// - IP: Vercel のヘッダから（TRUST_PROXY は読まない）
+// - IP: Vercel のヘッダから（TRUST_PROXY は読まない）。取れなければ全員が 1 つの枠になるので warn（1 分に 1 回まで）
 // DB と画像の置き場所はテストで差し替えられる（env の file: の抜け道は作らない）。
 
 export type VercelPlatformOverrides = {
   connection?: Connection
-  images?: CaptureImageGateway
+  images?: CaptureImageStore
   nowMs?: () => number
+}
+
+const MISSING_IP_WARN_EVERY_MS = 60_000
+
+function headerClientIp(logger: Logger, nowMs: () => number): (c: Context) => string | undefined {
+  let nextWarnAt = 0
+  return (c) => {
+    const ip = vercelClientIp(c.req)
+    if (ip === undefined && nowMs() >= nextWarnAt) {
+      nextWarnAt = nowMs() + MISSING_IP_WARN_EVERY_MS
+      logger.warn('client_ip.missing', { path: c.req.path })
+    }
+    return ip
+  }
 }
 
 export function vercelPlatform(overrides: VercelPlatformOverrides = {}): PlatformFactory {
@@ -45,10 +63,10 @@ export function vercelPlatform(overrides: VercelPlatformOverrides = {}): Platfor
       connection,
       captures: new BlobCaptureRepository({
         db: connection.db,
-        images: overrides.images ?? new VercelBlobImageGateway(),
+        images: overrides.images ?? new VercelBlobImageStore(),
         nowMs,
       }),
-      remoteAddress: (c) => vercelClientIp(c.req),
+      remoteAddress: headerClientIp(logger, nowMs),
       trustProxy: false,
       rateLimitCounter: new LibsqlRateLimitCounter({
         client,

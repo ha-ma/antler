@@ -1,5 +1,4 @@
 import { and, count, eq, sql, sum } from 'drizzle-orm'
-import type { CaptureImageGateway } from '../../application/ports/gateways/capture-image.gateway.js'
 import type {
   CaptureRepository,
   CaptureStats,
@@ -7,22 +6,25 @@ import type {
   ExistingCapture,
   NewStoredCapture,
 } from '../../application/ports/repositories/capture.repository.js'
+import {
+  isStalePending,
+  stalePendingBefore,
+} from '../../domain/captures/policies/capture-claim-policy.js'
 import { imageExtension } from '../../domain/captures/policies/capture-identity-policy.js'
 import { CAPTURE_KEY_PATTERN } from '../../domain/captures/rules/capture-rules.js'
 import type { Database } from '../db/connection.js'
 import { storedCaptures } from '../db/schema.js'
+import type { CaptureImageStore } from './vercel-blob-image-store.js'
 
 // CaptureRepository の Vercel の実装（docs/specs/deploy-a/functional.md R9、resilience.md）。
-// 画像は Vercel Blob（非公開。CaptureImageGateway）、本文・本文のハッシュ・数えは Turso の captures。
+// 画像は Vercel Blob（非公開。CaptureImageStore）、本文・本文のハッシュ・数えは Turso の captures。
+// 画像の置き場所は Capture の永続化の一部（FileCaptureRepository が画像を fs に書くのと同じ）で、Repository の中に閉じる。
 // 順番（行を先に取る。plan-trip の trip_requests と同じ形。spec-adversary W1）:
-//   1. 行を pending で取る（新しく入れる、または STALE_PENDING_MS より古い pending を引き継ぐ）。取れなければ exists
+//   1. 行を pending で取る（新しく入れる、または古い pending を引き継ぐ。古さは domain の isStalePending）。取れなければ exists
 //   2. 画像を置く。失敗したら自分の pending の行を消して例外
-//   3. 行を done にする（自分が取った updated_at のときだけ）
+//   3. 行を done にする（自分が取った updated_at のときだけ。引き継がれていたら例外）
 // 行を取れない間は画像を置かない（INSERT が失敗し続けても Blob が増えない）。stats は pending も数える。
 // ファイルの実装と違い、画像の名前は sha256 の全桁（中身が違う画像が同じ名前にならない。上書きしても同じ中身）。
-
-/** これより古い pending は、書いた要求が途中で止まったとみなして引き継ぐ */
-export const STALE_PENDING_MS = 10 * 60_000
 
 export const CAPTURE_IMAGE_PREFIX = 'captures/images/'
 
@@ -40,7 +42,7 @@ const contentType = (format: NewStoredCapture['image']['format']): string =>
 
 export type BlobCaptureRepositoryDeps = {
   db: Database
-  images: CaptureImageGateway
+  images: CaptureImageStore
   /** 時計（ミリ秒）。古い pending の判断に使う */
   nowMs: () => number
 }
@@ -78,12 +80,14 @@ export class BlobCaptureRepository implements CaptureRepository {
           receivedAt: item.receivedAt,
           updatedAt: claimedAt,
         },
-        setWhere: sql`${storedCaptures.status} = 'pending' AND ${storedCaptures.updatedAt} <= ${claimedAt - STALE_PENDING_MS}`,
+        setWhere: sql`${storedCaptures.status} = 'pending' AND ${storedCaptures.updatedAt} <= ${stalePendingBefore(claimedAt)}`,
       })
       .returning({ key: storedCaptures.key })
     if (claimed.length === 0) {
       const existing = await this.read(item.key)
-      return { status: 'exists', existingBodyHash: existing?.bodyHash ?? null }
+      // 取れなかったのに行が無い = 相手が画像の失敗で消した直後。409（別の本文）にせず、再送で直る失敗にする
+      if (!existing) throw new Error('capture row vanished during claim')
+      return { status: 'exists', existingBodyHash: existing.bodyHash }
     }
 
     const mine = and(
@@ -92,7 +96,7 @@ export class BlobCaptureRepository implements CaptureRepository {
       eq(storedCaptures.updatedAt, claimedAt),
     )
 
-    // 2. 画像を置く。失敗したら自分の pending を消す（消せなくても STALE_PENDING_MS で引き継げる）
+    // 2. 画像を置く。失敗したら自分の pending を消す（消せなくても、古くなれば引き継げる）
     try {
       await images.put(file, item.image.bytes, contentType(item.image.format))
     } catch (error) {
@@ -103,8 +107,12 @@ export class BlobCaptureRepository implements CaptureRepository {
       throw error
     }
 
-    // 3. 完成のしるし
-    await db.update(storedCaptures).set({ status: 'done', updatedAt: nowMs() }).where(mine)
+    // 3. 完成のしるし。0 行 = 古い扱いで別の要求に引き継がれた（その要求が done にする）
+    const done = await db
+      .update(storedCaptures)
+      .set({ status: 'done', updatedAt: nowMs() })
+      .where(mine)
+    if (done.rowsAffected === 0) throw new Error('capture claim lost')
     return { status: 'created' }
   }
 
@@ -113,8 +121,7 @@ export class BlobCaptureRepository implements CaptureRepository {
     const row = await this.read(key)
     if (!row) return null
     // 古い pending は無い扱い（create が引き継ぐ）
-    if (row.status === 'pending' && row.updatedAt <= this.deps.nowMs() - STALE_PENDING_MS)
-      return null
+    if (row.status === 'pending' && isStalePending(row.updatedAt, this.deps.nowMs())) return null
     return { bodyHash: row.bodyHash }
   }
 

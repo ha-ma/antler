@@ -97,18 +97,27 @@ describe('rateLimit の差し込みの数え（deploy-a R7）', () => {
     const names: string[] = []
     for (const file of readdirSync(dir).filter((f) => f.endsWith('.routes.ts'))) {
       const text = readFileSync(join(dir, file), 'utf8')
-      for (const m of text.matchAll(/name: '([a-z.-]+)'/g)) names.push(m[1] ?? '')
-      for (const m of text.matchAll(/limit\('([a-z.-]+)'/g)) names.push(m[1] ?? '')
+      for (const m of text.matchAll(/name: ['"]([^'"]+)['"]/g)) names.push(m[1] ?? '')
+      for (const m of text.matchAll(/limit\(['"]([^'"]+)['"]/g)) names.push(m[1] ?? '')
+      // name を渡さない rateLimit が無い（型でも必須）
+      expect(text.match(/rateLimit\(\{/g)?.length ?? 0).toBe(
+        text.match(/rateLimit\(\{\s*name[,:]/g)?.length ?? 0,
+      )
     }
     expect(names.length).toBeGreaterThanOrEqual(9)
     expect(new Set(names).size).toBe(names.length)
   })
 
-  it('RL-4d: 数えが null（Turso に届かない）なら通す', async () => {
+  it('RL-4d: 数えが null（Turso に届かない）なら、このインスタンスのメモリで数える（上限なしにしない）', async () => {
     const counter = new SpyCounter()
     counter.fail = true
     const server = serverWith(counter, { t: 0 })
-    for (let i = 0; i < 10; i++) expect((await get(server, '/a')).status).toBe(200)
+    for (let i = 0; i < 3; i++) expect((await get(server, '/a')).status).toBe(200)
+    expect((await get(server, '/a')).status).toBe(429)
+    // 数えが戻れば、差し込みの数えに戻る
+    counter.fail = false
+    expect((await get(server, '/a', '9.9.9.9')).status).toBe(200)
+    expect(counter.calls.at(-1)?.key).toBe('9.9.9.9')
   })
 
   it('RL-4i: 上限を超えた鍵は、窓の終わりまで数えを呼ばずに 429。窓が過ぎたらまた数える', async () => {

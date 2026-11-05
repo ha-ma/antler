@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { parseEnv } from 'node:util'
 import { z } from 'zod'
 import { EnvError, isRemoteDbUrl } from '../config/env.js'
 import { openDatabase, type Connection } from '../db/connection.js'
@@ -64,18 +66,19 @@ export async function runMigration(
   }
 }
 
-/** 引数の `--env-file <path>` を読む（Node の process.loadEnvFile。値は出さない） */
+/**
+ * 引数の `--env-file <path>` のファイルを読んで返す（値は出さない）。指定が無ければ空。
+ * ファイルの値は、シェルにすでにある同じ名前の値より**優先する**（取り違えて別の DB に流さない。code-reviewer W7）
+ */
 export function loadEnvFileArg(
   argv: readonly string[],
-  load: (path: string) => void = (path) => {
-    process.loadEnvFile(path)
-  },
-): void {
+  read: (path: string) => string = (path) => readFileSync(path, 'utf8'),
+): Record<string, string> {
   const at = argv.indexOf('--env-file')
-  if (at === -1) return
+  if (at === -1) return {}
   const path = argv[at + 1]
   if (!path) throw new EnvError('--env-file のあとにファイルのパスを書く')
-  load(path)
+  return parseEnv(read(path)) as Record<string, string>
 }
 
 export async function main(
@@ -84,8 +87,8 @@ export async function main(
   logger: Logger,
 ): Promise<number> {
   try {
-    loadEnvFileArg(argv)
-    const result = await runMigration(source)
+    const fromFile = loadEnvFileArg(argv)
+    const result = await runMigration({ ...source, ...fromFile })
     logger.info('db.migrated', { ...result })
     return 0
   } catch (error) {

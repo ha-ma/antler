@@ -15,7 +15,8 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'node22',
     minify: false,
-    sourcemap: true,
+    // 関数に入れない（ソースを関数のファイルに残さない。security-auditor W5）
+    sourcemap: false,
     rolldownOptions: {
       output: { format: 'es', entryFileNames: 'handler.mjs', chunkFileNames: '[name]-[hash].mjs' },
     },

@@ -114,15 +114,23 @@ describe('マイグレーション（deploy-a R6）', () => {
 
   it('MIG-3d: --env-file のファイルを読む。パスが無ければ EnvError', () => {
     const path = join(dir, '.env.turso-test')
-    writeFileSync(path, 'X=1\n')
-    const loaded: string[] = []
-    loadEnvFileArg(['--env-file', path], (p) => loaded.push(p))
-    expect(loaded).toEqual([path])
-    loadEnvFileArg([], (p) => loaded.push(p))
-    expect(loaded).toHaveLength(1)
+    writeFileSync(path, 'X=1\nTRIPS_DB_URL=file:./x.db\n')
+    expect(loadEnvFileArg(['--env-file', path])).toEqual({ X: '1', TRIPS_DB_URL: 'file:./x.db' })
+    expect(loadEnvFileArg([])).toEqual({})
     expect(() => {
       loadEnvFileArg(['--env-file'])
     }).toThrow(EnvError)
+  })
+
+  it('MIG-3d: --env-file の値は、シェルにすでにある同じ名前の値より優先する（別の DB に流さない）', async () => {
+    const wanted = join(dir, 'wanted.db')
+    const other = join(dir, 'other.db')
+    const path = join(dir, '.env.turso-wanted')
+    writeFileSync(path, `TRIPS_DB_URL=file:${wanted}\n`)
+    const logger = createLogger('info', { sink: () => undefined })
+    expect(await main(['--env-file', path], { TRIPS_DB_URL: `file:${other}` }, logger)).toBe(0)
+    expect(await tables(`file:${wanted}`)).toContain('schema_meta')
+    expect(await tables(`file:${other}`)).toEqual([])
   })
 })
 

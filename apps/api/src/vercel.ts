@@ -3,6 +3,7 @@ import { buildContainer } from './di/container.js'
 import type { PlatformFactory } from './di/platform.js'
 import { vercelPlatform } from './di/vercel-platform.js'
 import { loadVercelEnv, withVercelDefaults } from './infrastructure/config/vercel-env.js'
+import { unavailableResponse } from './infrastructure/http/unavailable.js'
 import { createLogger, type Logger } from './infrastructure/logging/logger.js'
 
 // Vercel の関数の入口（docs/specs/deploy-a/functional.md R3）。apps/sim/api/index.mjs が bundle を再輸出する。
@@ -18,10 +19,6 @@ export type VercelHandlerOptions = {
 }
 
 export type FetchHandler = (request: Request) => Promise<Response>
-
-const UNAVAILABLE = {
-  error: { code: 'UNAVAILABLE', message: 'ただいま使えません。しばらくしてもう一度試してください' },
-}
 
 export function createVercelHandler({
   source = process.env,
@@ -55,7 +52,7 @@ export function createVercelHandler({
           ? { name: error.name, message: error.message }
           : { message: String(error) }
       logger.error('vercel.boot_failed', { error: fields })
-      return Response.json(UNAVAILABLE, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+      return unavailableResponse()
     }
     return app.fetch(request)
   }

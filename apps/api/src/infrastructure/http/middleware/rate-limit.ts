@@ -7,7 +7,7 @@ import type { RateLimitCounter } from '../../system/rate-limit-counter.js'
 // - 差し込み: アプリが要求ごとに Hono の変数 `rateLimitCounter` に置いた数え（Vercel では Turso）。
 //   数えの単位（scope）は name。同じ rateLimit を 2 つの route で使えば 2 つで分け合う（メモリと同じ意味）。
 //   上限を超えた鍵は窓の終わりまでメモリで覚え、数えを呼ばずに 429（Turso の書き込みを使わせない）。
-//   数えられない（null）→ 通す（fail-open）。
+//   数えられない（null。Turso に届かない）→ このインスタンスのメモリで数える（インスタンスごとの上限に落とす）。
 
 declare module 'hono' {
   interface ContextVariableMap {
@@ -108,11 +108,10 @@ export function rateLimit({
       if (until !== undefined && until > t) return tooMany(c, limit, until, t)
       entry = await counter.hit(name, k, t, windowMs)
       if (entry === null) {
-        // 数えられない（Turso に届かない）→ 通す。warn は数えの側が出す
-        await next()
-        return undefined
-      }
-      if (entry.count > limit) {
+        // 数えられない（Turso に届かない）→ このインスタンスのメモリで数える（上限なしにしない。security-auditor W2）。
+        // warn は数えの側が出す
+        entry = inMemory(k, t)
+      } else if (entry.count > limit) {
         blocked.delete(k)
         evictOldest(blocked, maxKeys)
         blocked.set(k, entry.resetAt)

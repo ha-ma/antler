@@ -2,9 +2,9 @@
 // Vercel の組み立ては env の file: を拒むので、DB と画像の置き場所は di の差し込み口（vercelPlatform の overrides）から渡す。
 
 import { join } from 'node:path'
-import type { CaptureImageGateway } from '../../src/application/ports/gateways/capture-image.gateway.js'
 import { openDatabase, type Connection } from '../../src/infrastructure/db/connection.js'
 import { ensureSchema } from '../../src/infrastructure/db/migrate.js'
+import type { CaptureImageStore } from '../../src/infrastructure/repositories/vercel-blob-image-store.js'
 
 /** Vercel の関数が受ける env（値はすべてテスト用。本物の秘密ではない） */
 export const VERCEL_SOURCE: Record<string, string> = {
@@ -19,9 +19,8 @@ export const VERCEL_SOURCE: Record<string, string> = {
   VERCEL_BRANCH_URL: 'antler-git-feat-deploy-a.vercel.app',
 }
 
-export class FakeImageGateway implements CaptureImageGateway {
+export class FakeImageGateway implements CaptureImageStore {
   readonly images = new Map<string, { bytes: Uint8Array; contentType: string }>()
-  readonly deleted: string[] = []
   puts = 0
   failPut = false
 
@@ -29,12 +28,6 @@ export class FakeImageGateway implements CaptureImageGateway {
     this.puts += 1
     if (this.failPut) return Promise.reject(new Error('blob unavailable'))
     this.images.set(pathname, { bytes, contentType })
-    return Promise.resolve()
-  }
-
-  delete(pathname: string): Promise<void> {
-    this.deleted.push(pathname)
-    this.images.delete(pathname)
     return Promise.resolve()
   }
 }
