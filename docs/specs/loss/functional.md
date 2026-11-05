@@ -145,7 +145,8 @@ R1〜R10 のとおり。4 指標・取り消し線（R2・R3）は sim の純粋
 ## Questions（Deferred のみ残存可）
 
 - [Deferred: 担当=ユーザー（事実確認）/ 期日=2026-11-08（Day 6）/ 暫定挙動=`loss-baseline.json` の宿 1 人 1 泊・体験 1 人の単価を `verified:false` で使い、画面に「概算」と書く（税込かどうかも出典と一緒に決める）] キャンセル額の単価の出典
-- [Deferred: 担当=record / 期日=2026-11-06（Day 4）/ 暫定挙動=旅を消しても `trip_losses` の行は残る（読む API が無いので外には出ない）] 旅の削除と一緒に喪失文を消す（cascade）。A-7 に喪失文を出すかも record が決める（ID を知る人が作れる文なので、出すなら threat.md の扱いを引き継ぐ）
+- [Deferred: 担当=record / 期日=2026-11-08（Day 6）/ 暫定挙動=A-7 には喪失文を出さない（A-6 から A-7 へのリンクだけ）] A-7 に喪失文を出すかは record が決める（ID を知る人が作れる文なので、出すなら threat.md の扱いを引き継ぐ）
+- 旅の削除と一緒に喪失文を消す（cascade）は、record のマージ後に実装した（2026-11-05、`DrizzleRecordRepository.deleteTrip` が `trip_losses` も消す。record の UC-5a）
 - [Deferred: 担当=drive-link / 期日=2026-11-07（Day 5）/ 暫定挙動=`/drive?trip&day(&alert=off)&replay=` を開く。drive が `replay` を読むまでは、その日の最初から走る] 「衝突の 3 秒前を見る」の巻き戻し再生
 - [Deferred: 担当=ユーザー / 期日=2026-11-06 / 暫定挙動=消さない（plan-trip の TripPlan と同じ）] 喪失文の保持期間
 

@@ -139,14 +139,24 @@ describe('DeleteTripUseCase', () => {
     const b = await h.newTrip(KEY_B)
     for (const t of [a, b]) {
       await h.saveRun.execute({ tripId: t.id, ownerToken: t.ownerToken, run: makeRun() })
+      // A-6 の喪失文（loss の trip_losses）も旅の行として持つ
+      await h.conn.client.execute({
+        sql: "INSERT INTO trip_losses (key_hash, trip_id, collision, story, created_at) VALUES (?, ?, '{}', '{}', 0)",
+        args: [`loss-${t.id}`, t.id],
+      })
     }
     await h.deleteTrip.execute({ tripId: a.id, ownerToken: a.ownerToken })
     const rowsA = await h.rowsOfTrip(a.id)
     // 旅の id を持つ表が増えたら、ここと DrizzleRecordRepository.deleteTrip の両方を直す（足し忘れを止める）
-    expect(Object.keys(rowsA).sort()).toEqual(['trip_requests', 'trip_runs', 'trips'])
+    expect(Object.keys(rowsA).sort()).toEqual([
+      'trip_losses',
+      'trip_requests',
+      'trip_runs',
+      'trips',
+    ])
     expect(Object.values(rowsA).every((n) => n === 0)).toBe(true)
     const rowsB = await h.rowsOfTrip(b.id)
-    expect(rowsB).toMatchObject({ trips: 1, trip_runs: 1, trip_requests: 1 })
+    expect(rowsB).toMatchObject({ trips: 1, trip_runs: 1, trip_requests: 1, trip_losses: 1 })
   })
 
   it('UC-5b: 削除のあと、同じ冪等キーで旅を作り直しても失敗しない（新しい旅）', async () => {
