@@ -1,4 +1,5 @@
 import type { TransactionalRepositories, UnitOfWork } from '../../application/ports/unit-of-work.js'
+import { DrizzleRecordRepository } from '../repositories/drizzle-record.repository.js'
 import { DrizzleTripRepository } from '../repositories/drizzle-trip.repository.js'
 import type { Database } from './connection.js'
 
@@ -8,6 +9,8 @@ export class DrizzleUnitOfWork implements UnitOfWork {
   constructor(private readonly db: Database) {}
 
   transaction<T>(fn: (repos: TransactionalRepositories) => Promise<T>): Promise<T> {
-    return this.db.transaction((tx) => fn({ trips: new DrizzleTripRepository(tx) }))
+    return this.db.transaction((tx) =>
+      fn({ trips: new DrizzleTripRepository(tx), records: new DrizzleRecordRepository(tx) }),
+    )
   }
 }

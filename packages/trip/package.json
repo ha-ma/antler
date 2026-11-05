@@ -9,7 +9,8 @@
     "./roads": "./src/day/roads-data.ts"
   },
   "scripts": {
-    "fetch:routes": "tsx scripts/fetch-routes.ts"
+    "fetch:routes": "tsx scripts/fetch-routes.ts",
+    "test": "vitest run src"
   },
   "dependencies": {
     "@antler/schema": "^0.0.0",

@@ -18,7 +18,20 @@ import {
   TripWriterBusyError,
   TripWriterError,
 } from '../../domain/trips/errors/trip-errors.js'
+import {
+  EventConflictError,
+  EventLimitError,
+  OwnerRequiredError,
+  SceneWriterError,
+} from '../../domain/stop-events/errors/stop-event-errors.js'
+import {
+  NotOwnerError,
+  OwnerTokenRequiredError,
+  RunDayOutOfRangeError,
+  RunLimitError,
+} from '../../domain/record/errors/record-errors.js'
 import { IdempotencyKeyRequiredError } from './validation.js'
+import { OgImageBusyError } from './views/og-image-renderer.js'
 
 // 例外 → HTTP 応答。HTTP の status と code を知るのはここだけ（Hono stack の規約）。
 // ドメイン例外を足したら、ここに code と status の対応を足す（docs/specs/plan-trip/functional.md「エラーパターン」）。
@@ -26,6 +39,19 @@ import { IdempotencyKeyRequiredError } from './validation.js'
 export type HttpError = { status: ContentfulStatusCode; code: string; message: string }
 
 export function toHttpError(error: unknown): HttpError {
+  // stop-events（docs/specs/stop-events/functional.md「エラーパターン」）
+  if (error instanceof OwnerRequiredError) {
+    return { status: 403, code: 'OWNER_REQUIRED', message: error.message }
+  }
+  if (error instanceof EventConflictError) {
+    return { status: 409, code: 'EVENT_CONFLICT', message: error.message }
+  }
+  if (error instanceof EventLimitError) {
+    return { status: 409, code: 'EVENT_LIMIT', message: error.message }
+  }
+  if (error instanceof SceneWriterError) {
+    return { status: 502, code: 'WRITER_FAILED', message: error.message }
+  }
   if (error instanceof TripInputError) {
     return { status: 400, code: 'INVALID_INPUT', message: error.message }
   }
@@ -55,6 +81,22 @@ export function toHttpError(error: unknown): HttpError {
   }
   if (error instanceof TripWriterError) {
     return { status: 502, code: 'WRITER_FAILED', message: error.message }
+  }
+  // 旅の記録（docs/specs/record/functional.md「エラーパターン」）
+  if (error instanceof OwnerTokenRequiredError) {
+    return { status: 401, code: 'OWNER_TOKEN_REQUIRED', message: error.message }
+  }
+  if (error instanceof NotOwnerError) {
+    return { status: 403, code: 'NOT_OWNER', message: error.message }
+  }
+  if (error instanceof RunDayOutOfRangeError) {
+    return { status: 400, code: 'INVALID_INPUT', message: error.message }
+  }
+  if (error instanceof RunLimitError) {
+    return { status: 409, code: 'RUN_LIMIT', message: error.message }
+  }
+  if (error instanceof OgImageBusyError) {
+    return { status: 503, code: 'OG_BUSY', message: error.message }
   }
   // POST /api/captures（docs/specs/edge-capture/functional.md「エラーパターン」）
   if (error instanceof CaptureInputError) {

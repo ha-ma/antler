@@ -55,6 +55,10 @@ ch10-plan.md の 1 週間の計画に、付録 A（ch11-appendix-a.md）の改�
 - **drive（brief-map から）**: A-2 は `/drive?trip={id}&day={n}(&alert=off)` で渡す。drive が `GET /api/trips/:id/day/:n` の `DayPlan`（ルート・ゾーン区間・`conditions` の天候と路面）で走る形にし、条件の型は `@antler/trip` の `Weather`・`Surface` に差し替える。1 日の移動は 200〜450 km あるので、3D で走る範囲（ゾーン区間の前後など）を決める。A-2 中の `/drive` のチャンクの先読み（ch6）もここで（`docs/specs/brief-map/functional.md` の Deferred）
 - **performance / api（brief-map の security M1）**: `GET /api/trips/:id/day/:n` は毎回ルートを計算する（ペルソナで数十 ms）。公開して負荷が気になったら、同じ旅・同じ日の結果の再利用か同時計算の上限を入れる（`docs/reports/2026-11-03-security-auditor-brief-map.md`）
 - **地図の背景（Day 6）**: OpenFreeMap が止まったときの代わり（自前の PMTiles など）。いまは背景なしの表示に縮退する
+- **loss（record から）**: 運転の終わりは app 層の `apps/sim/src/app/DriveRoute.tsx` が drive の `onFinish(DriveResult)` を受け、`toDriveRun` で走行の記録にして `useSaveRun` で残す（旅の場面だけ）。完走で残せたら `/t/:id` へ、衝突は残すが移らない（終了の帯のまま）。A-6 へ移すときは、この DriveRoute の衝突の分岐に足す（run の表や API を別に作らない。`not-owner` なら移らない）。`docs/specs/record/functional.md` R11
+- **stop-events（record から）**: `DELETE /api/trips/:id`（record）は trips・trip_runs・trip_requests を 1 つのトランザクションで消す。出来事の表を足したら、`DrizzleRecordRepository.deleteTrip` に足す（`record-usecases.test.ts` の UC-5a が `trip_id` の列を持つ表の一覧を固定しているので、表を足すと落ちる。そこで削除にも足す）
+- **deploy（record から）**: 本番の api は `PUBLIC_API_URL`・`SIM_PUBLIC_URL`・`PWA_PUBLIC_URL` を公開の URL にする（既定は開発の localhost）。Linux では OG 画像の日本語・中国語・韓国語のために `fonts-noto-cjk` を入れるか `OG_FONT_FILES` を書く
+- **テスト（record から）**: `packages/*` のテストは npm test で回っていなかった。record で `packages/trip` に test の script を足した。`packages/schema`・`zones`・`alert-ui` も足すかは各担当で
 
 ## B の判断の 3 層化（2026-11-03 の変更指示）
 

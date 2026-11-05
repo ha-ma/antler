@@ -3,17 +3,27 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
 import { SubmitCaptureUseCase } from '../application/usecases/captures/submit-capture.usecase.js'
+import { DeleteTripUseCase } from '../application/usecases/record/delete-trip.usecase.js'
+import { GetTripRecordUseCase } from '../application/usecases/record/get-trip-record.usecase.js'
+import { SaveRunUseCase } from '../application/usecases/record/save-run.usecase.js'
 import { GetTripDayUseCase } from '../application/usecases/trip-day/get-trip-day.usecase.js'
+import { PrepareStopDeckUseCase } from '../application/usecases/stop-events/prepare-stop-deck.usecase.js'
+import { RecordTripEventsUseCase } from '../application/usecases/stop-events/record-trip-events.usecase.js'
 import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
 import { openDatabase, type Connection } from '../infrastructure/db/connection.js'
 import { DrizzleUnitOfWork } from '../infrastructure/db/drizzle-unit-of-work.js'
 import { ensureSchema } from '../infrastructure/db/migrate.js'
+import { ClaudeSceneWriterGateway } from '../infrastructure/gateways/claude-scene-writer.gateway.js'
 import { ClaudeTripWriterGateway } from '../infrastructure/gateways/claude-trip-writer.gateway.js'
 import { FileRoadCatalogGateway } from '../infrastructure/gateways/file-road-catalog.gateway.js'
 import { createApp } from '../infrastructure/http/app.js'
 import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
+import { DrizzleStopDeckRepository } from '../infrastructure/repositories/drizzle-stop-deck.repository.js'
+import { DrizzleTripEventRepository } from '../infrastructure/repositories/drizzle-trip-event.repository.js'
+import { OgImageRenderer } from '../infrastructure/http/views/og-image-renderer.js'
+import { DrizzleRecordRepository } from '../infrastructure/repositories/drizzle-record.repository.js'
 import { DrizzleTripRepository } from '../infrastructure/repositories/drizzle-trip.repository.js'
 import { FileCaptureRepository } from '../infrastructure/repositories/file-capture.repository.js'
 import { NodeSha256BytesHasher } from '../infrastructure/security/node-bytes-hasher.js'
@@ -40,12 +50,14 @@ export async function buildContainer(
   await ensureSchema(connection.client)
   const trips = new DrizzleTripRepository(connection.db)
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1 })
+  // Claude の同時呼び出しの枠は plan-trip と stop-events で 1 つ（1 日の上限も trip_writer_calls で共有）
+  const writerSlots = new InProcessConcurrencyLimiter(env.CLAUDE_MAX_CONCURRENT_CALLS)
 
   const createTrip = new CreateTripUseCase({
     trips,
     uow: new DrizzleUnitOfWork(connection.db),
     writer: new ClaudeTripWriterGateway(anthropic.messages, logger),
-    writerSlots: new InProcessConcurrencyLimiter(env.CLAUDE_MAX_CONCURRENT_CALLS),
+    writerSlots,
     random: new NodeRandomSource(),
     hasher: new NodeSha256Hasher(),
     ownerTokens: new HmacSha256TokenSigner(env.OWNER_TOKEN_SECRET),
@@ -55,12 +67,58 @@ export async function buildContainer(
   })
 
   // 読み出し（brief-map）は同梱データだけで計算し、外部へ通信しない
+  const roadCatalog = new FileRoadCatalogGateway()
   const getTripDay = new GetTripDayUseCase({
     trips,
-    data: new FileRoadCatalogGateway(),
+    data: roadCatalog,
     clock: new SystemClock(),
     log: logger,
   })
+
+  // stop-events（A-4 の束とイベントログ）。書き込みは ownerToken を求める（threat.md）
+  const decks = new DrizzleStopDeckRepository(connection.db)
+  const prepareStopDeck = new PrepareStopDeckUseCase({
+    trips,
+    decks,
+    data: roadCatalog,
+    writer: new ClaudeSceneWriterGateway(anthropic.messages, logger),
+    writerSlots,
+    hasher: new NodeSha256Hasher(),
+    clock: new SystemClock(),
+    log: logger,
+    dailyWriterCallLimit: env.CLAUDE_DAILY_CALL_LIMIT,
+  })
+  const recordTripEvents = new RecordTripEventsUseCase({
+    trips,
+    decks,
+    events: new DrizzleTripEventRepository(connection.db),
+    hasher: new NodeSha256Hasher(),
+    clock: new SystemClock(),
+    log: logger,
+  })
+
+  // 旅の記録（record）。書き込みと削除は所有者トークンを照合する。OG 画像はプロセスの中で描く
+  const publicUrls = [env.PUBLIC_API_URL, env.SIM_PUBLIC_URL, env.PWA_PUBLIC_URL]
+  if (
+    env.NODE_ENV === 'production' &&
+    publicUrls.some((u) => /\/\/(localhost|127\.0\.0\.1)/.test(u))
+  ) {
+    // 共有する記録の URL・OG 画像が localhost を指す（SNS のカードが出ない）。起動は止めない
+    logger.warn('record.public_url_is_localhost', { urls: publicUrls })
+  }
+  const uow = new DrizzleUnitOfWork(connection.db)
+  const hasher = new NodeSha256Hasher()
+  const records = {
+    saveRun: new SaveRunUseCase({ uow, hasher, clock: new SystemClock(), log: logger }),
+    deleteTrip: new DeleteTripUseCase({ uow, hasher, log: logger }),
+    getRecord: new GetTripRecordUseCase({
+      trips,
+      records: new DrizzleRecordRepository(connection.db),
+      log: logger,
+    }),
+    ogImages: new OgImageRenderer({ fontFiles: env.OG_FONT_FILES }),
+    urls: { api: env.PUBLIC_API_URL, sim: env.SIM_PUBLIC_URL, pwa: env.PWA_PUBLIC_URL },
+  }
 
   // POST /api/captures（edge-capture）。ファイル保存（CAPTURES_DIR を 0700 で作り、件数と画像の合計を数える）
   const submitCapture = new SubmitCaptureUseCase({
@@ -99,6 +157,9 @@ export async function buildContainer(
     exposeErrorDetails: env.NODE_ENV === 'development',
     trips: { createTrip, rateLimitKey },
     tripDays: { getTripDay, rateLimitKey },
+    stopDecks: { prepareStopDeck, rateLimitKey },
+    tripEvents: { recordTripEvents, rateLimitKey },
+    records: { ...records, rateLimitKey },
     captures: { submitCapture, rateLimitKey, log: logger },
   })
   return { env, logger, app, connection }

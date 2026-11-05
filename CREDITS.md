@@ -21,12 +21,13 @@ EZO ROAD（antler）が使うデータ・素材の出典と利用条件。アセ
 
 ## 素材
 
-| 何                              | 出典                                                                                      | 利用条件                   | 場所                               |
-| ------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------- | ---------------------------------- |
-| チャイム・ビープの音源          | 自作（packages/alert-ui/scripts/sounds.ts でサイン波から生成）                            | このリポジトリのライセンス | packages/alert-ui/assets/sounds/   |
-| 鹿のピクトグラム・形・矢印      | 自作（インライン SVG）                                                                    | このリポジトリのライセンス | packages/alert-ui/src/components/  |
-| デザイントークン                | EZO ROAD Design System（Claude Design、自作）                                             | このリポジトリのライセンス | docs/design/tokens.json            |
-| 鹿・車内・風景の 3D（ローポリ） | 自作（コードで生成。外部のモデル・テクスチャを使わない。鹿は ch9 ③ が決まるまでの代わり） | このリポジトリのライセンス | apps/sim/src/features/drive/scene/ |
+| 何                              | 出典                                                                                      | 利用条件                                                                                               | 場所                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| チャイム・ビープの音源          | 自作（packages/alert-ui/scripts/sounds.ts でサイン波から生成）                            | このリポジトリのライセンス                                                                             | packages/alert-ui/assets/sounds/                                         |
+| 鹿のピクトグラム・形・矢印      | 自作（インライン SVG）                                                                    | このリポジトリのライセンス                                                                             | packages/alert-ui/src/components/                                        |
+| デザイントークン                | EZO ROAD Design System（Claude Design、自作）                                             | このリポジトリのライセンス                                                                             | docs/design/tokens.json                                                  |
+| 鹿・車内・風景の 3D（ローポリ） | 自作（コードで生成。外部のモデル・テクスチャを使わない。鹿は ch9 ③ が決まるまでの代わり） | このリポジトリのライセンス                                                                             | apps/sim/src/features/drive/scene/                                       |
+| エゾシカの参考写真（8 枚）      | 撮影: Yuki Fujita                                                                         | このプロジェクト内での利用を許可（クレジット要）。学習データとしての配布は不可。リポジトリには入れない | 評価（B の鹿の検出）と A の 3D の鹿の参考だけ。`dataset/PRIVATE-DATA.md` |
 
 ## ライブラリ（ライセンスの表示が要るもの）
 
@@ -42,6 +43,7 @@ EZO ROAD（antler）が使うデータ・素材の出典と利用条件。アセ
 | coremltools 9.0（github.com/apple/coremltools）                                                     | BSD-3-Clause                   | YOLO の CoreML 書き出しと読み込み（extra `coreml`・`day0`）                                                                                                                                                                                                                                                                                                                                       |
 | PyTorch・torchvision・OpenCV（opencv-python）・Pillow                                               | BSD-3-Clause・Apache-2.0・HPND | Ultralytics と local-jev が引く依存。Mac mini の venv に入るだけで、リポジトリには入れない                                                                                                                                                                                                                                                                                                        |
 | mlx 0.32.4（github.com/ml-explore/mlx）                                                             | MIT                            | 指示書の依存（extra `day0`）。local-jev は PyTorch で動くので L1 では使わない                                                                                                                                                                                                                                                                                                                     |
+| @resvg/resvg-js 2.6（github.com/thx/resvg-js）                                                      | MPL-2.0                        | A-7 のしおりの OG 画像（SVG → PNG、apps/api）。フォントはサーバーのもの（同梱しない）                                                                                                                                                                                                                                                                                                             |
 
 ## 開発ハーネス
 

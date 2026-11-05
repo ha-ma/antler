@@ -35,7 +35,11 @@ describe('buildContainer', () => {
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     )
     expect(tables.rows.map((r) => r['name'])).toEqual([
+      // stop-events（docs/specs/stop-events/plan.md「マイグレーション統合」）
+      'stop_decks',
+      'trip_events',
       'trip_requests',
+      'trip_runs',
       'trip_writer_calls',
       'trips',
     ])
