@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 import os
 from time import monotonic
@@ -90,8 +89,9 @@ async def _wait(hub: AlertHub, seconds: float, sleep: Callable[[float], Awaitabl
     finally:
         for task in (waker, timer):
             task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+        # suppress(CancelledError) で個別に待つと、後始末の最中に来た外からの cancel まで
+        # 握りつぶし、run_l1 が止まらず回り続ける。gather なら自分への cancel は上へ出る
+        await asyncio.gather(waker, timer, return_exceptions=True)
         hub.l1_wake.clear()
 
 

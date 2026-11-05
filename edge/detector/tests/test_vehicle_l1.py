@@ -13,7 +13,7 @@ from detector.config import Config, ConfigError, JudgeConfig, L1Config, load_con
 from detector.hub import AlertHub
 from detector.l1.calibration import Calibration, load_calibration
 from detector.l1.request import VehicleContext, build_request, context_from_report
-from detector.l1.runner import run_l1
+from detector.l1.runner import _wait, run_l1
 from detector.vehicle import VehicleReport
 
 from .conftest import Clock, deer, named, result
@@ -284,3 +284,28 @@ def test_cfg6d_見本が読め既定値と一致する():
     text = EXAMPLE.read_text(encoding="utf-8")
     assert "vehicle_state" in text and "vehicle_max_age_s" in text
     assert load_config(EXAMPLE) == Config()
+
+
+# run_l1 の待ちの後始末の最中に cancel が来ても、止まる（握りつぶして回り続けない）
+def test_wait_の後始末中のcancelを握りつぶさない():
+    async def scenario() -> bool:
+        hub, _clock, _cfg = make_hub()
+
+        async def instant(_s: float) -> None:
+            return None
+
+        for steps in range(1, 8):  # cancel を来させる位置を 1 周ずつずらす
+            task = asyncio.ensure_future(_wait(hub, 0.0, instant))
+            for _ in range(steps):
+                await asyncio.sleep(0)
+            already_done = task.done()
+            task.cancel()
+            done, _pending = await asyncio.wait({task}, timeout=1.0)
+            if not done:  # cancel を握りつぶして待ち続けている
+                task.cancel()
+                return False
+            if not already_done and not task.cancelled():  # 握りつぶして普通に戻った
+                return False
+        return True
+
+    assert asyncio.run(scenario())
