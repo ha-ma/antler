@@ -28,6 +28,7 @@ export function captureRoutes({ submitCapture, rateLimitKey, log, now }: Capture
   app.post(
     '/api/captures',
     rateLimit({
+      name: 'captures.submit',
       limit: CAPTURES_PER_MINUTE_PER_IP,
       windowMs: 60_000,
       key: rateLimitKey,

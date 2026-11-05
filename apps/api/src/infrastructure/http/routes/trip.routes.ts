@@ -26,6 +26,7 @@ export function tripRoutes({ createTrip, rateLimitKey, now }: TripRoutesDeps): H
   app.post(
     '/api/trips',
     rateLimit({
+      name: 'trips.create',
       limit: TRIPS_PER_MINUTE_PER_IP,
       windowMs: 60_000,
       key: rateLimitKey,

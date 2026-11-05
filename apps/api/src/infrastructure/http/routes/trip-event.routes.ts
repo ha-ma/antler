@@ -29,6 +29,7 @@ export function tripEventRoutes({
   app.post(
     '/api/trips/:id/events',
     rateLimit({
+      name: 'trip-events.record',
       limit: TRIP_EVENTS_PER_MINUTE_PER_IP,
       windowMs: 60_000,
       key: rateLimitKey,

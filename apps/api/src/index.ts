@@ -2,7 +2,8 @@ import { serve } from '@hono/node-server'
 import { buildContainer } from './di/container.js'
 
 // Node.js のエントリポイント。環境変数が不正なら buildContainer が例外で起動を止める。
-// 起動時に SQLite の表を作る（CREATE TABLE IF NOT EXISTS）。
+// 起動時に SQLite の表を作る（CREATE TABLE IF NOT EXISTS。ローカルの部品 di/local-platform.ts）。
+// Vercel の入口は src/vercel.ts（表は npm run db:migrate で先に作る）。
 const { app, env, logger } = await buildContainer(process.env)
 
 process.on('unhandledRejection', (reason) => {

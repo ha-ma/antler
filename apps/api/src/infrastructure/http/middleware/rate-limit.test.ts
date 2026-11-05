@@ -7,6 +7,7 @@ function serverWith(now: { t: number }, opts: { maxKeys?: number; store?: RateLi
   server.post(
     '/api/trips',
     rateLimit({
+      name: 'test.trips',
       limit: 10,
       windowMs: 60_000,
       key: (c) => c.req.header('x-test-ip') ?? 'unknown',

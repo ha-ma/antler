@@ -26,6 +26,7 @@ export function lossRoutes({ writeLoss, rateLimitKey, now }: LossRoutesDeps): Ho
   app.post(
     '/api/trips/:id/losses',
     rateLimit({
+      name: 'losses.write',
       limit: LOSSES_PER_MINUTE_PER_IP,
       windowMs: 60_000,
       key: rateLimitKey,

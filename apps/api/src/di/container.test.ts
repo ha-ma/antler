@@ -26,7 +26,7 @@ describe('buildContainer', () => {
     CAPTURES_DIR: join(dir, 'captures-received'),
   })
 
-  it('環境変数からアプリを組み立て、SQLite の表を作る（readiness も通る）', async () => {
+  it('MIG-3e: 環境変数からアプリを組み立て、SQLite の表を作る（版も書く。readiness も通る）', async () => {
     const { app, env, connection } = await buildContainer(source('trips.db'))
     expect(env.NODE_ENV).toBe('test')
     expect((await app.request('/health')).status).toBe(200)
@@ -35,6 +35,10 @@ describe('buildContainer', () => {
       "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
     )
     expect(tables.rows.map((r) => r['name'])).toEqual([
+      // deploy-a（Vercel の Capture・レート制限の数え・表の版）
+      'captures',
+      'rate_limit_hits',
+      'schema_meta',
       // stop-events（docs/specs/stop-events/plan.md「マイグレーション統合」）
       'stop_decks',
       'trip_events',

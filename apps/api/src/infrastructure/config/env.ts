@@ -26,7 +26,7 @@ const publicOrigin = (fallback: string) =>
     .regex(/^https?:\/\/[^/\s]+$/, 'スキーム付きのオリジン（例: https://ezoroad.app）を書く')
     .default(fallback)
 
-const envSchema = z.object({
+const baseEnvSchema = z.object({
   // 既定は production（付け忘れたときに、エラーの detail を出す側に倒さない）。開発は npm run dev が development を付ける
   NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
   PORT: z.coerce.number().int().min(1).max(65535).default(8787),
@@ -42,6 +42,8 @@ const envSchema = z.object({
   // Claude の同時呼び出しの上限。超えたら 503 WRITER_BUSY
   CLAUDE_MAX_CONCURRENT_CALLS: z.coerce.number().int().min(1).default(4),
   TRIPS_DB_URL: z.string().min(1).default('file:./data/trips.db'),
+  // Turso（libsql:// / https://）の DB のトークン（deploy-a R4）。秘密・既定値なし。file: のときは要らない
+  TURSO_AUTH_TOKEN: z.string().min(1).optional(),
   // 旅の記録（docs/specs/record/functional.md R1）。og:url・og:image・リンクはこの値だけから作る（Host ヘッダは使わない）
   PUBLIC_API_URL: publicOrigin('http://localhost:8787'),
   SIM_PUBLIC_URL: publicOrigin('http://localhost:5173'),
@@ -70,6 +72,21 @@ const envSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((v) => v === 'true'),
+})
+
+/** Turso（リモートの libsql）の URL か。file: と :memory: 以外 */
+export function isRemoteDbUrl(url: string): boolean {
+  return /^(?:libsql|https?|wss?):\/\//i.test(url)
+}
+
+const envSchema = baseEnvSchema.superRefine((env, ctx) => {
+  if (isRemoteDbUrl(env.TRIPS_DB_URL) && !env.TURSO_AUTH_TOKEN) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['TURSO_AUTH_TOKEN'],
+      message: 'TRIPS_DB_URL が Turso（libsql:// / https://）のときは TURSO_AUTH_TOKEN が要る',
+    })
+  }
 })
 
 export type Env = z.infer<typeof envSchema>
