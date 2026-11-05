@@ -49,6 +49,41 @@
         "value"
       ],
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "vehicle"
+        },
+        "speedKmh": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 300
+        },
+        "zone": {
+          "type": "string",
+          "enum": [
+            "inside",
+            "outside"
+          ]
+        },
+        "light": {
+          "type": "string",
+          "enum": [
+            "dawn",
+            "day",
+            "dusk",
+            "night"
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "additionalProperties": false,
+      "title": "VehicleMessage"
     }
   ]
 }

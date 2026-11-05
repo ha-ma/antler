@@ -52,6 +52,10 @@ override_conf = 0.9                  # 校正後 conf がこれ以上のとき�
 l2_route_conf = [0.5, 0.9]           # この範囲は L2 の候補としてログ（L2 は未実装）
 wait_for_l1_before_red = false       # B2-8。true でも保留は 150 ms まで
 calibration_path = "calibration.json"  # 無ければ降格しない。相対パスはこのファイルのディレクトリから
+# PWA が返す車の状態（速度・ゾーンの内外・光）。pwa = 届いた実値を使う。ただし calibration.json が
+# "context": "real"（実値で学習した）と宣言しているか、校正なしのときだけ。固定値で学習した校正のあいだは固定値
+vehicle_state = "pwa"                # pwa | fixed（fixed は常に 60 km/h・inside・night・low）
+vehicle_max_age_s = 10.0             # 1〜60。ゾーンと光の期限。速度は 3 秒
 
 [l2]
 enabled = "auto"      # auto | off。L2 は未実装（Step 5）

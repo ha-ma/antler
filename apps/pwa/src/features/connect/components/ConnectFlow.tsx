@@ -28,7 +28,7 @@ export function ConnectFlow({ services }: { services?: ConnectServices }) {
   const [flow, setFlow] = useState<Flow>({ stage: 'connect' })
   const departed = useRef(false)
 
-  const { snapshot, sendAck } = useEdgeConnection(svc.url, svc.createSocket)
+  const { snapshot, sendAck, sendVehicle } = useEdgeConnection(svc.url, svc.createSocket)
   const now = useNow()
   const location = useLocationState(svc.location)
   const { zones, failed: zonesFailed } = useZones(svc.loadZones)
@@ -79,6 +79,7 @@ export function ConnectFlow({ services }: { services?: ConnectServices }) {
           sound={svc.sound}
           noSound={noSound}
           sendAck={sendAck}
+          sendVehicle={sendVehicle}
           geo={svc.geo}
           wakeLock={svc.wakeLock}
           zones={zones}

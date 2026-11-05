@@ -13,6 +13,7 @@ import asyncio
 import json
 import logging
 import math
+from dataclasses import replace
 from datetime import UTC, datetime
 from time import monotonic
 from typing import TYPE_CHECKING
@@ -22,6 +23,7 @@ from detector.frame import format_t_frame
 from detector.fusion import HOLD_MAX_S, Fusion
 from detector.judge import JudgeState, is_blind
 from detector.l0.stage import L0Stage
+from detector.vehicle import SPEED_MAX_AGE_S, VehicleReport, parse_vehicle
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -34,6 +36,7 @@ logger = logging.getLogger("detector.hub")
 
 HEARTBEAT_S = 1.0
 MAX_TYPE_NAME = 32
+VEHICLE_LOG_INTERVAL_S = 1.0  # vehicle.updated / vehicle.invalid / vehicle.error は 1 秒に 1 回まで
 
 
 def _wall() -> datetime:
@@ -70,6 +73,11 @@ class AlertHub:
         self._out_deer: bool | None = None  # 最後に送った出力の deer
         self._ack_t_frame: datetime | None = None
         self._clients = 0
+        # PWA から届いた車の状態の最新 1 件（pwa-uplink）。赤の経路には使わない（L1 の入力だけ）
+        self._vehicle: VehicleReport | None = None
+        self._vehicle_key: tuple[object, object] | None = None
+        self._vehicle_stale_logged = False
+        self._vehicle_logs: dict[str, float] = {}
 
     @property
     def deer_on(self) -> bool:
@@ -192,6 +200,7 @@ class AlertHub:
                 "conf_raw": round(verdict.conf_raw, 4),
                 "calibrated": verdict.calibrated,
                 "reason": verdict.reason,
+                "state_source": verdict.state_source,
                 "route": route,
                 "overrode": self.fusion.active,
             },
@@ -288,7 +297,7 @@ class AlertHub:
         }
 
     def on_client_message(self, raw: object) -> None:
-        """ack と label だけ読む。余分な項目は捨て、本文はログに残さない。"""
+        """ack・label・vehicle だけ読む。余分な項目は捨て、本文はログに残さない。"""
         message = None
         if isinstance(raw, str):
             try:
@@ -300,9 +309,83 @@ class AlertHub:
             self._on_ack(message.get("t_shown"))
         elif kind == "label":
             return  # B2-6（MAY）。受け取って無視する
+        elif kind == "vehicle":
+            self._on_vehicle(message)
         else:
             safe = kind if isinstance(kind, str) and len(kind) <= MAX_TYPE_NAME else None
             logger.warning("client.ignored", extra={"type": safe})
+
+    def _on_vehicle(self, message: object) -> None:
+        """PWA の速度・ゾーン・光（pwa-uplink R4）。検証に通ったものを丸ごと置き換える。
+
+        同期で数マイクロ秒の処理だけ（検証と代入）。赤の経路（on_result・tick・fusion）を呼ばない。
+        通らなければ捨てて前の値を残す（新しさも進めない）。本文・位置はログに出さない。
+        """
+        now = self._clock()
+        try:
+            report = parse_vehicle(message, now)
+        except ValueError:
+            self._vehicle_log("invalid", now, logger.warning, "vehicle.invalid", {})
+            return
+        except Exception as exc:  # noqa: BLE001  接続を落とさない。前の値を残す
+            self._vehicle_log(
+                "error", now, logger.error, "vehicle.error", {"error_type": type(exc).__name__}
+            )
+            return
+        self._vehicle = report
+        self._vehicle_stale_logged = False
+        key = (
+            report.zone,
+            report.light,
+        )  # 速度の有無では出さない（null と数値の行き来で毎秒出ない）
+        if key != self._vehicle_key and self._vehicle_log_ready("updated", now):
+            self._vehicle_key = key
+            logger.info(
+                "vehicle.updated",
+                extra={
+                    "zone": report.zone,
+                    "light": report.light,
+                    "has_speed": report.speed_kmh is not None,
+                },
+            )
+
+    def _vehicle_log_ready(self, name: str, now: float) -> bool:
+        last = self._vehicle_logs.get(name)
+        if last is not None and now - last < VEHICLE_LOG_INTERVAL_S:
+            return False
+        self._vehicle_logs[name] = now
+        return True
+
+    def _vehicle_log(
+        self,
+        name: str,
+        now: float,
+        emit: Callable[..., None],
+        event: str,
+        extra: dict[str, object],
+    ) -> None:
+        if self._vehicle_log_ready(name, now):
+            emit(event, extra=extra)
+
+    def vehicle_report(self, max_age_s: float) -> VehicleReport | None:
+        """L1 の問い合わせに使う車の状態。新しい項目だけを返す（pwa-uplink R5）。
+
+        自分の単調時計で古さを測る（端末の時刻は見ない。時計が戻っても新しい扱い）。
+        速度は 3 秒、ゾーンと光は max_age_s を超えたら外し、全部外れたら None。
+        古くなったら vehicle.stale を 1 回残す（次の新しい値が来るまで繰り返さない）。
+        """
+        report = self._vehicle
+        if report is None:
+            return None
+        age = max(0.0, self._clock() - report.received_at)
+        if age > max_age_s:
+            if not self._vehicle_stale_logged:
+                self._vehicle_stale_logged = True
+                logger.info("vehicle.stale", extra={"age_s": round(age, 1)})
+            return None
+        if report.speed_kmh is not None and age > min(SPEED_MAX_AGE_S, max_age_s):
+            return replace(report, speed_kmh=None)
+        return report
 
     def _on_ack(self, t_shown: object) -> None:
         try:

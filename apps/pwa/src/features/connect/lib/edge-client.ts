@@ -1,5 +1,6 @@
 import { ClientMessageSchema, readAlertFlag, toJst, type ReceivedFlag } from '@antler/schema'
 import { logger } from '@/shared/utils/logger'
+import type { VehicleReport } from './vehicle-report'
 
 // 車載 Mac Mini の WebSocket につながり、AlertFlag を受ける（ch4 B3、ch6「B 可用性」、ch7）。
 // 切れたら 1 秒後に再接続。3 秒なにも受け取らなければ半開きとみなして閉じる（エッジは 1 秒ごとにハートビートを送る）。
@@ -38,6 +39,8 @@ export const STALE_AFTER_MS = 3000
 export const CONNECT_TIMEOUT_MS = 3000
 export const MAX_MESSAGE_CHARS = 256 * 1024
 export const MAX_MESSAGES_PER_SECOND = 20
+/** vehicle の最短の送信間隔（ms）。1 秒ごとの更新が 1 通になり、再描画や二重の effect で増えない */
+export const VEHICLE_MIN_INTERVAL_MS = 900
 /** 受信の履歴として持つ長さ（B-0 の受信/秒は直近 5 秒） */
 export const RECEIVE_WINDOW_MS = 5000
 
@@ -57,6 +60,7 @@ export class EdgeClient {
     receivedAt: [],
   }
   private readonly listeners = new Set<() => void>()
+  private lastVehicleAt: number | null = null
   private lastLiveAt: number | null = null
   private recent: number[] = []
 
@@ -108,6 +112,39 @@ export class EdgeClient {
       logger.warn('ack.skipped', { reason: 'send_failed' })
       return false
     }
+  }
+
+  /**
+   * 車の状態（速度・ゾーン・光）を edge に返す（pwa-uplink R3）。送れたら true。
+   * open でないときは送らない（溜めない・あとで送らない。頻繁なのでログにも出さない）。
+   * 0.9 秒以内の再送はしない（間隔は performance.now で測り、壁時計が戻っても止まらない）。
+   */
+  sendVehicle(report: VehicleReport): boolean {
+    const socket = this.socket
+    if (!socket || this.snapshot.status !== 'open') return false
+    const t = performance.now()
+    if (
+      this.lastVehicleAt !== null &&
+      t >= this.lastVehicleAt &&
+      t - this.lastVehicleAt < VEHICLE_MIN_INTERVAL_MS
+    ) {
+      return false
+    }
+    let text: string
+    try {
+      text = JSON.stringify(ClientMessageSchema.parse({ type: 'vehicle', ...report }))
+    } catch {
+      logger.warn('vehicle.skipped', { reason: 'invalid' })
+      return false
+    }
+    try {
+      socket.send(text)
+    } catch {
+      logger.warn('vehicle.skipped', { reason: 'send_failed' })
+      return false
+    }
+    this.lastVehicleAt = t
+    return true
   }
 
   private connect(): void {

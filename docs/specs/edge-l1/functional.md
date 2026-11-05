@@ -19,7 +19,7 @@ target_paths:
   - edge/detector/tests/test_fusion.py
   - edge/detector/tests/test_l1_hub.py
   - edge/detector/tests/test_l1_authz.py
-spec_confirmed_at: b29acdc
+spec_confirmed_at: 806b4e1
 tier: 2
 ---
 
@@ -61,7 +61,7 @@ L1 が使えないときは、何も起きなかったように L0 だけで動�
 - R2: L1 に送る状態（B2-4・B2-6）
   - 聞く対象のトラック: L0 が赤のあいだは**赤の候補のトラック**（生きているトラックのうち、最後の点の確信度が `judge.threshold` 以上のもの）でいちばん高いボックス。赤でないときは主トラック（edge-l0 R4）。対象が無ければそのティックは送らない（`track` は 1 点以上が要る）。spec-adversary C1
   - `track` = 対象の `track_points`（64 点まで）、`ttcSec` = 対象の TTC（無ければ `null`）、`recentAlerts30s` = 直近 30 秒（単調時計）に L0 が赤になった回数（今のエピソードと、降格したエピソードも数える）
-  - edge が知らない車の状態は、**降格に寄らない値**で固定する: `speedKmh = 60.0`（北海道の一般道の法定速度）、`zone = "inside"`、`light = "night"`、`headlight = "low"`（schema-judge の Deferred どおり）。推奨で決定（実値は Deferred。校正の学習でも同じ固定値を使う）
+  - edge が知らない車の状態は、**降格に寄らない値**で固定する: `speedKmh = 60.0`（北海道の一般道の法定速度）、`zone = "inside"`、`light = "night"`、`headlight = "low"`（schema-judge の Deferred どおり）。推奨で決定（実値は docs/specs/pwa-uplink で回収した: PWA の `vehicle` が届き、校正が `context: "real"` か校正なしのときだけ実値で聞く。それ以外はこの固定値。校正の学習でも同じ固定値を使う）
   - `model` = 設定の `l1.model`（既定 `jev-latest`。local-jev が既定のモデルに割り当てる）
   - 送る前に pydantic の `JudgeRequest` に通す。通らない → 送らず `l1_unavailable`（`reason=invalid_request`）
   - 数値の判断（距離・TTC・左右・確信度）はモデルにさせない。AlertFlag の `conf`・`distanceM`・`side` は L0 の値のまま。L1 が変えられるのは「赤か、赤でないか」だけ
@@ -198,7 +198,7 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 - [Deferred: 担当=ユーザー（Mac mini 実機、§4 Step 0・Step 6）/ 期日=2026-11-05（Day 3）/ 暫定挙動=local-jev の実物には繋いでいない。SDK の実物を `httpx2.MockTransport` 越しに使い、local-jev の README の応答の形で確かめた。Qwen2.5-1.5B の p50/p95、YOLO と併走したときの L0 の fps、答えの正しさは未計測] 実機での L1 の計測
 - [Deferred: 担当=人 B（Step 4 edge-l1-calibration）/ 期日=2026-11-06 / 暫定挙動=`calibration.json` は無い → 上書きしない。形（version・model・temperatures）と当て方はこの feature で決めた。choice の選択肢の説明文は足していない（足すなら校正と同時）] 温度の学習と選択肢の説明文
-- [Deferred: 担当=人 B（PWA から速度・ゾーンを返す feature、未起票）/ 期日=2026-11-06 / 暫定挙動=`speedKmh=60`・`zone=inside`・`light=night`・`headlight=low` の固定値（降格に寄らない値）。A のシミュレーションログで校正するときに、この固定値との差を確かめる] 車の状態の実値
+- [Deferred: 担当=人 B（docs/specs/pwa-uplink が実装済み。残りは実値での温度の再学習）/ 期日=2026-11-06 / 暫定挙動=`calibration.json` が固定値で学習したもの（`context` が無い）のあいだは `speedKmh=60`・`zone=inside`・`light=night`・`headlight=low` の固定値で聞く（降格に寄らない値）。PWA の実値は校正が `context: "real"` か校正なしのときだけ使う] 車の状態の実値
 - [Deferred: 担当=人 B（edge-capture、未起票）/ 期日=2026-11-06 / 暫定挙動=`Capture.l1Probs` は作らない。確率は `l1.result` のログにだけ残る] Capture へのソフトラベル（B2-9）
 - [Deferred: 担当=人 B（Step 5 edge-l2、任意）/ 期日=2026-11-07 / 暫定挙動=0.5〜0.9 は `l1.l2_candidate` のログだけ。`[l2] enabled` は読むが使わない] L2
 - [Deferred: 担当=人 B（Step 6 の比較実験のあと）/ 期日=2026-11-07 / 暫定挙動=TTC と横速度は edge-l0 のまま 2 点の差（平滑化しない）。L1 にはその値を渡す] TTC の平滑化（edge-l0 から持ち越し）

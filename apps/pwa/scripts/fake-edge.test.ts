@@ -89,6 +89,30 @@ describe('UC-7 偽 edge', () => {
     expect(ack.sinceFrameMs).toBeGreaterThan(0)
   })
 
+  it('pwa-uplink R8: vehicle を 1 行の JSON で出す（3 項目だけ。余分な項目は写さない）', async () => {
+    const { server, lines } = await start({ scenario: 'calm' })
+    const c = connect(server)
+    await until(() => c.messages.length >= 1)
+    c.socket.send(
+      JSON.stringify({ type: 'vehicle', speedKmh: 42, zone: 'inside', light: 'dusk', lat: 43.1 }),
+    )
+    await until(() => lines.some((l) => l.event === 'vehicle'))
+    expect(lines.find((l) => l.event === 'vehicle')).toEqual({
+      event: 'vehicle',
+      speedKmh: 42,
+      zone: 'inside',
+      light: 'dusk',
+    })
+    c.socket.send(JSON.stringify({ type: 'vehicle' }))
+    await until(() => lines.filter((l) => l.event === 'vehicle').length === 2)
+    expect(lines.filter((l) => l.event === 'vehicle')[1]).toEqual({
+      event: 'vehicle',
+      speedKmh: null,
+      zone: null,
+      light: null,
+    })
+  })
+
   it('UC-7d: /alerts 以外は 404', async () => {
     const { server } = await start()
     const res = await fetch(`http://127.0.0.1:${server.port}/other`)

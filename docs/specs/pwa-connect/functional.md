@@ -4,7 +4,7 @@ target_paths:
   - apps/pwa/src/features/connect/
   - apps/pwa/src/app/
   - apps/pwa/scripts/fake-edge.mjs
-spec_confirmed_at: 66cdbee
+spec_confirmed_at: f91683b
 tier: 1
 ---
 
@@ -59,6 +59,7 @@ Story: ドライバー（同乗者）として、QR で Wi-Fi に入ったあと
   - 接続が `open` でないときは送らない（溜めない、あとで送らない。古い `t_shown` は遅延の計測を壊す）
   - `label` は送らない（B2-6、MAY。この feature の範囲外）
   - クライアントがサーバーに AlertFlag を送ることはない（`ClientMessage` の型に無い）
+  - `vehicle`（速度・ゾーン・光。座標なし）は docs/specs/pwa-uplink が追加した。ack の送信・条件は変えない
 - R5: 表示する状態は `deriveAlertState` に任せる（アプリ側で状態を決めない）
   - 入力: 最新のフラグと受信時刻、`gps: {status:'unknown'}`、現在時刻、前回の結果
   - 起動直後でフラグも無い → 琥珀（zone）。距離は「--」（alert-ui C-1）。緑は、フラグの `zone:'outside'` を受けたときだけ

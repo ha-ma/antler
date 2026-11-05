@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 import os
 from time import monotonic
@@ -25,7 +24,7 @@ from detector.l1.client import (
     make_client,
     resolve_base_url,
 )
-from detector.l1.request import build_request
+from detector.l1.request import build_request, context_from_report
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable, Coroutine, Mapping
@@ -56,6 +55,7 @@ def make_verdict(
     latency_ms: float,
     calibration: Calibration | None,
     override_conf: float,
+    state_source: str = "fixed",
 ) -> L1Verdict:
     """答えに校正を当て、結論を出す。校正なし・モデル違いは calibrated=False（降格しない）。"""
     raw_level, raw_conf, _ = conclude(answer.alert_level, answer.false_positive, override_conf)
@@ -73,6 +73,7 @@ def make_verdict(
         conf=conf if calibrated else raw_conf,
         conf_raw=raw_conf,
         reason=reason if calibrated else None,
+        state_source=state_source,
     )
 
 
@@ -88,8 +89,9 @@ async def _wait(hub: AlertHub, seconds: float, sleep: Callable[[float], Awaitabl
     finally:
         for task in (waker, timer):
             task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+        # suppress(CancelledError) で個別に待つと、後始末の最中に来た外からの cancel まで
+        # 握りつぶし、run_l1 が止まらず回り続ける。gather なら自分への cancel は上へ出る
+        await asyncio.gather(waker, timer, return_exceptions=True)
         hub.l1_wake.clear()
 
 
@@ -109,6 +111,9 @@ async def run_l1(
     """
     interval = 1.0 / config.rate_hz
     failures = 0
+    if config.vehicle_state == "pwa" and not _live_vehicle(config, calibration):
+        # 固定値で学習した校正のあいだは、PWA の実値で聞かない（学習に無い入力は降格に寄る）
+        logger.info("l1.vehicle_ignored", extra={"reason": "calibration_fixed"})
     fail_log = _Throttle(FAIL_LOG_INTERVAL_S, clock)
     mismatch_log = _Throttle(MISMATCH_LOG_INTERVAL_S, clock)
     while True:
@@ -154,16 +159,30 @@ async def _ask_once(
     if picked is None:
         return None
     target, recent = picked
-    request = build_request(target, recent, config.model)
+    live = _live_vehicle(config, calibration)
+    report = hub.vehicle_report(config.vehicle_max_age_s) if live else None
+    context, state_source = context_from_report(report)
+    request = build_request(target, recent, config.model, context)
     async with asyncio.timeout(config.timeout_ms / 1000.0):  # どのクライアントでも打ち切る
         answer = await client.judge(request)
     latency_ms = (clock() - started) * 1000.0
     # 聞いているあいだに赤のエピソードが変わった: 降格に使えないので、すぐ聞き直す
     stale = hub.fusion is not None and target.episode != hub.fusion.episode
-    verdict = make_verdict(answer, target, started, latency_ms, calibration, config.override_conf)
+    verdict = make_verdict(
+        answer, target, started, latency_ms, calibration, config.override_conf, state_source
+    )
     hub.on_l1(verdict)
     _observe(observer, answer, clock(), fresh=not stale)
     return verdict, stale
+
+
+def _live_vehicle(config: L1Config, calibration: Calibration | None) -> bool:
+    """PWA の実値を L1 に渡してよいか。設定が pwa で、校正が real か校正なしのとき。
+
+    校正なしなら降格は起きない。固定値で学習した校正のもとでは、学習に無い入力
+    （低速・ゾーン外・昼）が降格に寄るので、固定値で聞く（pwa-uplink R5）。
+    """
+    return config.vehicle_state == "pwa" and (calibration is None or calibration.context == "real")
 
 
 def _observe(observer: AnswerObserver | None, answer: L1Answer, at: float, *, fresh: bool) -> None:

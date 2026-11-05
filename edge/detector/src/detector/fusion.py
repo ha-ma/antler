@@ -66,6 +66,8 @@ class L1Verdict:
     conf: float
     conf_raw: float
     reason: str | None  # false_positive / alert_level / None（降格の理由にならない）
+    # 問い合わせの車の状態が PWA の実値か（pwa / partial / fixed。ログだけ。降格の条件に入れない）
+    state_source: str = "fixed"
 
 
 def conclude(
