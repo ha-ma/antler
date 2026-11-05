@@ -10,6 +10,8 @@ import { lossRoutes, type LossRoutesDeps } from './routes/loss.routes.js'
 import { recordRoutes, type RecordRoutesDeps } from './routes/record.routes.js'
 import { tripDayRoutes, type TripDayRoutesDeps } from './routes/trip-day.routes.js'
 import { tripRoutes, type TripRoutesDeps } from './routes/trip.routes.js'
+import { stopDeckRoutes, type StopDeckRoutesDeps } from './routes/stop-deck.routes.js'
+import { tripEventRoutes, type TripEventRoutesDeps } from './routes/trip-event.routes.js'
 
 // Hono アプリの定義（ランタイム非依存）。起動は src/index.ts、組み立ては di/container.ts。
 
@@ -24,6 +26,10 @@ export type AppDeps = {
   tripDays?: TripDayRoutesDeps
   /** POST /api/trips/:id/losses（loss）。無ければ載せない */
   losses?: LossRoutesDeps
+  /** POST /api/trips/:id/day/:n/stop-deck（stop-events）。無ければ載せない */
+  stopDecks?: StopDeckRoutesDeps
+  /** POST /api/trips/:id/events（stop-events）。無ければ載せない */
+  tripEvents?: TripEventRoutesDeps
   /** 走行の記録・記録・削除・/t/:id（record）。無ければ載せない */
   records?: RecordRoutesDeps
   /** POST /api/captures（edge-capture）。無ければ載せない */
@@ -38,6 +44,8 @@ export function createApp({
   trips,
   tripDays,
   losses,
+  stopDecks,
+  tripEvents,
   records,
   captures,
 }: AppDeps): Hono {
@@ -60,7 +68,7 @@ export function createApp({
     cors({
       origin: [...corsOrigins],
       allowMethods: ['GET', 'POST', 'DELETE'],
-      // Authorization は旅の所有者トークン（record の runs・DELETE）
+      // Authorization: Bearer <ownerToken>（record の runs・DELETE、stop-events の束・イベント）
       allowHeaders: ['Content-Type', 'Idempotency-Key', 'Authorization'],
       exposeHeaders: ['Idempotent-Replayed', 'Retry-After'],
       maxAge: 600,
@@ -71,6 +79,8 @@ export function createApp({
   if (trips) app.route('/', tripRoutes(trips))
   if (tripDays) app.route('/', tripDayRoutes(tripDays))
   if (losses) app.route('/', lossRoutes(losses))
+  if (stopDecks) app.route('/', stopDeckRoutes(stopDecks))
+  if (tripEvents) app.route('/', tripEventRoutes(tripEvents))
   if (records) app.route('/', recordRoutes(records))
   if (captures) app.route('/', captureRoutes(captures))
 

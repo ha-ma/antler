@@ -8,17 +8,22 @@ import { GetTripRecordUseCase } from '../application/usecases/record/get-trip-re
 import { SaveRunUseCase } from '../application/usecases/record/save-run.usecase.js'
 import { GetTripDayUseCase } from '../application/usecases/trip-day/get-trip-day.usecase.js'
 import { WriteLossUseCase } from '../application/usecases/losses/write-loss.usecase.js'
+import { PrepareStopDeckUseCase } from '../application/usecases/stop-events/prepare-stop-deck.usecase.js'
+import { RecordTripEventsUseCase } from '../application/usecases/stop-events/record-trip-events.usecase.js'
 import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
 import { openDatabase, type Connection } from '../infrastructure/db/connection.js'
 import { DrizzleUnitOfWork } from '../infrastructure/db/drizzle-unit-of-work.js'
 import { ensureSchema } from '../infrastructure/db/migrate.js'
 import { ClaudeLossWriterGateway } from '../infrastructure/gateways/claude-loss-writer.gateway.js'
+import { ClaudeSceneWriterGateway } from '../infrastructure/gateways/claude-scene-writer.gateway.js'
 import { ClaudeTripWriterGateway } from '../infrastructure/gateways/claude-trip-writer.gateway.js'
 import { FileRoadCatalogGateway } from '../infrastructure/gateways/file-road-catalog.gateway.js'
 import { createApp } from '../infrastructure/http/app.js'
 import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
+import { DrizzleStopDeckRepository } from '../infrastructure/repositories/drizzle-stop-deck.repository.js'
+import { DrizzleTripEventRepository } from '../infrastructure/repositories/drizzle-trip-event.repository.js'
 import { OgImageRenderer } from '../infrastructure/http/views/og-image-renderer.js'
 import { DrizzleLossRepository } from '../infrastructure/repositories/drizzle-loss.repository.js'
 import { DrizzleRecordRepository } from '../infrastructure/repositories/drizzle-record.repository.js'
@@ -48,7 +53,8 @@ export async function buildContainer(
   await ensureSchema(connection.client)
   const trips = new DrizzleTripRepository(connection.db)
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1 })
-  // Claude の同時呼び出しの枠は plan-trip と loss で 1 つを共有する（別にすると上限が 2 倍になる。loss R8）
+  // Claude の同時呼び出しの枠は plan-trip・stop-events・loss で 1 つを共有する（別にすると上限が増える。loss R8）。
+  // 1 日の上限も trip_writer_calls で共有
   const writerSlots = new InProcessConcurrencyLimiter(env.CLAUDE_MAX_CONCURRENT_CALLS)
 
   const createTrip = new CreateTripUseCase({
@@ -65,9 +71,32 @@ export async function buildContainer(
   })
 
   // 読み出し（brief-map）は同梱データだけで計算し、外部へ通信しない
+  const roadCatalog = new FileRoadCatalogGateway()
   const getTripDay = new GetTripDayUseCase({
     trips,
-    data: new FileRoadCatalogGateway(),
+    data: roadCatalog,
+    clock: new SystemClock(),
+    log: logger,
+  })
+
+  // stop-events（A-4 の束とイベントログ）。書き込みは ownerToken を求める（threat.md）
+  const decks = new DrizzleStopDeckRepository(connection.db)
+  const prepareStopDeck = new PrepareStopDeckUseCase({
+    trips,
+    decks,
+    data: roadCatalog,
+    writer: new ClaudeSceneWriterGateway(anthropic.messages, logger),
+    writerSlots,
+    hasher: new NodeSha256Hasher(),
+    clock: new SystemClock(),
+    log: logger,
+    dailyWriterCallLimit: env.CLAUDE_DAILY_CALL_LIMIT,
+  })
+  const recordTripEvents = new RecordTripEventsUseCase({
+    trips,
+    decks,
+    events: new DrizzleTripEventRepository(connection.db),
+    hasher: new NodeSha256Hasher(),
     clock: new SystemClock(),
     log: logger,
   })
@@ -145,6 +174,8 @@ export async function buildContainer(
     trips: { createTrip, rateLimitKey },
     tripDays: { getTripDay, rateLimitKey },
     losses: { writeLoss, rateLimitKey },
+    stopDecks: { prepareStopDeck, rateLimitKey },
+    tripEvents: { recordTripEvents, rateLimitKey },
     records: { ...records, rateLimitKey },
     captures: { submitCapture, rateLimitKey, log: logger },
   })

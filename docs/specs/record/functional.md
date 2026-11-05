@@ -11,7 +11,7 @@ target_paths:
   - apps/api/src/infrastructure/http/views/
   - apps/sim/src/features/record/
   - apps/sim/src/app/DriveRoute.tsx
-spec_confirmed_at: a904f6d
+spec_confirmed_at: c7d7414
 tier: 2
 ---
 
@@ -87,6 +87,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 - R10 削除（ch6）: `DELETE /api/trips/:id` に `Authorization: Bearer <ownerToken>`
   - 照合: トークンの SHA-256 と保存したハッシュを長さ一定の比較で比べる。無い・形が違う → 401、違う → 403、旅が無い → 404、成功 → 204
   - 消すもの: 旅（TripPlan・TripDetails・所有者のハッシュ）・その旅の run・その旅を指す冪等キーの行を 1 つのトランザクションで（冪等キーの行を残すと、同じキーの再送が「指す旅が無い」500 になる）
+  - stop-events の出来事の束（`stop_decks`）とイベントログ（`trip_events`）の行も消す（2026-11-04、stop-events のマージで足した。下の Deferred を解消。events の runId は run と同じ値で、A-7 の集計は run だけを使う。stop-events functional.md R10）
   - 消した直後から `/t/:id`・`og.png`・`/api/trips/:id/record`・`/api/trips/:id/day/:n` は 404（キャッシュしない。`Cache-Control: no-store`）
   - 消すもの（表）は「`trip_id` の列を持つすべての表」を基準にし、テストで `sqlite_master` を列挙して確かめる（後から表が増えて削除に足し忘れれば落ちる。spec-adversary [3]）
   - sim: 所有者トークンがこの端末にあるときだけ「この記録を削除」を出す。押すと確認（「削除すると、この記録の URL は誰も開けなくなります。元に戻せません。共有先に表示されたカードは残ることがあります」・「削除する」・「やめる」）→ 成功で端末のトークンを消し「削除しました」と A-1 へのリンク。無い端末には「削除は、この旅をつくった端末（同じブラウザ）からできます」
@@ -94,7 +95,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 - R11 走行の保存の hook（barrel）: `useSaveRun()` は旅の id の所有者トークンを読み、あれば POST、無ければ保存しない（`not-owner` を返す）。`recordHref(id)` は `/t/{id}`
   - 呼び出し側（drive・loss）との約束: `not-owner` のときは `/t/:id` へ移らず、その運転の結果をその場で見せる（記録に移ると、自分の運転が消えたように見える）
   - 配線（app 層の `DriveRoute`、drive-link マージ後に追加）: drive の `onFinish(DriveResult)` を `toDriveRun` で run にして保存。旅の場面だけ（見本の場面は残さない）。完走して残せたら `/t/:id` へ（A5-6）、衝突は終了の帯のまま（A-6 は loss）
-    - 2026-11-04 loss の取り込み（PR #31）: 衝突は run を残したうえで、同じ `DriveRoute` が loss の `lossReportFromDrive`・`lossHref` で A-6（`/loss/:id?…`）へ移る（保存の結果は待たない。トークンの無い端末でも移る）。A-6 から A-7 へは「この旅の記録を見る」のリンク（`recordHref`）。record の保存と完走の挙動は変わらない
+    - 2026-11-04 loss の取り込み（PR #31）: 衝突は run を残したうえで、同じ `DriveRoute` が loss の `lossReportFromDrive`・`lossHref` で A-6（`/loss/:id?…`）へ移る（保存の結果は待たない。トークンの無い端末でも移る）。A-6 から A-7 へは「この旅の記録を見る」のリンク（`recordHref`）。旅の削除は A-6 の喪失文（`trip_losses`）も消す。record の保存と完走の挙動は変わらない
   - `toDriveRun`: pending の遭遇は送らない、遭遇の時刻は `alertClockAt`（drive-link。移動の始まりで時計を進めるので startAt + alertAt ではない）、範囲はスキーマの上限に丸める、runId は運転ごとに新しい UUID（推奨で決定）
 - R12 レート制限（IP あたり 1 分）: 書き込み（runs・DELETE）10 件（ch6 の記録作成）、読み出し（record・`/t/:id`）60 件、`og.png` 20 件
 
@@ -213,7 +214,6 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 ## Questions（Deferred のみ残存可）
 
 - [Deferred: 担当=ユーザー / 期日=2026-11-06 / 暫定挙動=消さない] 旅と run の保持期間（plan-trip の Deferred と同じ行。Capture の保持期間と一緒に決める）
-- [Deferred: 担当=Claude（stop-events と record の後にマージする側）/ 期日=2026-11-06 / 暫定挙動=削除は trips・trip_runs・trip_requests だけ] 出来事のログ（stop-events の表）の行も削除のトランザクションで消す。遭遇を events にも入れるなら runId で紐づける（stop-events の仕様に書いてもらう）
 - [Deferred: 担当=人 A / 期日=2026-11-08（Day 6）/ 暫定挙動=写真のプレースホルダ（`photo-placeholder` に名前）] 守れた楽しみの写真の実物
 
 ## Test List（Canon TDD Step 1）

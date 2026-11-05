@@ -21,7 +21,7 @@ target_paths:
   - apps/pwa/src/app/App.tsx
   - apps/pwa/vite.config.ts
   - apps/pwa/.env.example
-spec_confirmed_at: 802c9ae
+spec_confirmed_at: 66c1da4
 tier: 2
 ---
 

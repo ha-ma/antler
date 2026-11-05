@@ -13,7 +13,7 @@ import * as schema from '../db/schema.js'
 
 type Db = BaseSQLiteDatabase<'async', ResultSet, typeof schema>
 
-const { trips, tripRuns, tripRequests, tripLosses } = schema
+const { trips, tripRuns, tripRequests, tripEvents, stopDecks, tripLosses } = schema
 
 type RunRow = typeof tripRuns.$inferSelect
 
@@ -75,6 +75,9 @@ export class DrizzleRecordRepository implements RecordRepository {
     await this.db.delete(tripRuns).where(eq(tripRuns.tripId, tripId))
     // A-6 の喪失文（loss）も旅と一緒に消す（loss の Deferred「削除の cascade」を record のマージ後に実装）
     await this.db.delete(tripLosses).where(eq(tripLosses.tripId, tripId))
+    // stop-events の出来事の束とイベントログ（docs/specs/stop-events/functional.md R10）
+    await this.db.delete(tripEvents).where(eq(tripEvents.tripId, tripId))
+    await this.db.delete(stopDecks).where(eq(stopDecks.tripId, tripId))
     await this.db.delete(tripRequests).where(eq(tripRequests.tripId, tripId))
     const result = await this.db.delete(trips).where(eq(trips.id, tripId))
     return result.rowsAffected

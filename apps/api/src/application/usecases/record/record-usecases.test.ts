@@ -144,11 +144,22 @@ describe('DeleteTripUseCase', () => {
         sql: "INSERT INTO trip_losses (key_hash, trip_id, collision, story, created_at) VALUES (?, ?, '{}', '{}', 0)",
         args: [`loss-${t.id}`, t.id],
       })
+      // stop-events の束とイベントの行（docs/specs/stop-events/functional.md R10。旅の削除で一緒に消す）
+      await h.conn.client.execute({
+        sql: "INSERT INTO stop_decks (trip_id, day, status, created_at, updated_at) VALUES (?, 1, 'failed', 0, 0)",
+        args: [t.id],
+      })
+      await h.conn.client.execute({
+        sql: "INSERT INTO trip_events (trip_id, run_id, seq, day, kind, at, alert_enabled, data, received_at) VALUES (?, 'r', 0, 1, 'collision', '2027-02-14T12:00+09:00', 1, '{}', 0)",
+        args: [t.id],
+      })
     }
     await h.deleteTrip.execute({ tripId: a.id, ownerToken: a.ownerToken })
     const rowsA = await h.rowsOfTrip(a.id)
     // 旅の id を持つ表が増えたら、ここと DrizzleRecordRepository.deleteTrip の両方を直す（足し忘れを止める）
     expect(Object.keys(rowsA).sort()).toEqual([
+      'stop_decks',
+      'trip_events',
       'trip_losses',
       'trip_requests',
       'trip_runs',
@@ -156,7 +167,14 @@ describe('DeleteTripUseCase', () => {
     ])
     expect(Object.values(rowsA).every((n) => n === 0)).toBe(true)
     const rowsB = await h.rowsOfTrip(b.id)
-    expect(rowsB).toMatchObject({ trips: 1, trip_runs: 1, trip_requests: 1, trip_losses: 1 })
+    expect(rowsB).toMatchObject({
+      trips: 1,
+      trip_runs: 1,
+      trip_requests: 1,
+      stop_decks: 1,
+      trip_events: 1,
+      trip_losses: 1,
+    })
   })
 
   it('UC-5b: 削除のあと、同じ冪等キーで旅を作り直しても失敗しない（新しい旅）', async () => {

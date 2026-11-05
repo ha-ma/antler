@@ -33,6 +33,32 @@ const STATEMENTS = [
     created_at INTEGER NOT NULL
   )`,
   `CREATE INDEX IF NOT EXISTS trip_losses_trip_id ON trip_losses (trip_id)`,
+  // stop-events（docs/specs/stop-events/plan.md「マイグレーション統合」）
+  `CREATE TABLE IF NOT EXISTS stop_decks (
+    trip_id TEXT NOT NULL,
+    day INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'done', 'failed')),
+    deck TEXT,
+    writing TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (trip_id, day)
+  )`,
+  `CREATE TABLE IF NOT EXISTS trip_events (
+    trip_id TEXT NOT NULL,
+    run_id TEXT NOT NULL,
+    seq INTEGER NOT NULL,
+    day INTEGER NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('choice', 'encounter', 'collision', 'avoidance')),
+    at TEXT NOT NULL,
+    alert_enabled INTEGER NOT NULL,
+    leg INTEGER,
+    km REAL,
+    data TEXT NOT NULL,
+    received_at INTEGER NOT NULL,
+    PRIMARY KEY (trip_id, run_id, seq)
+  )`,
+  `CREATE INDEX IF NOT EXISTS trip_events_trip ON trip_events (trip_id, received_at)`,
   // 走行の記録（record）
   `CREATE TABLE IF NOT EXISTS trip_runs (
     trip_id TEXT NOT NULL,
