@@ -207,7 +207,7 @@ describe('BlobCaptureRepository（deploy-a R9）', () => {
 describe('VercelBlobImageStore（deploy-a R9）', () => {
   it('CAP-6f: put に非公開・上書き可・接尾辞なし・contentType を渡す', async () => {
     const put = vi.fn().mockResolvedValue({})
-    const store = new VercelBlobImageStore({ put } as unknown as Pick<BlobClient, 'put'>)
+    const store = new VercelBlobImageStore({ put } as unknown as BlobClient)
     await store.put('captures/images/x.jpg', new Uint8Array([1, 2]), 'image/jpeg')
     expect(put).toHaveBeenCalledWith('captures/images/x.jpg', Buffer.from([1, 2]), {
       access: 'private',

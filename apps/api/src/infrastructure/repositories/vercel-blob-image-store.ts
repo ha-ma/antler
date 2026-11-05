@@ -1,4 +1,4 @@
-import { del, put } from '@vercel/blob'
+import { put } from '@vercel/blob'
 
 // BlobCaptureRepository の画像の置き場所（docs/specs/deploy-a/functional.md R9）。
 // Capture の永続化の一部（FileCaptureRepository が画像を fs に書くのと同じ役目）で、外部の通知・送信ではないので
@@ -17,11 +17,10 @@ export interface CaptureImageStore {
 
 export type BlobClient = {
   put: typeof put
-  del: typeof del
 }
 
 export class VercelBlobImageStore implements CaptureImageStore {
-  constructor(private readonly blob: Pick<BlobClient, 'put'> = { put }) {}
+  constructor(private readonly blob: BlobClient = { put }) {}
 
   async put(pathname: string, bytes: Uint8Array, contentType: string): Promise<void> {
     await this.blob.put(pathname, Buffer.from(bytes), {
