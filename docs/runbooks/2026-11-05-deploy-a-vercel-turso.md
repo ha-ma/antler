@@ -146,14 +146,14 @@ curl -sS -o /dev/null -w '%{http_code}\n' "$U/api/nope"   # 404（JSON）
 curl -sS -o /dev/null -w '%{http_code}\n' "$U/plan"       # 200（sim の index.html）
 ```
 
-| 見ること                        | 期待                                                                                            | 違ったら                                                                              |
-| ------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `/health` が 200                | 書き換えのあとも関数が元のパス（`/health`）で受けている                                         | 503 → Runtime Logs の `vercel.boot_failed`（env・版）。404 → `vercel.json` の書き換え |
-| `/health/ready` が 200          | Turso に届き、表の版が 2                                                                        | 503 → 3 のマイグレーション、`TRIPS_DB_URL`・`TURSO_AUTH_TOKEN`                        |
-| ブラウザで `$U/plan` → 旅を作る | 201 でしおりが出る（Claude の呼び出しと Drizzle のトランザクションが Turso に通る）             | 500 → Runtime Logs                                                                    |
-| 運転を終えて `$U/t/<id>`        | SSR の共有ページ（JS なしで読める）                                                             |                                                                                       |
-| `$U/t/<id>/og.png`              | 200 の PNG（`@resvg/resvg-js` の Linux のネイティブが動く）。日本語が四角なら「残っていること」 | 500 → Runtime Logs                                                                    |
-| 共有ページの「EZO ROAD で開く」 | `$U/t/<id>?app=1` で sim の A-7（操作できる画面）が開く                                         |                                                                                       |
+| 見ること                        | 期待                                                                                                                  | 違ったら                                                                                                                                                             |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/health` が 200                | 書き換えのあとも関数が元のパス（`/health`）で受けている。関数の形（`export default { fetch }`）を Vercel が受けている | 503 → Runtime Logs の `vercel.boot_failed`（env・版）。404 → `vercel.json` の書き換え。500・`FUNCTION_INVOCATION_FAILED` → 関数の形・読み込み（Runtime Logs の例外） |
+| `/health/ready` が 200          | Turso に届き、表の版が 2                                                                                              | 503 → 3 のマイグレーション、`TRIPS_DB_URL`・`TURSO_AUTH_TOKEN`                                                                                                       |
+| ブラウザで `$U/plan` → 旅を作る | 201 でしおりが出る（Claude の呼び出しと Drizzle のトランザクションが Turso に通る）                                   | 500 → Runtime Logs                                                                                                                                                   |
+| 運転を終えて `$U/t/<id>`        | SSR の共有ページ（JS なしで読める）                                                                                   |                                                                                                                                                                      |
+| `$U/t/<id>/og.png`              | 200 の PNG（`@resvg/resvg-js` の Linux のネイティブが動く）。日本語が四角なら「残っていること」                       | 500 → Runtime Logs                                                                                                                                                   |
+| 共有ページの「EZO ROAD で開く」 | `$U/t/<id>?app=1` で sim の A-7（操作できる画面）が開く                                                               |                                                                                                                                                                      |
 
 レート制限（Vercel が `X-Forwarded-For` を上書きすること）を確かめる。本文が空なので Claude は呼ばれない（400）。11 回目が 429 なら、偽のヘッダで枠を増やせていない。**自分の IP が 1 分間 429 になる**:
 
@@ -163,6 +163,8 @@ for i in $(seq 1 11); do
     -H 'content-type: application/json' -H "x-forwarded-for: 10.0.0.$i" -H "x-vercel-forwarded-for: 10.9.0.$i" -d '{}'
 done; echo   # 400 が 10 回のあと 429
 ```
+
+**11 回目が 429 にならなければ、そこで止めて Production に出さない**（利用者がヘッダを偽って枠を増やせる状態）。Vercel が `x-vercel-forwarded-for` を上書きしていないので、`apps/api/src/infrastructure/http/middleware/vercel-client-ip.ts` の読む順から `x-vercel-forwarded-for` を外し、`x-real-ip` → `x-forwarded-for` の右端にする修正を頼む。
 
 Capture（Blob の OIDC と非公開の put）を確かめる。テスト用の画像（車外の合成の 320×240）を 1 枚送る:
 
