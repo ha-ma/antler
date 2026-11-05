@@ -42,6 +42,8 @@ edge/**/models/
 *.pt
 edge/**/runs/
 dataset/raw/
+# 配布できない参考写真（評価と 3D の参考だけに使う。学習データにしない。2026-11-04 ユーザー判断、ch9 ③）
+dataset/private/
 
 .DS_Store
 
