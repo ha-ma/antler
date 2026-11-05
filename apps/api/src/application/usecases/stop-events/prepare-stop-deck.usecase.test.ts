@@ -173,14 +173,12 @@ describe('PrepareStopDeckUseCase', { timeout: SLOW_TEST_MS }, () => {
     const broken = (req: Parameters<ScriptedSceneWriter['write']>[0]) => ({
       kind: 'draft' as const,
       writing: {
-        scenes: req.brief.scenes
-          .slice(1)
-          .map(() => ({
-            id: 'x',
-            headline: { ja: '', en: '', zh: '', ko: '' },
-            body: { ja: '', en: '', zh: '', ko: '' },
-            choices: [],
-          })),
+        scenes: req.brief.scenes.slice(1).map(() => ({
+          id: 'x',
+          headline: { ja: '', en: '', zh: '', ko: '' },
+          body: { ja: '', en: '', zh: '', ko: '' },
+          choices: [],
+        })),
       },
     })
     const twice = new ScriptedSceneWriter([broken, broken])

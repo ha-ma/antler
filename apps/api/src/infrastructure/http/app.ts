@@ -6,6 +6,7 @@ import { serializeError, type Logger } from '../logging/logger.js'
 import { toHttpError } from './error-mapper.js'
 import { captureRoutes, type CaptureRoutesDeps } from './routes/capture.routes.js'
 import { healthRoutes, type ReadinessCheck } from './routes/health.routes.js'
+import { lossRoutes, type LossRoutesDeps } from './routes/loss.routes.js'
 import { recordRoutes, type RecordRoutesDeps } from './routes/record.routes.js'
 import { tripDayRoutes, type TripDayRoutesDeps } from './routes/trip-day.routes.js'
 import { tripRoutes, type TripRoutesDeps } from './routes/trip.routes.js'
@@ -23,6 +24,8 @@ export type AppDeps = {
   trips?: TripRoutesDeps
   /** GET /api/trips/:id/day/:n（brief-map）。無ければ載せない */
   tripDays?: TripDayRoutesDeps
+  /** POST /api/trips/:id/losses（loss）。無ければ載せない */
+  losses?: LossRoutesDeps
   /** POST /api/trips/:id/day/:n/stop-deck（stop-events）。無ければ載せない */
   stopDecks?: StopDeckRoutesDeps
   /** POST /api/trips/:id/events（stop-events）。無ければ載せない */
@@ -40,6 +43,7 @@ export function createApp({
   exposeErrorDetails,
   trips,
   tripDays,
+  losses,
   stopDecks,
   tripEvents,
   records,
@@ -74,6 +78,7 @@ export function createApp({
   app.route('/', healthRoutes(readinessChecks))
   if (trips) app.route('/', tripRoutes(trips))
   if (tripDays) app.route('/', tripDayRoutes(tripDays))
+  if (losses) app.route('/', lossRoutes(losses))
   if (stopDecks) app.route('/', stopDeckRoutes(stopDecks))
   if (tripEvents) app.route('/', tripEventRoutes(tripEvents))
   if (records) app.route('/', recordRoutes(records))

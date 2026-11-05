@@ -139,6 +139,11 @@ describe('DeleteTripUseCase', () => {
     const b = await h.newTrip(KEY_B)
     for (const t of [a, b]) {
       await h.saveRun.execute({ tripId: t.id, ownerToken: t.ownerToken, run: makeRun() })
+      // A-6 の喪失文（loss の trip_losses）も旅の行として持つ
+      await h.conn.client.execute({
+        sql: "INSERT INTO trip_losses (key_hash, trip_id, collision, story, created_at) VALUES (?, ?, '{}', '{}', 0)",
+        args: [`loss-${t.id}`, t.id],
+      })
       // stop-events の束とイベントの行（docs/specs/stop-events/functional.md R10。旅の削除で一緒に消す）
       await h.conn.client.execute({
         sql: "INSERT INTO stop_decks (trip_id, day, status, created_at, updated_at) VALUES (?, 1, 'failed', 0, 0)",
@@ -155,6 +160,7 @@ describe('DeleteTripUseCase', () => {
     expect(Object.keys(rowsA).sort()).toEqual([
       'stop_decks',
       'trip_events',
+      'trip_losses',
       'trip_requests',
       'trip_runs',
       'trips',
@@ -167,6 +173,7 @@ describe('DeleteTripUseCase', () => {
       trip_requests: 1,
       stop_decks: 1,
       trip_events: 1,
+      trip_losses: 1,
     })
   })
 

@@ -1,0 +1,395 @@
+/* A-6 喪失（/loss/:id）。night テーマ。色・文字・余白は tokens.css の CSS 変数だけを使う（ch8 規約 1・4）。
+   しおりのカードだけ data-theme="trip" で紙（ground）の面にする。alert-danger は ✕ の行だけに使う。
+   喪失の金額は clay（R3）。ground の上の小さい文字は ink-muted。 */
+
+.loss {
+  min-height: 100vh;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--body-size);
+  line-height: var(--body-line);
+}
+
+.loss--status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-7) var(--space-6);
+}
+
+.loss-status__title {
+  margin: 0;
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.loss-num {
+  font-family: var(--font-mono);
+}
+
+.loss-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.loss :focus-visible {
+  outline: 3px solid var(--spruce);
+  outline-offset: 2px;
+}
+
+/* 本文（2 カラム。狭いと右が下に回る） */
+.loss-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  align-items: flex-start;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-6) var(--space-6);
+}
+
+.loss-main {
+  flex: 1 1 480px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.loss-aside {
+  flex: 1 1 360px;
+  max-width: 460px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.loss-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.loss-eyebrow {
+  margin: 0;
+  color: var(--clay);
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-line);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
+.loss-title {
+  margin: 0;
+  font-size: var(--display-xl-size);
+  line-height: var(--display-xl-line);
+  font-weight: var(--display-xl-weight);
+}
+
+/* 遷移時のフォーカスでは枠を出さない（キーボードの :focus-visible は残す） */
+.loss-title:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.loss-fact {
+  margin: 0;
+  color: var(--ink-muted);
+}
+
+/* Claude の文の欄 */
+.loss-story {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+
+.loss-story__heading {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  font-weight: 700;
+}
+
+.loss-story p {
+  margin: 0;
+}
+
+.loss-story__text {
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+}
+
+.loss-story__failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* 4 指標（StatTile）。アートボードどおり 2 × 2、狭い画面では 1 列 */
+.loss-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+
+@media (max-width: 480px) {
+  .loss-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.loss-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+}
+
+.loss-tile dd {
+  margin: 0;
+}
+
+.loss-tile__label {
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.loss-tile__value {
+  font-family: var(--font-mono);
+  font-size: var(--num-l-size);
+  line-height: var(--num-l-line);
+  font-weight: var(--num-l-weight);
+  overflow-wrap: anywhere;
+}
+
+.loss-tile__value--clay {
+  color: var(--clay);
+}
+
+.loss-tile__unit {
+  font-family: var(--font-sans);
+  font-size: var(--label-size);
+}
+
+.loss-tile__note {
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.loss-tile__approx {
+  display: block;
+}
+
+/* A6-4 の導線（主ボタンは 1 つだけ大きく spruce。44 px 以上） */
+.loss-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.loss-actions__sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.loss-actions__sub > .loss-button {
+  flex: 1 1 200px;
+}
+
+/* A-7 への控えめな導線（文字のリンク。タップ領域は 44px） */
+.loss-record-link {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  min-height: 44px;
+  color: var(--ink-muted);
+  font-size: var(--body-size);
+}
+
+.loss-record-link:hover {
+  color: var(--ink);
+}
+
+.loss-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 48px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-m);
+  font: inherit;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.loss-button--primary {
+  min-height: 64px;
+  border: 0;
+  border-radius: var(--radius-l);
+  background: var(--spruce);
+  color: var(--on-spruce);
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+  box-shadow: 0 6px 0 var(--spruce-deep);
+}
+
+.loss-button--primary:hover {
+  background: var(--spruce-deep);
+}
+
+.loss-button--secondary {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--body-size);
+}
+
+.loss-button--secondary:hover {
+  background: var(--surface);
+}
+
+/* しおりのカード（LossCard）。data-theme="trip" の変数で紙の面 */
+.loss-card {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  border-radius: var(--radius-xl);
+  background: var(--ground);
+  color: var(--ink);
+  box-shadow: var(--shadow-card);
+  transform: rotate(-1.5deg);
+}
+
+.loss-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.loss-card__eyebrow {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-line);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+}
+
+.loss-card__days {
+  color: var(--ink-muted);
+  font-size: var(--num-s-size);
+  line-height: var(--num-s-line);
+}
+
+.loss-card__title {
+  margin: var(--space-3) 0;
+  color: var(--ink-muted);
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.loss-card__rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loss-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.loss-row__mark {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 3ch;
+  font-size: var(--num-s-size);
+}
+
+.loss-row__mark path {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.loss-row--achieved .loss-row__mark {
+  color: var(--spruce);
+}
+
+/* alert-danger は紙（ground）の上で 4.5:1 に少し届かないので、大きい文字（20 px・太字。3:1 で足りる）にする */
+.loss-row--collision {
+  color: var(--alert-danger);
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.loss-row--lost {
+  color: var(--ink-muted);
+}
+
+/* 統計カード */
+.loss-stats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+}
+
+.loss-stats p {
+  margin: 0;
+}
+
+.loss-stats__heading {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: 700;
+}
+
+.loss-stats__sources {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}

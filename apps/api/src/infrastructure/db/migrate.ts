@@ -24,6 +24,15 @@ const STATEMENTS = [
     day_start INTEGER PRIMARY KEY NOT NULL,
     calls INTEGER NOT NULL
   )`,
+  // loss（A-6 の喪失文）
+  `CREATE TABLE IF NOT EXISTS trip_losses (
+    key_hash TEXT PRIMARY KEY NOT NULL,
+    trip_id TEXT NOT NULL,
+    collision TEXT NOT NULL,
+    story TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS trip_losses_trip_id ON trip_losses (trip_id)`,
   // stop-events（docs/specs/stop-events/plan.md「マイグレーション統合」）
   `CREATE TABLE IF NOT EXISTS stop_decks (
     trip_id TEXT NOT NULL,

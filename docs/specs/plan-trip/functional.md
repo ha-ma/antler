@@ -5,7 +5,7 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 541cfb5
+spec_confirmed_at: c54b3a8
 tier: 2
 ---
 
@@ -67,6 +67,7 @@ Questions は 2026-11-03 のラウンドで 18 問すべて推奨で決定（ユ
   - 1 日の上限は **Claude の呼び出しの数**で数える（`CLAUDE_DAILY_CALL_LIMIT`、既定 400 回 ≒ 旅 200 件）。作り直し・時間切れ・検証の外れも数える。保存した旅の数で数えると、失敗させ続ける濫用を止められないため（security-auditor W1、推奨で決定）
   - SDK の通信の再試行（1 回）は数に入らないので、実際の HTTP の呼び出しは最大で上限の 2 倍になる
   - 同時に走る Claude の呼び出しは `CLAUDE_MAX_CONCURRENT_CALLS`（既定 4）まで。超えたら 503 `WRITER_BUSY`
+  - 1 日の上限と同時の枠は loss（A-6 の喪失文、`POST /api/trips/:id/losses`）と共有する（container で同じ枠のインスタンス、同じ `countWriterCall`。2026-11-04、loss の R8。plan-trip の挙動は変わらない）
   - `Idempotency-Key` は UUID v4 だけを受ける。IPv6 は /64 で 1 つの枠にする
 - R10 TripPlan は作成後に変えない。`alertEnabled` は作成時の初期値（true）。A-6・A-7 の ON / OFF は走行の記録の側に持つ
 

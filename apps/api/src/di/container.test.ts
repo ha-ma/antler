@@ -38,6 +38,7 @@ describe('buildContainer', () => {
       // stop-events（docs/specs/stop-events/plan.md「マイグレーション統合」）
       'stop_decks',
       'trip_events',
+      'trip_losses',
       'trip_requests',
       'trip_runs',
       'trip_writer_calls',
