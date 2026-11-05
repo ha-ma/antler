@@ -5,7 +5,7 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 541cfb5
+spec_confirmed_at: c54b3a8
 tier: 2
 ---
 
