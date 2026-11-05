@@ -11,7 +11,7 @@ target_paths:
   - apps/api/src/infrastructure/http/views/
   - apps/sim/src/features/record/
   - apps/sim/src/app/DriveRoute.tsx
-spec_confirmed_at: d95dc55
+spec_confirmed_at: a904f6d
 tier: 2
 ---
 
