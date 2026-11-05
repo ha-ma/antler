@@ -70,7 +70,7 @@
 
 - [ ] CORS: 同じオリジン。`CORS_ORIGINS` の既定は自分のオリジン 1 つ（`*` は env の検査で拒否のまま）
 - [ ] CSP: sim は `connect-src 'self'`（`VITE_API_BASE_URL` は空）。SSR のページは record の CSP のまま
-- [ ] レートリミット: 数えは Turso でインスタンスをまたぐ。Turso に届かないときは通す（fail-open）。Claude の 1 日の上限は DB、同時呼び出しはインスタンスごと。費用の最後の守りは Anthropic のコンソールの支出の上限（手順書）
+- [ ] レートリミット: 数えは Turso でインスタンスをまたぐ。Turso に届かないときは、インスタンスのメモリで数える（上限なしにしない）。Claude の 1 日の上限は DB、同時呼び出しはインスタンスごと。費用の最後の守りは Anthropic のコンソールの支出の上限（手順書）
 - [ ] エラーメッセージ: 起動の失敗は 503 `UNAVAILABLE` だけ。`exposeErrorDetails` は `NODE_ENV=development` だけのまま（Vercel では production）
 - [ ] ログマスキング: env の値・トークン・IP・Capture の本文を出さない
 - [ ] 秘密: リポジトリに書かない。`.env.*` は gitignore 済み。Vercel では Sensitive の env にする（手順書）

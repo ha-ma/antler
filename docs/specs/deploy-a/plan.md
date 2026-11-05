@@ -25,7 +25,7 @@ PR は 1 つ（ブランチ `feat/deploy-a`、base は main）。実装 約 700 
 
 - Vercel のプロジェクトの設定（`vercel.json`）・関数の入口・api の bundle
 - Turso の接続（HTTP）・マイグレーションのコマンドと版・`/health/ready` の版の検査
-- レート制限の数えの差し込み口と Turso の実装（HMAC の鍵・掃除・fail-open）
+- レート制限の数えの差し込み口と Turso の実装（HMAC の鍵・掃除・届かないときはメモリで数える）
 - Vercel のヘッダからの IP、Vercel の env の既定と検査
 - Capture の保存先（Turso の行と Vercel Blob の画像）
 - record の共有の URL（絶対の URL・`?app=1`）

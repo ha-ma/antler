@@ -54,6 +54,7 @@ cd ../..
 git status --short apps/api   # 2 つのファイルが出てこない（gitignore 済み）こと
 ```
 
+- 2 つのファイルは、表を変える PR のたびのマイグレーション（3）で使う。使わなくなったら消す（`rm apps/api/.env.turso-*`）。作った日を覚えておき、デモが終わったらトークンを作り直す
 - トークンは既定で期限なし・読み書きできる。漏れたら `turso db tokens invalidate <db>` で全部を無効にし、作り直して 5 の値を入れ替える
 - Vercel に入れるトークンは、5 でこのファイルの `TURSO_AUTH_TOKEN=` の右側を写す（コピーしたらクリップボードを別の文字で上書きする）
 
@@ -181,11 +182,12 @@ Preview も同じ順に確かめる（保護があるので、ブラウザで Ve
 
 - **Runtime Logs**（プロジェクト → Logs）で `vercel.boot_failed`（組み立ての失敗。理由は env の名前か `SchemaOutdatedError`）、`rate_limit.counter_unavailable`（Turso に届かない）、`http.error` を探す
 - 前のデプロイに戻す: Deployments → 前の Production → **Instant Rollback**（DB の表は戻らない。表の版を上げた PR を戻すときは注意）
-- Turso が落ちているあいだ、レート制限は通す（fail-open）。費用は 1 日の上限（DB）と 6 の支出の上限で止まる
+- Turso が落ちているあいだ、レート制限はインスタンスごとのメモリで数える（インスタンスが増えると上限がゆるむ）。費用は 1 日の上限（DB）と 6 の支出の上限で止まる
+- `client_ip.missing` が出ていたら、IP のヘッダが届いていない（全員が 1 つの枠になる）。Vercel の前に別のプロキシを置いていないか確かめる
 
 ## 8. 任意: Vercel Firewall のレート制限
 
-使えるプランなら、Firewall → Rules に `/api/*` の IP あたりのレート制限（例: 1 分 120 回）を足す。アプリのレート制限の前で止まり、Turso の書き込みも減る。
+使えるプランなら、Firewall → Rules に `/api/*` と `/health/ready`（1 回ごとに Turso を読む。レート制限が無い）の IP あたりのレート制限（例: 1 分 120 回）を足す。アプリのレート制限の前で止まり、Turso の読み書きも減る。
 
 ## 残っていること（この手順の外）
 

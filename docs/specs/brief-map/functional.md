@@ -9,7 +9,7 @@ target_paths:
   - apps/api/src/infrastructure/gateways/file-road-catalog.gateway.ts
   - apps/api/src/infrastructure/http/routes/trip-day.routes.ts
   - apps/sim/src/features/brief-map/
-spec_confirmed_at: a4a0343
+spec_confirmed_at: 5939fc8
 tier: 2
 ---
 
@@ -25,6 +25,8 @@ A-1 で決めた旅の「その日」を、出発の前に見せる画面（A-2�
 画面: UI キャンバス v2 の A2_Brief（`/trip/:id/brief`）。読み取り結果は `docs/reports/2026-11-03-a2-brief-artboard.md`。
 
 **Tier 2 の理由**: 認可（保存した旅を ID だけで読み出す初めての API。plan-trip の threat.md が「読み出しは brief-map で」と残した）、外部への依存（ブラウザが地図タイルを外部の提供元から読む。ルートは開発時に OSRM から取って同梱する）。永続化の表は増やさない（条件はシードから決まるので保存しない。R4）。
+
+**deploy-a（2026-11-05）での変更**: レート制限の `rateLimit` に名前（`trip-day.read`）を付けた（Vercel ではこの名前でインスタンスをまたいで数える）。挙動は変わらない。Vercel の関数では `@antler/zones/zones.geojson` を関数のファイルに含める（`vercel build` で確かめた）。
 
 **範囲外**: 運転の画面と、そこで条件・ルートを使うこと（drive-3d。この feature は URL と型だけを渡す）、ランダムなイベント（給油・渋滞など。stop-events が `stops` の横に足す）、旅全体の地図（A-7、record）、Capture の `conditions` の語彙（`_` 区切り）への変換（capture）、`/drive` のチャンクの先読み（drive-3d のマージ後）。
 

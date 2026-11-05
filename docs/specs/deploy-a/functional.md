@@ -19,9 +19,11 @@ target_paths:
   - apps/api/src/infrastructure/http/app.ts
   - apps/api/src/infrastructure/http/routes/
   - apps/api/src/infrastructure/repositories/blob-capture.repository.ts
-  - apps/api/src/infrastructure/gateways/vercel-blob-image.gateway.ts
+  - apps/api/src/infrastructure/repositories/vercel-blob-image-store.ts
+  - apps/api/src/infrastructure/http/unavailable.ts
+  - apps/api/src/domain/captures/policies/capture-claim-policy.ts
   - apps/api/tests/vercel/
-spec_confirmed_at: b02e87f
+spec_confirmed_at: 5939fc8
 tier: 2
 ---
 
@@ -98,22 +100,26 @@ Story: ハッカソンの審査員・利用者として、URL 1 つで A（旅�
   - Turso の実装 `LibsqlRateLimitCounter`: 固定の窓（`floor(now / windowMs) * windowMs`）ごとに `INSERT … ON CONFLICT DO UPDATE SET count = count + 1 RETURNING count` で 1 文で数える。窓の始まりはメモリの実装（最初の要求から 1 分）と違い、時計にそろえる
   - **IP を表に置かない**: 鍵は `HMAC-SHA256(秘密, scope + "\n" + IP の枠)` の先頭 32 桁（16 進）。秘密は `OWNER_TOKEN_SECRET` から HMAC で派生（`"rate-limit"`）。窓が過ぎた行は 1 分に 1 回まで消す。止められるのは「DB だけを読める人」まで（`OWNER_TOKEN_SECRET` と DB の両方を持つ運用者は IPv4 を総当たりで戻せる。実際の守りは「1〜2 分で消える」ことと「秘密を DB と別の場所に置く」こと）
   - **上限を超えた鍵は DB に書かない**（spec-adversary W4）: 数えが上限を超えたら、その scope と鍵を窓の終わりまでプロセスのメモリに覚え（鍵は 10,000 まで）、次からは DB に行かずに 429。連打やクローラで Turso の書き込みの枠を使い切らせない
-  - 数えに失敗（Turso に届かない・2 秒で答えない）→ **通す**（fail-open）。`rate_limit.counter_unavailable` を warn（1 分に 1 回まで）。一時的な障害だけが対象（版が古い DB は R3 で全部止まる）。Claude の 1 日の上限は DB で数えていて、ここでは変わらない
+  - 数えに失敗（Turso に届かない・2 秒で答えない）→ **このインスタンスのメモリで数える**（上限なしにはしない。security-auditor W2。インスタンスごとの上限に落ちる）。`rate_limit.counter_unavailable` を warn（1 分に 1 回まで）。一時的な障害だけが対象（版が古い DB は R3 で全部止まる）。Claude の 1 日の上限は DB で数えていて、ここでは変わらない
   - Claude の同時呼び出しの上限（`InProcessConcurrencyLimiter`）は**インスタンスごと**のまま（推奨で決定）。インスタンスが n 個なら最大 n × `CLAUDE_MAX_CONCURRENT_CALLS`。費用の上限は 1 日の上限（DB）と Anthropic のコンソールの支出の上限で守る
 - R8: 利用者の IP（Vercel）
   - Vercel は `x-forwarded-for` を接続元の IP **1 つ**で上書きする（公式の資料「we currently overwrite the X-Forwarded-For header」）。`x-real-ip`・`x-vercel-forwarded-for` も同じ値。だから今の `TRUST_PROXY=true`（右端）は Vercel でも正しい
   - ただし関数は `fetch(Request)` で呼ばれ、Node のソケット（`getConnInfo`）が無い。env の設定に頼らず、Vercel の組み立てが**ヘッダから取る** `remoteAddress` を渡す: `x-vercel-forwarded-for` の右端 → `x-real-ip` → `x-forwarded-for` の右端。どれも無ければ `unknown`（1 つの枠）
   - `TRUST_PROXY` は Vercel では読まない（どちらでも同じ値になる）。IPv6 は今までどおり /64 で 1 つ
+  - IP が取れない（`unknown`）ときは `client_ip.missing` を warn（1 分に 1 回まで。パスだけ）。全員が 1 つの枠になるのに気づけるようにする（security-auditor W3）
 - R9: Capture の保存先（Vercel。推奨で決定）
   - `CaptureRepository` の新しい実装 `BlobCaptureRepository`。口（`create`・`find`・`stats`）と `SubmitCaptureUseCase` は変えない。ローカルは `FileCaptureRepository` のまま
   - 画像は Vercel Blob（`access: 'private'`）の `captures/images/{key}-{画像の sha256 全 64 桁}.{jpg|png}`。名前が中身のハッシュなので、同じ名前は同じ中身。上書きを許す（`allowOverwrite: true`。同じバイトの上書きは何も変えない）。ランダムな接尾辞は付けない
   - 本文（サーバーが決めた形の Capture）・本文のハッシュ・画像の名前・バイト数・受け取った時刻・状態（`pending` / `done`）は Turso の `captures`（`key` が主キー）。**`done` の行が完成のしるし**
   - 順番（spec-adversary W1。行を先に取る。plan-trip の `trip_requests` と同じ形）:
-    1. 行を `pending` で取る（`INSERT … ON CONFLICT(key) DO UPDATE … WHERE status = 'pending' AND updated_at <= 10 分前 RETURNING`。新しく入れた、または 10 分より古い `pending` を引き継いだ = 自分のもの）。取れなかった = 既存の本文のハッシュで `exists`
-    2. 画像を置く。失敗 → 自分の `pending` の行を消して（失敗は無視。消せなくても 10 分で引き継げる）例外
-    3. 行を `done` にする（自分が取った `updated_at` のときだけ）。失敗 → 例外（画像は残る。10 分後の再送が引き継いで同じ名前に上書きする）
+    1. 行を `pending` で取る（`INSERT … ON CONFLICT(key) DO UPDATE … WHERE status = 'pending' AND updated_at <= 90 秒前 RETURNING`。新しく入れた、または 90 秒より古い `pending` を引き継いだ = 自分のもの）。取れなかった = 既存の本文のハッシュで `exists`。取れなかったのに行が無い（相手が消した直後）→ 例外（409 にしない。再送で直る）
+    2. 画像を置く。失敗 → 自分の `pending` の行を消して（失敗は無視。消せなくても 90 秒で引き継げる）例外
+    3. 行を `done` にする（自分が取った `updated_at` のときだけ）。失敗 → 例外（画像は残る。90 秒後の再送が引き継いで同じ名前に上書きする）。0 行（引き継がれていた）→ 例外（`created` と言わない）
+  - 90 秒（`CAPTURE_STALE_PENDING_MS`。関数の `maxDuration` 60 秒＋余裕）より古い `pending` は、書いた要求が止まったとみなす。判断は domain の純粋関数（`isStalePending`）
+  - 画像の置き場所（`CaptureImageStore`、Vercel Blob の実装 `VercelBlobImageStore`）は Capture の永続化の一部（`FileCaptureRepository` が画像を fs に書くのと同じ）なので、Gateway にせず Repository の実装の中に閉じる（layer-guard Critical）
+  - 残る穴（code-reviewer W1。docs/reports に残す）: 手順 3 が失敗した直後 90 秒以内に同じ本文を再送すると 200（既存）になり、その行は `done` にならない。未完成を 503 で返すには `ExistingCapture` と edge-capture の契約を変える（別 feature）
   - **行を入れられない間は画像を置かない**（行の INSERT が失敗し続けても Blob が増えない）。`stats` は `pending` も数える（上限が効く）
-  - `find`: `done` と 10 分以内の `pending` は本文のハッシュを返す（同じなら 200、違えば 409）。10 分より古い `pending` は無い扱い（`create` が引き継ぐ）
+  - `find`: `done` と 90 秒以内の `pending` は本文のハッシュを返す（同じなら 200、違えば 409）。90 秒より古い `pending` は無い扱い（`create` が引き継ぐ）
   - 負けた側（`exists`）は画像を置いていないので、消すものが無い
   - `find` と `stats`（件数・バイト数の和）は Turso を読む（インスタンスをまたいで正しい）。上限（`CAPTURES_MAX_ITEMS`・`CAPTURES_MAX_BYTES`）は今までどおり。Vercel では小さくする（手順書: Production 5,000 件・1 GiB、Preview 500 件・100 MiB）
   - 読み出し・削除の口は作らない（edge-capture と同じ。IDOR の面を作らない）。Blob の非公開のファイルは Blob の資格が無いと読めない
@@ -163,7 +169,7 @@ Story: ハッカソンの審査員・利用者として、URL 1 つで A（旅�
 
 ### S-3: Turso が一時的に落ちる
 
-- **Given**: DB に届かない → **Then**: レート制限は通す（warn）。DB を使う操作は 500。`/health/ready` は 503
+- **Given**: DB に届かない → **Then**: レート制限はインスタンスのメモリで数える（warn）。DB を使う操作は 500。`/health/ready` は 503
 
 ## Questions（Deferred のみ残存可）
 
@@ -180,7 +186,7 @@ Story: ハッカソンの審査員・利用者として、URL 1 つで A（旅�
 - IP → Vercel ではヘッダから取る（env に頼らない）。XFF は Vercel が上書きする 1 つの値（公式の資料）
 - Capture → 画像は Blob、本文と数えは Turso。名前は画像の sha256 の全桁（推奨で決定）
 - レート制限の鍵 → HMAC で表に IP を置かない（plan-trip の threat.md「IP は保存しない」を守る）
-- Turso に届かないときのレート制限 → 通す（fail-open。推奨で決定）。ただし版が古い DB は組み立てで全部止める（spec-adversary W2）
+- Turso に届かないときのレート制限 → インスタンスのメモリで数える（Turso を待って止めない。上限なしにもしない。推奨で決定。security-auditor W2）。版が古い DB は組み立てで全部止める（spec-adversary W2）
 - Capture の順番 → 行を `pending` で先に取り、画像を置いて `done` にする（spec-adversary W1。推奨で決定）
 - レート制限の書き込みの量 → 上限を超えた鍵は窓の終わりまでメモリで 429（DB に書かない）。Vercel Firewall のレート制限は手順書で勧める（spec-adversary W4。推奨で決定）
 - Preview → Deployment Protection（Vercel のログインの人だけ）を必須にする。Anthropic のキーは Preview と Production で分ける（spec-adversary W。推奨で決定）
@@ -196,84 +202,84 @@ Story: ハッカソンの審査員・利用者として、URL 1 つで A（旅�
 
 外側ループ（受け入れ）:
 
-- [ ] AC-1: `vite.vercel.config.ts` で bundle を作り、Node で `handler.mjs` を import して Vercel の env（`https://` の Turso の URL・トークン・Blob の資格・`VERCEL_ENV=preview`・`VERCEL_URL`）で `fetch` を呼ぶ: `/health` 200、`/api/nope` 404 の JSON。bundle に `from './common'` のような拡張子なしの相対 import と `@antler/` の import が無く、`libsql` のネイティブの import が実行の経路に無い。build のときの env に入れた目印の秘密が bundle に焼き込まれていない（版の検査は Turso に届かないので、組み立ては DB を差し替えて通す）
-- [ ] AC-2: 同じ DB（file）を見る 2 つの組み立て（Vercel の組み立て。DB と画像の置き場所は di の差し込み口から file の DB と偽物を渡す。env の `file:` の抜け道は作らない）で、同じ IP（`x-vercel-forwarded-for`）から `POST /api/trips`（10/分）を交互に 11 回 → 11 回目が 429（10 回目までは本文の検査の 400）。別の IP は 429 にならない。`rate_limit_hits` のどの列にも IP の文字列が無い
-- [ ] AC-3: Vercel の組み立てで `POST /api/captures` → 201、Turso の `captures` に 1 行、画像の置き場所に `captures/images/{key}-{sha256}.jpg` が 1 つ。同じ再送 → 200（`Idempotent-Replayed`）、違う本文 → 409
-- [ ] AC-4: 空の DB で Vercel の組み立て → `/health` も 503 `UNAVAILABLE`。`runMigration` を流したあと → 次の要求から `/health` 200・`/health/ready` 200
+- [x] AC-1: `vite.vercel.config.ts` で bundle を作り、Node で `handler.mjs` を import して Vercel の env（`https://` の Turso の URL・トークン・Blob の資格・`VERCEL_ENV=preview`・`VERCEL_URL`）で `fetch` を呼ぶ: `/health` 200、`/api/nope` 404 の JSON。bundle に `from './common'` のような拡張子なしの相対 import と `@antler/` の import が無く、`libsql` のネイティブの import が実行の経路に無い。build のときの env に入れた目印の秘密が bundle に焼き込まれていない（版の検査は Turso に届かないので、組み立ては DB を差し替えて通す）
+- [x] AC-2: 同じ DB（file）を見る 2 つの組み立て（Vercel の組み立て。DB と画像の置き場所は di の差し込み口から file の DB と偽物を渡す。env の `file:` の抜け道は作らない）で、同じ IP（`x-vercel-forwarded-for`）から `POST /api/trips`（10/分）を交互に 11 回 → 11 回目が 429（10 回目までは本文の検査の 400）。別の IP は 429 にならない。`rate_limit_hits` のどの列にも IP の文字列が無い
+- [x] AC-3: Vercel の組み立てで `POST /api/captures` → 201、Turso の `captures` に 1 行、画像の置き場所に `captures/images/{key}-{sha256}.jpg` が 1 つ。同じ再送 → 200（`Idempotent-Replayed`）、違う本文 → 409
+- [x] AC-4: 空の DB で Vercel の組み立て → `/health` も 503 `UNAVAILABLE`。`runMigration` を流したあと → 次の要求から `/health` 200・`/health/ready` 200
 
 UC-1 入口と bundle:
 
-- [ ] VH-1a: 組み立ての失敗 → 503 `UNAVAILABLE`。応答に env の名前・メッセージが無い。ログ `vercel.boot_failed` に名前とメッセージ。次の要求でもう一度組み立てる
-- [ ] VH-1b: 同時の最初の要求 2 つで組み立ては 1 回
-- [ ] VH-1c: 入口は表を作らない（空の DB で組み立てても表が増えない）
-- [ ] VH-1d: 版の古い DB（`schema_meta` の版が 1）→ 組み立ての失敗で全部 503。成功した組み立てのあとは版を見に行かない
-- [ ] CFG-1d: `apps/sim/vercel.json`: framework `vite`・`buildCommand` `npm run build:vercel`・`outputDirectory` `dist`・関数 `api/index.mjs` の `maxDuration` 60・region `hnd1`・書き換えの順（`/api/(.*)`・`/health`・`/health/ready`・`/t/:id/og.png`・`/t/:id`（`missing` の `app`）・最後に `/(.*)` → `/index.html`）
-- [ ] CFG-1e: `apps/sim/api/index.mjs` は bundle の再輸出だけ。`apps/sim/package.json` に `build:vercel` と `engines.node` 22
+- [x] VH-1a: 組み立ての失敗 → 503 `UNAVAILABLE`。応答に env の名前・メッセージが無い。ログ `vercel.boot_failed` に名前とメッセージ。次の要求でもう一度組み立てる
+- [x] VH-1b: 同時の最初の要求 2 つで組み立ては 1 回
+- [x] VH-1c: 入口は表を作らない（空の DB で組み立てても表が増えない）
+- [x] VH-1d: 版の古い DB（`schema_meta` の版が 1）→ 組み立ての失敗で全部 503。成功した組み立てのあとは版を見に行かない
+- [x] CFG-1d: `apps/sim/vercel.json`: framework `vite`・`buildCommand` `npm run build:vercel`・`outputDirectory` `dist`・関数 `api/index.mjs` の `maxDuration` 60・region `hnd1`・書き換えの順（`/api/(.*)`・`/health`・`/health/ready`・`/t/:id/og.png`・`/t/:id`（`missing` の `app`）・最後に `/(.*)` → `/index.html`）
+- [x] CFG-1e: `apps/sim/api/index.mjs` は bundle の再輸出だけ。`apps/sim/package.json` に `build:vercel` と `engines.node` 22
 
 UC-2 環境変数:
 
-- [ ] ENV-2a: 公開の URL・`CORS_ORIGINS` の既定: production は `VERCEL_PROJECT_PRODUCTION_URL`、preview は `VERCEL_BRANCH_URL`、無ければ `VERCEL_URL`。明示が勝つ。Vercel の値も明示も無ければ何も足さない
-- [ ] ENV-2b: Vercel の検査: `file:` の URL・トークンなし・Blob の資格なし → `EnvError`（名前つき・値なし）。`libsql://`・`https://` とトークンと（`BLOB_STORE_ID` か `BLOB_READ_WRITE_TOKEN`）→ 通る
-- [ ] ENV-2c: ローカルの `loadEnv`: `TURSO_AUTH_TOKEN` は任意。`TRIPS_DB_URL` が `libsql://` でトークンなし → `EnvError`。`file:` は今までどおり
+- [x] ENV-2a: 公開の URL・`CORS_ORIGINS` の既定: production は `VERCEL_PROJECT_PRODUCTION_URL`、preview は `VERCEL_BRANCH_URL`、無ければ `VERCEL_URL`。明示が勝つ。Vercel の値も明示も無ければ何も足さない
+- [x] ENV-2b: Vercel の検査: `file:` の URL・トークンなし・Blob の資格なし → `EnvError`（名前つき・値なし）。`libsql://`・`https://` とトークンと（`BLOB_STORE_ID` か `BLOB_READ_WRITE_TOKEN`）→ 通る
+- [x] ENV-2c: ローカルの `loadEnv`: `TURSO_AUTH_TOKEN` は任意。`TRIPS_DB_URL` が `libsql://` でトークンなし → `EnvError`。`file:` は今までどおり
 
 UC-3 DB とマイグレーション:
 
-- [ ] DB-3a: `openRemoteDatabase` は `libsql://` を HTTP のクライアント（`protocol` が `http`）で開く。`file:` は拒む。クライアントの `fetch` は 10 秒で打ち切る（答えない fetch が `AbortSignal` で止まる）
-- [ ] MIG-3f: 版の表が無い今までの手元の DB（`trips` に行がある）に `ensureSchema` → 版 2 になり、既存の行は消えない
-- [ ] MIG-3b: `ensureSchema` で `rate_limit_hits`・`captures`・`schema_meta` ができ、版が `SCHEMA_VERSION`。2 回流しても壊れない。版は下がらない
-- [ ] MIG-3c: `checkSchema`: 空の DB・古い版 → `SchemaOutdatedError`。`ensureSchema` のあと → 通る
-- [ ] MIG-3d: `runMigration`（コマンドの中身）: file の URL で表を作って版を返す。出力にトークンが出ない。`--env-file` を読む
-- [ ] MIG-3e: ローカルの `buildContainer(source)` は今までどおり起動時に表を作る（版も書く）
+- [x] DB-3a: `openRemoteDatabase` は `libsql://` を HTTP のクライアント（`protocol` が `http`）で開く。`file:` は拒む。クライアントの `fetch` は 10 秒で打ち切る（答えない fetch が `AbortSignal` で止まる）
+- [x] MIG-3f: 版の表が無い今までの手元の DB（`trips` に行がある）に `ensureSchema` → 版 2 になり、既存の行は消えない
+- [x] MIG-3b: `ensureSchema` で `rate_limit_hits`・`captures`・`schema_meta` ができ、版が `SCHEMA_VERSION`。2 回流しても壊れない。版は下がらない
+- [x] MIG-3c: `checkSchema`: 空の DB・古い版 → `SchemaOutdatedError`。`ensureSchema` のあと → 通る
+- [x] MIG-3d: `runMigration`（コマンドの中身）: file の URL で表を作って版を返す。出力にトークンが出ない。`--env-file` を読む
+- [x] MIG-3e: ローカルの `buildContainer(source)` は今までどおり起動時に表を作る（版も書く）
 
 UC-4 レート制限:
 
-- [ ] RL-4a: 数えを差さなければ今までどおりメモリ（既存の rate-limit のテストが Green）
-- [ ] RL-4b: 差した数えで数え、上限を超えたら 429 と `Retry-After`（窓の終わりまで）。`RateLimit-Remaining` が出る
-- [ ] RL-4c: scope は `rateLimit` の名前。同じ `rateLimit` を 2 つの route で使えば共有、別の名前は別に数える。route のファイルの名前がすべて違う（同じ名前で別の上限を持たない）
-- [ ] RL-4d: 数えが失敗（null）→ 通す。warn は 1 分に 1 回まで
-- [ ] RL-4e: `LibsqlRateLimitCounter`: 同じ窓で 1・2・3、次の窓で 1。別の鍵は別。`resetAt` は窓の終わり。DB のエラーで null
-- [ ] RL-4f: 窓が過ぎた行を、1 分に 1 回まで消す
-- [ ] RL-4g: 鍵は HMAC（同じ IP・同じ scope で同じ値、scope が違えば違う値、秘密が違えば違う値）。表に IP が無い
-- [ ] RL-4h: 数えが 2 秒で答えない → null（通す）
-- [ ] RL-4i: 上限を超えた鍵は、窓の終わりまで数えを呼ばずに 429（`Retry-After` は残りの秒）。窓が過ぎたらまた数えを呼ぶ。覚える鍵は 10,000 まで
+- [x] RL-4a: 数えを差さなければ今までどおりメモリ（既存の rate-limit のテストが Green）
+- [x] RL-4b: 差した数えで数え、上限を超えたら 429 と `Retry-After`（窓の終わりまで）。`RateLimit-Remaining` が出る
+- [x] RL-4c: scope は `rateLimit` の名前。同じ `rateLimit` を 2 つの route で使えば共有、別の名前は別に数える。route のファイルの名前がすべて違う（同じ名前で別の上限を持たない）
+- [x] RL-4d: 数えが失敗（null）→ このインスタンスのメモリで数える（上限を超えたら 429）。warn は 1 分に 1 回まで
+- [x] RL-4e: `LibsqlRateLimitCounter`: 同じ窓で 1・2・3、次の窓で 1。別の鍵は別。`resetAt` は窓の終わり。DB のエラーで null
+- [x] RL-4f: 窓が過ぎた行を、1 分に 1 回まで消す
+- [x] RL-4g: 鍵は HMAC（同じ IP・同じ scope で同じ値、scope が違えば違う値、秘密が違えば違う値）。表に IP が無い
+- [x] RL-4h: 数えが 2 秒で答えない → null（メモリで数える）
+- [x] RL-4i: 上限を超えた鍵は、窓の終わりまで数えを呼ばずに 429（`Retry-After` は残りの秒）。窓が過ぎたらまた数えを呼ぶ。覚える鍵は 10,000 まで
 
 UC-5 IP:
 
-- [ ] IP-5a: `vercelClientIp`: `x-vercel-forwarded-for` の右端 → `x-real-ip` → `x-forwarded-for` の右端 → 無ければ undefined。空白・空の値を飛ばす
-- [ ] IP-5b: Vercel の組み立ての鍵は `TRUST_PROXY` に関係なくヘッダから取る。IPv6 は /64 にまとまる
+- [x] IP-5a: `vercelClientIp`: `x-vercel-forwarded-for` の右端 → `x-real-ip` → `x-forwarded-for` の右端 → 無ければ undefined。空白・空の値を飛ばす
+- [x] IP-5b: Vercel の組み立ての鍵は `TRUST_PROXY` に関係なくヘッダから取る。IPv6 は /64 にまとまる
 
 UC-6 Capture（Blob）:
 
-- [ ] CAP-6a: `create` → 行を `pending` で取り、画像を `captures/images/{key}-{sha256}.{ext}`（非公開・上書き可）に置き、行を `done` にする。`created`
-- [ ] CAP-6b: 同じ key が既にある（`done`・10 分以内の `pending`）→ `exists` と既存の本文のハッシュ。画像は置かない
-- [ ] CAP-6c: 画像を置けない → 例外。自分の `pending` の行は消える（再送で `created`）
-- [ ] CAP-6d: `find`（無い → null、`done` と 10 分以内の `pending` → ハッシュ、10 分より古い `pending` → null）・`stats`（`pending` も含む件数とバイト数の和。インスタンスをまたいで同じ値）
-- [ ] CAP-6g: 行を取れない（INSERT が例外）→ 例外。画像は置かない（INSERT が失敗し続けても Blob が増えない）
-- [ ] CAP-6h: 10 分より古い `pending` は `create` が引き継ぐ（`created`）。10 分以内は引き継がない
-- [ ] CAP-6i: `done` にできない → 例外。画像は残り、行は `pending`
-- [ ] CAP-6e: 不正な key（`..` など）→ 例外（置き場所の名前に使う前に止める）
-- [ ] CAP-6f: Vercel Blob の置き場所: `put` に `access: 'private'`・`allowOverwrite: true`・`addRandomSuffix: false`・`contentType` を渡す。`del` は名前で消す
+- [x] CAP-6a: `create` → 行を `pending` で取り、画像を `captures/images/{key}-{sha256}.{ext}`（非公開・上書き可）に置き、行を `done` にする。`created`
+- [x] CAP-6b: 同じ key が既にある（`done`・90 秒以内の `pending`）→ `exists` と既存の本文のハッシュ。画像は置かない
+- [x] CAP-6c: 画像を置けない → 例外。自分の `pending` の行は消える（再送で `created`）
+- [x] CAP-6d: `find`（無い → null、`done` と 90 秒以内の `pending` → ハッシュ、90 秒より古い `pending` → null）・`stats`（`pending` も含む件数とバイト数の和。インスタンスをまたいで同じ値）
+- [x] CAP-6g: 行を取れない（INSERT が例外）→ 例外。画像は置かない（INSERT が失敗し続けても Blob が増えない）
+- [x] CAP-6h: 90 秒より古い `pending` は `create` が引き継ぐ（`created`）。90 秒以内は引き継がない
+- [x] CAP-6i: `done` にできない → 例外。画像は残り、行は `pending`
+- [x] CAP-6e: 不正な key（`..` など）→ 例外（置き場所の名前に使う前に止める）
+- [x] CAP-6f: Vercel Blob の置き場所: `put` に `access: 'private'`・`allowOverwrite: true`・`addRandomSuffix: false`・`contentType` を渡す（消す口は持たない）
 
 UC-7 record の URL:
 
-- [ ] REC-7a: SSR のページの「EZO ROAD で開く」が `${SIM_PUBLIC_URL}/t/{id}?app=1`
-- [ ] REC-7b: sim の `recordShareUrl`・`recordImageUrl` は `VITE_API_BASE_URL` が空ならページのオリジンを付けた絶対の URL。値があれば今までどおり
+- [x] REC-7a: SSR のページの「EZO ROAD で開く」が `${SIM_PUBLIC_URL}/t/{id}?app=1`
+- [x] REC-7b: sim の `recordShareUrl`・`recordImageUrl` は `VITE_API_BASE_URL` が空ならページのオリジンを付けた絶対の URL。値があれば今までどおり
 
 認可（threat.md の ❌ セル）:
 
-- [ ] AUTH-1: ヘッダを偽っても枠を増やせない: Vercel の組み立ては `x-vercel-forwarded-for` を先に読み、利用者が足した `x-forwarded-for` の左側は使わない
-- [ ] AUTH-2: レート制限の表と Capture の表のどの列にも IP が無い
-- [ ] AUTH-3: Capture の画像の読み出し・一覧・削除の HTTP の口が無い（`GET /api/captures`・`GET /api/captures/:id`・`DELETE` は 404）
-- [ ] AUTH-4: マイグレーションの HTTP の口が無い（`POST /api/migrate` などは 404）。入口は表を作らない
-- [ ] AUTH-5: 起動の失敗の応答に env の名前・値・例外のメッセージが無い
-- [ ] AUTH-6: `/health/ready` の応答は検査の名前と `unavailable` だけ（DB の URL・エラーの文が無い）
-- [ ] AUTH-7: 秘密を知らなければ鍵から IP を戻せない: 同じ IP でも秘密が違えば鍵が違い、鍵は IP の文字列を含まない
+- [x] AUTH-1: ヘッダを偽っても枠を増やせない: Vercel の組み立ては `x-vercel-forwarded-for` を先に読み、利用者が足した `x-forwarded-for` の左側は使わない
+- [x] AUTH-2: レート制限の表と Capture の表のどの列にも IP が無い
+- [x] AUTH-3: Capture の画像の読み出し・一覧・削除の HTTP の口が無い（`GET /api/captures`・`GET /api/captures/:id`・`DELETE` は 404）
+- [x] AUTH-4: マイグレーションの HTTP の口が無い（`POST /api/migrate` などは 404）。入口は表を作らない
+- [x] AUTH-5: 起動の失敗の応答に env の名前・値・例外のメッセージが無い
+- [x] AUTH-6: `/health/ready` の応答は検査の名前と `unavailable` だけ（DB の URL・エラーの文が無い）
+- [x] AUTH-7: 秘密を知らなければ鍵から IP を戻せない: 同じ IP でも秘密が違えば鍵が違い、鍵は IP の文字列を含まない
 
 障害（resilience.md の失敗モード）:
 
-- [ ] FAIL-1: Turso に届かない（組み立てのあと）→ レート制限は通す。`/health/ready` は 503
-- [ ] FAIL-2: Blob に置けない → Capture は 500（行なし）。再送で 201
-- [ ] FAIL-3: 行を `done` にできない（画像は置いた）→ 500。10 分より古くなった `pending` を再送が引き継ぎ、同じ名前の画像を上書きして 201（画像は 1 つ）
+- [x] FAIL-1: Turso に届かない（組み立てのあと）→ レート制限はメモリで数える（11 回目は 429）。`/health/ready` は 503
+- [x] FAIL-2: Blob に置けない → Capture は 500（行なし）。再送で 201
+- [x] FAIL-3: 行を `done` にできない（画像は置いた）→ 500。90 秒より古くなった `pending` を再送が引き継ぎ、同じ名前の画像を上書きして 201（画像は 1 つ）
 
 ## Rule → ドメイン語彙対応（Tier 2 推奨）
 
@@ -288,13 +294,13 @@ UC-7 record の URL:
 | R7: 数え             | RateLimitCounter / LibsqlRateLimitCounter  | apps/api/src/infrastructure/system/rate-limit-counter.ts            | UC-2 |
 | R8: IP               | vercelClientIp                             | apps/api/src/infrastructure/http/middleware/vercel-client-ip.ts     | UC-5 |
 | R9: Capture          | BlobCaptureRepository                      | apps/api/src/infrastructure/repositories/blob-capture.repository.ts | UC-3 |
-| R9: 画像             | VercelBlobImageStore                       | apps/api/src/infrastructure/gateways/vercel-blob-image.gateway.ts   | UC-3 |
+| R9: 画像             | VercelBlobImageStore                       | apps/api/src/infrastructure/repositories/vercel-blob-image-store.ts | UC-3 |
 | R3・R7・R9: 組み立て | createVercelPlatform / createLocalPlatform | apps/api/src/di/                                                    | UC-1 |
 
 ## 非機能要件
 
-- [ ] 性能: レート制限の数えは 1 要求に Turso への 1 文（窓の掃除は 1 分に 1 回まで）。関数の region と Turso を東京にそろえる
-- [ ] 可用性: Turso に届かないとき、レート制限は通す。起動の失敗は 503 で、次の要求で直る
-- [ ] セキュリティ: 秘密（`ANTHROPIC_API_KEY`・`OWNER_TOKEN_SECRET`・`TURSO_AUTH_TOKEN`・`BLOB_READ_WRITE_TOKEN`）をリポジトリ・ログ・応答・`VITE_` の変数に出さない
-- [ ] プライバシー: IP は表に置かない（HMAC）。Capture の規約（位置を `roadSegment` に丸める・同意済みだけ）は edge-capture のまま
-- [ ] 既存のテストが Green（api・sim）。カバレッジ 70% 以上。ローカルの `npm run dev:api` は今までどおり
+- [x] 性能: レート制限の数えは 1 要求に Turso への 1 文（窓の掃除は 1 分に 1 回まで）。関数の region と Turso を東京にそろえる
+- [x] 可用性: Turso に届かないとき、レート制限はインスタンスのメモリで数える。起動の失敗は 503 で、次の要求で直る
+- [x] セキュリティ: 秘密（`ANTHROPIC_API_KEY`・`OWNER_TOKEN_SECRET`・`TURSO_AUTH_TOKEN`・`BLOB_READ_WRITE_TOKEN`）をリポジトリ・ログ・応答・`VITE_` の変数に出さない
+- [x] プライバシー: IP は表に置かない（HMAC）。Capture の規約（位置を `roadSegment` に丸める・同意済みだけ）は edge-capture のまま
+- [x] 既存のテストが Green（api・sim）。カバレッジ 70% 以上。ローカルの `npm run dev:api` は今までどおり

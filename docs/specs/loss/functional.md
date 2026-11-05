@@ -10,7 +10,7 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-loss.repository.ts
   - apps/api/src/infrastructure/http/routes/loss.routes.ts
   - apps/api/src/infrastructure/http/schemas/loss.schema.ts
-spec_confirmed_at: a904f6d
+spec_confirmed_at: 5939fc8
 tier: 2
 ---
 
@@ -26,6 +26,8 @@ A-6 の画面は、保存したしおり（`GET /api/trips/:id/day/:n`、brief-m
 画面: UI キャンバス v2 の A6_Loss（`/loss/:id`）。night テーマ。
 
 **Tier 2 の理由**: 外部副作用（Claude API の呼び出し。費用と遅延）、永続化（喪失文を保存し、再生・再読み込みで Claude を呼ばない）、並行性（同じ衝突の同時の要求）。
+
+**deploy-a（2026-11-05）での変更**: レート制限の `rateLimit` に名前（`losses.write`）を付けた（Vercel ではこの名前でインスタンスをまたいで数える）。挙動は変わらない。
 
 **範囲外**: 運転中に衝突を検出して `lossHref` に移る組み込み（drive-link。drive の feature は編集しない）、「衝突の 3 秒前を見る」の巻き戻し再生（drive の機能。Deferred）、A-7 の記録への喪失の表示（record）、免責・NOC の実額（stats.json の deductible はプレースホルダ）。
 
