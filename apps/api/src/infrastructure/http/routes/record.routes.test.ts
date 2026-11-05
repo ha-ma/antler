@@ -281,7 +281,8 @@ describe('GET /t/:id（SSR）', () => {
     expect(page).toContain(t('logHeading', { n: 1 }))
     expect(page).toContain(t('shioriHeading'))
     expect(page).toContain(`href="${URLS.pwa}"`)
-    expect(page).toContain(`href="${URLS.sim}/t/${id}"`)
+    // REC-7a（deploy-a R2）: 同じオリジンの /t/:id は SSR になるので、A-7（SPA）へは ?app=1 で開く
+    expect(page).toContain(`href="${URLS.sim}/t/${id}?app=1"`)
     expect(page).toContain(`href="${URLS.sim}/plan"`)
   })
 

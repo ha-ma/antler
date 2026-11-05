@@ -23,6 +23,7 @@ export function tripDayRoutes({ getTripDay, rateLimitKey, now }: TripDayRoutesDe
   app.get(
     '/api/trips/:id/day/:n',
     rateLimit({
+      name: 'trip-day.read',
       limit: TRIP_DAYS_PER_MINUTE_PER_IP,
       windowMs: 60_000,
       key: rateLimitKey,

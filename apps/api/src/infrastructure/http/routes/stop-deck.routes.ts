@@ -25,6 +25,7 @@ export function stopDeckRoutes({ prepareStopDeck, rateLimitKey, now }: StopDeckR
   app.post(
     '/api/trips/:id/day/:n/stop-deck',
     rateLimit({
+      name: 'stop-deck.prepare',
       limit: STOP_DECKS_PER_MINUTE_PER_IP,
       windowMs: 60_000,
       key: rateLimitKey,

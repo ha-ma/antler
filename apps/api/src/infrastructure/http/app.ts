@@ -3,6 +3,8 @@ import { cors } from 'hono/cors'
 import { requestId } from 'hono/request-id'
 import { secureHeaders } from 'hono/secure-headers'
 import { serializeError, type Logger } from '../logging/logger.js'
+import type { RateLimitCounter } from '../system/rate-limit-counter.js'
+import { provideRateLimitCounter } from './middleware/rate-limit.js'
 import { toHttpError } from './error-mapper.js'
 import { captureRoutes, type CaptureRoutesDeps } from './routes/capture.routes.js'
 import { healthRoutes, type ReadinessCheck } from './routes/health.routes.js'
@@ -34,6 +36,8 @@ export type AppDeps = {
   records?: RecordRoutesDeps
   /** POST /api/captures（edge-capture）。無ければ載せない */
   captures?: CaptureRoutesDeps
+  /** レート制限の数え先（deploy-a R7。Vercel では Turso）。無ければ各 rateLimit がプロセスのメモリで数える */
+  rateLimitCounter?: RateLimitCounter
 }
 
 export function createApp({
@@ -48,6 +52,7 @@ export function createApp({
   tripEvents,
   records,
   captures,
+  rateLimitCounter,
 }: AppDeps): Hono {
   const app = new Hono()
 
@@ -74,6 +79,8 @@ export function createApp({
       maxAge: 600,
     }),
   )
+
+  if (rateLimitCounter) app.use(provideRateLimitCounter(rateLimitCounter))
 
   app.route('/', healthRoutes(readinessChecks))
   if (trips) app.route('/', tripRoutes(trips))

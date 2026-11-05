@@ -15,3 +15,8 @@ export const CAPTURE_ID_MAX_LENGTH = 40
 export const CAPTURE_KEY_PATTERN = /^cap_[a-z0-9]+$/
 /** 画像の実ファイル名に使う sha256 の桁数 */
 export const CAPTURE_IMAGE_HASH_PREFIX = 12
+/**
+ * 書きかけ（pending）の保存を、書いた要求が止まったとみなして引き継ぐまでの時間（ミリ秒。deploy-a R9）。
+ * Vercel の関数は 60 秒（maxDuration）で止まるので、それに余裕を足した 90 秒
+ */
+export const CAPTURE_STALE_PENDING_MS = 90_000

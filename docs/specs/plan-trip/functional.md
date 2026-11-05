@@ -5,7 +5,7 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: c54b3a8
+spec_confirmed_at: 5939fc8
 tier: 2
 ---
 
@@ -20,6 +20,8 @@ A-1 の画面で、人数・日程・出発地・楽しみを選ぶと、その�
 画面: UI キャンバス v2 の A1_Plan（`/plan`）。読み取り結果は `docs/reports/2026-11-03-design-a1-plan.md`。
 
 **Tier 2 の理由**: 外部副作用（Claude API の呼び出し。費用と遅延）、永続化（TripPlan と TripDetails を保存し、後の feature が読む）、並行性（「決める」の二重押し・再送）。
+
+**deploy-a（2026-11-05）での変更**: Vercel で動かすため、di を Platform（ローカル / Vercel）に分けた。ローカルは今までどおり起動時に表を作る（MIGR-1）。表に `rate_limit_hits`・`captures`・`schema_meta`（版 2）を足した。レート制限（R9）は `rateLimit` に名前（`trips.create`）を付け、Vercel では数えを Turso に置く（鍵は HMAC で IP を置かない）。IP は Vercel ではヘッダから取る。この仕様の挙動（10/分/IP・1 日の上限・所有者トークン）は変わらない。詳しくは docs/specs/deploy-a/。
 
 **範囲外**: `GET /api/trips/{id}/day/{n}`・地図（brief-map。`/trip/:id/brief` の仮の画面は brief-map が本物の A-2 に置き換えた。2026-11-03）、`/t/{id}` と削除の画面・API（record）、出来事の文（stop-events）、喪失文（loss）、写真の実物（Day 6）。
 

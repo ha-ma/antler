@@ -54,11 +54,18 @@ export function recordRoutes({
   rateLimitKey,
   now,
 }: RecordRoutesDeps): Hono {
-  const limit = (perMinute: number) =>
-    rateLimit({ limit: perMinute, windowMs: 60_000, key: rateLimitKey, ...(now ? { now } : {}) })
+  // name は数えの単位（deploy-a R7。Vercel ではインスタンスをまたいで同じ枠）
+  const limit = (name: string, perMinute: number) =>
+    rateLimit({
+      name,
+      limit: perMinute,
+      windowMs: 60_000,
+      key: rateLimitKey,
+      ...(now ? { now } : {}),
+    })
   // 書き込み（runs・DELETE）と読み出し（record・/t/:id）は、それぞれ 1 つの枠を route で分け合う
-  const writes = limit(RECORD_WRITES_PER_MINUTE_PER_IP)
-  const reads = limit(RECORD_READS_PER_MINUTE_PER_IP)
+  const writes = limit('record.writes', RECORD_WRITES_PER_MINUTE_PER_IP)
+  const reads = limit('record.reads', RECORD_READS_PER_MINUTE_PER_IP)
   const params = zValidator('param', recordParamsSchema, throwOnInvalidTripBody)
 
   // 変数名は app（sfad-drift が `app.get(` で threat.md の操作と突き合わせる）
@@ -111,7 +118,9 @@ export function recordRoutes({
       const page = await renderRecordPage(buildRecordView(trip, record), {
         page: `${urls.api}${path}`,
         ogImage: `${urls.api}${path}/og.png`,
-        app: `${urls.sim}${path}`,
+        // ?app=1 は sim の A-7（SPA）を開く合図。Vercel では /t/:id を SSR に書き換えるので、
+        // クエリが無いとこのページに戻ってしまう（deploy-a R2）
+        app: `${urls.sim}${path}?app=1`,
         plan: `${urls.sim}/plan`,
         pwa: urls.pwa,
       })
@@ -123,7 +132,7 @@ export function recordRoutes({
     }
   })
 
-  app.get('/t/:id/og.png', limit(OG_IMAGES_PER_MINUTE_PER_IP), params, async (c) => {
+  app.get('/t/:id/og.png', limit('record.og', OG_IMAGES_PER_MINUTE_PER_IP), params, async (c) => {
     const { trip, record, version } = await getRecord.execute({ id: c.req.valid('param').id })
     // 旅（TripPlan）は作成後に変わらない（plan-trip R10）ので、run の数と最後の seq で記録の版が決まる
     const key = `${trip.id}:${String(version.runs)}:${String(version.lastSeq)}`

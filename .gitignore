@@ -17,6 +17,9 @@ apps/api/data/
 # POST /api/captures が受け取った Capture と画像（同意済みの匿名データ。コミットしない）
 data/captures-received/
 
+# Vercel の CLI（vercel link・vercel build の出力。プロジェクトの ID と環境変数の写しが入る）
+.vercel/
+
 # 秘密
 .env
 .env.*

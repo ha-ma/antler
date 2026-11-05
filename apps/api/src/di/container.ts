@@ -1,6 +1,4 @@
-import { resolve } from 'node:path'
 import Anthropic from '@anthropic-ai/sdk'
-import { getConnInfo } from '@hono/node-server/conninfo'
 import type { Hono } from 'hono'
 import { SubmitCaptureUseCase } from '../application/usecases/captures/submit-capture.usecase.js'
 import { DeleteTripUseCase } from '../application/usecases/record/delete-trip.usecase.js'
@@ -12,9 +10,8 @@ import { PrepareStopDeckUseCase } from '../application/usecases/stop-events/prep
 import { RecordTripEventsUseCase } from '../application/usecases/stop-events/record-trip-events.usecase.js'
 import { CreateTripUseCase } from '../application/usecases/trips/create-trip.usecase.js'
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
-import { openDatabase, type Connection } from '../infrastructure/db/connection.js'
+import type { Connection } from '../infrastructure/db/connection.js'
 import { DrizzleUnitOfWork } from '../infrastructure/db/drizzle-unit-of-work.js'
-import { ensureSchema } from '../infrastructure/db/migrate.js'
 import { ClaudeLossWriterGateway } from '../infrastructure/gateways/claude-loss-writer.gateway.js'
 import { ClaudeSceneWriterGateway } from '../infrastructure/gateways/claude-scene-writer.gateway.js'
 import { ClaudeTripWriterGateway } from '../infrastructure/gateways/claude-trip-writer.gateway.js'
@@ -28,7 +25,6 @@ import { OgImageRenderer } from '../infrastructure/http/views/og-image-renderer.
 import { DrizzleLossRepository } from '../infrastructure/repositories/drizzle-loss.repository.js'
 import { DrizzleRecordRepository } from '../infrastructure/repositories/drizzle-record.repository.js'
 import { DrizzleTripRepository } from '../infrastructure/repositories/drizzle-trip.repository.js'
-import { FileCaptureRepository } from '../infrastructure/repositories/file-capture.repository.js'
 import { NodeSha256BytesHasher } from '../infrastructure/security/node-bytes-hasher.js'
 import {
   HmacSha256TokenSigner,
@@ -37,20 +33,37 @@ import {
 } from '../infrastructure/security/node-crypto.js'
 import { InProcessConcurrencyLimiter } from '../infrastructure/system/in-process-concurrency-limiter.js'
 import { SystemClock } from '../infrastructure/system/system-clock.js'
+import type { PlatformFactory } from './platform.js'
 
 // Composition Root。全層を組み立てる唯一の場所。
-// 起動時に SQLite の表を作る（MIGR-1）。Claude のフェイクはテストの差し込みだけで、ここでは使わない（threat.md）。
+// 動く場所ごとに違う部品（DB の接続・Capture の保存先・IP の取り方・レート制限の数え先）は Platform で受ける
+// （docs/specs/deploy-a/functional.md R3）。既定はローカル（起動時に SQLite の表を作る。MIGR-1）。
+// ローカルの部品はネイティブの libsql を読むので、動的 import の先に置く（Vercel の関数の bundle が実行時に読まない）。
+// Claude のフェイクはテストの差し込みだけで、ここでは使わない（threat.md）。
 
 export type Container = { env: Env; logger: Logger; app: Hono; connection: Connection }
 
+export type BuildContainerOptions = {
+  /** env の読み方（Vercel は loadVercelEnv）。既定は loadEnv */
+  loadEnv?: (source: Record<string, string | undefined>) => Env
+  /** 動く場所ごとの部品。既定はローカル */
+  platform?: PlatformFactory
+}
+
+async function defaultPlatform(): Promise<PlatformFactory> {
+  const { createLocalPlatform } = await import('./local-platform.js')
+  return createLocalPlatform
+}
+
 export async function buildContainer(
   source: Record<string, string | undefined>,
+  options: BuildContainerOptions = {},
 ): Promise<Container> {
-  const env = loadEnv(source)
+  const env = (options.loadEnv ?? loadEnv)(source)
   const logger = createLogger(env.LOG_LEVEL, { base: { service: 'api' } })
 
-  const connection = openDatabase(env.TRIPS_DB_URL)
-  await ensureSchema(connection.client)
+  const platform = await (options.platform ?? (await defaultPlatform()))(env, logger)
+  const { connection } = platform
   const trips = new DrizzleTripRepository(connection.db)
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1 })
   // Claude の同時呼び出しの枠は plan-trip・stop-events・loss で 1 つを共有する（別にすると上限が増える。loss R8）。
@@ -136,9 +149,9 @@ export async function buildContainer(
     urls: { api: env.PUBLIC_API_URL, sim: env.SIM_PUBLIC_URL, pwa: env.PWA_PUBLIC_URL },
   }
 
-  // POST /api/captures（edge-capture）。ファイル保存（CAPTURES_DIR を 0700 で作り、件数と画像の合計を数える）
+  // POST /api/captures（edge-capture）。保存先は Platform（ローカルはファイル、Vercel は Turso と Blob）
   const submitCapture = new SubmitCaptureUseCase({
-    captures: new FileCaptureRepository(resolve(env.CAPTURES_DIR)),
+    captures: platform.captures,
     hasher: new NodeSha256Hasher(),
     bytesHasher: new NodeSha256BytesHasher(),
     clock: new SystemClock(),
@@ -147,28 +160,15 @@ export async function buildContainer(
   })
 
   const rateLimitKey = clientIpKey({
-    trustProxy: env.TRUST_PROXY,
-    remoteAddress: (c) => {
-      try {
-        return getConnInfo(c).remote.address
-      } catch {
-        // Node のソケットが無い（app.request のテストなど）
-        return undefined
-      }
-    },
+    trustProxy: platform.trustProxy ?? env.TRUST_PROXY,
+    remoteAddress: platform.remoteAddress,
   })
 
   const app = createApp({
     logger,
     corsOrigins: env.CORS_ORIGINS,
-    readinessChecks: [
-      {
-        name: 'sqlite',
-        check: async () => {
-          await connection.client.execute('SELECT 1')
-        },
-      },
-    ],
+    readinessChecks: platform.readinessChecks,
+    ...(platform.rateLimitCounter ? { rateLimitCounter: platform.rateLimitCounter } : {}),
     // 例外のメッセージ（detail）を応答に出すのは development だけ（test・production・未設定では出さない）
     exposeErrorDetails: env.NODE_ENV === 'development',
     trips: { createTrip, rateLimitKey },

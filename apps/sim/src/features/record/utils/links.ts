@@ -10,9 +10,14 @@ export function recordHref(tripId: string): string {
   return `/t/${encodeURIComponent(tripId)}`
 }
 
-/** 共有する記録の URL（api の SSR。OG の meta を出せるのはサーバーだけ） */
+/**
+ * 共有する記録の URL（api の SSR。OG の meta を出せるのはサーバーだけ）。
+ * VITE_API_BASE_URL が空（Vercel の同じオリジン。deploy-a R10）なら、ページのオリジンを付けて絶対の URL にする
+ * （コピーした URL が相対にならない）
+ */
 export function recordShareUrl(tripId: string): string {
-  return `${apiBase()}/t/${encodeURIComponent(tripId)}`
+  const base = apiBase() || (typeof window === 'undefined' ? '' : window.location.origin)
+  return `${base}/t/${encodeURIComponent(tripId)}`
 }
 
 /** しおりの PNG（OG 画像と同じもの） */

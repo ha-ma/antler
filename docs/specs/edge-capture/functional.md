@@ -21,7 +21,7 @@ target_paths:
   - apps/pwa/src/app/App.tsx
   - apps/pwa/vite.config.ts
   - apps/pwa/.env.example
-spec_confirmed_at: 806b4e1
+spec_confirmed_at: 5939fc8
 tier: 2
 ---
 
@@ -40,6 +40,8 @@ A と B が同じ `Capture` で教師データを残す（付録 A #5〜7、デ�
 
 要件: `docs/requirements/ch4-edge.md` B2-5・B3-3、ch5「データ収集と同意」、ch6「プライバシー」、ch7 の Capture と `POST /api/captures`、`docs/changes/2026-11-03-b-l1-local-jev.md` B2-9。
 契約: `@antler/schema` の `CaptureSchema`・`isUploadable`・`L1ProbsSchema`（凍結。変更しない）、docs/specs/edge-camera（`FrameResult`・`format_t_frame`）、docs/specs/edge-judge（`estimate_distance_m`・`side_of`）、docs/specs/edge-l1（`L1Answer`・`run_l1`）。
+
+**deploy-a（2026-11-05）での変更**: `CaptureRepository` に Vercel の実装 `BlobCaptureRepository`（本文と数えは Turso の `captures`、画像は Vercel Blob の非公開のストア。pending で行を取ってから画像を置き done にする。古い pending の判断は `domain/captures/policies/capture-claim-policy.ts`）を足した。ローカルは `FileCaptureRepository` のまま。口・UseCase・応答（201 / 200 / 409 / 503）は変えない。di は Platform から保存先を受ける。env に `TURSO_AUTH_TOKEN` を足した。レート制限の枠の名前は `captures.submit`。詳しくは docs/specs/deploy-a/。
 
 **範囲外**: 実写の画像を `dataset/` に入れること（ch9 ③「学習データ配布の可否確認」は要確認のまま。テストは合成画像だけ）、sim の「見つけた」の画面、`dataset/` への取り込みと学習、ナンバー・顔のぼかし、B2-6 の音声ラベル、`roadSegment` を埋める経路（pwa-uplink）、edge の起動入口（`__main__`。まだ無い）。
 

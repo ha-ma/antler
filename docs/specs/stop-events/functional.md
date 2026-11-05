@@ -14,7 +14,7 @@ target_paths:
   - apps/api/src/infrastructure/http/schemas/stop-deck.schema.ts
   - apps/api/src/infrastructure/http/schemas/trip-event.schema.ts
   - apps/sim/src/features/stop-events/
-spec_confirmed_at: 527faca
+spec_confirmed_at: 5939fc8
 tier: 2
 ---
 
@@ -29,6 +29,8 @@ sim は A-4 のモーダル（写真・短文・滞在・支出・次の到着�
 画面: UI キャンバス v2 の A4_Stop（PC）・A4_L（スマホ横）。`/drive` の上に出すモーダル。
 
 **Tier 2 の理由**: 外部副作用（Claude API。費用と遅延）、永続化（出来事の束とイベントログの 2 表。record が読む）、認可（ownerToken を書き込みの権利に広げる）、並行性（同じ日の束の同時生成、イベントの再送）。
+
+**deploy-a（2026-11-05）での変更**: レート制限の `rateLimit` に名前（`stop-deck.prepare`・`trip-events.record`）を付けた（Vercel ではこの名前でインスタンスをまたいで数える）。挙動は変わらない。
 
 **範囲外**:
 

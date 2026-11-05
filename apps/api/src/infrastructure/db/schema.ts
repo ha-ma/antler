@@ -1,4 +1,4 @@
-import type { TripDetails, TripPlan } from '@antler/schema'
+import type { Capture, TripDetails, TripPlan } from '@antler/schema'
 import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 import type { CollisionDescriptor } from '../../domain/losses/models/loss.js'
 import type { StopDeck } from '../../domain/stop-events/models/stop-deck.js'
@@ -98,6 +98,41 @@ export const tripRuns = sqliteTable(
   (t) => [
     primaryKey({ columns: [t.tripId, t.runId] }),
     index('trip_runs_trip_seq').on(t.tripId, t.seq),
+  ],
+)
+
+/**
+ * Vercel で受けた Capture（docs/specs/deploy-a/functional.md R9）。画像は Vercel Blob、本文と数えはここ。
+ * pending で行を取ってから画像を置き、done にする。done の行が完成のしるし
+ */
+export const storedCaptures = sqliteTable('captures', {
+  /** id の小文字（^cap_[a-z0-9]+$） */
+  key: text('key').primaryKey(),
+  status: text('status', { enum: ['pending', 'done'] }).notNull(),
+  /** サーバーが決めた形の Capture（image は論理のパス、consent: true） */
+  capture: text('capture', { mode: 'json' }).$type<Capture>().notNull(),
+  /** Blob の画像の名前（captures/images/{key}-{sha256}.{ext}） */
+  file: text('file').notNull(),
+  bodyHash: text('body_hash').notNull(),
+  imageBytes: integer('image_bytes').notNull(),
+  /** 受け取った時刻（ISO 8601） */
+  receivedAt: text('received_at').notNull(),
+  /** 行を取った・状態を変えた時刻（ms）。古い pending の引き継ぎに使う */
+  updatedAt: integer('updated_at').notNull(),
+})
+
+/** レート制限の数え（deploy-a R7）。bucket は HMAC。読み書きは LibsqlRateLimitCounter（SQL を直に書く） */
+export const rateLimitHits = sqliteTable(
+  'rate_limit_hits',
+  {
+    bucket: text('bucket').notNull(),
+    windowStart: integer('window_start').notNull(),
+    count: integer('count').notNull(),
+    expiresAt: integer('expires_at').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bucket, t.windowStart] }),
+    index('rate_limit_hits_expires').on(t.expiresAt),
   ],
 )
 

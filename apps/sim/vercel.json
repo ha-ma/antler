@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist",
+  "regions": ["hnd1"],
+  "functions": {
+    "api/index.mjs": { "maxDuration": 60 }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/health", "destination": "/api" },
+    { "source": "/health/ready", "destination": "/api" },
+    { "source": "/t/:id/og.png", "destination": "/api" },
+    {
+      "source": "/t/:id",
+      "missing": [{ "type": "query", "key": "app" }],
+      "destination": "/api"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
