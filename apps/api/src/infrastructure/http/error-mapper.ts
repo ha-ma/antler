@@ -18,6 +18,7 @@ import {
   TripWriterBusyError,
   TripWriterError,
 } from '../../domain/trips/errors/trip-errors.js'
+import { LossLimitError, LossWriterError } from '../../domain/losses/errors/loss-errors.js'
 import {
   EventConflictError,
   EventLimitError,
@@ -80,6 +81,13 @@ export function toHttpError(error: unknown): HttpError {
     return { status: 503, code: 'WRITER_BUSY', message: error.message }
   }
   if (error instanceof TripWriterError) {
+    return { status: 502, code: 'WRITER_FAILED', message: error.message }
+  }
+  // loss（docs/specs/loss/functional.md「エラーパターン」）
+  if (error instanceof LossLimitError) {
+    return { status: 429, code: 'LOSS_LIMIT', message: error.message }
+  }
+  if (error instanceof LossWriterError) {
     return { status: 502, code: 'WRITER_FAILED', message: error.message }
   }
   // 旅の記録（docs/specs/record/functional.md「エラーパターン」）

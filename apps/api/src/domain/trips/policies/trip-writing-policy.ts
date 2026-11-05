@@ -56,7 +56,8 @@ function checkText(text: string, lang: TripLang, path: string, max: number): Tri
   return problems
 }
 
-function checkLocalized(
+/** 4 言語の文を 1 つずつ検査する（喪失文の検証 loss-story-policy も使う） */
+export function checkLocalized(
   value: Partial<LocalizedText>,
   path: string,
   max: number,
