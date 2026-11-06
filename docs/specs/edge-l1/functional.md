@@ -19,11 +19,13 @@ target_paths:
   - edge/detector/tests/test_fusion.py
   - edge/detector/tests/test_l1_hub.py
   - edge/detector/tests/test_l1_authz.py
-spec_confirmed_at: 806b4e1
+spec_confirmed_at: ef4ced1
 tier: 2
 ---
 
 # 仕様: edge-l1（L1: local-jev への 4 問、校正後 0.9 以上のときだけ降格する fusion）
+
+**l0-fp-filter（2026-11-06）での変更**: L0 の検出に後処理（`[l0_filter]`）が入った。fusion の「赤の候補のトラックが 1 つだけ」の候補は後処理の後の検出から数える（無視する領域で弱めた枠は候補から外れる。領域は画面の端だけ・既定は空なので、既定では変わらない）。この仕様のコードと規則は変えていない（`docs/specs/l0-fp-filter/functional.md` R3）。
 
 ## 概要
 
