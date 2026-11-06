@@ -80,3 +80,20 @@ retention_hours = 24      # 1〜168。この時間でどれも消す（送信済
 host = "127.0.0.1"        # 車載では AP の LAN のアドレス
 port = 8767               # WebSocket（8765）・local-jev（8766）とぶつけない
 allowed_origins = []      # PWA のオリジン（例: ["http://ezoroad.local:5174"]）。空ならブラウザの別オリジンから書けない
+                          # （Host と同じホスト名のオリジンは許す。https の PWA は 8443 なので足さなくてよい）
+
+# 車ごとの CA で https / wss にする（docs/specs/pwa-https。手順は docs/runbooks/2026-11-06-pwa-https.md）。
+# 証明書は scripts/make_tls.py で作る（tls/ は git に入れない）。cert と key が空なら ws / http（開発用）。
+# 書くと WebSocket は wss、Capture は https、pwa_server が動く。壊れていたら起動を止める（平文に戻らない）。
+[tls]
+cert = ""                 # 例: "tls/server.crt"
+key = ""                  # 例: "tls/server.key"（0600）
+ca_cert = ""              # 例: "tls/ca.crt"（設定ページで配る CA の証明書。鍵ではない）
+
+# PWA の静的配信（https）と CA の配布・設定ページ（http）。別プロセス:
+#   python -m detector.pwa_server --config edge/detector/config.toml
+[pwa_server]
+host = "127.0.0.1"        # 車載では AP の LAN のアドレス（証明書の --ip と同じ）
+https_port = 8443         # PWA（macOS で 1024 未満は管理者が要る）
+http_port = 8080          # 設定ページと /ezoroad-ca.crt（カードの URL の QR はここ）
+dist = "../../apps/pwa/dist"  # VITE_EDGE_HOSTS=ezoroad.local,<AP の IP> npm run build -w apps/pwa

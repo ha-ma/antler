@@ -2,6 +2,8 @@
 
 信頼の境界は Wi-Fi AP の WPA2（別 feature）。ここでは、パス・接続数・メッセージの大きさと頻度、
 遅いクライアント、死んだ接続に上限を置く。クライアントの本文・アドレスはログに残さない。
+ssl_context を渡すと wss（docs/specs/pwa-https R3。車ごとの CA。AP の中のなりすましを防ぐ）。
+握手は open_timeout（3 秒）まで。asyncio の既定の 60 秒にしない。
 """
 
 from __future__ import annotations
@@ -14,6 +16,7 @@ from typing import TYPE_CHECKING
 from websockets.asyncio.server import broadcast, serve
 
 if TYPE_CHECKING:
+    import ssl
     from collections.abc import Callable
 
     from websockets.asyncio.server import Server, ServerConnection
@@ -44,9 +47,11 @@ class AlertServer:
         open_timeout: float = 3.0,
         close_timeout: float = 1.0,
         clock: Callable[[], float] = monotonic,
+        ssl_context: ssl.SSLContext | None = None,
     ) -> None:
         self._hub = hub
         self._cfg = config
+        self._ssl = ssl_context
         self._ping = (ping_interval, ping_timeout)
         self._open_timeout = open_timeout
         self._close_timeout = close_timeout
@@ -60,6 +65,9 @@ class AlertServer:
         return len(self._clients)
 
     async def start(self) -> int:
+        tls: dict[str, object] = {}
+        if self._ssl is not None:
+            tls = {"ssl": self._ssl, "ssl_handshake_timeout": self._open_timeout}
         try:
             self._server = await serve(
                 self._handle,
@@ -72,13 +80,17 @@ class AlertServer:
                 open_timeout=self._open_timeout,
                 close_timeout=self._close_timeout,
                 logger=logging.getLogger("detector.websockets"),
+                **tls,  # type: ignore[arg-type]
             )
         except OSError as exc:
             logger.critical("server.start_failed", extra={"error_type": type(exc).__name__})
             msg = f"待ち受けを始められない: {self._cfg.host}:{self._cfg.port}"
             raise ServerError(msg) from exc
         port = self._server.sockets[0].getsockname()[1]
-        logger.info("server.listening", extra={"host": self._cfg.host, "port": port})
+        logger.info(
+            "server.listening",
+            extra={"host": self._cfg.host, "port": port, "tls": self._ssl is not None},
+        )
         return port
 
     async def stop(self) -> None:

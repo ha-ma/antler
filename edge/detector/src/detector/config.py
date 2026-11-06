@@ -24,7 +24,9 @@ __all__ = [
     "L1Config",
     "L2Config",
     "PipelineConfig",
+    "PwaServerConfig",
     "ServerConfig",
+    "TlsConfig",
     "TrackerConfig",
     "load_config",
     "resolve_path",
@@ -160,6 +162,33 @@ class CaptureServerConfig:
 
 
 @dataclass(frozen=True)
+class TlsConfig:
+    """車ごとの CA で https / wss にする（docs/specs/pwa-https R2）。
+
+    パスは設定ファイルのディレクトリから。cert と key がどちらも空なら TLS を使わない
+    （ws / http。開発用）。片方だけは ConfigError。ca_cert は pwa_server が http の設定ページで
+    配る CA の証明書（鍵ではない）。
+    """
+
+    cert: str = ""
+    key: str = ""
+    ca_cert: str = ""
+
+
+@dataclass(frozen=True)
+class PwaServerConfig:
+    """PWA の静的配信（https）と CA の配布（http）。別プロセス `python -m detector.pwa_server`。
+
+    macOS で 1024 未満は管理者が要るので 8443 / 8080。dist は設定ファイルのディレクトリから。
+    """
+
+    host: str = "127.0.0.1"
+    https_port: int = 8443
+    http_port: int = 8080
+    dist: str = "../../apps/pwa/dist"
+
+
+@dataclass(frozen=True)
 class Config:
     camera: CameraConfig = field(default_factory=CameraConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
@@ -172,6 +201,8 @@ class Config:
     l2: L2Config = field(default_factory=L2Config)
     capture: CaptureConfig = field(default_factory=CaptureConfig)
     capture_server: CaptureServerConfig = field(default_factory=CaptureServerConfig)
+    tls: TlsConfig = field(default_factory=TlsConfig)
+    pwa_server: PwaServerConfig = field(default_factory=PwaServerConfig)
     source_dir: str = field(default="", compare=False)  # 読んだ設定ファイルのディレクトリ
 
 
@@ -191,6 +222,8 @@ _RANGES = {
     "off_after_s": (0.5, 10.0),
     "stall_after_s": (1.0, 10.0),
     "port": (1, 65535),
+    "https_port": (1, 65535),
+    "http_port": (1, 65535),
     "max_clients": (1, 64),
     "min_conf": (0.0, 1.0),
     "iou_threshold": (0.05, 0.95),
@@ -355,6 +388,8 @@ def load_config(path: str | Path) -> Config:
         "l2": L2Config,
         "capture": CaptureConfig,
         "capture_server": CaptureServerConfig,
+        "tls": TlsConfig,
+        "pwa_server": PwaServerConfig,
     }
     for key in raw:
         if key not in sections:
@@ -377,6 +412,19 @@ def load_config(path: str | Path) -> Config:
         raise ConfigError(msg)
     if config.l1.l2_route_conf[1] > config.l1.override_conf:
         msg = "l1.l2_route_conf の上は l1.override_conf 以下にする"
+        raise ConfigError(msg)
+    if bool(config.tls.cert.strip()) != bool(config.tls.key.strip()):
+        # 片方だけで平文に戻ると、https の PWA が wss に届かず理由が分からなくなる（pwa-https R2）
+        msg = "tls.cert と tls.key は両方書くか、両方空にする"
+        raise ConfigError(msg)
+    if config.tls.ca_cert.strip() and not config.tls.cert.strip():
+        msg = "tls.ca_cert だけでは TLS にならない（tls.cert と tls.key も書く）"
+        raise ConfigError(msg)
+    if config.pwa_server.https_port == config.pwa_server.http_port:
+        msg = "pwa_server.https_port と pwa_server.http_port は別にする"
+        raise ConfigError(msg)
+    if not config.pwa_server.dist.strip():
+        msg = "pwa_server.dist は空にできない"
         raise ConfigError(msg)
     # 相対パス（l1.calibration_path）の基準。値の比較には入れない（Config() と等しいまま）
     return replace(config, source_dir=str(Path(path).resolve().parent))

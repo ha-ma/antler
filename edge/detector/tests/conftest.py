@@ -119,3 +119,53 @@ def result(ms: float, *dets, seq: int = 0, failed: bool = False):
     from detector.pipeline import FrameResult
 
     return FrameResult(seq, T0 + timedelta(milliseconds=ms), list(dets), 5.0, failed=failed)
+
+
+# --- pwa-https: テスト用の車ごとの CA（一時ディレクトリに毎回作る。鍵をリポジトリに入れない） ---
+
+
+def _load_make_tls():
+    import importlib.util
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "make_tls.py"
+    spec = importlib.util.spec_from_file_location("make_tls_for_tests", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def make_test_certs(out, ip: str = "127.0.0.1"):
+    """make_tls.py で out に CA とサーバー証明書を作る。openssl が無ければ skip。"""
+    import shutil
+
+    if not shutil.which("openssl"):
+        pytest.skip("openssl が無い")
+    assert _load_make_tls().main(["--out", str(out), "--ip", ip]) == 0
+    return out
+
+
+@pytest.fixture(scope="session")
+def tls_dir(tmp_path_factory: pytest.TempPathFactory):
+    """127.0.0.1 と ezoroad.local の証明書（CA を信頼したクライアントは ssl_client(tls_dir)）。"""
+    return make_test_certs(tmp_path_factory.mktemp("tls") / "tls")
+
+
+@pytest.fixture(scope="session")
+def other_tls_dir(tmp_path_factory: pytest.TempPathFactory):
+    """別の CA（なりすましのサーバー役）。"""
+    return make_test_certs(tmp_path_factory.mktemp("other-tls") / "tls")
+
+
+def ssl_server(tls):
+    import ssl
+
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(tls / "server.crt", tls / "server.key")
+    return context
+
+
+def ssl_client(tls):
+    import ssl
+
+    return ssl.create_default_context(cafile=str(tls / "ca.crt"))
