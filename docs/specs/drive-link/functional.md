@@ -2,13 +2,15 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 1b72615
+spec_confirmed_at: 320f632
 tier: 1
 ---
 
 # 仕様: drive-link（A-1・A-2 で作った旅を運転 A-3 へ渡す）
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: 旅の場面の条件はその日の DayPlan のまま（旅の URL の `month`・`weather` は無視する）。当日の条件は v2（雨が出る）（`docs/specs/drive-season/functional.md`）。
 
 **drive-audio-chat（2026-11-06）での追加**: `apps/sim/src/features/drive/audio/`・`drive/chat/` を足した（仕様は `docs/specs/drive-audio-chat/`）。会話は `DriveScenario` の `legStarts`・`data`・`seed` を読むだけで、受け渡しの形は変えていない。 旅の場面で所有者のトークンがあれば、運転の画面を開いたときに `POST /api/trips/:id/day/:n/chat` を呼ぶ（無ければ見本の会話）。
 

@@ -12,13 +12,15 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-chat.repository.ts
   - apps/api/src/infrastructure/http/routes/chat.routes.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: 02ea9c4
+spec_confirmed_at: 320f632
 tier: 2
 ---
 
 # 仕様: drive-audio-chat（A-3 運転中の音・車内の会話）
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: 天候に `rain` を足したので、`apps/api/src/domain/chats/models/chat-deck.ts` の天候の union と `chat-ui.test.tsx` の `DATA.conditions`（版 2）を 1 行ずつ直した。会話の振る舞いは変えていない（`docs/specs/drive-season/functional.md`）。
 
 A-3 の運転画面に、運転の音（エンジン・ブレーキ・車内のラジオ風の BGM）と、車内の会話を足す。
 会話は視界の右側にたまっていくメッセージとして出し、出るたびに短い 2 音の通知音を鳴らす。

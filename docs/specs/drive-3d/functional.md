@@ -2,13 +2,15 @@
 feature: drive-3d
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 1b72615
+spec_confirmed_at: 320f632
 tier: 1
 ---
 
 # 仕様: drive-3d（運転中 3D と鹿ゾーン・検知アラート）
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: 景色（地面・路肩・法面・木）を季節で、車道を路面で変え、雪・雨を降らせる（R12 の描画コールは降るものの日だけ +1）。天候に `rain`。見本の場面は `?month=N&weather=W` で季節を選べる（何も無ければ今までどおり 2 月・圧雪・曇り）（`docs/specs/drive-season/functional.md`）。
 
 **drive-audio-chat（2026-11-06）での追加**: `apps/sim/src/features/drive/audio/`（運転の音）と `drive/chat/`（車内の会話）を足した。仕様は `docs/specs/drive-audio-chat/`。組み込み（同日、drive-tune の後）で `components/DrivePage.tsx`（`useDriveSoundAndChat`、「出発」「もう一度」で運転の音を鳴らし始める、HUD の右の列に会話と音量の操作）と `hooks/use-keyboard-drive.ts`（入力欄にフォーカスがあるときは押したキーを任せる）を変えた。鹿の警告（alert-ui）の音・表示は変えていない。
 

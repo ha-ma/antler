@@ -2,13 +2,15 @@
 feature: drive-tune
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 1b72615
+spec_confirmed_at: 320f632
 tier: 1
 ---
 
 # 仕様: drive-tune（運転のステージ・必ず出る鹿・実測に合わせたブレーキ・区間の案内・ミラーとダッシュボード）
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: R3 の μ をそのまま使い、新しい路面の決め方で雨（濡れ）・雪（圧雪・凍結）の日が乾燥より止まりにくいことを、場面→エンジン→停止距離のテストで固定した（`docs/specs/drive-season/functional.md`）。
 
 **drive-audio-chat（2026-11-06）での利用**: `DriveEngine.telemetry()`（R6）を運転の音の合図に、HUD の右の列（`--drive-chat-w`）を車内の会話と音量の操作に使った（仕様は `docs/specs/drive-audio-chat/`）。会話はステージを移って道のりが飛ぶとき、飛ばした区間の行を最後の 1 行だけ出す（drive-audio-chat R12）。drive-tune の振る舞いは変えていない（`use-keyboard-drive.ts` に入力欄の扱いを足しただけ）。
 

@@ -9,13 +9,15 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: b74b9d1
+spec_confirmed_at: 320f632
 tier: 1
 ---
 
 # 仕様: plan-trip-photos（A-1 の楽しみから「重さ」を外し、カードに写真と引用を出す）
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: `packages/trip` と api への drive-season の変更（当日の条件 v2・trip-day のテストの時間切れ）。写真の振る舞いは変えていない（`docs/specs/drive-season/functional.md`）。
 
 ユーザーがローカルで A-1（`/plan`）を確かめて出した指摘（2026-11-06）の 2 点を直す。
 

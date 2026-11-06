@@ -9,13 +9,15 @@ target_paths:
   - apps/api/src/infrastructure/gateways/file-road-catalog.gateway.ts
   - apps/api/src/infrastructure/http/routes/trip-day.routes.ts
   - apps/sim/src/features/brief-map/
-spec_confirmed_at: 3d2243b
+spec_confirmed_at: 320f632
 tier: 2
 ---
 
 # 仕様: brief-map（A-2 出発前ブリーフィング・その日のルートとゾーン）
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: 当日の条件 v2（天候に `rain`、4〜11 月の表、版 2。冬の表は v1 のまま）と、`trip-day.routes.test.ts` の全日のテストの時間切れを 20 秒に（R4 の本文に v2 を書いた）（`docs/specs/drive-season/functional.md`）。
 
 A-1 で決めた旅の「その日」を、出発の前に見せる画面（A-2）と、その中身を返す `GET /api/trips/:id/day/:n`。
 地図（MapLibre GL JS ＋ OSM のベクタタイル）の上に、独自の SVG でルート・鹿ゾーンの帯・地点と時刻を重ねる（ch9 ① d ハイブリッド）。
