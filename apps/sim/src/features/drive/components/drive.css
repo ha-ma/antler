@@ -415,6 +415,36 @@
   pointer-events: auto;
 }
 
+/* 見本の場面の季節の切り替え（drive-season R2）。チップの列 */
+.drive-start__seasons ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drive-start__seasons a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--ink);
+  font-size: var(--label-size);
+  font-weight: var(--label-weight);
+  text-decoration: none;
+}
+
+.drive-start__seasons a[aria-current='true'] {
+  border-color: var(--spruce);
+  background: var(--spruce);
+  color: var(--on-spruce);
+}
+
+.drive-start__seasons a:focus-visible,
 .drive-start__link:focus-visible {
   outline: 3px solid var(--ink);
   outline-offset: 2px;

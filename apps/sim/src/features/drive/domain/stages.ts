@@ -16,6 +16,24 @@ export type Stage = {
   intervals: number[]
 }
 
+/** 走る鹿ゾーンの長さの上限（m。drive-deer R2） */
+export const MAX_ZONE_M = 8000
+
+/**
+ * 鹿ゾーンの区間を入口から MAX_ZONE_M までに切る（drive-deer R2・UC-2a）。実際の区間より短くなってよい。
+ * ゾーン状態・残り km・ステージ・鹿の候補・会話の区間がすべてこの区間を使う（createWorld で 1 回だけ当てる）
+ */
+export function capIntervals(plan: RoutePlan, maxM = MAX_ZONE_M): RoutePlan {
+  const maxKm = maxM / 1000
+  if (plan.intervals.every((v) => v.exitKm - v.entryKm <= maxKm)) return plan
+  return {
+    ...plan,
+    intervals: plan.intervals.map((v) =>
+      v.exitKm - v.entryKm > maxKm ? { ...v, exitKm: v.entryKm + maxKm } : v,
+    ),
+  }
+}
+
 /** 区間ごとに [入口 − 5 km, 出口]。始点より前にはしない。重なる・続くものはまとめる（UC-1a） */
 export function buildStages(plan: RoutePlan): Stage[] {
   const stages: Stage[] = []

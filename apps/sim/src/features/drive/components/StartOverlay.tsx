@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { briefHref } from '../hooks/use-drive-params'
 import type { DriveScenario } from '../types'
 import { HUD_TEXT, SURFACE_TEXT, WEATHER_TEXT } from './hud/hud-text'
+import { SeasonSwitch } from './SeasonSwitch'
 
 /** 地点の名前（マスターに無ければ slug のまま） */
 function placeName(slug: string): string {
@@ -36,7 +37,13 @@ export function StartOverlay({
           {WEATHER_TEXT[scenario.weather]}・{SURFACE_TEXT[scenario.surface]}
         </p>
       ) : (
-        <p>{t.lead}</p>
+        <>
+          <p>{t.lead}</p>
+          <p data-testid="start-conditions">
+            {WEATHER_TEXT[scenario.weather]}・{SURFACE_TEXT[scenario.surface]}
+          </p>
+          <SeasonSwitch />
+        </>
       )}
       {noZone && <p data-testid="no-zone">{HUD_TEXT.stage.noZone}</p>}
       <p>{scenario.alertEnabled ? t.alertOn : t.alertOff}</p>

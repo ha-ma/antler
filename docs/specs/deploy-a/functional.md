@@ -23,7 +23,7 @@ target_paths:
   - apps/api/src/infrastructure/http/unavailable.ts
   - apps/api/src/domain/captures/policies/capture-claim-policy.ts
   - apps/api/tests/vercel/
-spec_confirmed_at: f43b292
+spec_confirmed_at: 4e4b8b6
 tier: 2
 ---
 
@@ -34,6 +34,8 @@ tier: 2
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: デプロイの形は変えていない。`apps/api/src/infrastructure/http/routes/trip-day.routes.test.ts` の全日のテストの時間切れを 20 秒にしただけ（負荷の高い全体実行で 5 秒を超える既知の問題）（`docs/specs/drive-season/functional.md`）。
 
 A（`apps/sim` の静的配信と `apps/api` の Hono）を、Vercel の 1 つのプロジェクトに載せられるようにする。実際のデプロイ・アカウントの作成・秘密の値の入力はユーザーの作業で、この feature は**リポジトリの側の準備**と**手順書**（`docs/runbooks/2026-11-05-deploy-a-vercel-turso.md`）を作る。
 

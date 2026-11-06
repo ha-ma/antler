@@ -1,7 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useRef, useState, type ReactNode } from 'react'
-import type { World } from '../types'
+import type { DriveScenario, World } from '../types'
 import { createRoadFrame, poseAt, type RoadFrame } from '../domain/road'
+import { sceneLookOf, type SceneLook } from '../domain/season'
+import { Precipitation } from './Precipitation'
 import { Atmosphere } from './Atmosphere'
 import { Cabin } from './Cabin'
 import { DeerHerd } from './DeerHerd'
@@ -29,6 +31,12 @@ export function DriveScene({ world, phone, onFrame }: DriveSceneProps) {
     return { world: w, road, car: poseAt(road, w.vehicle.s, w.vehicle.d), simTimeS: w.t / 1000 }
   })
   const frame = useRef<SceneFrame>(initial)
+  // 景色（季節・路面・天候・降るもの。drive-season R3）。場面ごとに 1 回作り、各部品には文字列で渡す
+  // （オブジェクトを渡すと再描画のたびに道路・林のキャッシュが捨てられる）
+  const [look, setLook] = useState<{ scenario: DriveScenario; look: SceneLook }>(() => {
+    const scenario = world().scenario
+    return { scenario, look: sceneLookOf(scenario) }
+  })
   // 開発中だけ、描画コール数・三角形数を計測できるように出す（performance-analyzer が読む。本番には入らない）
   const info = useThree((s) => s.gl.info)
   const three = useThree((s) => s.scene)
@@ -43,6 +51,12 @@ export function DriveScene({ world, phone, onFrame }: DriveSceneProps) {
       setRoad(createRoadFrame(w.scenario.route))
       return
     }
+    // 場面が変わったら景色を作り直す（値が同じなら state を変えない）
+    if (w.scenario !== look.scenario) {
+      const next = sceneLookOf(w.scenario)
+      const same = (Object.keys(next) as (keyof SceneLook)[]).every((k) => next[k] === look.look[k])
+      setLook({ scenario: w.scenario, look: same ? look.look : next })
+    }
     const f = frame.current
     f.world = w
     f.road = road
@@ -51,12 +65,14 @@ export function DriveScene({ world, phone, onFrame }: DriveSceneProps) {
   }, PRIORITY.resolve)
 
   const { scenario } = world()
+  const { season, surface, weather, precipitation } = look.look
   return (
     <SceneFrameContext.Provider value={frame}>
-      <Atmosphere weather={scenario.weather} />
-      <Ground />
-      <Road road={road} surface={scenario.surface} />
-      <Forest road={road} seed={scenario.trip.seed} />
+      <Atmosphere weather={weather} />
+      <Ground season={season} />
+      <Road road={road} surface={surface} season={season} />
+      <Forest road={road} seed={scenario.trip.seed} season={season} />
+      <Precipitation kind={precipitation} seed={scenario.trip.seed} />
       <Headlights />
       <DeerHerd />
       <Cabin phone={phone} />

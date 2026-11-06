@@ -9,13 +9,15 @@ target_paths:
   - apps/api/src/infrastructure/gateways/file-road-catalog.gateway.ts
   - apps/api/src/infrastructure/http/routes/trip-day.routes.ts
   - apps/sim/src/features/brief-map/
-spec_confirmed_at: 3d2243b
+spec_confirmed_at: 320f632
 tier: 2
 ---
 
 # 仕様: brief-map（A-2 出発前ブリーフィング・その日のルートとゾーン）
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: 当日の条件 v2（天候に `rain`、4〜11 月の表、版 2。冬の表は v1 のまま）と、`trip-day.routes.test.ts` の全日のテストの時間切れを 20 秒に（R4 の本文に v2 を書いた）（`docs/specs/drive-season/functional.md`）。
 
 A-1 で決めた旅の「その日」を、出発の前に見せる画面（A-2）と、その中身を返す `GET /api/trips/:id/day/:n`。
 地図（MapLibre GL JS ＋ OSM のベクタタイル）の上に、独自の SVG でルート・鹿ゾーンの帯・地点と時刻を重ねる（ch9 ① d ハイブリッド）。
@@ -60,11 +62,12 @@ Questions は 2026-11-03 にすべて推奨で決定（CLAUDE.md の方針「推
   - 区間の名前は、区間の入口に最も近いゾーンの道路名（4 言語）。`zoneIds` は区間の全てのゾーン（`planRoute` は id を辞書順に並べるので、先頭を名前に使わない。spec-adversary [4]）
   - 日没（太陽の高さ −0.833° を下回る時刻）と薄暮（+6° 〜 −6°。`lightPeriod` の dusk と同じ線）は、その日の最後の移動の到着地点（移動が無ければ滞在地）で、その日の 12:00〜24:00（JST）を 1 分刻みで調べる。沈まない日は null。画面は日没のチップに地名を添える
   - 区間の帯の上の時刻・光の語は文字でも出す（色だけに頼らない）
-- R4 当日の条件（A2-3）: `(旅のシード, n)` から作る乱数（mulberry32、`deriveSeed(seed, "conditions:" + n)`。drive-3d の `domain/rng.ts` と同じ式）で決める純粋関数。`Math.random` を使わない。表は増やさない: 同じシード・同じ版なら同じ条件が出ることが「記録に残す」こと（推奨で決定）。応答に `version: 1` を入れ、表を変えたら版を上げる
+- R4 当日の条件（A2-3）: `(旅のシード, n)` から作る乱数（mulberry32、`deriveSeed(seed, "conditions:" + n)`。drive-3d の `domain/rng.ts` と同じ式）で決める純粋関数。`Math.random` を使わない。表は増やさない: 同じシード・同じ版なら同じ条件が出ることが「記録に残す」こと（推奨で決定）。応答に `version` を入れ（v1、drive-season で 2）、表を変えたら版を上げる
   - 運転者: 運転できる人の何人目か（1〜drivers）。2 人以上なら「交代できる」
   - 車種: 人数で決める（1〜2 人 コンパクト、3〜5 人 コンパクト SUV、6〜8 人 ミニバン）。出発の月（JST）が 11〜4 月なら 4WD。車種と 4WD は旅全体で同じ（レンタカーは 1 台。spec-adversary [6]）
-  - 天候 `weather`: `clear | cloudy | snow | fog`、路面 `surface`: `dry | wet | packed-snow | ice`。drive-3d の `types.ts` と同じ文字列（drive が後で `import type` に差し替えられる）。天候はその日の月の表から引き（12〜3 月は雪が多い、7〜8 月は霧が多い）、路面は月と天候を条件にした表から引く（雪の日に dry は出ない）
-  - 車内: 人数（= party.size）と窓の曇り `none | light | medium | heavy`（1〜2 人 none、3〜4 人 light、5〜6 人 medium、7〜8 人 heavy。雪か霧の日は 1 段上げる）
+  - 天候 `weather`: `clear | cloudy | rain | snow | fog`、路面 `surface`: `dry | wet | packed-snow | ice`。drive-3d の `types.ts` と同じ文字列（drive が後で `import type` に差し替えられる）。天候はその日の月の表から引き（12〜3 月は雪が多い、7〜8 月は霧が多い）、路面は月と天候を条件にした表から引く（雪の日に dry は出ない）
+  - **v2（drive-season R1、2026-11-06）**: 天候に `rain` を足し、4〜11 月の表を変えた（雨の日は濡れ、4・11 月は 1 割が凍結）。冬（12〜3 月）の表は v1 のまま。版は 2。表と出典は `docs/changes/2026-11-06-a-local-feedback-2-season.md` §3.2、テストは `packages/trip/src/day/conditions-season.test.ts`（drive-season UC-1a〜UC-1e）。天候の指定（`weather`、見本の場面の切り替え用）を入力に足した
+  - 車内: 人数（= party.size）と窓の曇り `none | light | medium | heavy`（1〜2 人 none、3〜4 人 light、5〜6 人 medium、7〜8 人 heavy。雨・雪・霧の日は 1 段上げる）
 - R5 API（ch7）: `GET /api/trips/:id/day/:n` → 200 `{ plan, details, day }`。`day` は `DayPlan`（`@antler/trip` の型と zod の形。R2〜R4 の結果）
   - `DayPlan.data` に、結果を決めるデータの版（routes の取得日・zones の hash・条件の版）を入れる。「同じ旅・同じ日・同じ data なら同じ DayPlan」（spec-adversary [3]）
   - 認証なし。旅の ID を知る人が読める（受けるのはスキーマの形の英数 4〜16 文字、api が作るのは推測困難な英数 8 文字）（A7-1 の `/t/{id}` と同じ扱い。ownerToken は削除にだけ使う。推奨で決定。threat.md）

@@ -13,8 +13,8 @@ import type { RoadFrame } from './domain/road'
 
 /** 路面（R3。制動距離の係数とグリップ） */
 export type Surface = 'dry' | 'wet' | 'packed-snow' | 'ice'
-/** 天候（R6。検知の確率） */
-export type Weather = 'clear' | 'cloudy' | 'snow' | 'fog'
+/** 天候（R6。検知の確率。雨は drive-season R1 で足した） */
+export type Weather = 'clear' | 'cloudy' | 'rain' | 'snow' | 'fog'
 /** 車内の窓の曇り（drive-link R6。検知の確率。brief-map の当日の条件と同じ語彙） */
 export type WindowFog = 'none' | 'light' | 'medium' | 'heavy'
 /** その日の行程を決めたデータの版（GET /api/trips/:id/day/:n の day.data） */
@@ -101,37 +101,69 @@ export type VehicleState = {
   abs: boolean
 }
 
-/** 鹿の出現パターン（R5） */
+/**
+ * 鹿の出現パターン（R5、A5-2 の 5 つ）。遭遇の記録（A-7・イベントログ）に残す語なので増やさない。
+ * 動きの種類は DeerMotion（drive-deer R3）
+ */
 export type DeerPattern = 'roadside' | 'eyeshine' | 'crossing' | 'herd' | 'frozen'
 
-/** ゾーン区間の中の、鹿が出るかもしれない地点（ルート生成時に 1 回だけ決める） */
+/**
+ * 鹿の動き（drive-deer R3。12 種）。記録の語（DeerPattern）は MOTION_PATTERN で引く。
+ * graze: 路肩で草をはむ / eyeshine: 林の中で目だけ光る / cross: 車が着く頃に渡る /
+ * stop-midway: 中央線で止まってまた渡る / turn-back: 車線に入って引き返す / diagonal: 斜めに横切る /
+ * parallel: 路肩を並走して前を横切る / dart: 森の陰から至近で飛び出す / graze-dash: 草をはんでいて急に走り出す /
+ * herd: 群れが順に渡る / follower: 1 頭が渡ったあと 2 頭目が続く / frozen: 車線で立ちすくむ
+ */
+export type DeerMotion =
+  | 'graze'
+  | 'eyeshine'
+  | 'cross'
+  | 'stop-midway'
+  | 'turn-back'
+  | 'diagonal'
+  | 'parallel'
+  | 'dart'
+  | 'graze-dash'
+  | 'herd'
+  | 'follower'
+  | 'frozen'
+
+/** ゾーン区間の中の、鹿が出る地点（ルート生成時に 1 回だけ決める。drive-deer R1 ですべて出る） */
 export type DeerCandidate = {
   id: string
   /** 区間の番号（RoutePlan.intervals の添字） */
   interval: number
   /** 道のり（m） */
   s: number
-  /** 出るかの乱数（0〜1） */
-  u: number
+  /** 記録の語（motion から決まる） */
   pattern: DeerPattern
+  motion: DeerMotion
   /** 出る側（車から見て） */
   side: 'L' | 'R'
-  /** 群れの頭数（herd のときだけ 2〜5、ほかは 1） */
+  /** 頭数（herd は 2〜5、follower は 2、ほかは 1） */
   herdSize: number
   /** この候補の動きと検知に使う乱数の種 */
   seed: number
-  /** 危険度に関わらず必ず出る（区間の先頭から合わせて 3 頭まで。drive-tune R2） */
-  guaranteed: boolean
 }
 
 /** 鹿の動きの段階（アニメーションの切り替えに使う） */
 export type DeerPose = 'idle' | 'walk' | 'run' | 'look'
+
+/**
+ * 鹿の動きの局面（drive-deer R3）。wait: 待つ / go: 動く（startedAt が未来なら順番を待つ）/
+ * pause: 途中で止まる / resume: 止まったあと渡りきる / stand: 立ちすくむ / leave: 去る（引き返す・横切る）
+ */
+export type DeerPhase = 'wait' | 'go' | 'pause' | 'resume' | 'stand' | 'leave'
 
 /** シーンにいる鹿 1 頭 */
 export type Deer = {
   id: string
   candidateId: string
   pattern: DeerPattern
+  motion: DeerMotion
+  /** 候補の種（動きの係数をここから引く。s が動く動きでも係数が変わらない） */
+  seed: number
+  phase: DeerPhase
   /** 群れの中の順番（0 から） */
   index: number
   /** 道のり（m） */
@@ -144,8 +176,8 @@ export type Deer = {
   /** 林の中で車のカメラから隠れているか（R6 の遮蔽） */
   occluded: boolean
   /**
-   * いまの段階（pose）が始まった時刻（World.t、ms）。まだ動き出していなければ null。
-   * 群れの 2 頭目以降は、渡り始める予定の未来の時刻を入れて look で待つ（deer-motion.ts）
+   * いまの局面（phase）が始まった時刻（World.t、ms）。まだ動き出していなければ null。
+   * go に入るときは動き出す予定の時刻（群れの 2 頭目以降・遅れて動く鹿は未来）を入れて look で待つ（deer-motion.ts）
    */
   startedAt: number | null
   /** 去った（シーンから消してよい） */
@@ -209,7 +241,7 @@ export type World = {
   zone: ZoneStatus
   light: LightPeriod
   candidates: DeerCandidate[]
-  /** 出るか決めた候補の id */
+  /** 鹿を置いた候補の id（車が 300 m 手前に来たとき。drive-deer R1 ですべての候補が出る） */
   decided: Set<string>
   deer: Deer[]
   /** 最後に作ったフラグとその時刻（A がシミュレーターとして作る ReceivedFlag） */
@@ -250,8 +282,6 @@ export type SimInternals = {
   stageIndex: number
   /** 最後にステージをクリアした時刻（World.t。HUD の「クリア」の帯に使う） */
   stageClearedAt: number | null
-  /** 区間ごとに出した鹿の頭数（100 頭で止める。drive-tune R2） */
-  spawnedHeads: Record<number, number>
   /** ステージのクリアで、まだ前にいたまま消した鹿（遭遇の記録を pending のまま残す） */
   leftBehind: Set<string>
 }

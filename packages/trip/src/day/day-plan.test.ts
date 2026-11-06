@@ -135,7 +135,7 @@ describe('buildDayPlan（その日の行程）', () => {
     expect(build(persona, 1).data).toEqual({
       routes: ROAD_CATALOG.meta.fetchedAt,
       zones: zones.hash,
-      conditions: 1,
+      conditions: 2,
     })
   })
 

@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: f43b292
+spec_confirmed_at: 4e4b8b6
 tier: 1
 ---
 
@@ -18,6 +18,8 @@ tier: 1
 > 2026-11-06 drive-tourism が plan-trip の barrel から `photoOf`・`photoSrc` を読み、運転中の会話とおすすめのカードに同じ写真と出典（平文）を出す（`docs/specs/drive-tourism/functional.md` T8・T13）。この仕様のルール（写真の選び方・引用）は変えていない。
 
 ## 概要
+
+**drive-season（2026-11-06）での変更**: `packages/trip` と api への drive-season の変更（当日の条件 v2・trip-day のテストの時間切れ）。写真の振る舞いは変えていない（`docs/specs/drive-season/functional.md`）。
 
 ユーザーがローカルで A-1（`/plan`）を確かめて出した指摘（2026-11-06）の 2 点を直す。
 

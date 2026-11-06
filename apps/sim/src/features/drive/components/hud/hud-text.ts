@@ -74,6 +74,7 @@ export const HUD_TEXT = {
 export const WEATHER_TEXT: Record<Weather, string> = {
   clear: '晴れ',
   cloudy: '曇り',
+  rain: '雨',
   snow: '雪',
   fog: '霧',
 }

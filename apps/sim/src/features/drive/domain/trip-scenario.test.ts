@@ -226,6 +226,9 @@ describe('場面（R3・R4）', () => {
         id: 'x',
         candidateId: 'x',
         pattern: 'roadside',
+        motion: 'graze',
+        seed: 1,
+        phase: 'wait',
         index: 0,
         s: w.vehicle.s + 80,
         d: 4.5,
@@ -347,5 +350,21 @@ describe('ゾーン（R5）', () => {
     const covering = withoutRanges(routePlan, [[first.entryKm * 1000, first.exitKm * 1000]])
     expect(covering.intervals.every((v) => v.exitKm > v.entryKm)).toBe(true)
     expect(covering.intervals).not.toContainEqual(first)
+  })
+})
+
+describe('旅の場面の季節（drive-season R2）', () => {
+  it('UC-2c: 旅の URL に month・weather があっても、場面の条件はその日の DayPlan のまま', () => {
+    const plain = scenarioFromDay({ plan, day: day1 }, '?trip=K7m2abcd&day=1')
+    const tampered = scenarioFromDay(
+      { plan, day: day1 },
+      '?trip=K7m2abcd&day=1&month=7&weather=clear',
+    )
+    expect(tampered).toEqual(plain)
+    expect(tampered?.startAt).toBe(day1.legs[0]?.departAt)
+    expect({ surface: tampered?.surface, weather: tampered?.weather }).toEqual({
+      surface: day1.conditions.surface,
+      weather: day1.conditions.weather,
+    })
   })
 })
