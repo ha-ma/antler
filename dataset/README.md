@@ -17,6 +17,7 @@ B の鹿の検出（L0 = YOLO）の学習・評価に使う画像と、L1 の校
 | `private/mapillary-doto/`                       | Mapillary の道東の画像 1,500 枚（CC BY-SA 4.0、撮影者 39 人、メタデータ削除済み）、`manifest.json`            | **評価だけ**。鹿のいない画像・ラベルなし                                                    | 入れない                        |
 | `external/deer3d/<ID>/`                         | 3D の鹿 M01〜M04（CC0、GLB・.blend・FBX）とライセンスの証拠、`manifest.json`                                  | 合成（S データ）の鹿（ch9 ③ b＋d）                                                          | 入れない（`dataset/external/`） |
 | `private/self-footage/`                         | ユーザーが撮ったドラレコの映像の匿名化したフレーム（焼き込みを塗りつぶし・人と車をモザイク）、`manifest.json` | **学習・評価**（走行単位の分割と用途は manifest）。ぼかしを人が確かめるまで公開・配布しない | 入れない                        |
+| `private/self-synth/<run>/`                     | 3D の鹿 M01〜M04 を `self-footage` の夜の背景に合成した画像・YOLO ラベル・`manifest.json`（`synth.py`）       | **学習だけ**（`allowed_use: ["train"]`）。背景の `distribution`・`blur_reviewed` を引き継ぐ | 入れない                        |
 | `raw/`                                          | 同意・匿名化の前の生データ                                                                                    | —                                                                                           | 入れない                        |
 | `out/`                                          | `export_l1_labels.py` の出力                                                                                  | —                                                                                           | 入れない                        |
 
@@ -108,13 +109,38 @@ ch9 ③ 鹿モデル = b＋d（2026-11-06 ユーザー判断）による。
 | M03 | Old Deer Male（角あり）    | CDmir（OpenGameArt）     | .blend      | Run・Idle・Stand・Eat・LookAround・Die |
 | M04 | Deer Female                | CDmir（OpenGameArt）     | .blend・FBX | M03 と同じ 6 種                        |
 
-- .blend の骨格と動作はファイルの中の名前を読んで確かめただけ。Blender で開いて再生できるかを dataset-synth の最初に確かめる
+- 4 体とも Blender 4.5 で開いて、動作が骨の姿勢を変えることを確かめた（2026-11-07、`docs/reports/2026-11-07-dataset-synth-blend-check.md`）。M03・M04 の材質は 4.5 ではテクスチャが外れるので、`synth_render.py` が `UVMap` の UV で張り直す
 - どれもエゾシカではない一般的な鹿で、写実的ではない。肩高 約 1 m・角の形に合わせ、質感に手を入れる前提
 - 色・斑点・臀の白斑・姿勢の参考に `private/` の Osaki さん・Yuki Fujita さんの写真を使ってよい（`PRIVATE-DATA.md` の範囲で。写真そのものをテクスチャに貼って配らない）
 - Sketchfab の CC BY の写実寄りのモデルは取り込んでいない（ログインが必要）。CC0 の 4 体で見た目が足りなければユーザーに聞く
 - YouTube の素材、前回の S データ 600 枚と生成鹿 8 種（AI 生成）は入れない（ch9 ③）
 
 研究の結果（R16: Mapillary の画像での L0 の誤検出）は `docs/reports/2026-11-06-sdata-research.md`。
+
+### 合成（S データ、docs/specs/dataset-synth、2026-11-07 に 1 回目）
+
+`synth.toml` の一覧で、`self-footage` の `synth_background` のフレーム（一覧のクリップだけ）に M01〜M04 を Blender で描いて重ね、見えている画素から YOLO の箱を作る。
+Blender は 1 つに決めて使う。開発の Mac（2026-11-07）は **`~/work/tools/Blender-4.5.15-arm64.app`**（Blender 4.5.15 LTS、arm64）:
+
+- 配布物 `https://download.blender.org/release/Blender4.5/blender-4.5.15-macos-arm64.dmg`（311,921,946 bytes）を `curl` で取り、SHA-256 `bfbc0bda099d1ab7aef0992a584f872f58bed9bb491210ad45f9ca071aa2e688` を公式のチェックサム（同じフォルダの `blender-4.5.15.sha256`）と照合した。DMG を読み取り専用で開いて `Blender.app` をコピーした。署名は Stichting Blender Foundation（Team ID `68UA947AUU`、公証済み）
+- **`-b`（GUI なし）でだけ呼ぶ**。`open` や Finder から起動しない。Gatekeeper・quarantine（xattr）・spctl の設定を変えて回避しない
+- Homebrew の cask（`/Applications/Blender.app`）は Intel 版で、Apple Silicon では Rosetta で遅いので使わない
+
+day0 の環境（opencv）で、main の checkout のパスを渡して回す:
+
+```bash
+python dataset/synth.py check --blender <Blender の実行ファイル> --models <checkout>/dataset/external/deer3d \
+    --out <checkout>/dataset/private/self-synth
+python dataset/synth.py run --run s1 --count 1300 --seed 7 --blender <Blender の実行ファイル> \
+    --footage <checkout>/dataset/private/self-footage --models <checkout>/dataset/external/deer3d \
+    --out <checkout>/dataset/private/self-synth
+```
+
+- `check` は 4 体の読み込み・動作・材質・肩の高さと、Python と Blender の射影のずれ（2 px 以内）を確かめる。`check.png` に横からの並びを描く
+- `--count` は計画の枚数。暗い背景では鹿も暗く描かれて捨てられるので、書ける枚数は計画の約半分。捨てた数（理由ごと）と距離の帯ごとの明るさが表示される
+- `<run>-review/` に箱を描いた最大 40 枚ができる。見えない鹿に箱・箱の無い鹿・浮いた鹿・暗い縁が無いかを目で見る
+- 一覧を変えたら新しい run 名で作り直す（前の run は上書きしない。消すときは手で）
+- `train_sources.toml` にはまだ載せていない（dataset-train の更新で、漏れの検査を `files[].group` で行う変更と一緒に載せる）
 
 ## 学習・評価の分け方
 
