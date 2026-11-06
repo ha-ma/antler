@@ -2,11 +2,13 @@
 feature: drive-tune
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 1b72615
+spec_confirmed_at: f43b292
 tier: 1
 ---
 
 # 仕様: drive-tune（運転のステージ・必ず出る鹿・実測に合わせたブレーキ・区間の案内・ミラーとダッシュボード）
+
+> 2026-11-06 drive-tourism が右の列（`--drive-chat-w`）に、ゾーンの前のおすすめのカードを会話と音量の操作の間に置いた。カードはステージ（`stage`・`stageClearedAt`）と `STAGE_BANNER_MS` を読む（`docs/specs/drive-tourism/functional.md` T11・T14）。この仕様のルールは変えていない。
 
 ## 概要
 

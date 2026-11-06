@@ -9,11 +9,13 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: b74b9d1
+spec_confirmed_at: f43b292
 tier: 1
 ---
 
 # 仕様: plan-trip-photos（A-1 の楽しみから「重さ」を外し、カードに写真と引用を出す）
+
+> 2026-11-06 drive-tourism が plan-trip の barrel から `photoOf`・`photoSrc` を読み、運転中の会話とおすすめのカードに同じ写真と出典（平文）を出す（`docs/specs/drive-tourism/functional.md` T8・T13）。この仕様のルール（写真の選び方・引用）は変えていない。
 
 ## 概要
 

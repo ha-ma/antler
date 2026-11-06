@@ -23,11 +23,13 @@ target_paths:
   - apps/api/src/infrastructure/http/unavailable.ts
   - apps/api/src/domain/captures/policies/capture-claim-policy.ts
   - apps/api/tests/vercel/
-spec_confirmed_at: 2421c02
+spec_confirmed_at: f43b292
 tier: 2
 ---
 
 # 仕様: deploy-a（A の sim と api を Vercel に置く準備。DB は Turso、Capture の画像は Vercel Blob）
+
+> 2026-11-06 drive-tourism で `routes/trip-day.routes.test.ts` に遅いテストの時間の上限を付けた（テストだけ。ルートは変えていない）。この仕様のルールは変えていない。
 
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 

@@ -2,11 +2,13 @@
 feature: drive-3d
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 1b72615
+spec_confirmed_at: f43b292
 tier: 1
 ---
 
 # 仕様: drive-3d（運転中 3D と鹿ゾーン・検知アラート）
+
+> 2026-11-06 drive-tourism で HUD の右の列に会話の写真とゾーンの前のおすすめのカードを足した（`docs/specs/drive-tourism/functional.md` T8・T11〜T14）。この仕様のルール（3D・ゾーン・アラート）は変えていない。
 
 ## 概要
 
