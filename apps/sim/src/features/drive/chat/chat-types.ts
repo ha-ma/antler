@@ -48,6 +48,18 @@ export type ChatTrack = {
   }[]
   /** 種類ごとに 2 行（アラート OFF の走行でも avoided は使う） */
   reactions: Record<ReactionKind, readonly [ReactionLine, ReactionLine]>
+  /**
+   * 補いの観光の行（drive-sound-tourism S14）。楽しみと文の組を順に。untilM は楽しみの位置（m）で、
+   * 今の位置がそれを過ぎたら出さない
+   */
+  filler: FillerLine[]
+}
+
+export type FillerLine = {
+  speaker: Speaker
+  pleasure: string
+  text: LocalizedLine
+  untilM: number
 }
 
 /** 画面に出す 1 行。pleasure があれば楽しみの写真と出典を添える（drive-tourism T8） */

@@ -41,6 +41,8 @@ A-3 の運転画面に、運転の音（エンジン・ブレーキ・車内の�
 
 **後の変更（2026-11-06、drive-tourism）**: R11 の話題（話の行の 3 分の 2 を楽しみの話に）、R13 の位置と行数（右上から 3 行・写真と出典つき）、R15 の保存の鍵の版（`chat:v2`）、R16 の材料（楽しみの名前・拠点・切り口）、R19 の見本の会話（楽しみの話を入れる）は `docs/specs/drive-tourism/functional.md` の T1〜T10 が正。
 
+**後の変更（2026-11-06、drive-sound-tourism）**: R4 のブレーキ音（900 Hz のこすれと CC0 の鳴きの録音）、R5 の BGM（CC0 の 3 曲を `<audio>` で流す。ラジオのまねと合成の曲 `radio-score.ts` はやめた）、R6 の BGM の係数（0.3）と曲を止める条件、R8 の通知音（緑と琥珀で鳴らす。琥珀は 1 音・0.6 倍、ゾーンに入って 2 秒は鳴らさない。赤は鳴らさない）、R9 の予約（曲は予約しない）、R12 の出しどき（ゾーンの外で実時間 15 秒あいたら観光の行を足す）と、衝突の音（`collided`）は `docs/specs/drive-sound-tourism/functional.md` の S1〜S15 が正。AUD-3d〜3i・AC-42 のテストはその決まりに合わせて直した。
+
 **範囲外**:
 
 - 会話の読み上げ（A3-8 の「音声」）。文字と通知音だけ（Questions の Deferred）
@@ -283,21 +285,21 @@ UC-4 会話を出す（sim）:
 
 ## Rule → ドメイン語彙対応
 
-| Rule                       | 語彙                                             | 置き場所                                 | 証明           |
-| -------------------------- | ------------------------------------------------ | ---------------------------------------- | -------------- |
-| R1: 鳴らすか               | `gameAudioEnabled`                               | apps/sim/src/features/drive/audio/       | AUD-3a         |
-| R3・R4: エンジン・ブレーキ | `engineVoice` / `brakeVoice`                     | apps/sim/src/features/drive/audio/       | AUD-3b〜d      |
-| R5: BGM                    | `radioScore`                                     | apps/sim/src/features/drive/audio/       | AUD-3f         |
-| R6: 混ぜ方                 | `mixLevels`                                      | apps/sim/src/features/drive/audio/       | AUD-3e         |
-| R7〜R9: 鳴らし方           | `DriveAudio` / `AudioGraphPort`                  | apps/sim/src/features/drive/audio/       | AUD-3g〜i      |
-| R11: 束の組み立て          | `buildChatPlan`                                  | apps/api/src/domain/chats/policies/      | PLAN-*         |
-| R12: 出すタイミング        | `advanceChat`                                    | apps/sim/src/features/drive/chat/        | CHAT-4a〜e     |
-| R13: 会話の表示            | `ChatFeed`                                       | apps/sim/src/features/drive/chat/        | CHAT-4h        |
-| R14: 音量の操作            | `AudioControls`                                  | apps/sim/src/features/drive/audio/       | CHAT-4i        |
-| R15: 生成の API            | `PrepareChatUseCase`                             | apps/api/src/application/usecases/chats/ | SAVE-_・AUTH-_ |
-| R17: 文の検証              | `ChatWriterGateway` / `validateChatWriting`      | apps/api/src/domain/chats/policies/      | WRITE-*        |
-| R18・R19: 端末の取り方     | `useChatDeck` / `fallbackChatDeck`               | apps/sim/src/features/drive/chat/        | CHAT-4f〜g     |
-| 組み込み                   | `useDriveSoundAndChat` / `linkDriveSoundAndChat` | apps/sim/src/features/drive/chat/        | CHAT-4m・AC-42 |
+| Rule                       | 語彙                                                        | 置き場所                                 | 証明           |
+| -------------------------- | ----------------------------------------------------------- | ---------------------------------------- | -------------- |
+| R1: 鳴らすか               | `gameAudioEnabled`                                          | apps/sim/src/features/drive/audio/       | AUD-3a         |
+| R3・R4: エンジン・ブレーキ | `engineVoice` / `brakeVoice`                                | apps/sim/src/features/drive/audio/       | AUD-3b〜d      |
+| R5: BGM                    | `MUSIC_TRACKS`（drive-sound-tourism S1。前は `radioScore`） | apps/sim/src/features/drive/audio/       | AUD-3f         |
+| R6: 混ぜ方                 | `mixLevels`                                                 | apps/sim/src/features/drive/audio/       | AUD-3e         |
+| R7〜R9: 鳴らし方           | `DriveAudio` / `AudioGraphPort`                             | apps/sim/src/features/drive/audio/       | AUD-3g〜i      |
+| R11: 束の組み立て          | `buildChatPlan`                                             | apps/api/src/domain/chats/policies/      | PLAN-*         |
+| R12: 出すタイミング        | `advanceChat`                                               | apps/sim/src/features/drive/chat/        | CHAT-4a〜e     |
+| R13: 会話の表示            | `ChatFeed`                                                  | apps/sim/src/features/drive/chat/        | CHAT-4h        |
+| R14: 音量の操作            | `AudioControls`                                             | apps/sim/src/features/drive/audio/       | CHAT-4i        |
+| R15: 生成の API            | `PrepareChatUseCase`                                        | apps/api/src/application/usecases/chats/ | SAVE-_・AUTH-_ |
+| R17: 文の検証              | `ChatWriterGateway` / `validateChatWriting`                 | apps/api/src/domain/chats/policies/      | WRITE-*        |
+| R18・R19: 端末の取り方     | `useChatDeck` / `fallbackChatDeck`                          | apps/sim/src/features/drive/chat/        | CHAT-4f〜g     |
+| 組み込み                   | `useDriveSoundAndChat` / `linkDriveSoundAndChat`            | apps/sim/src/features/drive/chat/        | CHAT-4m・AC-42 |
 
 ## 受け入れ基準
 

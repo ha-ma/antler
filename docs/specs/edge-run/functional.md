@@ -31,6 +31,9 @@ B の部品（edge-camera・edge-judge・edge-l0・edge-l1・edge-capture）は 
 1. 起動の入口 `python -m detector --config edge/detector/config.toml`: カメラ → L0（CoreML の YOLO）→ 判定 → WebSocket（8765）→ PWA と、
    capture の HTTP（8767）、有効なら L1（local-jev、8766、非同期で降格だけ）を組み立てて動かし、Ctrl-C で片付ける
 2. L1 なしの起動（`--no-l1` か `[l1] enabled = false`）と、YOLO 単独の計測（`scripts/bench_l1.py --no-l1 --model X`）
+
+> 2026-11-07 pwa-https（`docs/specs/pwa-https/functional.md` UC-3i）が、`serve` で `tls.server_context(config)` を AlertServer に渡すようにした。`[tls]` があれば WebSocket は wss（Capture は前から https）。`[tls]` が壊れていれば `TlsError` を StartupError にして終了コード 2（平文で待ち受けない）。`[tls]` が無ければ今までどおり ws。テストは `tests/test_tls_servers.py` の UC-3i。
+
 3. 起動前の検査 `--check`（設定・モデル・カメラ 1 枚・推論 1 回。待ち受けない）
 4. 手順書 `docs/runbooks/2026-11-06-mac-mini-edge-run.md`（yolo26n-480 の運び方、`[camera]` の導入、L1 なしの起動と計測、PWA をつないで赤が出るまで）
 

@@ -33,9 +33,11 @@ B-0（接続・音の解除・出発）と B-1（走行中の表示）、切断�
 Story: ドライバー（同乗者）として、QR で Wi-Fi に入ったあと 1 回だけ画面を押せば、鹿の検知がスマホに出て音が鳴るようにしたい。Wi-Fi が切れたら黙らず「未接続」と分かりたい。
 
 - R1: 接続先は `ws://ezoroad.local:8765/alerts` 固定（ch7）
+  - **2026-11-06 pwa-https R5 で改めた**: 本番ビルドの接続先は、ページのホスト名がビルドの環境変数 `VITE_EDGE_HOSTS`（既定 `ezoroad.local`、最大 8 件）にあればそのホスト、なければ一覧の先頭。ページが https なら `wss://`（http なら今までどおり `ws://`）。既定のビルドを http で開いたときは `ws://ezoroad.local:8765/alerts` のまま
   - 開発ビルド（`import.meta.env.DEV`）だけ、`?edge=host:port` で接続先を変えられる。本番ビルドでは無視する
   - `?edge=` の値は `host` か `host:port` の形（英数字・`.`・`-`・`:`）だけ受ける。パスや `ws://` の形・空・ポート範囲外は無視して既定に戻す
   - CSP の `connect-src` は `ws://ezoroad.local:8765` のみ（本番ビルド。vite.config.ts）。変えない
+    - **2026-11-06 pwa-https R5 で改めた**: `VITE_EDGE_HOSTS` の各ホストについて `wss://h:8765`・`ws://h:8765`（と edge-capture の 8767）を並べる。一覧に無いホストは入らない（一覧はビルドのときに決まる）
   - 信頼の境界（仮定）: WPA2 の AP に入れるのは QR を渡された人だけで、AP 上の `ezoroad.local` に答えるのは Mac Mini だけ。LAN 内の悪意ある端末は想定しない。ただし受信の洪水で描画が詰まらないよう、1 秒あたり 20 件を超えた分は捨てる（`logger.warn('flag.flood')`）
 - R2: 受信は `readAlertFlag`（ゆるい受信）を通し、読めたフラグと**受信した時刻**（端末の `Date.now()`）を保持する
   - `deer` が真偽値で読めれば、ほかの項目が壊れていても使う（見逃しを減らす。ch6）。`conf` で間引かない
@@ -189,8 +191,8 @@ Story: ドライバー（同乗者）として、QR で Wi-Fi に入ったあと
 
 保留:
 
-- [Deferred: 担当=人 B（edge の feature）とユーザー / 期日=2026-11-05 / 暫定挙動=PWA は http で配り `ws://` につなぐ。http は安全なコンテキストでないため、Geolocation・Wake Lock・Service Worker が使えない（B4-5 の GPS 判定が成り立たない）。B-0 は「この接続では位置情報が使えません」と案内する。解決案: Mac Mini が自己署名の https/wss で配る（端末に証明書の信頼が要る）か、Chrome の insecure-origin 例外を使う（デモ端末のみ）] PWA の配信元の安全なコンテキスト。**pwa-drive の前提なので最優先**
-- [Deferred: 担当=人 B（edge の feature） / 期日=2026-11-05 / 暫定挙動=接続先は `ws://ezoroad.local:8765/alerts` 固定。Android で mDNS が引けない場合は未接続のまま] AP の固定 IP を併記して CSP と接続先に入れるか
+- 解決済み（2026-11-06 pwa-https。案 (a) 車ごとの CA で Mac mini が https・wss・https（Capture）を配る、を推奨で決定。実機の iPhone・Android は pwa-https の Deferred。下は元の Deferred）: [Deferred: 担当=人 B（edge の feature）とユーザー / 期日=2026-11-05 / 暫定挙動=PWA は http で配り `ws://` につなぐ。http は安全なコンテキストでないため、Geolocation・Wake Lock・Service Worker が使えない（B4-5 の GPS 判定が成り立たない）。B-0 は「この接続では位置情報が使えません」と案内する。解決案: Mac Mini が自己署名の https/wss で配る（端末に証明書の信頼が要る）か、Chrome の insecure-origin 例外を使う（デモ端末のみ）] PWA の配信元の安全なコンテキスト。**pwa-drive の前提なので最優先**
+- 解決済み（2026-11-06 pwa-https R5。`VITE_EDGE_HOSTS=ezoroad.local,<AP の IP>` でビルドし、ページを開いたホストにつなぐ。下は元の Deferred）: [Deferred: 担当=人 B（edge の feature） / 期日=2026-11-05 / 暫定挙動=接続先は `ws://ezoroad.local:8765/alerts` 固定。Android で mDNS が引けない場合は未接続のまま] AP の固定 IP を併記して CSP と接続先に入れるか
 - [Deferred: 担当=人 B（edge-latency） / 期日=2026-11-06 / 暫定挙動=ack の `t_shown` は端末の時計をそのまま JST にして送る。端末と Mac Mini の時計のずれは補正しない] Wi-Fi AP には NTP が無いため、端末と Mac Mini の時計のずれが遅延の計測を歪める
 
 ## Test List（Canon TDD Step 1）

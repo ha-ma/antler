@@ -38,6 +38,8 @@ tier: 2
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `DrivePage.tsx`（3D のチャンクの読み込み口・開発用の fps の表示）と `engine.ts`（落ちたフレームを数える）を変えた。話題・写真・おすすめのカード（R1〜R6）は変えていない。
 
+**後の変更（2026-11-06、drive-sound-tourism）**: T11 の出しどき（1 ステージ 1 回をやめ、ゾーンの外ならいつでも。ゾーンを出た後・赤の後は実時間 4 秒あける）と T12 の選び方（先のその日の楽しみ → 到着地の楽しみを実時間 12 秒ごとに入れ替える）は `docs/specs/drive-sound-tourism/functional.md` の S16〜S19 が正。`stopPositionsM` は `chat/tourism.ts` に移した（`recommend.ts` から再び出す）。UC-4a・UC-4b のテストはその決まりに合わせて直した。下の drive-crash-spot の注記の「ステージの始まりから最初にゾーンに入るまで」は、この変更で「ゾーンの外ならいつでも」になった（1 km 手前からの走り出しでもカードが出る）。
+
 > 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md`）でステージは入口の **1 km 手前**から（5 km から変更）。おすすめのカードを出す「ステージの始まりから最初にゾーンに入るまで」は 16 倍で約 4〜5 秒に短くなる（この仕様の 5 km の記述は 1 km と読む）。`DrivePage.tsx` にスマホ・衝突の演出・発見の件数を足したが、会話とカードのルールは変えていない。
 
 ## Example Map

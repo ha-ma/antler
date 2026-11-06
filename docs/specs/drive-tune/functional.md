@@ -2,7 +2,7 @@
 feature: drive-tune
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 38693f1
+spec_confirmed_at: c603167
 tier: 1
 ---
 
@@ -29,6 +29,8 @@ tier: 1
 **範囲外**: 音そのもの（エンジン・ブレーキ・BGM・会話の通知音）と車内の会話の表示（drive-audio-chat。`drive/audio/`・`drive/chat/`。この feature は合図を出すだけ）、立ち寄り（A-4）の組み込み（drive-link の Deferred のまま）、スマホ操作（mobile-landscape）。
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `engine.ts`（落ちたフレーム・数えたフレームを数える。一時停止と終了後は数えない）と `scene/`（DPR の自動の段）を変えた。早送り・速度・ステージは変えていない。
+
+> 2026-11-06 drive-sound-tourism（`docs/specs/drive-sound-tourism/functional.md`）が `audio/`・`chat/`・おすすめのカードを変えた。ブレーキの鳴きは `telemetry()` の強さ（0.7 以上）と ABS を読み、衝突音は `onCue` の `collided` を読むだけ。早送り・速度・ステージ・車両の力学は変えていない。
 
 ## Example Map
 

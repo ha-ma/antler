@@ -8,9 +8,13 @@ import { loadBundledZones } from './lib/zones-loader'
 import { browserWakeLockDeps } from './lib/wake-lock'
 import type { ConnectServices } from './types'
 
-/** ブラウザの実物。接続先は本番では固定、開発ビルドだけ ?edge= で変えられる。 */
+/**
+ * ブラウザの実物。接続先は本番ではページのホスト（VITE_EDGE_HOSTS にあるとき）か一覧の先頭、
+ * https のページなら wss。開発ビルドだけ ?edge= で変えられる（docs/specs/pwa-https R5）。
+ */
 export function createBrowserServices(): ConnectServices {
   const soundOn = alertSoundEnabled(import.meta.env)
+  const edgeHosts: unknown = import.meta.env['VITE_EDGE_HOSTS']
   const port = soundOn ? new WebAudioPort(SOUND_URLS) : new SilentAudioPort()
   const sound = new AlertSoundController(port, {
     onError: (event, error) => {
@@ -18,7 +22,7 @@ export function createBrowserServices(): ConnectServices {
     },
   })
   return {
-    url: resolveEdgeUrl(globalThis.location.search, import.meta.env.DEV),
+    url: resolveEdgeUrl(globalThis.location, import.meta.env.DEV, edgeHosts),
     // ブラウザの WebSocket は SocketLike の上位互換（ハンドラの引数を使わないだけ）
     createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
     location: browserLocationDeps(),

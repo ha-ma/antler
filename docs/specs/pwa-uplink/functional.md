@@ -58,6 +58,8 @@ edge の L1 は JudgeRequest の `state`（`speedKmh`・`zone`・`light`・`head
 
 **Tier 2 の根拠**: ネットワークから届く新しい入力が、L1 の降格（赤を下げる判断）の材料になる。認可マトリクスに行が増える（threat.md）。永続化スキーマは足さない。
 
+> 2026-11-06 pwa-https が `AlertServer` に省略できる `ssl_context`（wss）を、偽 edge に `--tls-cert`・`--tls-key` を足した。上りの `vehicle` の受け方・写す 3 項目は変わらない（wss でも同じ）。
+
 ## Example Map
 
 Story: ドライバー（同乗者）として、いま何 km/h で、鹿ゾーンの中か外か、昼か夜かを L1 に伝えて、L1 が車の状況に合った判断をしてほしい。

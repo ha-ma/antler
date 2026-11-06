@@ -15,11 +15,13 @@ target_paths:
   - apps/api/src/domain/shared/policies/lang-script-policy.ts
   - .claude/hooks/dispatch_local_rules.py
   - scripts/tests/test_antler_hooks.py
-spec_confirmed_at: 056dadd
+spec_confirmed_at: c603167
 tier: 1
 ---
 
 # 仕様: i18n（A と B の全画面が 4 言語で欠けないことを機械で確かめる）
+
+> 2026-11-06 drive-sound-tourism（`docs/specs/drive-sound-tourism/functional.md` S14）が `apps/sim/src/i18n-tables.test.ts` の見本に、補いの観光の行の言い回し（`FILLER_PLEASURE_TEXT`・`RADIO_FILLER_PLEASURE_TEXT`）を足した（`unsampled` の例外も同じ数）。この仕様の規則は変えていない。
 
 ## 概要
 

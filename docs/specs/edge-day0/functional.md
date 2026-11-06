@@ -10,7 +10,7 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
-spec_confirmed_at: 107d7fe
+spec_confirmed_at: c603167
 tier: 1
 ---
 
@@ -27,6 +27,8 @@ tier: 1
 **drive-audio-chat（2026-11-06）での変更**: CREDITS.md の素材の表に、運転の音（Web Audio の合成、自作）と車内の会話の固定の文（自作）の 2 行を足した（`docs/specs/drive-audio-chat/`）。この feature の挙動は変わらない。
 
 **sdata-materials（2026-11-06）での変更**: CREDITS.md に Mapillary の道東の画像（CC BY-SA 4.0、評価専用）と 3D の鹿 M01〜M04（CC0）の行を足した（`docs/reports/2026-11-06-sdata-research.md`）。この feature の挙動は変わらない。
+
+**drive-sound-tourism（2026-11-06）での変更**: CREDITS.md の運転の音の行を、CC0 の曲 3 曲・タイヤの鳴き・衝突の録音と、自作の合成（エンジン・通知音・ドスン）に替えた（`docs/specs/drive-sound-tourism/`）。この feature の挙動は変わらない。
 
 ## 概要
 
@@ -47,6 +49,8 @@ tier: 1
 
 **Tier 1 の根拠**: 開発者の手元で動く計測・書き出しの道具で、サービスの挙動を変えない。新しい待ち受けを作らず、外へ送る先は既存の L1 client と同じループバックの local-jev だけ（`remote_not_allowed` を継承）。
 認可・永続化スキーマに触れない。並行性はスレッド 1 本（YOLO のループ）で、計測の中に閉じる。
+
+> 2026-11-06 pwa-https が `pyproject.toml` の ruff に `src/detector/pwa_server.py` の E501 の除外を足した（設定ページの 4 言語の文言が長いため）。Day 0 の手順と依存は変わらない。
 
 ## Example Map
 

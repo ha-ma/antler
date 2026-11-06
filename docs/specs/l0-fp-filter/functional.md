@@ -9,7 +9,7 @@ target_paths:
   - edge/detector/tests/test_l0_fp_filter.py
   - edge/detector/tests/test_l0_fp_acceptance.py
   - edge/detector/tests/fp_geometry.py
-spec_confirmed_at: 94f0477
+spec_confirmed_at: 4706526
 tier: 1
 ---
 
@@ -32,6 +32,8 @@ tier: 1
 **範囲外**: 起動の入口（`__main__`・`app.py`）・bench・runbook（edge-run）、`dataset/`（dataset-footage・dataset-synth）、wss（pwa-https）、モデルの再学習（dataset-train）、車の部品を見分ける学習（ハードネガティブ）。L1・fusion・保存のコードは変えない（ただし、それらが受ける検出は後処理の後になる。R3）。
 
 **Tier 1 の根拠**: 認可・永続化スキーマ・外部副作用・並行性のどれにも触れない。足すのは `DeerDetector` の中の同期の計算（直前 3 秒の枠を覚える小さな状態を含む。推論のスレッドだけが触る）と、設定の 1 セクション。
+
+> 2026-11-07 pwa-https（#56）の取り込み: `config.py` と `config.example.toml` に `[tls]`・`[pwa_server]` のセクションが足された。`[l0]` の偽陽性の除き方・既定値は変わらない。
 
 ## Example Map
 

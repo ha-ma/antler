@@ -2,7 +2,7 @@
 import { readAlertFlag } from '@antler/schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { EdgeClient } from '../src/features/connect/lib/edge-client.ts'
-import { startFakeEdge } from './fake-edge.mjs'
+import { parseArgs, startFakeEdge } from './fake-edge.mjs'
 
 const servers = []
 const sockets = []
@@ -216,4 +216,116 @@ describe('AC-1 受け入れ（実際につなぐ）', () => {
       client.stop()
     }
   }, 15_000)
+})
+
+describe('UC-6 偽 edge の TLS（pwa-https R6）', () => {
+  /** 127.0.0.1 の自己署名の証明書を作る（openssl が無ければ undefined）。 */
+  async function selfSigned(): Promise<{ cert: Buffer; key: Buffer } | undefined> {
+    const { execFileSync } = await import('node:child_process')
+    const { mkdtempSync, readFileSync, rmSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const dir = mkdtempSync(join(tmpdir(), 'fake-edge-tls-'))
+    try {
+      execFileSync(
+        'openssl',
+        [
+          'req',
+          '-x509',
+          '-newkey',
+          'rsa:2048',
+          '-nodes',
+          '-days',
+          '1',
+          '-subj',
+          '/CN=fake-edge',
+          '-addext',
+          'subjectAltName=IP:127.0.0.1',
+          '-keyout',
+          join(dir, 'key.pem'),
+          '-out',
+          join(dir, 'cert.pem'),
+        ],
+        { stdio: 'ignore' },
+      )
+      return { cert: readFileSync(join(dir, 'cert.pem')), key: readFileSync(join(dir, 'key.pem')) }
+    } catch {
+      return undefined
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }
+
+  /** CA を信頼した TLS で /alerts に upgrade し、最初のテキストフレームを読む。 */
+  async function firstFlagOverWss(port: number, ca: Buffer): Promise<Record<string, unknown>> {
+    const tls = await import('node:tls')
+    return new Promise((resolve, reject) => {
+      const socket = tls.connect({ host: '127.0.0.1', port, ca, servername: undefined }, () => {
+        socket.write(
+          'GET /alerts HTTP/1.1\r\nHost: 127.0.0.1\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n' +
+            'Sec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n',
+        )
+      })
+      let buffer = Buffer.alloc(0)
+      let upgraded = false
+      socket.on('data', (chunk: Buffer) => {
+        buffer = Buffer.concat([buffer, chunk])
+        if (!upgraded) {
+          const end = buffer.indexOf('\r\n\r\n')
+          if (end < 0) return
+          const head = buffer.subarray(0, end).toString('latin1')
+          if (!head.startsWith('HTTP/1.1 101')) {
+            socket.destroy()
+            reject(new Error(head))
+            return
+          }
+          upgraded = true
+          buffer = buffer.subarray(end + 4)
+        }
+        if (buffer.length < 2) return
+        let length = buffer[1] & 0x7f
+        let offset = 2
+        if (length === 126) {
+          if (buffer.length < 4) return
+          length = buffer.readUInt16BE(2)
+          offset = 4
+        }
+        if (buffer.length < offset + length) return
+        socket.destroy()
+        resolve(JSON.parse(buffer.subarray(offset, offset + length).toString('utf8')))
+      })
+      socket.on('error', reject)
+    })
+  }
+
+  it('UC-6a: --tls-cert・--tls-key で wss に待ち受け、CA を信頼したクライアントにフラグが届く', async () => {
+    const pair = await selfSigned()
+    if (!pair) return // openssl が無い環境では確かめない
+    const files: Record<string, Buffer> = { 'c.pem': pair.cert, 'k.pem': pair.key }
+    const options = parseArgs(
+      ['--tls-cert', 'c.pem', '--tls-key', 'k.pem'],
+      (p: string) => files[p],
+    )
+    const { server, lines } = await start({ scenario: 'calm', ...options })
+    expect(server.tls).toBe(true)
+    expect(lines.find((l) => l.event === 'listening').tls).toBe(true)
+    const flag = await firstFlagOverWss(server.port, pair.cert)
+    expect(readAlertFlag(flag).flag?.strict).toBe(true)
+
+    // CA を信頼していないクライアントは握手で切られ、サーバーは落ちない
+    await expect(firstFlagOverWss(server.port, Buffer.from(''))).rejects.toThrow()
+    const again = await firstFlagOverWss(server.port, pair.cert)
+    expect(again['type']).toBe('flag')
+  })
+
+  it('UC-6b: --tls-cert と --tls-key の片方だけ・値なしはエラーで終わる', () => {
+    const read = () => Buffer.from('x')
+    expect(() => parseArgs(['--tls-cert', 'c.pem'], read)).toThrow(/両方/)
+    expect(() => parseArgs(['--tls-key', 'k.pem'], read)).toThrow(/両方/)
+    expect(() => parseArgs(['--tls-key'], read)).toThrow(/値がありません/)
+    expect(parseArgs(['--scenario', 'deer', '--port', '9000'], read)).toEqual({
+      scenario: 'deer',
+      port: 9000,
+    })
+  })
 })

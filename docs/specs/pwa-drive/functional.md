@@ -121,7 +121,7 @@ Story: ドライバーとして、Mac Mini が無くても、いま鹿ゾーン�
 保留:
 
 - [Deferred: 担当=ユーザー（デモの場所）/ 期日=2026-11-06 / 暫定挙動=北海道の外では判定が使えず、琥珀のまま「位置を取得できません」。東京などでのデモ・開発では、位置の偽装か偽 edge のフラグで確かめる] 北海道の外での表示
-- [Deferred: 担当=人 B（edge の feature）とユーザー / 期日=2026-11-05 / 暫定挙動=http で配る間は Geolocation が使えず、B-1 は「位置情報なし」の琥珀のまま。判定ロジックは localhost・https で確かめる] PWA の配信元の安全なコンテキスト（pwa-connect の保留と同じ。解決するまで実機の GPS 判定は動かない）
+- 解決済み（2026-11-06 pwa-https。Mac mini が車ごとの CA で https を配る。iOS Simulator の Safari で https の PWA が wss につながることを確かめた。実機の GPS・Wake Lock は pwa-https の Deferred。下は元の Deferred）: [Deferred: 担当=人 B（edge の feature）とユーザー / 期日=2026-11-05 / 暫定挙動=http で配る間は Geolocation が使えず、B-1 は「位置情報なし」の琥珀のまま。判定ロジックは localhost・https で確かめる] PWA の配信元の安全なコンテキスト（pwa-connect の保留と同じ。解決するまで実機の GPS 判定は動かない）
 
 ## Test List（Canon TDD Step 1）
 

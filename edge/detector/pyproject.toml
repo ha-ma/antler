@@ -65,3 +65,5 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "ANN"]
+# 設定ページの 4 言語の文（1 文を 1 行に置き、言語どうしを見比べやすくする。pwa-https）
+"src/detector/pwa_server.py" = ["E501"]

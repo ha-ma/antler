@@ -15,6 +15,8 @@ import ipaddress
 import json
 import logging
 import re
+import ssl
+import sys
 import threading
 from dataclasses import dataclass, field
 from http import HTTPStatus
@@ -270,6 +272,18 @@ def _parse_ids(payload: object, *, with_consent: bool) -> tuple[list[str] | None
     return ids, consent
 
 
+class _QuietServer(ThreadingHTTPServer):
+    """途中で切れた接続（Wi-Fi が切れた・TLS の失敗）のエラー。
+
+    標準は接続元のアドレスとトレースバックを stderr に出すので、型の名前だけを debug に残す。
+    """
+
+    def handle_error(self, request: object, client_address: object) -> None:  # type: ignore[override]
+        logger.debug(
+            "capture.request_failed", extra={"error_type": type(sys.exc_info()[1]).__name__}
+        )
+
+
 class CaptureServer:
     """CaptureApi をソケットで待ち受ける。専用のスレッド。接続は保たない。"""
 
@@ -280,19 +294,21 @@ class CaptureServer:
         *,
         max_connections: int = 8,
         timeout: float = 5.0,
+        ssl_context: ssl.SSLContext | None = None,
     ) -> None:
         self._api = api
         self._cfg = config
         self._slots = threading.BoundedSemaphore(max_connections)
         self._timeout = timeout
+        self._ssl = ssl_context
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
     def start(self) -> int:
         """待ち受けを始めて、実際のポートを返す。使用中なら CaptureServerError。"""
-        handler = _make_handler(self._api, self._slots, self._timeout)
+        handler = _make_handler(self._api, self._slots, self._timeout, self._ssl)
         try:
-            httpd = ThreadingHTTPServer((self._cfg.host, self._cfg.port), handler)
+            httpd = _QuietServer((self._cfg.host, self._cfg.port), handler)
         except OSError as exc:
             logger.critical("capture.server_failed", extra={"error_type": type(exc).__name__})
             msg = f"待ち受けを始められない: {self._cfg.host}:{self._cfg.port}"
@@ -307,7 +323,10 @@ class CaptureServer:
         )
         self._thread.start()
         port = int(httpd.server_address[1])
-        logger.info("capture.listening", extra={"host": self._cfg.host, "port": port})
+        logger.info(
+            "capture.listening",
+            extra={"host": self._cfg.host, "port": port, "tls": self._ssl is not None},
+        )
         return port
 
     def stop(self) -> None:
@@ -321,7 +340,10 @@ class CaptureServer:
 
 
 def _make_handler(
-    api: CaptureApi, slots: threading.BoundedSemaphore, timeout: float
+    api: CaptureApi,
+    slots: threading.BoundedSemaphore,
+    timeout: float,
+    ssl_context: ssl.SSLContext | None = None,
 ) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.0"  # 接続は保たない
@@ -330,16 +352,42 @@ def _make_handler(
 
         def setup(self) -> None:
             self.timeout = timeout
+            if ssl_context is not None:
+                # 握手はこのスレッドで、枠を取ってから（待ち受けのスレッドでしない。pwa-https R3）
+                self.request = ssl_context.wrap_socket(
+                    self.request, server_side=True, do_handshake_on_connect=False
+                )
             super().setup()
 
         def handle(self) -> None:
             if not slots.acquire(blocking=False):
-                self._raw_error(503, "同時の接続が多すぎます")
+                if ssl_context is None:
+                    self._raw_error(503, "同時の接続が多すぎます")
+                # TLS では握手の前に 503 を書けない。握手せずに閉じる
                 return
             try:
+                if ssl_context is not None and not self._handshake():
+                    return
                 super().handle()
             finally:
                 slots.release()
+
+        def _handshake(self) -> bool:
+            try:
+                self.connection.do_handshake()  # 受信ごとに timeout 秒で打ち切り
+            except (ssl.SSLError, OSError) as exc:
+                logger.debug("capture.tls_failed", extra={"error_type": type(exc).__name__})
+                return False
+            return True
+
+        def finish(self) -> None:
+            try:
+                super().finish()
+            except OSError:
+                pass  # 握手していない TLS の接続を閉じるときの書き出しの失敗
+            finally:
+                if ssl_context is not None:
+                    self.connection.close()
 
         def _raw_error(self, status: int, message: str) -> None:
             body = json.dumps({"error": {"code": "BUSY", "message": message}}).encode()
