@@ -17,7 +17,7 @@ const result: FinishedDrive = {
   outcome: 'completed',
   zonePasses: 3,
   encounters: [encounter],
-  frames: { fpsMedian: 60, fpsP5: 48, frames: 1200 },
+  frames: { fpsMedian: 60, fpsP5: 48, frames: 1200, dropped: 4, counted: 5000 },
 }
 
 describe('toDriveRun', () => {
@@ -26,6 +26,14 @@ describe('toDriveRun', () => {
     expect(DriveRunInputSchema.safeParse(run).success).toBe(true)
     expect(run).toMatchObject({ day: 2, alertEnabled: false, outcome: 'completed', zonePasses: 3 })
     expect(run.encounters[0]?.at).toBe(encounter.alertClockAt)
+    // 落ちたフレームと数えたフレームの数もそのまま残す（performance R1）
+    expect(run.frames).toEqual({
+      fpsMedian: 60,
+      fpsP5: 48,
+      frames: 1200,
+      dropped: 4,
+      counted: 5000,
+    })
   })
 
   it('UC-9f: pending の遭遇は送らず、範囲はスキーマの上限に丸める。runId は毎回新しい', () => {

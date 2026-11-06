@@ -37,3 +37,13 @@ name = "sfad drift"
 stack = "common"
 cmd = ["{PYTHON}", ".claude/hooks/sfad-drift.py"]
 hint = "/sfad drift で中身を確かめ、仕様かコードを直す"
+
+# A のバンドルの上限（docs/specs/performance/functional.md R6）。apps/sim を一時フォルダへ本番ビルドし、
+# 画面ごとの最初の JS と 3D のチャンクの gzip を上限と比べる
+[[check]]
+name = "sim bundle budget"
+stack = "sim"
+cmd = ["node", "scripts/perf/bundle-budget.mjs"]
+needs_path = "node_modules"
+hint = "遅延読込にするか、理由を functional.md R6 に書いて scripts/perf/bundle-budget.mjs の上限を上げる"
+timeout = 600

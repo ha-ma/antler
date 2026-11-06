@@ -7,3 +7,5 @@ export { DriveEngine, type DriveSnapshot } from './domain/engine'
 export { demoScenario, DEMO_TRIP, driveSeed } from './domain/scenario'
 export { scenarioFromDay } from './domain/trip-scenario'
 export type { DriveResult, DriveScenario, Encounter } from './types'
+// A-2 の間に 3D のチャンクを先読みする口（performance R5。app 層の preloadDrive が呼ぶ）
+export { preloadDriveScene } from './scene/load-drive-canvas'

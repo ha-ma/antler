@@ -311,5 +311,12 @@ export type DriveResult = {
   collidedDeerId: string | null
   encounters: Encounter[]
   inputs: { t: number; input: DriveInput }[]
-  frames: { fpsMedian: number; fpsP5: number; frames: number } | null
+  /** rAF の要約（dropped・counted は performance R1 の落ちたフレームと数えたフレームの数。走行の全体） */
+  frames: {
+    fpsMedian: number
+    fpsP5: number
+    frames: number
+    dropped: number
+    counted: number
+  } | null
 }

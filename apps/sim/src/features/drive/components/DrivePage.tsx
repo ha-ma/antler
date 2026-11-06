@@ -21,6 +21,8 @@ import { RecommendCard } from './hud/RecommendCard'
 import { RoutePanel } from './hud/RoutePanel'
 import { StageBanner } from './hud/StageBanner'
 import { ZoneStatusPanel } from './hud/ZoneStatusPanel'
+import { loadDriveCanvas } from '../scene/load-drive-canvas'
+import { FrameMeter } from './FrameMeter'
 import { PhoneScreen } from './PhoneScreen'
 import { StartOverlay } from './StartOverlay'
 import '@antler/alert-ui/tokens.css'
@@ -39,9 +41,8 @@ import './drive.css'
 
 // 3D（three・R3F、gzip 約 300 KB）だけを遅れて読む。出発の案内・HUD・エンジンは three なしで先に出す
 // （performance-analyzer W-2。出発を押すまでに届けばよい）
-const Scene = memo(
-  lazy(() => import('../scene/DriveCanvas').then((m) => ({ default: m.DriveCanvas }))),
-)
+// A-2 の間に先読みしておく（performance R5。scene/load-drive-canvas.ts の同じ import）
+const Scene = memo(lazy(() => loadDriveCanvas().then((m) => ({ default: m.DriveCanvas }))))
 
 type Props = {
   /** テストで差し替える（既定は固定の場面） */
@@ -173,6 +174,8 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
       {!started && (
         <StartOverlay scenario={scenario} noZone={snapshot.stage.count === 0} onStart={begin} />
       )}
+      {/* 開発用の fps の表示（?fps=1 のときだけ。performance R2） */}
+      <FrameMeter engine={engine} />
     </main>
   )
 }

@@ -15,7 +15,7 @@ import type {
   ZoneStatus,
 } from '../types'
 import { etaMs, sunsetOf } from './clock'
-import { summarizeFrames, type FrameSummary } from './frame-stats'
+import { isDroppedFrame, summarizeFrames, type FrameSummary, type FrameTotals } from './frame-stats'
 import { scheduledClockAt } from './stages'
 import {
   advance,
@@ -87,6 +87,8 @@ export class DriveEngine {
   private readonly cueListeners = new Set<CueListener>()
   private sincePublish = 0
   private readonly frameMs: number[] = []
+  /** 落ちたフレームと数えたフレームの数（走行の全体。frameMs の窓より前も数える。performance R1） */
+  private readonly frameTotals: FrameTotals = { dropped: 0, counted: 0 }
   private sunsetMs: number | null
 
   constructor(scenario: DriveScenario, zones: ZoneCollection) {
@@ -108,6 +110,8 @@ export class DriveEngine {
     if (realDtMs > 0 && !this.current.playback.paused) {
       this.frameMs.push(realDtMs)
       if (this.frameMs.length > MAX_FRAMES) this.frameMs.shift()
+      this.frameTotals.counted += 1
+      if (isDroppedFrame(realDtMs)) this.frameTotals.dropped += 1
     }
     const before = this.current.alert.state
     const outcome = this.current.outcome
@@ -167,11 +171,13 @@ export class DriveEngine {
   restart(): void {
     this.current = createWorld(this.current.scenario, this.zones)
     this.frameMs.length = 0
+    this.frameTotals.dropped = 0
+    this.frameTotals.counted = 0
     this.publish()
   }
 
   frameSummary(): FrameSummary | null {
-    return summarizeFrames(this.frameMs)
+    return summarizeFrames(this.frameMs, { ...this.frameTotals })
   }
 
   /** 走行の結果（drive-link R8）。衝突か完走のあとだけ。走っている間は null */

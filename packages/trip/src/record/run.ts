@@ -33,6 +33,12 @@ export const FrameSummarySchema = z.strictObject({
   fpsMedian: z.number().min(0).max(1000),
   fpsP5: z.number().min(0).max(1000),
   frames: z.number().int().min(0),
+  /**
+   * 落ちたフレーム（40 ms を超えた rAF の間隔）の数と、数えたフレームの数（performance R1）。どちらも走行の全体
+   * （frames は中央値・5 パーセンタイルの窓の数）。足す前に保存した run には無いので省略を許す
+   */
+  dropped: z.number().int().min(0).optional(),
+  counted: z.number().int().min(0).optional(),
 })
 
 export const DriveRunInputSchema = z.strictObject({
