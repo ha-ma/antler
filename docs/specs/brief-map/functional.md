@@ -9,7 +9,7 @@ target_paths:
   - apps/api/src/infrastructure/gateways/file-road-catalog.gateway.ts
   - apps/api/src/infrastructure/http/routes/trip-day.routes.ts
   - apps/sim/src/features/brief-map/
-spec_confirmed_at: 5939fc8
+spec_confirmed_at: 3d2243b
 tier: 2
 ---
 
@@ -25,6 +25,8 @@ A-1 で決めた旅の「その日」を、出発の前に見せる画面（A-2�
 画面: UI キャンバス v2 の A2_Brief（`/trip/:id/brief`）。読み取り結果は `docs/reports/2026-11-03-a2-brief-artboard.md`。
 
 **Tier 2 の理由**: 認可（保存した旅を ID だけで読み出す初めての API。plan-trip の threat.md が「読み出しは brief-map で」と残した）、外部への依存（ブラウザが地図タイルを外部の提供元から読む。ルートは開発時に OSRM から取って同梱する）。永続化の表は増やさない（条件はシードから決まるので保存しない。R4）。
+
+**plan-trip-photos（2026-11-06）での変更**: しおりの組み立て（`buildItinerary`）が重さでなく標準の所要で割り当てるようになり、移動だけなら当日に移動する規則になった。UC-2b のテストの旅を「釧路空港 16:00 受け取り」から「17:30 受け取り」に直した（18:00 までに拠点へ着けず、1 日目は空港で泊まる場面を保つ）。この仕様の挙動は変わらない。以前に保存した旅は、作り直しが一致しないので ItineraryChangedError になる（docs/changes/2026-11-06-a-local-feedback.md）。
 
 **deploy-a（2026-11-05）での変更**: レート制限の `rateLimit` に名前（`trip-day.read`）を付けた（Vercel ではこの名前でインスタンスをまたいで数える）。挙動は変わらない。Vercel の関数では `@antler/zones/zones.geojson` を関数のファイルに含める（`vercel build` で確かめた）。
 
