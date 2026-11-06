@@ -9,6 +9,7 @@ target_paths:
   - apps/sim/src/features/record/components/
   - apps/sim/src/features/record/utils/celebration.ts
   - apps/sim/src/features/record/hooks/useCelebration.ts
+  - apps/sim/src/features/record/hooks/useTripRecord.ts
   - apps/sim/src/features/record/text.ts
   - apps/sim/src/features/record/index.ts
 spec_confirmed_at: 0aa0bc1
@@ -72,7 +73,7 @@ Questions は 2026-11-06 にすべて推奨で決定した（ユーザーの方�
   - OFF だけで走りきった日も「クリア」（鹿にぶつからずに走りきった事実は同じ。推奨で決定）
   - `offResult: 'collided'` では止めない（推奨で決定）: TripRecord に保存の順番が無く、止めると主なデモの流れ（OFF で衝突 → A-6 →「ON でやり直す」→ 完走）で祝いが出なくなる。OFF の衝突のあとは合図と次の「1 回だけ」で防ぐ
   - **祝いは 1 つの履歴につき 1 回**（spec-adversary の Critical。推奨で決定）: 出した履歴（`location.key`）を sessionStorage に覚え（新しい 20 件）、同じ履歴に戻る・再読み込みでは出さない（出すのは「クリア」の帯ごと）。ブラウザで直に開いた最初の履歴の key は `default` なので、同じタブで同じ旅の URL を直に 2 回開くと 2 回目は出ない（タブを変えれば出る。component-guard W1。許容）。衝突のあとにブラウザの戻るで前の A-7 の履歴に戻っても、祝いは繰り返さない。sessionStorage が使えないときは毎回判定する（祝いを出すかどうかだけに使い、失敗しても画面は出る）
-  - **古いキャッシュで決めない**（spec-adversary の Critical。推奨で決定）: 画面を開いたあとに取り直した記録が来るまで A-7 は「読み込み中」を出す（TanStack Query の `isFetchedAfterMount`）。祝いを出すかは記録の画面の最初の描画で 1 回だけ決め、そのあとの再取得では足さない・消さない
+  - **古いキャッシュで決めない**（spec-adversary の Critical。推奨で決定）: 画面を開いたあとに取り直した記録が来るまで A-7 は「読み込み中」を出す（TanStack Query の `isFetchedAfterMount`。`useTripRecord` は `refetchOnMount: 'always'` で、キャッシュが新しくても開くたびに取り直す。code-reviewer W2）。祝いを出すかは記録の画面の最初の描画で 1 回だけ決め、そのあとの再取得では足さない・消さない
 - R6 A-6 の副の導線「衝突の 3 秒前を見る」の文言（2026-11-06、ユーザーがリプレイを見送り。親セッション経由で推奨で決定）
   - 調べた事実: このボタンは 3 秒前には戻らず、その日の最初から走るだけ（drive は `replay` を読まない。`lossReportFromDrive` の `simMs` は常に null なので `replay` も付かない。`utils/collision-url.ts`）
   - 文言を実際にすることに直す: ja「この日を最初から走り直す」、en「Restart this day from the beginning」、zh「從頭重跑這一天」、ko「이 날을 처음부터 다시 달리기」。主ボタン（アラート ON の衝突では「同じ道を、もう一度走る」）と並んでも区別できるよう「最初から」を入れた
