@@ -48,6 +48,9 @@ DEFAULT_WEIGHTS: Final = "yolov8s-worldv2.pt"
 DEFAULT_NAME: Final = "yolov8s-worldv2-deer"
 DEFAULT_CLASSES: Final = ("deer",)
 DEFAULT_CONF: Final = 0.25  # Ultralytics の既定。tracker.min_conf（0.4）以下
+# 入力（高さ, 幅）は L0 のフレーム（B2-1 の 640×480）と同じ。正方形だと L0 が余白なしで
+# 引き伸ばし、縦横比が崩れて精度が大きく落ちた（docs/reports/2026-11-06-dataset-train-run.md）
+DEFAULT_IMGSZ: Final = (480, 640)
 OUTPUTS: Final = ("confidence", "coordinates")
 EXIT_OK, EXIT_FAIL, EXIT_INPUT = 0, 1, 2
 
@@ -165,7 +168,7 @@ def export(
     *,
     weights: str = DEFAULT_WEIGHTS,
     classes: Sequence[str] = DEFAULT_CLASSES,
-    imgsz: int = 640,
+    imgsz: int | Sequence[int] = DEFAULT_IMGSZ,
     conf: float = DEFAULT_CONF,
     iou: float = 0.7,
     out_dir: Path | None = None,
@@ -176,6 +179,7 @@ def export(
     name_fixer: Callable[[Path, Sequence[str]], bool] | None = None,
     check_image: Path | None = None,
 ) -> dict[str, object]:
+    imgsz = imgsz if isinstance(imgsz, int) else list(imgsz)
     out_dir = out_dir or default_out_dir()
     target = out_dir / f"{name}.mlpackage"
     if target.exists() and not force:
@@ -245,18 +249,38 @@ def _remove(path: Path) -> None:
 
 
 def _multiple_of_32(text: str) -> int:
-    value = int(text)
+    try:
+        value = int(text)
+    except ValueError as exc:
+        msg = "32 の倍数（32 以上）"
+        raise argparse.ArgumentTypeError(msg) from exc
     if value < 32 or value % 32:
         msg = "32 の倍数（32 以上）"
         raise argparse.ArgumentTypeError(msg)
     return value
 
 
+def _imgsz(text: str) -> int | list[int]:
+    """`640`（正方形）か `高さ,幅`（例 `480,640`）。どれも 32 の倍数。"""
+    parts = text.split(",")
+    if len(parts) == 1:
+        return _multiple_of_32(parts[0])
+    if len(parts) != 2:
+        msg = "1 つの値か 高さ,幅"
+        raise argparse.ArgumentTypeError(msg)
+    return [_multiple_of_32(p) for p in parts]
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="python export_yolo_world.py", description=__doc__)
     p.add_argument("--weights", default=DEFAULT_WEIGHTS)
     p.add_argument("--classes", nargs="+", default=list(DEFAULT_CLASSES))
-    p.add_argument("--imgsz", type=_multiple_of_32, default=640, help="32 の倍数（既定 640）")
+    p.add_argument(
+        "--imgsz",
+        type=_imgsz,
+        default=list(DEFAULT_IMGSZ),
+        help="高さ,幅 か正方形の 1 つ。32 の倍数（既定 480,640 = L0 のフレームと同じ）",
+    )
     p.add_argument("--conf", type=float, default=DEFAULT_CONF, help="NMS に焼き込む下限")
     p.add_argument("--iou", type=float, default=0.7)
     p.add_argument("--out-dir", type=Path, help="既定: edge/detector/models/")
