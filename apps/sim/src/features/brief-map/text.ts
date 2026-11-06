@@ -204,6 +204,7 @@ export const BRIEF_TEXT = {
   weather: { ja: '天候', en: 'Weather', zh: '天氣', ko: '날씨' },
   weatherClear: { ja: '晴れ', en: 'Clear', zh: '晴', ko: '맑음' },
   weatherCloudy: { ja: 'くもり', en: 'Cloudy', zh: '陰', ko: '흐림' },
+  weatherRain: { ja: '雨', en: 'Rain', zh: '雨', ko: '비' },
   weatherSnow: { ja: '雪', en: 'Snow', zh: '雪', ko: '눈' },
   weatherFog: { ja: '霧', en: 'Fog', zh: '霧', ko: '안개' },
   surfaceDry: { ja: '乾いた路面', en: 'dry road', zh: '乾燥路面', ko: '마른 노면' },

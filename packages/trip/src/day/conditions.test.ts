@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { CONDITIONS_VERSION, dayConditions, type DayConditions } from './conditions'
 
-// docs/specs/brief-map/functional.md R4（UC-4a〜UC-4e）
+// docs/specs/brief-map/functional.md R4（UC-4a〜UC-4e）。v2 の雨と月ごとの表は conditions-season.test.ts（drive-season R1）
 
 const persona = { size: 4, drivers: 2 }
 const of = (seed: number, day: number, month: number, party = persona, departMonth = month) =>
@@ -23,10 +23,10 @@ const most = <T>(counts: Map<T, number>): T =>
   [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] as T
 
 describe('dayConditions（当日の条件）', () => {
-  it('UC-4a: 同じシード・同じ日なら同じ条件、版は 1', () => {
+  it('UC-4a: 同じシード・同じ日なら同じ条件、版は 2（drive-season で雨を足した）', () => {
     expect(of(918273, 2, 2)).toEqual(of(918273, 2, 2))
     expect(of(918273, 2, 2).version).toBe(CONDITIONS_VERSION)
-    expect(CONDITIONS_VERSION).toBe(1)
+    expect(CONDITIONS_VERSION).toBe(2)
   })
 
   it('UC-4a: 日が違えば別の乱数の列（200 シードで、どこかの欄が違う日がある）', () => {
@@ -62,7 +62,7 @@ describe('dayConditions（当日の条件）', () => {
     }
   })
 
-  it('UC-4c: 窓の曇りは人数の段で、雪か霧の日は 1 段上（上限 heavy）。車内の人数は party.size', () => {
+  it('UC-4c: 窓の曇りは人数の段で、雨・雪・霧の日は 1 段上（上限 heavy）。車内の人数は party.size', () => {
     for (let seed = 1; seed <= 200; seed++) {
       for (const [size, base] of [
         [1, 0],
@@ -72,7 +72,7 @@ describe('dayConditions（当日の条件）', () => {
         [8, 3],
       ] as const) {
         const c = of(seed, 1, 2, { size, drivers: 1 })
-        const bump = c.weather === 'snow' || c.weather === 'fog' ? 1 : 0
+        const bump = c.weather === 'rain' || c.weather === 'snow' || c.weather === 'fog' ? 1 : 0
         const levels = ['none', 'light', 'medium', 'heavy'] as const
         expect(c.windowFog).toBe(levels[Math.min(3, base + bump)])
         expect(c.occupants).toBe(size)

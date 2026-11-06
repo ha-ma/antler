@@ -13,8 +13,8 @@ import type { RoadFrame } from './domain/road'
 
 /** 路面（R3。制動距離の係数とグリップ） */
 export type Surface = 'dry' | 'wet' | 'packed-snow' | 'ice'
-/** 天候（R6。検知の確率） */
-export type Weather = 'clear' | 'cloudy' | 'snow' | 'fog'
+/** 天候（R6。検知の確率。雨は drive-season R1 で足した） */
+export type Weather = 'clear' | 'cloudy' | 'rain' | 'snow' | 'fog'
 /** 車内の窓の曇り（drive-link R6。検知の確率。brief-map の当日の条件と同じ語彙） */
 export type WindowFog = 'none' | 'light' | 'medium' | 'heavy'
 /** その日の行程を決めたデータの版（GET /api/trips/:id/day/:n の day.data） */

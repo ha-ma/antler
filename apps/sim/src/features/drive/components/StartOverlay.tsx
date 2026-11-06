@@ -1,12 +1,36 @@
 import { placeById } from '@antler/trip'
-import { Link } from 'react-router'
+import { Link, useLocation } from 'react-router'
+import { currentDemoSeason, DEMO_SEASONS, demoSeasonHref } from '../domain/demo-season'
 import { briefHref } from '../hooks/use-drive-params'
 import type { DriveScenario } from '../types'
 import { HUD_TEXT, SURFACE_TEXT, WEATHER_TEXT } from './hud/hud-text'
+import { SEASON_TEXT } from './season-text'
 
 /** 地点の名前（マスターに無ければ slug のまま） */
 function placeName(slug: string): string {
   return placeById(slug)?.name.ja ?? slug
+}
+
+/**
+ * 見本の場面の季節の切り替え（drive-season R2）。運転の場面（engine）は読み込みのときに URL から作るので、
+ * SPA の遷移ではなくページを読み直すふつうのリンクにする
+ */
+function SeasonSwitch() {
+  const { search } = useLocation()
+  const current = currentDemoSeason(search)
+  return (
+    <nav className="drive-start__seasons" aria-label={SEASON_TEXT.label}>
+      <ul>
+        {DEMO_SEASONS.map(({ id }) => (
+          <li key={id}>
+            <a href={demoSeasonHref(search, id)} aria-current={id === current ? 'true' : undefined}>
+              {SEASON_TEXT.items[id]}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
 }
 
 /**
@@ -36,7 +60,13 @@ export function StartOverlay({
           {WEATHER_TEXT[scenario.weather]}・{SURFACE_TEXT[scenario.surface]}
         </p>
       ) : (
-        <p>{t.lead}</p>
+        <>
+          <p>{t.lead}</p>
+          <p data-testid="start-conditions">
+            {WEATHER_TEXT[scenario.weather]}・{SURFACE_TEXT[scenario.surface]}
+          </p>
+          <SeasonSwitch />
+        </>
       )}
       {noZone && <p data-testid="no-zone">{HUD_TEXT.stage.noZone}</p>}
       <p>{scenario.alertEnabled ? t.alertOn : t.alertOff}</p>

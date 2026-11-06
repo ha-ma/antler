@@ -82,7 +82,7 @@ export type ChatWritingBrief = {
   experience: 'first' | 'few' | 'experienced'
   month: number
   conditions: {
-    weather: 'clear' | 'cloudy' | 'snow' | 'fog'
+    weather: 'clear' | 'cloudy' | 'rain' | 'snow' | 'fog'
     surface: 'dry' | 'wet' | 'packed-snow' | 'ice'
   }
   lines: {

@@ -22,7 +22,14 @@ export const RELEASE_MS = 1500
 export const CAMERA_FORWARD_M = 1.2
 
 const LIGHT_FACTOR: Record<LightPeriod, number> = { day: 0.95, dawn: 0.8, dusk: 0.8, night: 0.7 }
-const WEATHER_FACTOR: Record<Weather, number> = { clear: 1, cloudy: 0.95, snow: 0.8, fog: 0.6 }
+const WEATHER_FACTOR: Record<Weather, number> = {
+  clear: 1,
+  cloudy: 0.95,
+  // 雨（drive-season R1）: 雨粒と照り返しで雪より少しよく見える
+  rain: 0.85,
+  snow: 0.8,
+  fog: 0.6,
+}
 
 /** 車（カメラ）の位置と向き */
 export type CameraPose = { x: number; z: number; forward: PlaneXZ; right: PlaneXZ }

@@ -1,6 +1,7 @@
 import { TripPlanSchema, type TripPlan } from '@antler/schema'
 import { polylineLengthM, type LonLat, type ZoneCollection } from '@antler/zones'
 import type { DriveScenario } from '../types'
+import { demoSeason } from './demo-season'
 import { deriveSeed } from './rng'
 import { fromPlane, toPlane, type PlaneXZ } from './road'
 import { ROUTE_STEP_M, smoothPlane } from './route-shape'
@@ -45,18 +46,22 @@ export function driveSeed(tripSeed: number, day: number): number {
   return deriveSeed(tripSeed, `drive:${String(day)}`)
 }
 
-/** 固定の場面（2 日目の 16:40、薄暮。圧雪・曇り、4 人なので窓は少し曇る） */
+/**
+ * 固定の場面（2 日目の 16:40）。季節・天候・路面は URL の month・weather から（drive-season R2、demo-season.ts）。
+ * 無ければ 2 月・薄暮・圧雪・曇り、4 人なので窓は少し曇る
+ */
 export function demoScenario(zones: ZoneCollection, search = ''): DriveScenario {
   const route = buildDemoRoute(zones)
+  const season = demoSeason(search, DEMO_TRIP)
   return {
     source: 'demo',
     trip: DEMO_TRIP,
     day: 2,
     route,
-    startAt: '2027-02-15T16:40+09:00',
-    surface: 'packed-snow',
-    weather: 'cloudy',
-    windowFog: 'light',
+    startAt: season.startAt,
+    surface: season.surface,
+    weather: season.weather,
+    windowFog: season.windowFog,
     from: 'kushiro',
     // 地点のマスタ（@antler/trip の places）の id。HUD の区間の案内は名前（阿寒湖）で出す
     to: 'akan',
@@ -64,7 +69,7 @@ export function demoScenario(zones: ZoneCollection, search = ''): DriveScenario 
     stops: [],
     legStarts: [],
     // 見本は 1 本の移動を 50 km/h の目安で（drive-tune R1）
-    legPace: [{ sM: 0, departAt: '2027-02-15T16:40+09:00', mps: 50 / 3.6 }],
+    legPace: [{ sM: 0, departAt: season.startAt, mps: 50 / 3.6 }],
     straightRangesM: [],
     data: null,
     seed: driveSeed(DEMO_TRIP.seed, 2),
