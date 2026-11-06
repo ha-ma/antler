@@ -16,7 +16,6 @@ manifest（SHA-256・動画ごとのライセンス）で確かめる。評価�
 from __future__ import annotations
 
 import argparse
-import contextlib
 import hashlib
 import json
 import os
@@ -56,7 +55,7 @@ EDGE_ID: Final = re.compile(r"^cap_[0-9a-f]{12}$")
 THRESHOLDS: Final = (0.25, 0.4)
 IOU: Final = 0.5
 FRAME: Final = (640, 480)  # B2-1: L0 に渡るフレーム（幅, 高さ）
-PREPROCESS: Final = "resize 640x480 → stretch to model input (L0)"
+PREPROCESS: Final = "resize 640x480 → model input (L0; a 640x640 model is stretched)"
 SPLITS: Final = ("train", "val")
 
 
@@ -148,14 +147,16 @@ def _inside(path: Path, parent: Path) -> bool:
     return path == parent or parent in path.parents
 
 
-def _no_links(start: Path, root: Path, label: str) -> None:
-    """start から root までの各段と、start の下のすべてにシンボリックリンクが無いこと。"""
+def _no_links(start: Path, root: Path, label: str, *, walk: bool = True) -> None:
+    """start から root までの各段と（walk なら）start の下のすべてに、リンクが無いこと。"""
     node = start
     while _inside(node, root) and node != root:
         if node.is_symlink():
             msg = f"{label}: path にシンボリックリンクがある（{node.name}）"
             raise TrainError(msg)
         node = node.parent
+    if not walk:
+        return
     for dirpath, dirnames, filenames in os.walk(start):
         for name in [*dirnames, *filenames]:
             if (Path(dirpath) / name).is_symlink():
@@ -239,10 +240,7 @@ def _source_path(root: Path, rel: object, label: str, *, want_file: bool = False
     if not (real.is_file() if want_file else real.is_dir()):
         msg = f"{label}: path の置き場所が無い（{rel}）"
         raise TrainError(msg)
-    _no_links(given if not want_file else given.parent, root, label)
-    if want_file and given.is_symlink():
-        msg = f"{label}: path にシンボリックリンクがある（{given.name}）"
-        raise TrainError(msg)
+    _no_links(given, root, label, walk=not want_file)
     return real
 
 
@@ -669,7 +667,7 @@ def verify_run(run_dir: Path) -> dict:
         p.relative_to(run_dir).as_posix()
         for d in ("images", "labels")
         for p in (run_dir / d).rglob("*")
-        if p.is_file()
+        if p.is_file() and p.suffix != ".cache"  # Ultralytics がラベルの読み込みで書く
     }
     if have != set(want):
         diff = sorted(have ^ set(want))[0]
@@ -747,7 +745,11 @@ def train(
     result = (trainer or _ultralytics_train)(base, args)
     target = models_dir / f"{name}.pt"
     with result.last.open("rb") as src, target.open("xb") as dst:
-        shutil.copyfileobj(src, dst)
+        try:
+            shutil.copyfileobj(src, dst)
+        except BaseException:
+            target.unlink(missing_ok=True)  # 半端な重みを残さない（次の「既にある」の原因になる）
+            raise
     root = run_dir.resolve().parents[2]
     card = {
         "name": name,
@@ -796,7 +798,7 @@ def _ultralytics_train(base: Path, args: dict) -> TrainResult:  # pragma: no cov
     SETTINGS.update({"sync": False})
     model = YOLO(str(base))
     model.train(**args)
-    last = Path(args["project"]) / args["name"] / "weights" / "last.pt"
+    last = Path(model.trainer.last)  # exist_ok=False で train-2 などに書かれても正しい場所
     return TrainResult(last=last, version=ultralytics.__version__)
 
 
@@ -807,7 +809,7 @@ def export(
     weights: Path,
     conf: float = 0.25,
     iou: float = 0.7,
-    imgsz: int = 640,
+    imgsz: tuple[int, int] = (FRAME[1], FRAME[0]),
     *,
     min_conf: float = TrackerConfig().min_conf,
     exporter: Callable[[Path, dict], Path] | None = None,
@@ -816,6 +818,9 @@ def export(
     if conf > min_conf:
         msg = f"NMS の conf {conf} が [tracker] min_conf {min_conf} より大きい（追う鹿が消える）"
         raise TrainError(msg)
+    if not weights.is_file():
+        msg = f"重みが無い（{weights.name}）"
+        raise TrainError(msg)
     target = weights.with_suffix(".mlpackage")
     if target.exists():
         msg = f"{target.name} は既にある（上書きしない）"
@@ -823,7 +828,9 @@ def export(
     with tempfile.TemporaryDirectory(prefix="train-l0-export-") as tmp:
         local = Path(tmp) / weights.name
         shutil.copyfile(weights, local)
-        args = {"format": "coreml", "nms": True, "imgsz": imgsz, "conf": conf, "iou": iou}
+        # 入力は L0 のフレームと同じ 640×480（高さ, 幅）。正方形へ引き伸ばすと縦横比が崩れ、
+        # 精度が大きく落ちた（docs/reports/2026-11-06-dataset-train-run.md）
+        args = {"format": "coreml", "nms": True, "imgsz": list(imgsz), "conf": conf, "iou": iou}
         produced = (exporter or _ultralytics_export)(local, args)
         if target.exists():
             msg = f"{target.name} は既にある（上書きしない）"
@@ -918,14 +925,25 @@ def evaluate(
     factory: Callable[[Path], Detector] | None = None,
     reader: Callable[[Path], np.ndarray] | None = None,
 ) -> Path:
-    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    try:
+        manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        msg = f"build の出力を読めない（{run_dir.name}）"
+        raise TrainError(msg) from exc
+    if not model.exists():
+        msg = f"モデルが無い（{model.name}）"
+        raise TrainError(msg)
     out_dir = out_dir or run_dir.parents[1] / "eval"
     kind = model.suffix.lstrip(".")
     target = out_dir / f"{model.stem}.{kind}.{run_dir.name}.json"
     if target.exists():
         msg = f"{target.name} は既にある（上書きしない）"
         raise TrainError(msg)
-    detector = (factory or _make_detector)(model)
+    try:
+        detector = (factory or _make_detector)(model)
+    except (OSError, ValueError) as exc:  # ConfigError（deer の無いモデル等）も ValueError
+        msg = f"モデルを読めない（{model.name}）: {exc}"
+        raise TrainError(msg) from exc
     if "deer" not in detector.names:
         msg = "モデルのクラスに deer が無い"
         raise TrainError(msg)
@@ -943,7 +961,11 @@ def evaluate(
         for entry in manifest["files"]:
             if entry["split"] != side:
                 continue
-            frame = resize((reader or _read_image)(root / entry["origin"]), FRAME)
+            image = root / entry["origin"]
+            if not image.is_file() or sha256_file(image) != entry["sha256"]:
+                msg = f"評価の画像が manifest と違う（{entry['file']}）。build し直す"
+                raise TrainError(msg)
+            frame = resize((reader or _read_image)(image), FRAME)
             preds = detector.detect(frame, Path(entry["file"]))
             gts = [tuple(b) for b in entry["boxes"]]
             for t in THRESHOLDS:
@@ -1004,9 +1026,9 @@ def _make_detector(model: Path) -> Detector:  # pragma: no cover  day0 の環境
     names = tuple(str(v).lower() for v in yolo.names.values())
 
     def detect_pt(frame: np.ndarray, image: Path) -> list:
-        stretched = resize(frame, (640, 640))  # L0 と同じ: 余白なしの引き伸ばし
+        # export と同じ 640×480 の入力（引き伸ばしも余白も無し）
         result = yolo.predict(
-            stretched, imgsz=640, conf=min(THRESHOLDS), rect=False, verbose=False
+            frame, imgsz=[FRAME[1], FRAME[0]], conf=min(THRESHOLDS), rect=False, verbose=False
         )[0]
         deer = names.index("deer") if "deer" in names else -1
         out = []
@@ -1100,5 +1122,4 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    with contextlib.suppress(KeyboardInterrupt):
-        sys.exit(main())
+    sys.exit(main())

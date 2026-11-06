@@ -670,6 +670,7 @@ def test_tr1c_buildのあとの改変と元の重みの出所(tmp_path):
     with pytest.raises(TrainError, match="manifest"):
         train_l0.train(run, models_dir=models, trainer=trainer, **args)
     extra.unlink()
+    (run / "labels/train.cache").write_bytes(b"ultralytics")  # 学習で書かれるものは数えない
     img = run / "images/train/commons__V002_00.jpg"
     keep = img.read_bytes()
     img.write_bytes(b"swapped")
@@ -712,7 +713,7 @@ def test_exp1a_NMS付きで書き出してL0で確かめる(tmp_path):
     ml = train_l0.export(pt, exporter=exporter, verify=seen.append)
     weights, args = exporter.calls[0]
     assert weights.parent != models  # 一時フォルダで書き出す
-    assert args == {"format": "coreml", "nms": True, "imgsz": 640, "conf": 0.25, "iou": 0.7}
+    assert args == {"format": "coreml", "nms": True, "imgsz": [480, 640], "conf": 0.25, "iou": 0.7}
     assert ml == models / "deer-a.mlpackage" and (ml / "Manifest.json").exists()
     assert seen == [ml]
 
@@ -757,6 +758,12 @@ def test_ev1a_当て方():
     assert train_l0.match(same, [(0.5, 0.5, 0.2, 0.2)], threshold=0.25) == (1, 0, 1)
     assert train_l0.match([(0.9, (0.1, 0.1, 0.05, 0.05))], [], threshold=0.25) == (0, 0, 1)
     assert train_l0.rates(0, 0, 0) == {"recall": None, "precision": None}
+    # IoU が同じなら先の正解へ当てる（逆にすると 2 つとも TP になる）
+    g0, g1 = (0.375, 0.5, 0.25, 0.25), (0.625, 0.5, 0.25, 0.25)
+    wide = (0.5, 0.5, 0.5, 0.25)  # g0・g1 とちょうど IoU 0.5
+    assert train_l0.match([(0.9, wide), (0.5, g0)], [g0, g1], threshold=0.25) == (1, 1, 1)
+    # 確信度が同じなら出てきた順（逆にすると g0 が先に g0 へ当たって 2 つとも TP になる）
+    assert train_l0.match([(0.5, wide), (0.5, g0)], [g0, g1], threshold=0.25) == (1, 1, 1)
 
 
 def test_ev1b_評価側とvalを別々に数えJSONに書く(tmp_path):
@@ -787,7 +794,11 @@ def test_ev1b_評価側とvalを別々に数えJSONに書く(tmp_path):
     assert r["eval"]["0.25"]["by_group"]["yolo:V006"]["tp"] == 1
     assert r["eval"]["0.25"]["by_group"]["yolo:V010"]["fn"] == 1
     assert r["labels_note"]["by-sa"] == "AI による目視の概算ラベル"
-    assert r["preprocess"] == "resize 640x480 → stretch to model input (L0)"
+    assert r["preprocess"] == train_l0.PREPROCESS
+    img = root / "private/sa/images/test/V001_00.jpg"
+    img.write_bytes(b"changed")
+    with pytest.raises(TrainError, match="manifest と違う"):
+        train_l0.evaluate(model, run, out_dir=tmp_path / "e3", factory=factory, reader=read_any)
     assert set(seen) == {(480, 640, 3)}
     with pytest.raises(TrainError, match="既にある"):
         train_l0.evaluate(model, run, out_dir=tmp_path / "eval", factory=factory, reader=read_any)
@@ -820,3 +831,13 @@ def test_cli_エラーは2で終わり理由を出す(tmp_path, capsys):
     )
     assert code == 0
     assert "train 3" in capsys.readouterr().out
+
+
+def test_cli_確かめの失敗は1で終わる(tmp_path, monkeypatch, capsys):
+    def broken(weights, conf):
+        raise train_l0.VerifyError("CoreML の出力の形が違う")
+
+    monkeypatch.setattr(train_l0, "export", broken)
+    assert train_l0.main(["export", "--weights", str(tmp_path / "x.pt")]) == 1
+    assert "形が違う" in capsys.readouterr().err
+    assert train_l0.main.__module__ == "train_l0"

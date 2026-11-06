@@ -63,7 +63,7 @@ Story: B の開発者として、使ってよいと確かめた素材だけで�
   - 2 つの置き方を読む。JSON が完成のしるしなので、JSON の無い画像は読まない
     - api: `{key}.json` が `{capture, file, …}`。`{key}` が `^cap_[a-z0-9]+$` で `capture.id` を小文字にしたものと同じ、`file` が `^cap_[a-z0-9]+-[0-9a-f]{12}\.(?:jpg|png)$` で `{key}-` で始まり、画像の SHA-256 の先頭 12 桁がファイル名と同じ
     - edge: `{id}.json` が Capture そのもの。`{id}` が `^cap_[0-9a-f]{12}$` で JSON の `id` と同じ、画像は `{id}.jpg`
-  - **`capture.image` はパスに使わない**（schema が絶対パスを通すため）。画像の実体がそのフォルダの中で、シンボリックリンクでないこと。外れたら `skipped: bad_path`
+  - **`capture.image` はパスに使わない**（schema が絶対パスを通すため）。画像の実体がそのフォルダの中であること。外れたら `skipped: bad_path`。シンボリックリンクは R1 で素材全体のエラーになる（1 枚だけ捨てるより強く止める）
   - 使わないもの（理由ごとに `skipped` に数える）: schema 違反（`invalid`）、画像が無い（`no_image`）、**`consent` が `true` でない（`no_consent`）**、`source = "vehicle"`（`vehicle_pending`。範囲外）、`reviewed` の一覧に無い id（`not_reviewed`。api は認証が無く、`source`・`consent`・`by` を送る側が書けるため）、user の箱が無い（`no_user_box`）、同じ id か同じ画像の SHA-256 が既に入っている（`duplicate`。edge と api の両方にある同じ Capture など）
   - **箱は `by = "user"` だけを正解にする**（`by = "model"` は予測で正解ではない）
   - 箱の変換: 左上基準 `[x, y, w, h]` の角 `(x, y, x + w, y + h)` を 0〜1 に切ってから、中心基準 `(cx, cy, w, h)` に直す。幅か高さが 0 になった箱は捨てる
@@ -79,18 +79,18 @@ Story: B の開発者として、使ってよいと確かめた素材だけで�
   - `<run>` は `os.mkdir` で作る（既にある → エラー。上書きしない）。途中のエラーではそのフォルダを消してから止める
 - R6: 学習（`train`）
   - 引数: `--run`、`--name`（`^[a-z0-9][a-z0-9-]*$`）、`--seed`（必須）、`--base`（既定 `edge/detector/models/yolo26n.pt`）、`--epochs`（60）、`--imgsz`（640）、`--batch`（8）、`--device`（`auto` = MPS が使えれば `mps`、なければ `cpu`）
-  - 学習の前に、`images/{train,val}`・`labels/{train,val}` のファイルの集まりが manifest と同じ（余分も欠けも無く、画像の SHA-256 も同じ）で、`dataset.yaml` の `path` がそのフォルダであることを確かめる。違えばエラー（build のあとの足し忘れ・差し替え・別の機械へのコピーは build し直す）
+  - 学習の前に、`images/{train,val}`・`labels/{train,val}` のファイルの集まりが manifest と同じ（余分も欠けも無く、画像の SHA-256 も同じ）で、`dataset.yaml` の `path` がそのフォルダであることを確かめる。違えばエラー（build のあとの足し忘れ・差し替え・別の機械へのコピーは build し直す）。Ultralytics がラベルの読み込みで書く `*.cache` は数えない（2 回目の学習を止めないため。code-reviewer W1）
   - `edge/detector/models/` に `<name>.pt`・`<name>.json`・`<name>.mlpackage` のどれかが既にある → エラー。元の重みが無い → エラー
   - 元の重みは SHA-256 で見分ける: COCO の `yolo26n.pt`（Ultralytics v8.4.0 の配布物）なら「BY-SA を含まない」。`yolo26n-deer-20261105.pt` なら `--allow-by-sa-base` が無いとエラーで、あれば model card に「元の重みに CC BY-SA の学習を含む」と書く。知らない SHA → エラー（出所の分からない重みから学習しない）
-  - Ultralytics には `project = dataset/out/train/<run>/ultralytics`・`seed`・`deterministic`・`plots = False` を渡し、学習の前に利用状況の送信（`sync`）を切り、オフライン（`YOLO_OFFLINE`）にする。**最終 epoch の `last.pt` を使う**（val で選んだ best.pt は使わない。外部の研究と同じ）。`<name>.pt` へは既にあれば失敗する書き方でコピーする
+  - Ultralytics には `project = dataset/out/train/<run>/ultralytics`・`seed`・`deterministic`・`plots = False` を渡し、学習の前に利用状況の送信（`sync`）を切り、オフライン（`YOLO_OFFLINE`）にする。**最終 epoch の `last.pt` を使う**（val で選んだ best.pt は使わない。外部の研究と同じ）。場所は Ultralytics の `trainer.last` から取る（推測しない）。`<name>.pt` へは既にあれば失敗する書き方でコピーし、コピーの途中で失敗したら半端なファイルを消す
   - model card `<name>.json`: 元の重みの名前・SHA-256・出所の判定、manifest の SHA-256、素材とライセンス（CC BY の帰属表示は CREDITS.md の行を指す）、seed・epochs・imgsz・batch・device、ultralytics の版、作った日時。パスは `dataset/` からの相対。MPS では同じ seed でも学習が完全には一致しないことを書く
 - R7: 書き出し（`export`）
-  - NMS 付き CoreML（`imgsz` 640、`conf` 0.25、`iou` 0.7）。**`conf` が `[tracker] min_conf`（既定 0.4）より大きい → エラー**（トラッカーが追う 0.4 未満の鹿が NMS で消えるため。edge-day0 と同じ決まり）
+  - NMS 付き CoreML（入力は **L0 のフレームと同じ 640×480**（`imgsz` [480, 640]）、`conf` 0.25、`iou` 0.7）。正方形の 640×640 で書き出すと、L0 が 640×480 を余白なしで引き伸ばすため縦横比が崩れ、実データの val で前のモデルの TP が 5/13 → 1/13 に落ちた（`docs/reports/2026-11-06-dataset-train-run.md`。edge-l0 の Deferred「精度が落ちるなら 640×480 の入力でエクスポートし直す」を実施）。**`conf` が `[tracker] min_conf`（既定 0.4）より大きい → エラー**（トラッカーが追う 0.4 未満の鹿が NMS で消えるため。edge-day0 と同じ決まり）
   - `<name>.mlpackage` が既にある → 書き出しの前にエラー（Ultralytics は重みの隣に黙って上書きするので、一時フォルダで書き出してから名前を付ける）
   - 書き出したものを `load_coreml_detector` で読み、黒い 640×480 で `detect` が例外なく返ることを確かめる。失敗 → exit 1（書いたものは残し、失敗を表示）
 - R8: 評価（`evaluate`）
   - 入力: 重み（`.pt` または `.mlpackage`）と build の出力。「評価側」と「val」を別々に、素材ごと・グループ（動画）ごと・合計で数える（前のモデルの学習に入っていたグループを読み手が分けられるように）
-  - 前処理は L0 と同じ: 640×480 に縮め、モデルの入力（640×640）へ余白なしで引き伸ばす。`.mlpackage` は `load_coreml_detector`、`.pt` は引き伸ばした画像を Ultralytics に渡す。クラスは `names` の `deer` を使い、無ければエラー。JSON に前処理の名前を書く
+  - 前処理は L0 と同じ: 640×480 に縮め、`.mlpackage` は `load_coreml_detector` に渡す（モデルの入力が 640×640 なら L0 が引き伸ばす）。`.pt` は export と同じ 640×480 の入力で Ultralytics に渡す。評価の前に、画像の SHA-256 を manifest と照合する（違えばエラー）。クラスは `names` の `deer` を使い、無ければエラー。JSON に前処理の名前を書く
   - 数え方: 確信度が閾値**以上**の鹿の予測を、確信度の高い順（同じなら出てきた順）に、まだ使っていない正解のうち IoU が最大のもの（同じなら先の正解）に当て、IoU が 0.5 以上なら TP。当たらない正解 = FN、余った予測 = FP。鹿なし画像で予測が出た枚数は FP と別の項目（`negative_images_with_detection`）。閾値は 0.25（外部の研究と比べる）と 0.4（トラッカーが追う下限）の 2 つ。再現率・適合率は分母が 0 なら `null`
   - 結果を `dataset/out/eval/<重みの名前>.<pt|mlpackage>.<run>.json` に書く（既にある → エラー）。素材の `labels_note`（「AI による目視の概算ラベル」など）を写し、1 行の要約を表示する。速度は数えない（開発機の数字を Mac mini の値と混同しないため）
 
@@ -209,13 +209,15 @@ UC-5 学習:
 
 UC-6 書き出し:
 
-- [x] EXP-1a: 書き出し器に NMS・imgsz 640・conf 0.25・iou 0.7 が渡り、一時フォルダの出力が `<name>.mlpackage` になり、`load_coreml_detector` で確かめる
+- [x] EXP-1a: 書き出し器に NMS・imgsz [480, 640]・conf 0.25・iou 0.7 が渡り、一時フォルダの出力が `<name>.mlpackage` になり、`load_coreml_detector` で確かめる
 - [x] EXP-1b: conf が `[tracker] min_conf` より大きい → エラー。既存の `.mlpackage` → 書き出しの前にエラー。確かめで例外 → exit 1
 
 UC-7 評価:
 
 - [x] EV-1a: 確信度順（同じなら出てきた順）・IoU 0.5 以上・正解は 1 回だけ・IoU が同じなら先の正解、の当て方で TP / FN / FP。閾値ちょうどの予測は数える。鹿なし画像の誤報の枚数は別の項目。分母 0 は `null`
 - [x] EV-1b: 評価側と val を別々に、素材・グループごとと合計、閾値 0.25 と 0.4 で数え、`dataset/out/eval/<名前>.<pt|mlpackage>.<run>.json`（既にあればエラー）に `labels_note` と前処理の名前つきで書く。画像は L0 と同じ引き伸ばしで検出器に渡す。`deer` の無いモデル → エラー
+
+- [x] REV-1: [ADDED code-reviewer] 学習で書かれる `*.cache` は照合で数えない（TR-1c で確かめる）。評価の画像の SHA が manifest と違う → エラー（EV-1b）。IoU・確信度が同じときの当て方の順を逆にすると結果が変わる例で固定する（EV-1a）。確かめの失敗は CLI が exit 1、素材の誤りは exit 2
 
 状態パターン:
 
