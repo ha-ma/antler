@@ -10,7 +10,7 @@ target_paths:
   - apps/api/src/application/usecases/chats/
   - apps/api/src/infrastructure/gateways/prompts/chat-writing.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: a138fb0
+spec_confirmed_at: 056dadd
 tier: 2
 ---
 

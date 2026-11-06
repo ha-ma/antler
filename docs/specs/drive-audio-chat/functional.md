@@ -12,7 +12,7 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-chat.repository.ts
   - apps/api/src/infrastructure/http/routes/chat.routes.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: a138fb0
+spec_confirmed_at: 056dadd
 tier: 2
 ---
 
