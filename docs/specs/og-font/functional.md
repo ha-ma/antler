@@ -89,7 +89,7 @@ Story: 台湾から来た友人に旅の記録のリンクを送ったとき、S
 - [x] S-2: `--check` は余計なファイルで失敗する（スクリプトの実装。手元で確かめた）
 - [x] FONT-4c: ko のタイトルは KR で描かれ、KR を外すと「□」になり文字列を替えても画素が変わらない
 - [x] FONT-4d: ja のタイトルに混じったハングルは、JP が先でも KR に落ちて描かれる
-- [x] FONT-5: 既定の `OgImageRenderer`（`fontFiles` 空）が 1200×630 の PNG を 1 秒以内に描く
+- [x] FONT-5: 既定の `OgImageRenderer`（`fontFiles` 空）が 1200×630 の PNG を 3 秒以内に描く（実測は 10〜25 ms）
 - [x] AC-1（bundle）: `dist/vercel/` に 3 つの .otf と `OFL.txt` があり、handler.mjs が `./NotoSans…-Bold.otf` を URL で読む（`apps/api/tests/vercel/bundle.test.ts`）
 
 ## 非機能要件

@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto'
 import { mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 export const TAG = 'Sans2.004'
 const BASE = `https://raw.githubusercontent.com/notofonts/noto-cjk/${TAG}`
@@ -44,6 +45,10 @@ function sha256(bytes) {
 async function download(file) {
   const res = await fetch(file.url, { redirect: 'follow', signal: AbortSignal.timeout(120_000) })
   if (!res.ok) throw new Error(`${file.name}: ${String(res.status)} ${file.url}`)
+  // 想定外に大きいものは読む前に止める（読んだあとの上限と、sha256 の検証が最後の砦）
+  if (Number(res.headers.get('content-length') ?? 0) > MAX_BYTES) {
+    throw new Error(`${file.name}: 大きすぎる（content-length）`)
+  }
   const bytes = Buffer.from(await res.arrayBuffer())
   if (bytes.length > MAX_BYTES)
     throw new Error(`${file.name}: 大きすぎる（${String(bytes.length)} バイト）`)
@@ -89,7 +94,7 @@ async function main() {
 }
 
 // import（テスト）されたときは走らせない
-if (import.meta.url === new URL(process.argv[1] ?? '', 'file://').href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : error)
     process.exit(1)

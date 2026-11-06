@@ -160,11 +160,11 @@ describe('同梱のフォント（og-font）', () => {
     expect(mixed.equals(noKr2)).toBe(false)
   })
 
-  it('FONT-5: 既定の OgImageRenderer（fontFiles 空）は同梱のフォントで 1200×630 の PNG を描く。1 枚は 1 秒以内', async () => {
+  it('FONT-5: 既定の OgImageRenderer（fontFiles 空）は同梱のフォントで 1200×630 の PNG を描く。1 枚は 3 秒以内（実測は 10〜25 ms。遅い CI の余裕）', async () => {
     const renderer = new OgImageRenderer({ fontFiles: [] })
     const started = performance.now()
     const png = await renderer.png('t:1:0', () => buildShioriSvg(view('ko', '홋카이도 여행')))
-    expect(performance.now() - started).toBeLessThan(1000)
+    expect(performance.now() - started).toBeLessThan(3000)
     expect([...png.slice(0, 8)]).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
     expect(new DataView(png.buffer).getUint32(16)).toBe(1200)
     expect(new DataView(png.buffer).getUint32(20)).toBe(630)
