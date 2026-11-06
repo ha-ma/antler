@@ -20,6 +20,8 @@ tier: 2
 
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 会話・音量の操作の `lang` 属性の zh を `zh-TW` から `zh-Hant` にそろえ（ほかの画面と同じ）、api の会話の文の検証を共通の文字種の規則（`lang-script-policy`。zh の簡体字も落とす）に寄せた。会話の楽しみの文の関数は `i18n-tables.test.ts` が見本を出して検査する。この仕様のルールは変えていない。
 
+> 2026-11-06 mobile-landscape: `useKeyboardDrive` はエンジンではなく、指の入力と合わせる口（`InputMixer` の keys）に渡す（入力欄のフォーカスの扱いは同じ）。小さい画面では音量の操作のスライダーが右の列の幅に縮む（`docs/specs/mobile-landscape/functional.md` R1・R3）。
+
 ## 概要
 
 **drive-season（2026-11-06）での変更**: 天候に `rain` を足したので、`apps/api/src/domain/chats/models/chat-deck.ts` の天候の union と `chat-ui.test.tsx` の `DATA.conditions`（版 2）を 1 行ずつ直した。会話の振る舞いは変えていない（`docs/specs/drive-season/functional.md`）。

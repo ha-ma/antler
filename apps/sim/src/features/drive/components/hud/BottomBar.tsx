@@ -7,23 +7,27 @@ type Props = {
   soundOn: boolean
   onSound: (on: boolean) => void
   lang: Lang
+  /** キーの説明を出す（主のポインタが指の端末では出さない。mobile-landscape R3） */
+  keys?: boolean
 }
 
 /** 下部: 操作の説明、速度、音トグル（R11） */
-export function BottomBar({ speedKmh, soundOn, onSound, lang }: Props) {
+export function BottomBar({ speedKmh, soundOn, onSound, lang, keys = true }: Props) {
   const hud = hudText(lang)
   return (
-    <div className="drive-hud__bottom">
-      <dl className="drive-hud__controls">
-        {hud.controls.map(([key, label]) => (
-          <div key={key}>
-            <dt>
-              <kbd>{key}</kbd>
-            </dt>
-            <dd>{label}</dd>
-          </div>
-        ))}
-      </dl>
+    <div className="drive-hud__bottom" data-keys={keys}>
+      {keys && (
+        <dl className="drive-hud__controls" data-testid="key-hints">
+          {hud.controls.map(([key, label]) => (
+            <div key={key}>
+              <dt>
+                <kbd>{key}</kbd>
+              </dt>
+              <dd>{label}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
       <p className="drive-hud__speed" data-testid="speed">
         <span className="drive-hud__num drive-hud__num--large">{Math.round(speedKmh)}</span>{' '}
         {hud.speedUnit}

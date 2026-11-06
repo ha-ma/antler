@@ -18,6 +18,8 @@ tier: 2
 
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で HUD の帯・経路・おすすめのカードの文言を旅の言語で取り出すようにし、api の会話の文の検証を共通の文字種の規則に寄せた。この仕様のルールは変えていない。
 
+> 2026-11-06 mobile-landscape: 高さ 560px 以下では、おすすめのカードの一言を出さず、カードを右の列の 45% までにする（音量の操作を押し出さない。`docs/specs/mobile-landscape/functional.md` R1）。
+
 ## 概要
 
 ユーザーがローカルで運転を試した 2 回目の指摘（2026-11-06、`docs/changes/2026-11-06-a-local-feedback-2-tourism.md`）のうち、観光の 2 つを運転画面（`apps/sim/src/features/drive/`）に入れる。

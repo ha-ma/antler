@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { useRef } from 'react'
 import { easeLook, lookTarget, type Look } from '../domain/look'
+import { driveLook } from '../domain/look-input'
 import { DRIVER_EYE, EYE_DOWN_RAD, carToWorld } from './layout'
 import { PRIORITY, useSceneFrame } from './frame-state'
 
@@ -15,7 +16,9 @@ export function DriverCamera() {
 
   useFrame((state, delta) => {
     const { car } = scene.current
-    look.current = easeLook(look.current, lookTarget(state.pointer.x, state.pointer.y), delta)
+    // 視線の入力: ジャイロ → 指のドラッグ → マウスのカーソル（mobile-landscape R4、domain/look-input.ts）
+    const aim = driveLook.target(state.pointer, performance.now())
+    look.current = easeLook(look.current, lookTarget(aim.x, aim.y), delta)
     const cam = state.camera
     cam.position.set(...carToWorld(car, DRIVER_EYE))
     // ヨーは右を見るのが正（look.ts）、three.js の rotation.y は左回りが正
