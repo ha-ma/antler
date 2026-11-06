@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: 7435a29
+spec_confirmed_at: 107d7fe
 tier: 1
 ---
 
@@ -39,6 +39,8 @@ main の取り込み（2026-11-06、og-font・YOLO の素材）で共有の CRED
 **範囲外**: drive（`apps/sim/src/features/drive/`）、stop-events と loss の画面に残る「重さ」の表示（follow-up。下の Deferred）、写真の差し替え UI、写真の 4 言語の説明文、夜・早朝の楽しみを夜に置くこと（いまも 8:00〜18:00 の枠に入る。plan-trip からの既存の挙動）。
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `app/routes.tsx`（画面ごとの遅延読込）を変えた。写真の出し方は変えていない。`packages/trip` は記録の形（`frames`）だけを変えた。
+
+> 2026-11-06 sdata-materials が CREDITS.md のデータ・素材の表に Mapillary の画像と 3D の鹿の行を足した。楽しみの写真の表は変えていない。
 
 ## Example Map
 

@@ -10,7 +10,7 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
-spec_confirmed_at: 5ab439a
+spec_confirmed_at: 107d7fe
 tier: 1
 ---
 
@@ -23,6 +23,8 @@ tier: 1
 **YOLO の素材の取り込み（2026-11-06）での変更**: CREDITS.md に Commons の実写フレーム・Osaki さんの写真・外部の研究の検出器の重み（yolo26n-deer-20261105、AGPL-3.0）の行を足した（`docs/reports/2026-11-06-yolo-materials.md`）。この feature の挙動は変わらない。
 
 **drive-audio-chat（2026-11-06）での変更**: CREDITS.md の素材の表に、運転の音（Web Audio の合成、自作）と車内の会話の固定の文（自作）の 2 行を足した（`docs/specs/drive-audio-chat/`）。この feature の挙動は変わらない。
+
+**sdata-materials（2026-11-06）での変更**: CREDITS.md に Mapillary の道東の画像（CC BY-SA 4.0、評価専用）と 3D の鹿 M01〜M04（CC0）の行を足した（`docs/reports/2026-11-06-sdata-research.md`）。この feature の挙動は変わらない。
 
 ## 概要
 
