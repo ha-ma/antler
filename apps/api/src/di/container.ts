@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { Hono } from 'hono'
 import { SubmitCaptureUseCase } from '../application/usecases/captures/submit-capture.usecase.js'
+import { PrepareChatUseCase } from '../application/usecases/chats/prepare-chat.usecase.js'
 import { DeleteTripUseCase } from '../application/usecases/record/delete-trip.usecase.js'
 import { GetTripRecordUseCase } from '../application/usecases/record/get-trip-record.usecase.js'
 import { SaveRunUseCase } from '../application/usecases/record/save-run.usecase.js'
@@ -12,6 +13,7 @@ import { CreateTripUseCase } from '../application/usecases/trips/create-trip.use
 import { loadEnv, type Env } from '../infrastructure/config/env.js'
 import type { Connection } from '../infrastructure/db/connection.js'
 import { DrizzleUnitOfWork } from '../infrastructure/db/drizzle-unit-of-work.js'
+import { ClaudeChatWriterGateway } from '../infrastructure/gateways/claude-chat-writer.gateway.js'
 import { ClaudeLossWriterGateway } from '../infrastructure/gateways/claude-loss-writer.gateway.js'
 import { ClaudeSceneWriterGateway } from '../infrastructure/gateways/claude-scene-writer.gateway.js'
 import { ClaudeTripWriterGateway } from '../infrastructure/gateways/claude-trip-writer.gateway.js'
@@ -19,6 +21,7 @@ import { FileRoadCatalogGateway } from '../infrastructure/gateways/file-road-cat
 import { createApp } from '../infrastructure/http/app.js'
 import { clientIpKey } from '../infrastructure/http/middleware/client-ip.js'
 import { createLogger, type Logger } from '../infrastructure/logging/logger.js'
+import { DrizzleChatRepository } from '../infrastructure/repositories/drizzle-chat.repository.js'
 import { DrizzleStopDeckRepository } from '../infrastructure/repositories/drizzle-stop-deck.repository.js'
 import { DrizzleTripEventRepository } from '../infrastructure/repositories/drizzle-trip-event.repository.js'
 import { OgImageRenderer } from '../infrastructure/http/views/og-image-renderer.js'
@@ -66,7 +69,7 @@ export async function buildContainer(
   const { connection } = platform
   const trips = new DrizzleTripRepository(connection.db)
   const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1 })
-  // Claude の同時呼び出しの枠は plan-trip・stop-events・loss で 1 つを共有する（別にすると上限が増える。loss R8）。
+  // Claude の同時呼び出しの枠は plan-trip・stop-events・loss・drive-audio-chat で 1 つを共有する（別にすると上限が増える。loss R8）。
   // 1 日の上限も trip_writer_calls で共有
   const writerSlots = new InProcessConcurrencyLimiter(env.CLAUDE_MAX_CONCURRENT_CALLS)
 
@@ -126,6 +129,19 @@ export async function buildContainer(
     dailyWriterCallLimit: env.CLAUDE_DAILY_CALL_LIMIT,
   })
 
+  // 車内の会話の束（drive-audio-chat）。ownerToken を求める。同時の枠と 1 日の上限は plan-trip と共有
+  const prepareChat = new PrepareChatUseCase({
+    trips,
+    chats: new DrizzleChatRepository(connection.db),
+    data: roadCatalog,
+    writer: new ClaudeChatWriterGateway(anthropic.messages, logger),
+    writerSlots,
+    hasher: new NodeSha256Hasher(),
+    clock: new SystemClock(),
+    log: logger,
+    dailyWriterCallLimit: env.CLAUDE_DAILY_CALL_LIMIT,
+  })
+
   // 旅の記録（record）。書き込みと削除は所有者トークンを照合する。OG 画像はプロセスの中で描く
   const publicUrls = [env.PUBLIC_API_URL, env.SIM_PUBLIC_URL, env.PWA_PUBLIC_URL]
   if (
@@ -176,6 +192,7 @@ export async function buildContainer(
     losses: { writeLoss, rateLimitKey },
     stopDecks: { prepareStopDeck, rateLimitKey },
     tripEvents: { recordTripEvents, rateLimitKey },
+    chats: { prepareChat, rateLimitKey },
     records: { ...records, rateLimitKey },
     captures: { submitCapture, rateLimitKey, log: logger },
   })

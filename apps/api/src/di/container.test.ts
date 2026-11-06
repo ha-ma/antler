@@ -41,6 +41,8 @@ describe('buildContainer', () => {
       'schema_meta',
       // stop-events（docs/specs/stop-events/plan.md「マイグレーション統合」）
       'stop_decks',
+      // drive-audio-chat（車内の会話の束）
+      'trip_chats',
       'trip_events',
       'trip_losses',
       'trip_requests',

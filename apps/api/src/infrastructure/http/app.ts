@@ -7,6 +7,7 @@ import type { RateLimitCounter } from '../system/rate-limit-counter.js'
 import { provideRateLimitCounter } from './middleware/rate-limit.js'
 import { toHttpError } from './error-mapper.js'
 import { captureRoutes, type CaptureRoutesDeps } from './routes/capture.routes.js'
+import { chatRoutes, type ChatRoutesDeps } from './routes/chat.routes.js'
 import { healthRoutes, type ReadinessCheck } from './routes/health.routes.js'
 import { lossRoutes, type LossRoutesDeps } from './routes/loss.routes.js'
 import { recordRoutes, type RecordRoutesDeps } from './routes/record.routes.js'
@@ -32,6 +33,8 @@ export type AppDeps = {
   stopDecks?: StopDeckRoutesDeps
   /** POST /api/trips/:id/events（stop-events）。無ければ載せない */
   tripEvents?: TripEventRoutesDeps
+  /** POST /api/trips/:id/day/:n/chat（drive-audio-chat）。無ければ載せない */
+  chats?: ChatRoutesDeps
   /** 走行の記録・記録・削除・/t/:id（record）。無ければ載せない */
   records?: RecordRoutesDeps
   /** POST /api/captures（edge-capture）。無ければ載せない */
@@ -50,6 +53,7 @@ export function createApp({
   losses,
   stopDecks,
   tripEvents,
+  chats,
   records,
   captures,
   rateLimitCounter,
@@ -88,6 +92,7 @@ export function createApp({
   if (losses) app.route('/', lossRoutes(losses))
   if (stopDecks) app.route('/', stopDeckRoutes(stopDecks))
   if (tripEvents) app.route('/', tripEventRoutes(tripEvents))
+  if (chats) app.route('/', chatRoutes(chats))
   if (records) app.route('/', recordRoutes(records))
   if (captures) app.route('/', captureRoutes(captures))
 

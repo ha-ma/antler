@@ -5,8 +5,11 @@ import type { Client } from '@libsql/client'
 // ローカル（file:）とテストは起動時に流す。Vercel（Turso）はデプロイの前に 1 回、
 // `npm run db:migrate`（commands/migrate-db.ts）で流し、関数は版だけを確かめる（deploy-a R6）。
 
-/** 表の版。表を足す・変えるときに 1 つ上げる（2 = deploy-a: rate_limit_hits・captures・schema_meta） */
-export const SCHEMA_VERSION = 2
+/**
+ * 表の版。表を足す・変えるときに 1 つ上げる
+ * （2 = deploy-a: rate_limit_hits・captures・schema_meta、3 = drive-audio-chat: trip_chats）
+ */
+export const SCHEMA_VERSION = 3
 
 /** DB の表の版が、このコードが要る版より古い（マイグレーションの前） */
 export class SchemaOutdatedError extends Error {
@@ -105,6 +108,15 @@ const STATEMENTS = [
     received_at TEXT NOT NULL,
     updated_at INTEGER NOT NULL
   )`,
+  // 車内の会話の束（drive-audio-chat。docs/specs/drive-audio-chat/plan.md「マイグレーション統合」）
+  `CREATE TABLE IF NOT EXISTS trip_chats (
+    key_hash TEXT PRIMARY KEY NOT NULL,
+    trip_id TEXT NOT NULL,
+    day INTEGER NOT NULL,
+    deck TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS trip_chats_trip_id ON trip_chats (trip_id)`,
   // 表の版（1 行だけ）。下げない
   `CREATE TABLE IF NOT EXISTS schema_meta (
     id INTEGER PRIMARY KEY NOT NULL CHECK (id = 1),
