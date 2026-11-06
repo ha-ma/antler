@@ -257,3 +257,65 @@ def test_uc_3f_capture_service_passes_tls_context(tmp_path: Path, tls_dir: Path)
         assert https_get(port, tmp_path / "tls")[0] == 200
     finally:
         service.server.stop()
+
+
+# --- edge-run（detector.app.serve）の配線 ---
+
+
+def test_uc_3i_app_serves_wss_and_https_when_tls_is_configured(
+    tmp_path: Path, tls_dir: Path
+) -> None:
+    """UC-3i: edge-run は [tls] があれば AlertServer に TLS を渡し、wss で赤が届く。
+
+    Capture は https。
+    """
+    from detector import app
+
+    from .app_fakes import CONFIG_TEXT, FakeCamera, always_deer, make_config
+
+    text = CONFIG_TEXT + (
+        f'\n[tls]\ncert = "{tls_dir / "server.crt"}"\nkey = "{tls_dir / "server.key"}"\n'
+    )
+    config = make_config(tmp_path, text)
+    camera = FakeCamera()
+    deps = app.Deps(load_detector=always_deer, open_source=lambda _c: camera)
+
+    async def main() -> tuple[app.RunInfo, app.RunResult]:
+        loop = asyncio.get_running_loop()
+        ready: asyncio.Future[app.RunInfo] = loop.create_future()
+        control = app.StopControl()
+        task = asyncio.create_task(app.serve(config, deps, control, ready=ready.set_result))
+        info = await asyncio.wait_for(ready, 5)
+        try:
+            async with connect(
+                f"wss://127.0.0.1:{info.ws_port}/alerts", ssl=ssl_client(tls_dir)
+            ) as ws:
+                while not json.loads(await asyncio.wait_for(ws.recv(), 5))["deer"]:
+                    pass
+            assert info.capture_port is not None
+            status, _ = await asyncio.to_thread(https_get, info.capture_port, tls_dir)
+            assert status == 200
+        finally:
+            control.request()
+        return info, await asyncio.wait_for(task, 15)
+
+    _, outcome = run(main())
+    assert outcome == app.RunResult(0, "signal")
+    assert camera.closed == 1
+
+
+def test_uc_3i_app_refuses_to_start_with_broken_tls(tmp_path: Path, tls_dir: Path) -> None:
+    """UC-3i / FAIL-2: [tls] が壊れていたら edge-run は StartupError（平文で待ち受けない）。"""
+    from detector import app
+
+    from .app_fakes import CONFIG_TEXT, FakeCamera, always_deer, make_config
+
+    text = CONFIG_TEXT + (
+        f'\n[tls]\ncert = "{tmp_path / "missing.crt"}"\nkey = "{tls_dir / "server.key"}"\n'
+    )
+    config = make_config(tmp_path, text)
+    camera = FakeCamera()
+    deps = app.Deps(load_detector=always_deer, open_source=lambda _c: camera)
+    with pytest.raises(app.StartupError):
+        run(app.serve(config, deps, app.StopControl()))
+    assert camera.closed == 1

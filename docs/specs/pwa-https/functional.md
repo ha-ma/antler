@@ -10,6 +10,7 @@ target_paths:
   - edge/detector/src/detector/tls.py
   - edge/detector/src/detector/pwa_server.py
   - edge/detector/scripts/make_tls.py
+  - edge/detector/src/detector/app.py
 spec_confirmed_at: 9b54027
 tier: 2
 ---
@@ -197,7 +198,7 @@ Story: レンタカーの利用者として、最初に 1 回だけ証明書を�
 
 - [Deferred: 担当=ユーザー（ドメインの有無・費用。ch9 ③ 予算）/ 期日=2026-11-08 / 暫定挙動=(a) の車ごとの CA。スマホに 1 度 CA を入れる] (c′) 持っているドメインと Let's Encrypt の証明書にすれば CA を入れる手順が消える。Mac mini が AP の DNS でそのドメインに AP の IP を答える必要があり、90 日ごとの更新に回線が要る
 - [Deferred: 担当=人 B（pwa-drive の続き）/ 期日=2026-11-08 / 暫定挙動=Safari・Chrome のタブで開く。ホーム画面への追加と、オフラインのキャッシュは無い（Mac mini が常に車内にあるので読み込みは届く）] manifest と Service Worker（https になったので入れられる。古い版が残る危険があるので、更新の方式を決めてから）
-- [Deferred: 担当=edge-run（並走中）/ 期日=2026-11-07 / 暫定挙動=edge の入口が `ssl_context` を渡すまで、AlertServer は ws のまま（`tls.disabled` は `server_context` を呼んだときに出る。`server.listening` の `tls=false` で見分ける）。https の PWA からは「未接続」。runbook と共有ノートに、入口で `ssl_context=tls.server_context(config)` を渡す 1 行を書く] edge を 1 コマンドで起動する入口に TLS をつなぐ
+- 解決済み（2026-11-07。edge-run が main に入ったので、この feature で `detector.app.serve` が `ssl_context=tls.server_context(config)` を渡すようにした。壊れた `[tls]` は StartupError で終了コード 2。UC-3i。下は元の Deferred）: [Deferred: 担当=edge-run（並走中）/ 期日=2026-11-07 / 暫定挙動=edge の入口が `ssl_context` を渡すまで、AlertServer は ws のまま（`tls.disabled` は `server_context` を呼んだときに出る。`server.listening` の `tls=false` で見分ける）。https の PWA からは「未接続」。runbook と共有ノートに、入口で `ssl_context=tls.server_context(config)` を渡す 1 行を書く] edge を 1 コマンドで起動する入口に TLS をつなぐ
 - [Deferred: 担当=人 B とユーザー（実機）/ 期日=2026-11-08 / 暫定挙動=iOS Simulator（CA を keychain に直接入れる）と、Mac の上の受け入れテストで確かめた範囲だけが確か。実機の iOS（プロファイル →「全面的に信頼」）と Android（CA 証明書のインストール）で、ユーザーが入れた根の critical な名前の制約が受け入れられるかは未確認] 実機 iOS 1 台・Android 1 台で runbook の「確かめる」を通す。通らなければ名前の制約を外す案（重さが増す）をユーザーに諮る
 
 ## Test List（Canon TDD Step 1）
@@ -233,6 +234,7 @@ UC-3 wss と https:
 - [x] UC-3f: `CaptureService.from_config` が `[tls]` の SSLContext を CaptureServer に渡す
 - [x] UC-3g: AlertServer は `ssl_handshake_timeout` に `open_timeout`（3 秒）を渡す。握手をしない接続は 3 秒で閉じられ、ほかのクライアントへの配信は続く
 - [x] UC-3h: CaptureServer の枠（8）が埋まっているとき、TLS の口は握手せずに閉じる（平文の口は今までどおり 503）
+- [x] UC-3i: edge-run（`detector.app.serve`）は `[tls]` があれば AlertServer に TLS を渡し、wss で赤が届き Capture は https。`[tls]` が壊れていれば StartupError（平文で待ち受けない）
 
 UC-4 PWA と CA の配信（pwa_server）:
 
