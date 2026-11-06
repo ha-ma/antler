@@ -13,7 +13,7 @@ B の鹿の検出（L0 = YOLO）の学習・評価に使う画像と、L1 の校
 | `external/antler-yolo/commons/`                 | Commons の実写フレーム 29 枚と YOLO ラベル（V002・V003・V009。CC0 / CC BY）、`dataset.yaml`、`manifest.json` | 学習・評価・ベンチ                                     | 入れない（`dataset/external/`） |
 | `private/antler-yolo/eval-by-sa/`               | Commons の実写フレーム 100 枚と YOLO ラベル（V001・V005〜V008。CC BY-SA）                                    | **評価だけ**（ch6 の許可リスト外のため学習に使わない） | 入れない（`dataset/private/`）  |
 | `private/osaki-2026-11/`                        | Kazuhiko Osaki さんのエゾシカの写真 47 枚（EXIF 削除済み、ラベルなし）、`manifest.json`                      | **学習・評価**。公開・二次利用は不可                   | 入れない                        |
-| `private/reference-photos/yuki-fujita-2026-11/` | Yuki Fujita さんの参考写真 8 枚                                                                              | 評価と 3D の参考だけ                                   | 入れない                        |
+| `private/reference-photos/yuki-fujita-2026-11/` | Yuki Fujita さんのエゾシカの写真 8 枚                                                                        | **学習・評価**・3D の参考。公開・二次利用は不可        | 入れない                        |
 | `raw/`                                          | 同意・匿名化の前の生データ                                                                                   | —                                                      | 入れない                        |
 | `out/`                                          | `export_l1_labels.py` の出力                                                                                 | —                                                      | 入れない                        |
 
@@ -51,7 +51,7 @@ YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の�
 4. `manifest.json` に元のファイル名・元と出力の SHA-256・撮影日（セッション）を書く。GPS と機種は書かない
 5. 書いた後に、全ファイルで EXIF と GPS が 0 であることを確かめる
 
-### Yuki Fujita さんの参考写真
+### Yuki Fujita さんの写真（2026-11-04 受け取り、2026-11-06 に条件を更新）
 
 `PRIVATE-DATA.md` を参照。
 
