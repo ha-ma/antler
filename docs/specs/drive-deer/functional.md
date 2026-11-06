@@ -4,7 +4,7 @@ target_paths:
   - apps/sim/src/features/drive/domain/
   - apps/sim/src/features/drive/scene/
   - apps/sim/src/features/drive/types.ts
-spec_confirmed_at: a0e8ac6
+spec_confirmed_at: 3e91a6e
 tier: 1
 ---
 

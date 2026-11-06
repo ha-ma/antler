@@ -2,7 +2,7 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: a0e8ac6
+spec_confirmed_at: 3e91a6e
 tier: 1
 ---
 
