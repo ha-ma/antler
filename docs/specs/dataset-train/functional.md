@@ -173,66 +173,66 @@ Story: B の開発者として、使ってよいと確かめた素材だけで�
 
 外側ループ（受け入れ。Day 5「データループが 1 周」）:
 
-- [ ] AC-1: 一時フォルダの素材（manifest 付きの YOLO の train / val / test、評価専用の YOLO、api と edge の置き方の sim の Capture）で `build` → 偽の学習器で `train` → 偽の書き出し器と偽の読み込みで `export` → 偽の検出器で `evaluate` を通すと、dataset.yaml・manifest.json・重み・model card・`.mlpackage`・評価の JSON ができ、評価専用の画像は学習側に 1 枚も無く、同意なし・確かめていない・model の箱・vehicle は使われていない
+- [x] AC-1: 一時フォルダの素材（manifest 付きの YOLO の train / val / test、評価専用の YOLO、api と edge の置き方の sim の Capture）で `build` → 偽の学習器で `train` → 偽の書き出し器と偽の読み込みで `export` → 偽の検出器で `evaluate` を通すと、dataset.yaml・manifest.json・重み・model card・`.mlpackage`・評価の JSON ができ、評価専用の画像は学習側に 1 枚も無く、同意なし・確かめていない・model の箱・vehicle は使われていない
 
 UC-1 素材の一覧:
 
-- [ ] SRC-1a: 一覧を読む。知らないキー・`kind`・`license`・`use`、不正・重複した `name`、capture の `reviewed` の欠け → エラー（キー名・素材名つき）
-- [ ] SRC-1b: `use = "train"` で `CC-BY-SA` → エラー。`CC-BY-SA` の `use = "eval"` は通る
-- [ ] SRC-1c: [ADDED adversary C1] `path` が絶対パス・`..` で外・`raw/`・`out/`・置き場所が無い・別の素材と同じ実体（大文字小文字だけ違う別名）→ エラー。素材の中のシンボリックリンク（ファイル・フォルダ）→ エラー
+- [x] SRC-1a: 一覧を読む。知らないキー・`kind`・`license`・`use`、不正・重複した `name`、capture の `reviewed` の欠け → エラー（キー名・素材名つき）
+- [x] SRC-1b: `use = "train"` で `CC-BY-SA` → エラー。`CC-BY-SA` の `use = "eval"` は通る
+- [x] SRC-1c: [ADDED adversary C1] `path` が絶対パス・`..` で外・`raw/`・`out/`・置き場所が無い・別の素材と同じ実体（大文字小文字だけ違う別名）→ エラー。素材の中のシンボリックリンク（ファイル・フォルダ）→ エラー
 
 UC-2 YOLO:
 
-- [ ] YOLO-1a: train / val は元の分割、test は評価側、`use = "eval"` は全部評価側、空のラベルファイルの画像は鹿なし
-- [ ] YOLO-1b: クラス違い・範囲外・幅か高さが 0・列数違いの行 → エラー（ファイル名・行番号つき）。ラベルファイルの無い画像・画像の無いラベル・`.jpg` 以外 → エラー
-- [ ] YOLO-1c: [ADDED adversary C1] manifest に無い画像・manifest にあって無い画像・SHA-256 の違い → エラー。動画のライセンスの最も厳しいものと一覧の `license` が違う（BY-SA の素材を `CC-BY` と書く）→ エラー。分類できないライセンス・`self` / `permission` の YOLO → エラー
+- [x] YOLO-1a: train / val は元の分割、test は評価側、`use = "eval"` は全部評価側、空のラベルファイルの画像は鹿なし
+- [x] YOLO-1b: クラス違い・範囲外・幅か高さが 0・列数違いの行 → エラー（ファイル名・行番号つき）。ラベルファイルの無い画像・画像の無いラベル・`.jpg` 以外 → エラー
+- [x] YOLO-1c: [ADDED adversary C1] manifest に無い画像・manifest にあって無い画像・SHA-256 の違い → エラー。動画のライセンスの最も厳しいものと一覧の `license` が違う（BY-SA の素材を `CC-BY` と書く）→ エラー。分類できないライセンス・`self` / `permission` の YOLO → エラー
 
 UC-3 Capture:
 
-- [ ] CAP-1a: api の置き方と edge の置き方の両方を読む。JSON の無い画像は読まない。`capture.image` が絶対パスでも使わない
-- [ ] CAP-1b: 同意なし・schema 違反・画像なし・vehicle・確かめていない id・user の箱が無い・重複を、それぞれの理由で数えて使わない。model の箱は正解にしない
-- [ ] CAP-1c: [ADDED adversary W4] 角を 0〜1 に切ってから中心基準に直す。幅か高さが 0 の箱は捨てる
-- [ ] CAP-1d: [ADDED adversary W1] 日本時間の日付のグループ（JST 8:55 と 9:05 は同じ日）。グループ 1 つ → 全部 train で「val なし」、2 つ → 1 つずつ、5 つ → val 1 つ。同じ seed なら同じ分割
-- [ ] CAP-1e: [ADDED adversary C2] api の `{key}` と `capture.id` の違い・`file` の名前違い（`..`・`/`・別の key）・SHA の先頭 12 桁の違い、edge の `{id}` と JSON の `id` の違い、画像がシンボリックリンク → `bad_path` で使わない
+- [x] CAP-1a: api の置き方と edge の置き方の両方を読む。JSON の無い画像は読まない。`capture.image` が絶対パスでも使わない
+- [x] CAP-1b: 同意なし・schema 違反・画像なし・vehicle・確かめていない id・user の箱が無い・重複を、それぞれの理由で数えて使わない。model の箱は正解にしない
+- [x] CAP-1c: [ADDED adversary W4] 角を 0〜1 に切ってから中心基準に直す。幅か高さが 0 の箱は捨てる
+- [x] CAP-1d: [ADDED adversary W1] 日本時間の日付のグループ（JST 8:55 と 9:05 は同じ日）。グループ 1 つ → 全部 train で「val なし」、2 つ → 1 つずつ、5 つ → val 1 つ。同じ seed なら同じ分割
+- [x] CAP-1e: [ADDED adversary C2] api の `{key}` と `capture.id` の違い・`file` の名前違い（`..`・`/`・別の key）・SHA の先頭 12 桁の違い、edge の `{id}` と JSON の `id` の違い、画像がシンボリックリンク → `bad_path` で使わない
 
 UC-4 漏れと出力:
 
-- [ ] OUT-1a: 学習側と評価側に同じ SHA-256 の画像・同じグループ → エラー。train と val に同じグループ → エラー。学習側の鹿 0 個・val 0 枚 → エラー（S-1）
-- [ ] OUT-1b: dataset.yaml（絶対パス・`names: {0: deer}`）と manifest.json（件数・train / val / 評価側の枚数・画像ごとの素材・分割・グループ・SHA-256・ライセンス・`labels_note`。Capture は `id`・`source`・日付だけで `roadSegment` が無い）。同じ素材・同じ seed で同じ内容
-- [ ] OUT-1c: 既存の `<run>` は上書きしない。不正な `<run>` → エラー。途中のエラーで作りかけを残さない（S-2）。出力の名前の衝突（大文字小文字を区別しない）→ エラー
+- [x] OUT-1a: 学習側と評価側に同じ SHA-256 の画像・同じグループ → エラー。train と val に同じグループ → エラー。学習側の鹿 0 個・val 0 枚 → エラー（S-1）
+- [x] OUT-1b: dataset.yaml（絶対パス・`names: {0: deer}`）と manifest.json（件数・train / val / 評価側の枚数・画像ごとの素材・分割・グループ・SHA-256・ライセンス・`labels_note`。Capture は `id`・`source`・日付だけで `roadSegment` が無い）。同じ素材・同じ seed で同じ内容
+- [x] OUT-1c: 既存の `<run>` は上書きしない。不正な `<run>` → エラー。途中のエラーで作りかけを残さない（S-2）。出力の名前の衝突（大文字小文字を区別しない）→ エラー
 
 UC-5 学習:
 
-- [ ] TR-1a: 学習器に seed・元の重み・dataset.yaml・epochs・imgsz・batch・device・`project`（`dataset/out/train/<run>/ultralytics`）・`plots = False` が渡り、`last.pt` が `<name>.pt` になり、model card（元の重みの SHA と出所・manifest の SHA・素材とライセンス・seed など、パスは相対）ができる
-- [ ] TR-1b: `<name>` の `.pt`・`.json`・`.mlpackage` のどれかがある・元の重みが無い・不正な名前 → エラー。`--device auto` は MPS が使えれば mps、なければ cpu
-- [ ] TR-1c: [ADDED adversary C4] build のあとに画像を足す・差し替える・`dataset.yaml` の path が違う → エラー。元の重みが deer-20261105 なら `--allow-by-sa-base` が要り、card に BY-SA を含むと書く。知らない SHA → エラー
+- [x] TR-1a: 学習器に seed・元の重み・dataset.yaml・epochs・imgsz・batch・device・`project`（`dataset/out/train/<run>/ultralytics`）・`plots = False` が渡り、`last.pt` が `<name>.pt` になり、model card（元の重みの SHA と出所・manifest の SHA・素材とライセンス・seed など、パスは相対）ができる
+- [x] TR-1b: `<name>` の `.pt`・`.json`・`.mlpackage` のどれかがある・元の重みが無い・不正な名前 → エラー。`--device auto` は MPS が使えれば mps、なければ cpu
+- [x] TR-1c: [ADDED adversary C4] build のあとに画像を足す・差し替える・`dataset.yaml` の path が違う → エラー。元の重みが deer-20261105 なら `--allow-by-sa-base` が要り、card に BY-SA を含むと書く。知らない SHA → エラー
 
 UC-6 書き出し:
 
-- [ ] EXP-1a: 書き出し器に NMS・imgsz 640・conf 0.25・iou 0.7 が渡り、一時フォルダの出力が `<name>.mlpackage` になり、`load_coreml_detector` で確かめる
-- [ ] EXP-1b: conf が `[tracker] min_conf` より大きい → エラー。既存の `.mlpackage` → 書き出しの前にエラー。確かめで例外 → exit 1
+- [x] EXP-1a: 書き出し器に NMS・imgsz 640・conf 0.25・iou 0.7 が渡り、一時フォルダの出力が `<name>.mlpackage` になり、`load_coreml_detector` で確かめる
+- [x] EXP-1b: conf が `[tracker] min_conf` より大きい → エラー。既存の `.mlpackage` → 書き出しの前にエラー。確かめで例外 → exit 1
 
 UC-7 評価:
 
-- [ ] EV-1a: 確信度順（同じなら出てきた順）・IoU 0.5 以上・正解は 1 回だけ・IoU が同じなら先の正解、の当て方で TP / FN / FP。閾値ちょうどの予測は数える。鹿なし画像の誤報の枚数は別の項目。分母 0 は `null`
-- [ ] EV-1b: 評価側と val を別々に、素材・グループごとと合計、閾値 0.25 と 0.4 で数え、`dataset/out/eval/<名前>.<pt|mlpackage>.<run>.json`（既にあればエラー）に `labels_note` と前処理の名前つきで書く。画像は L0 と同じ引き伸ばしで検出器に渡す。`deer` の無いモデル → エラー
+- [x] EV-1a: 確信度順（同じなら出てきた順）・IoU 0.5 以上・正解は 1 回だけ・IoU が同じなら先の正解、の当て方で TP / FN / FP。閾値ちょうどの予測は数える。鹿なし画像の誤報の枚数は別の項目。分母 0 は `null`
+- [x] EV-1b: 評価側と val を別々に、素材・グループごとと合計、閾値 0.25 と 0.4 で数え、`dataset/out/eval/<名前>.<pt|mlpackage>.<run>.json`（既にあればエラー）に `labels_note` と前処理の名前つきで書く。画像は L0 と同じ引き伸ばしで検出器に渡す。`deer` の無いモデル → エラー
 
 状態パターン:
 
-- [ ] S-1: 使える素材が無い（OUT-1a と同じテストで確かめる）
-- [ ] S-2: 途中の失敗で作りかけを残さない（OUT-1c と同じテストで確かめる）
+- [x] S-1: 使える素材が無い（OUT-1a と同じテストで確かめる）
+- [x] S-2: 途中の失敗で作りかけを残さない（OUT-1c と同じテストで確かめる）
 
 ## 非機能要件
 
-- [ ] 決定性: 分割は seed 付きのハッシュで、乱数を使わない。同じ素材・同じ seed で同じ manifest（作った日時を除く）。学習の seed は必須の引数（MPS では学習そのものは完全には一致しない。model card に書く）
-- [ ] 個人情報: manifest・model card・評価の JSON に緯度経度・`roadSegment`・氏名・端末の情報・絶対パス（dataset.yaml を除く）を書かない。写真と Capture の画像の写しは `dataset/out/`（gitignore 済み）にだけ置く
-- [ ] ruff と pytest のカバレッジ 70% 以上（`dataset/` 全体）。既存のテストが Green のまま
+- [x] 決定性: 分割は seed 付きのハッシュで、乱数を使わない。同じ素材・同じ seed で同じ manifest（作った日時を除く）。学習の seed は必須の引数（MPS では学習そのものは完全には一致しない。model card に書く）
+- [x] 個人情報: manifest・model card・評価の JSON に緯度経度・`roadSegment`・氏名・端末の情報・絶対パス（dataset.yaml を除く）を書かない。写真と Capture の画像の写しは `dataset/out/`（gitignore 済み）にだけ置く
+- [x] ruff と pytest のカバレッジ 70% 以上（`dataset/` 全体）。既存のテストが Green のまま
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-1 が Green
-- [ ] 全 UC / 全状態パターンのテストが Green、既存テストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（ruff check・ruff format）
+- [x] 受け入れテスト AC-1 が Green
+- [x] 全 UC / 全状態パターンのテストが Green、既存テストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（ruff check・ruff format）
 - [ ] code-reviewer の Critical 0
 - [ ] 実データで 1 周（Commons の train / val・評価専用の BY-SA、開発用の Mac）を回し、件数と評価の数だけを `docs/reports/2026-11-06-dataset-train-run.md` に残す（M2 での値で、Mac mini の値ではないと書く。評価側の V006 は前のモデルの学習に入っていたと書く）

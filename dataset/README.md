@@ -19,10 +19,13 @@ B の鹿の検出（L0 = YOLO）の学習・評価に使う画像と、L1 の校
 
 重みは `edge/detector/models/` に置く（`.gitignore` 済み）:
 
-| ファイル                     | 中身                                                                                                 |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `yolo26n-deer-20261105.pt`   | YOLO26n を鹿 1 クラス（`0: deer`）で学習した検出器。640 px。L0 の候補（CoreML への書き出しは未実施） |
-| `yolo26n-deer-20261105.onnx` | 同じ重みの ONNX（FP32、出力 `[1, 5, 8400]`）。CPU での比較用                                         |
+| ファイル                             | 中身                                                                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `yolo26n-deer-20261105.pt`           | YOLO26n を鹿 1 クラス（`0: deer`）で学習した検出器（外部の研究。CC BY-SA を含む学習）。640 px。L0 の形・速度の確認用                 |
+| `yolo26n-deer-20261105.onnx`         | 同じ重みの ONNX（FP32、出力 `[1, 5, 8400]`）。CPU での比較用                                                                         |
+| `yolo26n-deer-20261105.mlpackage`    | 同じ重みの CoreML（NMS 付き、ultralytics 8.4.202・coremltools 9.0、conf 0.25・iou 0.7、FP16）。`confidence` は N×80（edge-l0 CU-2f） |
+| `yolo26n.pt`                         | COCO の YOLO26n（Ultralytics v8.4.0 の配布物、SHA-256 `9b09cc8b…`）。`train_l0.py` の元の重み。鹿のクラスは無い                      |
+| `<name>.pt` / `.json` / `.mlpackage` | `train_l0.py` で学習した重み・学習の記録（model card）・CoreML                                                                       |
 
 YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の正規化 xywh。Capture の箱（左上基準）とは基準が違う（`docs/changes/2026-11-04-capture-xywh-top-left.md`）。
 
@@ -60,3 +63,19 @@ YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の�
 - Commons のフレームは元の研究の分割を引き継ぐ（動画単位: V002・V009 = train、V003 = val）。同じ動画のフレームを学習と評価の両側に入れない
 - BY-SA のフレームは評価専用。V001 は唯一の夜間の鹿（5 物体）
 - Osaki さんの写真は撮影日（`session`）単位で分ける。連写を学習と評価の両側に入れない
+
+## 学習スクリプト（`train_l0.py`、docs/specs/dataset-train）
+
+素材は `train_sources.toml` に書く。用途とライセンスは、一覧の値ではなく、実体のパスと素材の `manifest.json`（SHA-256・動画ごとのライセンス）で確かめる。CC BY-SA は評価だけ。
+Ultralytics・coremltools・opencv は extra `day0` の環境（`pip install -e "edge/detector[day0,dev]"`）で回す。
+
+```bash
+python dataset/train_l0.py build --run r1 --seed 7            # dataset/out/train/r1/（dataset.yaml・manifest.json）
+python dataset/train_l0.py train --run r1 --name yolo26n-deer-r1 --seed 7   # 最終 epoch の重みと model card
+python dataset/train_l0.py export --weights edge/detector/models/yolo26n-deer-r1.pt
+python dataset/train_l0.py evaluate --run r1 --model edge/detector/models/yolo26n-deer-r1.mlpackage
+```
+
+- `build` の出力（`dataset/out/train/<run>/`）は絶対パスの `dataset.yaml` を持つ。別の機械では `build` し直す（`train` は manifest との照合で止まる）
+- Capture は `kind = "capture"` で、置き方は api の保存（`{key}.json` ＋ `{key}-{sha12}.jpg`）か、**止めた edge からコピーした**フォルダ（`{id}.json` ＋ `{id}.jpg`。動いている edge は 24 時間で消すため）。`consent: true`・`source: sim`・`reviewed` の一覧にある id・`by: user` の箱だけを使う。vehicle の Capture は ch9 ③・edge-capture の判断まで使わない
+- 写しは run のフォルダごと手で消す。コミットする報告書には件数と評価の数だけを書き、画像・Capture の id・ファイル名・`roadSegment` を書かない
