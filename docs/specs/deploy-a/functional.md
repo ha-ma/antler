@@ -23,11 +23,13 @@ target_paths:
   - apps/api/src/infrastructure/http/unavailable.ts
   - apps/api/src/domain/captures/policies/capture-claim-policy.ts
   - apps/api/tests/vercel/
-spec_confirmed_at: 5939fc8
+spec_confirmed_at: 2421c02
 tier: 2
 ---
 
 # 仕様: deploy-a（A の sim と api を Vercel に置く準備。DB は Turso、Capture の画像は Vercel Blob）
+
+**og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要
 
@@ -193,7 +195,7 @@ Story: ハッカソンの審査員・利用者として、URL 1 つで A（旅�
 - レート制限の scope → route のファイルに名前を書く（必須）
 - region → `hnd1`（東京）。Turso も東京（`aws-ap-northeast-1`）（推奨で決定）
 
-- [Deferred: 担当=ユーザー（フォントのライセンスの判断。CLAUDE.md のアセットは CC0 / CC-BY / 自作のみ。Noto Sans JP は OFL）/ 期日=2026-11-07（デモの前）/ 暫定挙動=Vercel の関数では `OG_FONT_FILES` が空でシステムのフォントを読む。CJK のフォントが無いので OG 画像（`/t/:id/og.png`）の日本語が四角になりうる。SSR のページ（HTML）と sim の A-7 は端末のフォントで正しく出る] OG 画像の日本語のフォント
+- 解決済み（2026-11-06 og-font。ユーザーが OFL の同梱を許可し、Noto Sans JP / TC / KR を同梱した。下は元の Deferred）: [Deferred: 担当=ユーザー（フォントのライセンスの判断。CLAUDE.md のアセットは CC0 / CC-BY / 自作のみ。Noto Sans JP は OFL）/ 期日=2026-11-07（デモの前）/ 暫定挙動=Vercel の関数では `OG_FONT_FILES` が空でシステムのフォントを読む。CJK のフォントが無いので OG 画像（`/t/:id/og.png`）の日本語が四角になりうる。SSR のページ（HTML）と sim の A-7 は端末のフォントで正しく出る] OG 画像の日本語のフォント
 - [Deferred: 担当=人 B（dataset）/ 期日=2026-11-08 / 暫定挙動=Vercel で受けた Capture は Turso の `captures` と Blob の `captures/images/` にある。`dataset/` はまだ読まない（ローカルの `CAPTURES_DIR` だけ）。取り込みのスクリプト（行と画像を `CAPTURES_DIR` の形に書き出す）は別 feature] Blob からの Capture の取り込み
 - [Deferred: 担当=ユーザー（実際のデプロイ）/ 期日=2026-11-07 / 暫定挙動=次の 5 つは実際のデプロイでしか確かめられない。手順書の「デプロイの確かめ方」で確かめる: (1) `/api/(.*)` → 関数の書き換えのあと、関数の `request.url` が元のパスのままか、Vercel が `export default { fetch }` の形を受けるか（`/health` が 200 なら両方確か。500 は関数の形・読み込み）、(2) `@resvg/resvg-js` の Linux のネイティブが関数に入り動くか（`/t/:id/og.png` が 200 の PNG）、(3) Blob の OIDC の資格で非公開の put が通るか（Capture の 201）、(4) `@libsql/client/http` で Drizzle のトランザクション（`DrizzleUnitOfWork`）が Turso に通るか（`POST /api/trips` を最後まで通して 201）、(5) 利用者が付けた `x-vercel-forwarded-for`・`x-forwarded-for` を Vercel が上書きするか（偽のヘッダを付けて `POST /api/trips` を 11 回 → 11 回目が 429）] 実際のデプロイでの確かめ
 - [Deferred: 担当=ユーザー（PO。edge-capture の保持期間と同じ判断）/ 期日=2026-11-08 / 暫定挙動=Vercel で受けた Capture（車外の検知フレーム。他人や車のナンバーが写りうる）は、消す仕組みが無く Blob と Turso に残る。上限（件数・バイト）で増え方だけを止める。消すときは Blob のダッシュボードと `captures` の表から手で消す] Vercel での Capture の保持期間

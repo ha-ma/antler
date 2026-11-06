@@ -98,23 +98,23 @@ DB と同じく、Production と Preview で**ストアを分ける**（Preview 
 
 秘密は **Sensitive** にする（あとから値を読めなくなる）。「既定」の行は、書かなければその値になる。
 
-| 変数                          | Production                                                          | Preview                                  | 必須 / 既定                   | 秘密 |
-| ----------------------------- | ------------------------------------------------------------------- | ---------------------------------------- | ----------------------------- | ---- |
-| `ANTHROPIC_API_KEY`           | Production 用のキー                                                 | **Preview 用の別のキー**                 | 必須                          | 秘密 |
-| `OWNER_TOKEN_SECRET`          | `openssl rand -hex 32` の値                                         | **別の** `openssl rand -hex 32` の値     | 必須（32 文字以上）           | 秘密 |
-| `TRIPS_DB_URL`                | `libsql://antler-production-<org>.turso.io`                         | `libsql://antler-preview-<org>.turso.io` | 必須                          | なし |
-| `TURSO_AUTH_TOKEN`            | `.env.turso-production` の値                                        | `.env.turso-preview` の値                | 必須                          | 秘密 |
-| `BLOB_STORE_ID`               | `antler-captures-production` をつなぐと Vercel が付ける             | `antler-captures-preview` の値（自動）   | 必須（自動）                  | なし |
-| `CLAUDE_DAILY_CALL_LIMIT`     | `400`                                                               | `50`                                     | 既定 400                      | なし |
-| `CLAUDE_MAX_CONCURRENT_CALLS` | `4`                                                                 | `2`                                      | 既定 4（インスタンスごと）    | なし |
-| `CAPTURES_MAX_ITEMS`          | `5000`                                                              | `500`                                    | 既定 50000                    | なし |
-| `CAPTURES_MAX_BYTES`          | `1073741824`（1 GiB）                                               | `104857600`（100 MiB）                   | 既定 5 GiB                    | なし |
-| `PUBLIC_API_URL`              | 独自ドメインがあれば `https://<ドメイン>`、無ければ書かない         | 書かない                                 | 既定: Vercel の URL           | なし |
-| `SIM_PUBLIC_URL`              | `PUBLIC_API_URL` と同じ（同じオリジン）、無ければ書かない           | 書かない                                 | 既定: Vercel の URL           | なし |
-| `CORS_ORIGINS`                | 書かない                                                            | 書かない                                 | 既定: 自分のオリジン 1 つ     | なし |
-| `PWA_PUBLIC_URL`              | PWA の公開先が決まったら（範囲外）                                  | 書かない                                 | 既定 localhost（ログに warn） | なし |
-| `LOG_LEVEL`                   | `info`                                                              | `info`                                   | 既定 info                     | なし |
-| `OG_FONT_FILES`               | 書かない（OG 画像の日本語のフォントは未決。下の「残っていること」） | 書かない                                 | 既定 空                       | なし |
+| 変数                          | Production                                                            | Preview                                  | 必須 / 既定                   | 秘密 |
+| ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------- | ----------------------------- | ---- |
+| `ANTHROPIC_API_KEY`           | Production 用のキー                                                   | **Preview 用の別のキー**                 | 必須                          | 秘密 |
+| `OWNER_TOKEN_SECRET`          | `openssl rand -hex 32` の値                                           | **別の** `openssl rand -hex 32` の値     | 必須（32 文字以上）           | 秘密 |
+| `TRIPS_DB_URL`                | `libsql://antler-production-<org>.turso.io`                           | `libsql://antler-preview-<org>.turso.io` | 必須                          | なし |
+| `TURSO_AUTH_TOKEN`            | `.env.turso-production` の値                                          | `.env.turso-preview` の値                | 必須                          | 秘密 |
+| `BLOB_STORE_ID`               | `antler-captures-production` をつなぐと Vercel が付ける               | `antler-captures-preview` の値（自動）   | 必須（自動）                  | なし |
+| `CLAUDE_DAILY_CALL_LIMIT`     | `400`                                                                 | `50`                                     | 既定 400                      | なし |
+| `CLAUDE_MAX_CONCURRENT_CALLS` | `4`                                                                   | `2`                                      | 既定 4（インスタンスごと）    | なし |
+| `CAPTURES_MAX_ITEMS`          | `5000`                                                                | `500`                                    | 既定 50000                    | なし |
+| `CAPTURES_MAX_BYTES`          | `1073741824`（1 GiB）                                                 | `104857600`（100 MiB）                   | 既定 5 GiB                    | なし |
+| `PUBLIC_API_URL`              | 独自ドメインがあれば `https://<ドメイン>`、無ければ書かない           | 書かない                                 | 既定: Vercel の URL           | なし |
+| `SIM_PUBLIC_URL`              | `PUBLIC_API_URL` と同じ（同じオリジン）、無ければ書かない             | 書かない                                 | 既定: Vercel の URL           | なし |
+| `CORS_ORIGINS`                | 書かない                                                              | 書かない                                 | 既定: 自分のオリジン 1 つ     | なし |
+| `PWA_PUBLIC_URL`              | PWA の公開先が決まったら（範囲外）                                    | 書かない                                 | 既定 localhost（ログに warn） | なし |
+| `LOG_LEVEL`                   | `info`                                                                | `info`                                   | 既定 info                     | なし |
+| `OG_FONT_FILES`               | 書かない（同梱の Noto Sans JP / TC / KR を使う。og-font、2026-11-06） | 書かない                                 | 既定 空                       | なし |
 
 書かないもの:
 
@@ -193,7 +193,7 @@ Preview も同じ順に確かめる（保護があるので、ブラウザで Ve
 
 ## 残っていること（この手順の外）
 
-- **OG 画像の日本語のフォント**: Vercel の関数の Linux には CJK のフォントが無く、`/t/<id>/og.png` の日本語が四角になりうる。フォントのファイルを同梱するかはライセンスの判断（CLAUDE.md のアセットは CC0 / CC-BY / 自作のみ。Noto Sans JP は OFL）。決めたら `OG_FONT_FILES` で渡す
+- **OG 画像のフォント（解決: 2026-11-06 og-font）**: Noto Sans JP / TC / KR の Bold（OFL）を `apps/api/assets/fonts/` に同梱し、bundle の `dist/vercel/` に写して関数に入れる（`OG_FONT_FILES` は要らない）。デプロイで確かめること: ja・zh・ko の旅の `/t/<id>/og.png` を開き、タイトルが四角でないこと（手元の nft では 3 つの .otf が関数に入ることを確かめ済み。実際の関数の大きさ・起動はデプロイで見る）
 - **Vercel で受けた Capture の取り込み**: `dataset/` はまだ Turso の `captures` と Blob を読まない（別 feature）
 - **Capture の保持期間**: 消す仕組みが無い。上限（件数・バイト）で増え方だけを止めている
 - **B の PWA の公開**: 範囲外（冒頭）
