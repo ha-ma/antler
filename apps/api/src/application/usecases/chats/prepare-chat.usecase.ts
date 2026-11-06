@@ -264,7 +264,10 @@ export class PrepareChatUseCase {
   }
 }
 
-/** 計画（いつ・誰が・何の話題）と Claude の一言を合わせる。材料だけの欄（pleasure・light）は落とす */
+/**
+ * 計画（いつ・誰が・何の話題・どの楽しみ）と Claude の一言を合わせる。pleasure は残し（写真を出す。drive-tourism T6）、
+ * 材料だけの欄（timing・angle・light）は落とす。pleasure は計画から取り、Claude の出力からは取らない（AUTH-T1）
+ */
 function assemble(plan: ChatPlan, writing: ChatWriting): ChatDeck {
   return {
     tripId: plan.tripId,
@@ -272,7 +275,14 @@ function assemble(plan: ChatPlan, writing: ChatWriting): ChatDeck {
     lines: plan.lines.map((line, i) => {
       const text = writing.lines[i]?.text
       if (!text) throw new Error('検証を通った一言が行と合いません')
-      return { id: line.id, cue: line.cue, topic: line.topic, speaker: line.speaker, text }
+      return {
+        id: line.id,
+        cue: line.cue,
+        topic: line.topic,
+        speaker: line.speaker,
+        pleasure: line.pleasure,
+        text,
+      }
     }),
     data: { routes: plan.data.routes, zones: plan.data.zones },
   }
@@ -288,6 +298,8 @@ function toDeck(deck: ChatDeck): ChatDeck {
       cue: { kind: 'road', leg: l.cue.leg, km: l.cue.km },
       topic: l.topic,
       speaker: l.speaker,
+      // v1 の束（pleasure の欄が無い）は鍵の版（chat:v2）が違うので、ここには来ない（FAIL-T1）
+      pleasure: l.pleasure,
       text: { ja: l.text.ja, en: l.text.en, zh: l.text.zh, ko: l.text.ko },
     })),
     data: { routes: deck.data.routes, zones: deck.data.zones },

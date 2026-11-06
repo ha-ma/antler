@@ -3,6 +3,8 @@ import type {
   ChatPlan,
   ChatPlanLine,
   ChatSpeaker,
+  PleasureAngle,
+  PleasureTiming,
   TalkTopic,
 } from '../models/chat-deck.js'
 import type { ChatMaterial, ChatMaterialZone, LightOnRoad } from '../models/chat-material.js'
@@ -12,9 +14,11 @@ import {
   DEPART_KM,
   EDGE_MARGIN_KM,
   KM_DIGITS,
+  MAX_LATER_STOPS,
   MAX_TALKS_PER_DAY,
   MAX_TALKS_PER_LEG,
   MIN_GAP_KM,
+  PLEASURE_CYCLE,
   TALK_INTERVAL_KM,
   TALK_JITTER_RATIO,
   ZONE_MARGIN_KM,
@@ -26,14 +30,11 @@ import { chatRandom } from './chat-random.js'
 // 位置をすべて決めて → 1 日 10 行に削って → 移動・km の順に並べてから、その順で id・話し手・話題を割り当てる
 // （先に割り当てると、削る・並べ替えるで「同じ話題・同じ人を続けない」が崩れる）。
 
-const TALK_TOPICS: readonly TalkTopic[] = [
-  'pleasure',
-  'weather',
-  'light',
-  'scenery',
-  'snack',
-  'music',
-]
+type OtherTopic = Exclude<TalkTopic, 'pleasure'>
+/** 楽しみ以外の話題（drive-tourism T1。話の行の 3 つに 1 つ、または楽しみの候補が無いとき） */
+const OTHER_TOPICS: readonly OtherTopic[] = ['weather', 'light', 'scenery', 'snack', 'music']
+/** これからの楽しみの切り口の順（drive-tourism T3） */
+const AHEAD_ANGLES: readonly PleasureAngle[] = ['anticipation', 'highlight', 'tip']
 const SEATS: readonly ChatSpeaker[] = ['p1', 'p2', 'p3']
 const SCALE = 10 ** KM_DIGITS
 /** 浮動小数の誤差で、丸めが 1 段ずれないように */
@@ -76,7 +77,11 @@ export function buildChatPlan(m: ChatMaterial, lightAt: LightOnRoad): ChatPlan {
   const speakers = speakersFor(m.partySize)
   const pauses = pausesOf(m)
   let previousSpeaker: ChatSpeaker | null = null
-  let previousTopic: TalkTopic | null = null
+  let previousOther: OtherTopic | null = null
+  // 楽しみの話（drive-tourism T1〜T3）: 話の行の通し番号・楽しみの行の数・楽しみごとの ahead の回数
+  let talkIndex = 0
+  let pleasureCount = 0
+  const aheadCount = new Map<string, number>()
   const lines: ChatPlanLine[] = placed.map((p, index) => {
     const speaker = pick(
       speakers.length > 1 ? speakers.filter((s) => s !== previousSpeaker) : speakers,
@@ -88,22 +93,60 @@ export function buildChatPlan(m: ChatMaterial, lightAt: LightOnRoad): ChatPlan {
       cue: { kind: 'road' as const, leg: p.leg, km: p.km },
       speaker,
     }
-    if (p.depart) return { ...base, topic: 'depart', pleasure: null, light: null }
-    // その移動より後に着く楽しみ（しおりの順で最初のもの）。残っていなければ pleasure を選ばない
-    const ahead = m.stops.find((_, j) => (pauses[j] ?? 0) > p.leg)
+    const none = { pleasure: null, timing: null, angle: null, light: null }
+    if (p.depart) return { ...base, topic: 'depart', ...none }
+    const i = talkIndex
+    talkIndex += 1
+    const candidates = pleasureCandidates(m, pauses, p.leg)
+    const chosen = candidates[pleasureCount % Math.max(1, candidates.length)]
+    if (i % PLEASURE_CYCLE !== PLEASURE_CYCLE - 1 && chosen) {
+      pleasureCount += 1
+      let angle: PleasureAngle = 'memory'
+      if (chosen.timing === 'ahead') {
+        const n = aheadCount.get(chosen.id) ?? 0
+        aheadCount.set(chosen.id, n + 1)
+        angle = AHEAD_ANGLES[n % AHEAD_ANGLES.length] ?? 'anticipation'
+      }
+      return {
+        ...base,
+        topic: 'pleasure',
+        ...none,
+        pleasure: chosen.id,
+        timing: chosen.timing,
+        angle,
+      }
+    }
     const topic = pick(
-      TALK_TOPICS.filter((t) => t !== previousTopic && (t !== 'pleasure' || ahead !== undefined)),
+      OTHER_TOPICS.filter((t) => t !== previousOther),
       random,
     )
-    previousTopic = topic
+    previousOther = topic
     return {
       ...base,
       topic,
-      pleasure: topic === 'pleasure' ? (ahead?.id ?? null) : null,
+      ...none,
       light: topic === 'light' ? lightAt(p.leg, p.km, passingMs(m, p.leg, p.km)) : null,
     }
   })
   return { tripId: m.tripId, day: m.day, lines, data: m.data }
+}
+
+/**
+ * leg 番目の移動を走る間の楽しみの候補（drive-tourism T2）。
+ * その日のこれから → なければ、いちばん最近に済んだもの（done）＋後の日 → なければ後の日
+ */
+function pleasureCandidates(
+  m: ChatMaterial,
+  pauses: readonly number[],
+  leg: number,
+): { id: string; timing: PleasureTiming }[] {
+  const later = m.laterStops
+    .slice(0, MAX_LATER_STOPS)
+    .map((s) => ({ id: s.id, timing: 'ahead' as const }))
+  const ahead = m.stops.filter((_, j) => (pauses[j] ?? 0) > leg)
+  if (ahead.length > 0) return ahead.map((s) => ({ id: s.id, timing: 'ahead' as const }))
+  const last = m.stops.filter((_, j) => (pauses[j] ?? 0) <= leg).at(-1)
+  return last ? [{ id: last.id, timing: 'done' as const }, ...later] : later
 }
 
 /** 出発の行の道のり。ゾーンの中なら出口の 0.2 km 先（繰り返す）。終わりの 1 km 手前より先になれば作らない */

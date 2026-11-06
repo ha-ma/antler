@@ -31,5 +31,14 @@ export const MAX_CHATS_PER_TRIP = 30
 export const MAX_CHAT_WRITER_ATTEMPTS = 2
 /** 外れが続いた鍵を覚える時間（その間は Claude を呼ばずに失敗を返す） */
 export const CHAT_FAILURE_MEMORY_MS = 10 * 60_000
-/** 保存の鍵の版（束の組み立てを変えたら上げる） */
-export const CHAT_KEY_VERSION = 'chat:v1'
+/**
+ * 保存の鍵の版（束の組み立てを変えたら上げる）。v2: 楽しみの話を中心にし、行に pleasure を足した（drive-tourism T6）
+ */
+export const CHAT_KEY_VERSION = 'chat:v2'
+/**
+ * 楽しみの話の周期（drive-tourism T1）。話の行の通し番号 i の i mod 3 が 0・1 は楽しみ（候補があれば）、
+ * 2 は楽しみ以外の話題（話の行の 3 分の 2 が楽しみの話）
+ */
+export const PLEASURE_CYCLE = 3
+/** 話題に使う後の日の楽しみの数（drive-tourism T2。しおりの日の順で先頭から） */
+export const MAX_LATER_STOPS = 3

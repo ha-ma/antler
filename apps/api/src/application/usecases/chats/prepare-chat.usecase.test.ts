@@ -196,11 +196,42 @@ describe('PrepareChatUseCase', { timeout: SLOW_TEST_MS }, () => {
       expect(Object.keys(out.chat.data).sort()).toEqual(['routes', 'zones'])
       expect(out.chat).toMatchObject({ tripId: TRIP_ID, day: 1 })
       for (const l of out.chat.lines) {
-        expect(Object.keys(l).sort()).toEqual(['cue', 'id', 'speaker', 'text', 'topic'])
+        expect(Object.keys(l).sort()).toEqual(['cue', 'id', 'pleasure', 'speaker', 'text', 'topic'])
         expect(Object.keys(l.cue).sort()).toEqual(['kind', 'km', 'leg'])
       }
-      expect(JSON.stringify(out)).not.toMatch(/keyHash|createdAt|"pleasure":|"light":/)
+      expect(JSON.stringify(out)).not.toMatch(/keyHash|createdAt|"light":|"timing":|"angle":/)
     }
+  })
+
+  it('AC-1・UC-1e・AUTH-T1（drive-tourism）: ペルソナの D1 → 話の行の 3 分の 2 以上が楽しみの話で、id はしおりの楽しみ（D1 は立ち寄りが無いので後の日の楽しみ）。ほかの行は null。材料に名前・拠点・切り口', async () => {
+    const { run, writer } = await setup()
+    const out = await run(1)
+    const plan = personaTrip().plan
+    const dayPlan = (await import('@antler/trip')).buildDayPlan({
+      plan,
+      day: 1,
+      ...ROAD_DATA.load(),
+    })
+    const today = [
+      ...dayPlan.stops.map((s) => s.id),
+      ...plan.days.filter((d) => d.day > 1).flatMap((d) => d.stops),
+    ].slice(0, dayPlan.stops.length + 3)
+    expect(today.length).toBeGreaterThan(0)
+    const talks = out.chat.lines.filter((l) => l.topic !== 'depart')
+    const pleasures = talks.filter((l) => l.topic === 'pleasure')
+    expect(pleasures.length * 3).toBeGreaterThanOrEqual(talks.length * 2)
+    for (const l of out.chat.lines) {
+      if (l.topic === 'pleasure') expect(today).toContain(l.pleasure)
+      else expect(l.pleasure).toBeNull()
+    }
+    const brief = writer.calls[0]?.brief
+    const material = brief?.lines.find((l) => l.topic === 'pleasure')?.pleasure
+    expect(material).toMatchObject({ timing: 'ahead', angle: 'anticipation' })
+    expect(material?.name.zh).toBeTruthy()
+    expect(material?.place?.ja).toBeTruthy()
+    // 2 回目（保存済み）も同じ pleasure を返す
+    const again = await run(1)
+    expect(again.chat.lines.map((l) => l.pleasure)).toEqual(out.chat.lines.map((l) => l.pleasure))
   })
 
   it('WRITE-2f: 1 回目が外れ → 理由のコードだけを渡して作り直し → 通れば保存して 201', async () => {

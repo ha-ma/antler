@@ -28,6 +28,7 @@ function material(over: Partial<ChatMaterial> = {}): ChatMaterial {
     legs: [leg(100)],
     zones: [],
     stops: [],
+    laterStops: [],
     data: { routes: '2026-11-03', zones: 'hash' },
     ...over,
   }
@@ -134,31 +135,110 @@ describe('buildChatPlan', () => {
     expect(departs(p)).toHaveLength(5)
   })
 
-  it('PLAN-1d: 話題は続かない。楽しみが残っていない日は pleasure を選ばない。light には通過時刻の光', () => {
+  // drive-tourism T1〜T3（docs/specs/drive-tourism/functional.md UC-1a〜1d）
+  it('UC-1a: 話の行の i mod 3 が 0・1 は楽しみ（候補があれば）、2 は楽しみ以外の 5 種から（続けない）。light には通過時刻の光', () => {
     const seen = new Set<string>()
     for (const seed of SEEDS) {
       const legs = [leg(60, 0), leg(60, 1), leg(60, 2)]
-      const done = plan({ seed, legs, stops: [{ id: 'crane', base: 'p0' }] })
-      expect(done.lines.some((l) => l.topic === 'pleasure')).toBe(false)
-      const none = plan({ seed, legs })
-      expect(none.lines.some((l) => l.topic === 'pleasure')).toBe(false)
-
-      const ahead = plan({ seed, legs, stops: [{ id: 'drift-ice', base: 'p2' }] })
-      const ts = talks(ahead)
-      for (let i = 1; i < ts.length; i++) expect(ts[i]?.topic).not.toBe(ts[i - 1]?.topic)
-      for (const l of ahead.lines) {
+      const p = plan({ seed, legs, stops: [{ id: 'drift-ice', base: 'p3' }] })
+      const ts = talks(p)
+      expect(ts.length).toBeGreaterThanOrEqual(6)
+      let previousOther: string | null = null
+      ts.forEach((l, i) => {
         seen.add(l.topic)
+        if (i % 3 === 2) {
+          expect(l.topic).not.toBe('pleasure')
+          expect(l.topic).not.toBe(previousOther)
+          previousOther = l.topic
+        } else expect(l.topic).toBe('pleasure')
         if (l.topic === 'pleasure') {
           expect(l.pleasure).toBe('drift-ice')
-          // 楽しみの拠点（p2）に着く移動（leg 1）より後には、その楽しみは残っていない
-          expect(l.cue.leg).toBeLessThanOrEqual(1)
-        } else expect(l.pleasure).toBeNull()
+          expect(l.timing).toBe('ahead')
+        } else {
+          expect(l.pleasure).toBeNull()
+          expect(l.timing).toBeNull()
+          expect(l.angle).toBeNull()
+        }
         expect(l.light).toBe(l.topic === 'light' ? 'dusk' : null)
-      }
+      })
+      for (const l of departs(p))
+        expect([l.pleasure, l.timing, l.angle]).toEqual([null, null, null])
+      // 楽しみの行は話の行の 3 分の 2 以上
+      expect(ts.filter((l) => l.topic === 'pleasure').length * 3).toBeGreaterThanOrEqual(
+        ts.length * 2 - 2,
+      )
     }
     expect([...seen].sort()).toEqual(
-      ['depart', 'light', 'music', 'pleasure', 'scenery', 'snack', 'weather'].sort(),
+      ['light', 'music', 'pleasure', 'scenery', 'snack', 'weather'].sort(),
     )
+  })
+
+  it('UC-1b: その日のこれからの楽しみを順に回す。済んだ後の移動は、いちばん最近の楽しみ（done）と後の日の楽しみを回す', () => {
+    const legs = [leg(60, 0), leg(60, 1), leg(60, 2)]
+    for (const seed of SEEDS) {
+      const p = plan({
+        seed,
+        legs,
+        stops: [
+          { id: 'crane', base: 'p1' },
+          { id: 'drift-ice', base: 'p2' },
+        ],
+        laterStops: [{ id: 'sushi' }],
+      })
+      const pleasures = talks(p).filter((l) => l.topic === 'pleasure')
+      for (const l of pleasures) {
+        if (l.cue.leg === 0) {
+          // leg 0 を走る間は crane（p1）も drift-ice（p2）もこれから
+          expect(['crane', 'drift-ice']).toContain(l.pleasure)
+          expect(l.timing).toBe('ahead')
+        } else if (l.cue.leg === 1) {
+          expect(l.pleasure).toBe('drift-ice')
+          expect(l.timing).toBe('ahead')
+        } else {
+          // 済んだ後: いちばん最近の drift-ice の振り返りと、後の日の sushi
+          expect(['drift-ice', 'sushi']).toContain(l.pleasure)
+          expect(l.timing).toBe(l.pleasure === 'drift-ice' ? 'done' : 'ahead')
+          if (l.timing === 'done') expect(l.angle).toBe('memory')
+        }
+      }
+      // leg 0 の楽しみの行が 2 つ以上なら、2 件を交互に回す
+      const first = pleasures.filter((l) => l.cue.leg === 0).map((l) => l.pleasure)
+      if (first.length >= 2) expect(first[0]).not.toBe(first[1])
+    }
+  })
+
+  it('UC-1c: その日に楽しみが無ければ後の日の楽しみ（最大 3 件）。旅に楽しみが無ければ楽しみの行なし', () => {
+    const legs = [leg(100, 0), leg(100, 1), leg(100, 2)]
+    for (const seed of SEEDS) {
+      const later = plan({
+        seed,
+        legs,
+        laterStops: [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }],
+      })
+      const ids = talks(later)
+        .filter((l) => l.topic === 'pleasure')
+        .map((l) => l.pleasure)
+      expect(ids.length).toBeGreaterThan(0)
+      for (const id of ids) expect(['a', 'b', 'c']).toContain(id)
+      for (const l of talks(later)) if (l.topic === 'pleasure') expect(l.timing).toBe('ahead')
+
+      const none = plan({ seed, legs })
+      expect(none.lines.some((l) => l.topic === 'pleasure')).toBe(false)
+      const ts = talks(none)
+      for (let i = 1; i < ts.length; i++) expect(ts[i]?.topic).not.toBe(ts[i - 1]?.topic)
+    }
+  })
+
+  it('UC-1d: 同じ楽しみの ahead の切り口は anticipation → highlight → tip → anticipation', () => {
+    const p = plan({
+      legs: [leg(100, 0), leg(100, 1), leg(100, 2), leg(100, 3)],
+      stops: [{ id: 'onsen', base: 'p4' }],
+    })
+    const angles = talks(p)
+      .filter((l) => l.topic === 'pleasure')
+      .map((l) => l.angle)
+    expect(angles.length).toBeGreaterThanOrEqual(4)
+    expect(angles.slice(0, 4)).toEqual(['anticipation', 'highlight', 'tip', 'anticipation'])
   })
 
   it('PLAN-1d: light の光は、その地点をしおりどおりに通る時刻で測る', () => {
@@ -236,9 +316,9 @@ describe('buildChatPlan', () => {
     expect(a).toMatchObject({ tripId: 'K7m2abcd', day: 1, data: { routes: '2026-11-03' } })
   })
 
-  it('PLAN-1g: 保存の鍵の材料は chat:v1|旅|日|routes|zones', () => {
+  it('PLAN-1g・UC-1e・FAIL-T1: 保存の鍵の材料は chat:v2|旅|日|routes|zones（v1 の束は読まれない）', () => {
     expect(chatKeyMaterial('K7m2abcd', 2, { routes: 'r', zones: 'z' })).toBe(
-      'chat:v1|K7m2abcd|2|r|z',
+      'chat:v2|K7m2abcd|2|r|z',
     )
   })
 })

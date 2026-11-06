@@ -36,7 +36,14 @@ const brief: ChatWritingBrief = {
       speaker: 'p2',
       from: L('鶴居村', 'Tsurui', '鶴居村', '쓰루이무라'),
       to: L('知床（ウトロ）', 'Shiretoko (Utoro)', '知床（宇登呂）', '시레토코(우토로)'),
-      pleasure: L('流氷ウォーク', 'Drift ice walk', '流冰漫步', '유빙 워크'),
+      pleasure: {
+        name: L('流氷ウォーク', 'Drift ice walk', '流冰漫步', '유빙 워크'),
+        place: L('知床（ウトロ）', 'Shiretoko (Utoro)', '知床（宇登呂）', '시레토코(우토로)'),
+        timeOfDay: 'day',
+        length: 'half',
+        timing: 'ahead',
+        angle: 'highlight',
+      },
       light: 'dusk',
     },
   ],
@@ -100,6 +107,30 @@ describe('ClaudeChatWriterGateway', () => {
       ['conditions', 'experience', 'lines', 'month', 'partySize', 'primaryLanguage'].sort(),
     )
     expect(material).not.toMatch(/[0-9]{3,}|:\d{2}|km|JPY|budget/)
+  })
+
+  it('UC-2a: 楽しみの行の材料は名前・拠点の地名・時間帯・所要の区分・timing・angle だけ（note・時間の数を含まない）', () => {
+    const text = renderChatRequest({ brief })
+    const material = /<chat>\n(.*)\n<\/chat>/.exec(text)?.[1] ?? ''
+    const lines = (
+      JSON.parse(material) as { lines: { pleasure: Record<string, unknown> | null }[] }
+    ).lines
+    expect(Object.keys(lines[1]?.pleasure ?? {}).sort()).toEqual(
+      ['angle', 'length', 'name', 'place', 'timeOfDay', 'timing'].sort(),
+    )
+    expect(lines[1]?.pleasure).toMatchObject({
+      timing: 'ahead',
+      angle: 'highlight',
+      length: 'half',
+    })
+    expect(JSON.stringify(lines.map((l) => l.pleasure))).not.toMatch(/\d/)
+  })
+
+  it('UC-2b: system は楽しみの話の切り口の書き分けと、作らないもの（施設名・料金・時刻）を持つ', () => {
+    for (const word of ['anticipation', 'highlight', 'tip', 'memory']) {
+      expect(CHAT_WRITER_SYSTEM_PROMPT).toContain(word)
+    }
+    expect(CHAT_WRITER_SYSTEM_PROMPT).toContain('材料に無い施設名・店名・料金・時刻を作らない')
   })
 
   it('WRITE-2d: system は会話の書き方の部品を持ち、繁体字・鹿の語・数字・運転の指図・長い問いかけを禁じる。鹿の注意の部品は入れない', () => {

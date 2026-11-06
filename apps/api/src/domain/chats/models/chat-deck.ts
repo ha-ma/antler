@@ -23,14 +23,27 @@ export type ChatSpeaker = 'p1' | 'p2' | 'p3' | 'radio'
 /** その日の leg 番目の移動の km 地点を過ぎたら出す（反応の行は端末の表なので api は作らない） */
 export type RoadCue = { kind: 'road'; leg: number; km: number }
 
-/** 束の 1 行の計画。pleasure・light は Claude の材料だけに使い、応答・保存には出さない */
+/** 楽しみの話の時（drive-tourism T2）。これから行く・さっき行った */
+export type PleasureTiming = 'ahead' | 'done'
+
+/** 楽しみの話の切り口（drive-tourism T3）。同じ楽しみの話が続いても同じ文にならないように */
+export type PleasureAngle = 'anticipation' | 'highlight' | 'tip' | 'memory'
+
+/**
+ * 束の 1 行の計画。pleasure は応答・保存にも出す（drive-tourism T6。写真を出すため）。
+ * timing・angle・light は Claude の材料だけに使い、応答・保存には出さない
+ */
 export type ChatPlanLine = {
   id: string
   cue: RoadCue
   topic: ChatTopic
   speaker: ChatSpeaker
-  /** pleasure の話題のときの楽しみの id（その日のこれからの楽しみ）。ほかは null */
+  /** pleasure の話題のときの楽しみの id（drive-tourism T2 の候補）。ほかは null */
   pleasure: string | null
+  /** pleasure の話題のときの時。ほかは null */
+  timing: PleasureTiming | null
+  /** pleasure の話題のときの切り口。ほかは null */
+  angle: PleasureAngle | null
   /** light の話題のときの、しおりどおりの通過時刻の光。ほかは null */
   light: Light | null
 }
@@ -44,12 +57,14 @@ export type ChatPlan = {
   data: ChatDataVersion
 }
 
-/** 応答・保存する行（sim が zod で確かめる形。欄を増やさない） */
+/** 応答・保存する行（sim が zod で確かめる形。drive-tourism で pleasure を足した。ほかの欄は増やさない） */
 export type ChatLine = {
   id: string
   cue: RoadCue
   topic: ChatTopic
   speaker: ChatSpeaker
+  /** 楽しみの話の行の楽しみの id（sim が写真を出す）。ほかは null */
+  pleasure: string | null
   text: LocalizedText
 }
 
@@ -92,7 +107,20 @@ export type ChatWritingBrief = {
     /** その行の移動の出発地と行き先 */
     from: LocalizedText | null
     to: LocalizedText | null
-    pleasure: LocalizedText | null
+    /** 楽しみの話の材料（drive-tourism T4）。note・所要の時間の数は渡さない */
+    pleasure: PleasureBrief | null
     light: Light | null
   }[]
+}
+
+/** 楽しみの話の材料（drive-tourism T4）。マスターの名前と地名、区分だけ（数字を含まない） */
+export type PleasureBrief = {
+  name: LocalizedText
+  /** 拠点の地名（マスター） */
+  place: LocalizedText | null
+  timeOfDay: 'day' | 'night' | 'dawn'
+  /** 所要の区分: short 2 時間以下 / half 4 時間以下 / long それより長い */
+  length: 'short' | 'half' | 'long'
+  timing: PleasureTiming
+  angle: PleasureAngle
 }
