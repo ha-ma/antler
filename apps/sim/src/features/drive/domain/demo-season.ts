@@ -26,14 +26,18 @@ const MONTH = /^(?:[1-9]|1[0-2])$/
 /** month が無く weather だけのときの月 */
 const DEFAULT_MONTH = 2
 
-/** 出発の案内の季節の切り替え（R2）。query は URL の month・weather（既定は無し） */
+/**
+ * 出発の案内の季節の切り替え（R2・UC-2d）。month・weather は URL の値（既定は無し）。
+ * 見本の種・2 日目なので路面は決まっている: 冬・雪 = 圧雪、冬・晴れ = 凍結、雪どけ・雨 = 濡れ、夏・晴れ = 乾燥、秋・雨 = 濡れ
+ */
 export const DEMO_SEASONS: readonly {
-  id: 'default' | 'winter' | 'thaw' | 'summer' | 'autumn'
+  id: 'default' | 'winter' | 'frozen' | 'thaw' | 'summer' | 'autumn'
   month: number | null
   weather: Weather | null
 }[] = [
   { id: 'default', month: null, weather: null },
   { id: 'winter', month: 2, weather: 'snow' },
+  { id: 'frozen', month: 2, weather: 'clear' },
   { id: 'thaw', month: 4, weather: 'rain' },
   { id: 'summer', month: 7, weather: 'clear' },
   { id: 'autumn', month: 10, weather: 'rain' },

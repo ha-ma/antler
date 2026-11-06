@@ -12,6 +12,12 @@ export const CAMERA_FOV_DEG = 62
 export const CAMERA_NEAR_M = 0.08
 export const CAMERA_FAR_M = 1400
 
+/**
+ * 降るもの（雪・雨）だけを置く three.js のレイヤー（drive-season R6）。運転者のカメラだけがこのレイヤーを見る。
+ * ルームミラーのカメラ（RearMirror）は既定のレイヤー 0 だけを見るので、ミラーには降るものを描かない
+ */
+export const PRECIP_LAYER = 1
+
 /** 道路をまとめる区間の長さ（m）と、横断面を刻む間隔（m） */
 export const ROAD_CHUNK_M = 400
 export const ROAD_SAMPLE_M = 5

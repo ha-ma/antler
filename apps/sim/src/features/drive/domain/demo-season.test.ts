@@ -72,16 +72,33 @@ describe('見本の場面の季節（drive-season R2）', () => {
     expect(demoSeason('?weather=snow', DEMO_TRIP).weather).toBe('snow')
   })
 
-  it('UC-2b: 季節の切り替えは 5 つ（既定・冬・雪どけ・夏・秋）で、それぞれの URL の値が読める', () => {
-    expect(DEMO_SEASONS.map((s) => s.id)).toEqual(['default', 'winter', 'thaw', 'summer', 'autumn'])
-    expect(demoSeason('?month=4&weather=rain', DEMO_TRIP)).toMatchObject({ weather: 'rain' })
-    expect(demoSeason('?month=10&weather=rain', DEMO_TRIP)).toMatchObject({
-      weather: 'rain',
-      surface: 'wet',
-    })
-    expect(demoSeason('?month=7&weather=clear', DEMO_TRIP)).toMatchObject({
-      weather: 'clear',
-      surface: 'dry',
-    })
+  it.each([
+    ['default', '', 'cloudy', 'packed-snow', '2027-02-15T16:40+09:00'],
+    ['winter', '?month=2&weather=snow', 'snow', 'packed-snow', '2027-02-15T16:40+09:00'],
+    ['frozen', '?month=2&weather=clear', 'clear', 'ice', '2027-02-15T16:40+09:00'],
+    ['thaw', '?month=4&weather=rain', 'rain', 'wet', '2027-04-15T16:40+09:00'],
+    ['summer', '?month=7&weather=clear', 'clear', 'dry', '2027-07-15T16:40+09:00'],
+    ['autumn', '?month=10&weather=rain', 'rain', 'wet', '2027-10-15T16:40+09:00'],
+  ] as const)(
+    'UC-2d: 切り替え %s（%s）は %s・%s、%s に出発',
+    (id, search, weather, surface, startAt) => {
+      const season = DEMO_SEASONS.find((s) => s.id === id)
+      const q = new URLSearchParams(search)
+      expect(season?.month ?? null).toBe(q.has('month') ? Number(q.get('month')) : null)
+      expect(season?.weather ?? null).toBe(q.get('weather'))
+      expect(demoSeason(search, DEMO_TRIP)).toMatchObject({ weather, surface, startAt })
+    },
+  )
+
+  it('UC-2d: 切り替えは 6 つ。?month=2 だけ（天候の指定なし）は晴れ・凍結（既定とは違う）', () => {
+    expect(DEMO_SEASONS.map((s) => s.id)).toEqual([
+      'default',
+      'winter',
+      'frozen',
+      'thaw',
+      'summer',
+      'autumn',
+    ])
+    expect(demoSeason('?month=2', DEMO_TRIP)).toMatchObject({ weather: 'clear', surface: 'ice' })
   })
 })

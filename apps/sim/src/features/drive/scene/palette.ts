@@ -1,5 +1,6 @@
 import type { LightPeriod } from '@antler/zones'
-import type { Weather } from '../types'
+import type { Surface, Weather } from '../types'
+import type { SceneSeason } from '../domain/season'
 
 // 3D シーンの配色（ここだけに色を書く。CLAUDE.md・ch8 規約 1）。ch9 ②: ローポリ＋フラット基調、鹿とヘッドライトだけ PBR。
 // tokens.json の値を使えるところは使う（night の空 = map-land night、ブランドの spruce など）。
@@ -41,6 +42,119 @@ export const TERRAIN = {
   pole: '#5B6066',
 } as const
 
+/**
+ * 季節ごとの地面・路肩・法面（drive-season R3・UC-3b）。法面の形（layout の BANK_*）は季節で変えない。
+ * bankSnow: 法面が雪の壁か（冬と雪どけ。雪どけは汚れた残雪）。ほかは草の法面
+ */
+export type SeasonLook = {
+  ground: string
+  shoulder: string
+  bank: string
+  bankSnow: boolean
+  /** 針葉樹の先に雪が載るか（冬だけ） */
+  coniferSnow: boolean
+  /** 広葉樹の葉（緑・紅葉・なし） */
+  leaves: 'none' | 'green' | 'autumn'
+}
+
+export const SEASON: Record<SceneSeason, SeasonLook> = {
+  winter: {
+    ground: TERRAIN.snowField,
+    shoulder: TERRAIN.shoulder,
+    bank: TERRAIN.snowBank,
+    bankSnow: true,
+    coniferSnow: true,
+    leaves: 'none',
+  },
+  // 4 月: 枯れ草が出て、路肩の外に砂で汚れた残雪の壁が残る
+  thaw: {
+    ground: '#7C775B',
+    shoulder: '#8C877C',
+    bank: '#B4B0A4',
+    bankSnow: true,
+    coniferSnow: false,
+    leaves: 'none',
+  },
+  green: {
+    ground: '#5A7A3D',
+    shoulder: '#8A877F',
+    bank: '#4C6E35',
+    bankSnow: false,
+    coniferSnow: false,
+    leaves: 'green',
+  },
+  // 10 月: 黄土色の草
+  autumn: {
+    ground: '#8A7F4E',
+    shoulder: '#8B887E',
+    bank: '#7C7344',
+    bankSnow: false,
+    coniferSnow: false,
+    leaves: 'autumn',
+  },
+  // 11 月: 枯れ草、葉の無い木
+  'late-autumn': {
+    ground: '#75705A',
+    shoulder: '#87837A',
+    bank: '#6A654F',
+    bankSnow: false,
+    coniferSnow: false,
+    leaves: 'none',
+  },
+}
+
+/**
+ * 路面ごとの車道（drive-season R3・UC-3c）。材質は 1 つ（MeshPhong）で、shininess・specular・skyReflect だけを
+ * 路面で変える。rut: 圧雪の轍の帯の色（無い路面は null）。lineFade: 中央線・外側線を路面の色へ寄せる割合（0 はくっきり）。
+ * skyReflect: 浅い角度で空（フォグの色）を映す強さ（0〜1。フレネルの近似。車道だけで、路肩・法面は映さない）
+ */
+export type SurfaceLook = {
+  road: string
+  rut: string | null
+  lineFade: number
+  shininess: number
+  specular: string
+  skyReflect: number
+}
+
+export const SURFACE: Record<Surface, SurfaceLook> = {
+  dry: {
+    road: TERRAIN.roadDry,
+    rut: null,
+    lineFade: 0,
+    shininess: 6,
+    specular: '#141618',
+    skyReflect: 0,
+  },
+  // 濡れ: 暗く、ヘッドライトと空を照り返す
+  wet: {
+    road: '#30363C',
+    rut: null,
+    lineFade: 0.12,
+    shininess: 70,
+    specular: '#7C858F',
+    skyReflect: 0.6,
+  },
+  // 圧雪: 白っぽく、車輪の通る所が踏み固められて灰色の轍になる。線は雪の下でかすれる
+  'packed-snow': {
+    road: '#AAB2BB',
+    rut: '#7D8690',
+    lineFade: 0.72,
+    shininess: 5,
+    specular: '#1E2226',
+    skyReflect: 0,
+  },
+  // 凍結: 青白く、強く照り返す
+  ice: {
+    road: '#B2C4D4',
+    rut: null,
+    lineFade: 0.4,
+    shininess: 110,
+    specular: '#C4D6E8',
+    skyReflect: 0.5,
+  },
+}
+
 /** 木（Lambert のフラット。頂点色） */
 export const TREE = {
   /** トドマツ・エゾマツの葉（下の段から上へ明るく、先に雪） */
@@ -52,7 +166,33 @@ export const TREE = {
   bareTrunk: '#5E554D',
   birchTrunk: '#D9D6CE',
   twig: '#4A433D',
+  /** 広葉樹の葉（UC-3d）。緑はミズナラが濃く、シラカバが明るい。紅葉はミズナラが橙、シラカバが黄 */
+  leafOak: '#47692F',
+  leafOakLight: '#5C833B',
+  leafBirch: '#6C9744',
+  leafBirchLight: '#86AE52',
+  autumnOak: '#BC5F28',
+  autumnOakLight: '#CC7A2F',
+  autumnBirch: '#CFA02A',
+  autumnBirchLight: '#DDB43E',
 } as const
+
+/**
+ * 降るもの（UC-3e）。粒は光を受けない（Basic）ので、光の区分ごとの明るさを掛けて夜に白く光りすぎないようにする
+ */
+export const PRECIP = {
+  snow: '#F2F5F8',
+  rain: '#A6B4C2',
+  snowOpacity: 0.9,
+  rainOpacity: 0.42,
+} as const
+
+export const PRECIP_BRIGHTNESS: Record<LightPeriod, number> = {
+  day: 1,
+  dawn: 0.75,
+  dusk: 0.7,
+  night: 0.5,
+}
 
 /** 鹿（MeshStandardMaterial の PBR。エゾシカの冬毛は灰褐色、臀に黒く縁取った白斑） */
 export const DEER = {
@@ -210,6 +350,26 @@ export const SKY: Record<LightPeriod, SkyLook> = {
 export const WEATHER_FOG: Record<Weather, number> = {
   clear: 1,
   cloudy: 0.9,
+  rain: 0.7,
   snow: 0.55,
   fog: 0.3,
+}
+
+/** 雲に覆われた空の灰色（光の区分ごと）。曇り・雨・雪・霧の空はこれへ寄せる（UC-3f） */
+export const OVERCAST: Record<LightPeriod, { zenith: string; horizon: string }> = {
+  day: { zenith: '#9DA5AD', horizon: '#C4C9CE' },
+  dawn: { zenith: '#474B55', horizon: '#83858C' },
+  dusk: { zenith: '#3A3E48', horizon: '#73767E' },
+  night: { zenith: '#101318', horizon: '#1E222A' },
+}
+
+/**
+ * 天候で空を灰色へ寄せる割合（gray）と、太陽（月）の光を弱める係数（sun）。晴れは今までどおり
+ */
+export const WEATHER_SKY: Record<Weather, { gray: number; sun: number }> = {
+  clear: { gray: 0, sun: 1 },
+  cloudy: { gray: 0.6, sun: 0.45 },
+  rain: { gray: 0.75, sun: 0.3 },
+  snow: { gray: 0.65, sun: 0.4 },
+  fog: { gray: 0.8, sun: 0.35 },
 }

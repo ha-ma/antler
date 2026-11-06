@@ -10,6 +10,7 @@ export const SEASON_TEXT: {
   items: {
     default: '既定（2 月・薄暮）',
     winter: '冬・雪（2 月）',
+    frozen: '冬・晴れ（2 月）',
     thaw: '雪どけ・雨（4 月）',
     summer: '夏・晴れ（7 月）',
     autumn: '秋・雨（10 月）',

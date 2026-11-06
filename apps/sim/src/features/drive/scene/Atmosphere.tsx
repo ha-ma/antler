@@ -13,10 +13,11 @@ import {
 } from 'three'
 import type { Weather } from '../types'
 import { CAMERA_FAR_M } from './layout'
-import { SKY, WEATHER_FOG } from './palette'
+import { skyTableOf } from './weather-look'
 import { PRIORITY, useSceneFrame } from './frame-state'
 
-// 空・フォグ・環境光（光の区分 world.light で変える）。区分が変わったら 3 秒ほどかけて寄せる（急に暗くならない）。
+// 空・フォグ・環境光（光の区分 world.light と天候で変える）。区分が変わったら 3 秒ほどかけて寄せる（急に暗くならない）。
+// 曇り・雨・雪・霧は空を灰色に寄せ、霧を詰める（drive-season UC-3f。目標の値は weather-look.ts）。
 // 空は頂点色のグラデーションの球（1 描画コール）をカメラに付けて動かす。フォグは描画の窓（layout.ts）の端を隠す。
 
 const BLEND_S = 3
@@ -31,8 +32,10 @@ export function Atmosphere({ weather }: Props) {
   const sun = useRef<DirectionalLight>(null)
   const dome = useRef<Mesh>(null)
   // 初期値は最初の 1 回だけ読む（再描画で読み直すと、なじませの途中の値と args が作り直されて 3 秒のなじませが飛ぶ）。
-  // 光の区分の変化は useFrame の中だけで寄せる
-  const [start] = useState(() => SKY[scene.current.world.light])
+  // 光の区分と天候の変化は useFrame の中だけで寄せる。初期値に天候を入れておく（読み込み直後に晴れから灰色へ
+  // 3 秒かけて変わらないように）
+  const sky = useMemo(() => skyTableOf(weather), [weather])
+  const [start] = useState(() => sky[scene.current.world.light])
 
   const domeGeometry = useMemo(() => {
     const g = new SphereGeometry(DOME_R, 16, 10)
@@ -67,7 +70,7 @@ export function Atmosphere({ weather }: Props) {
   )
 
   useFrame((state, delta) => {
-    const look = SKY[scene.current.world.light]
+    const look = sky[scene.current.world.light]
     const k = 1 - Math.exp(-Math.min(delta, 0.1) / BLEND_S)
     target.zenith.set(look.zenith)
     target.horizon.set(look.horizon)
@@ -75,9 +78,8 @@ export function Atmosphere({ weather }: Props) {
     now.zenith.lerp(target.zenith, k)
     now.horizon.lerp(target.horizon, k)
     now.fog.lerp(target.fog, k)
-    const w = WEATHER_FOG[weather]
-    now.fogNear += (look.fogNear * w - now.fogNear) * k
-    now.fogFar += (look.fogFar * w - now.fogFar) * k
+    now.fogNear += (look.fogNear - now.fogNear) * k
+    now.fogFar += (look.fogFar - now.fogFar) * k
     now.hemiIntensity += (look.hemiIntensity - now.hemiIntensity) * k
     now.sunIntensity += (look.sunIntensity - now.sunIntensity) * k
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dayConditions, type Weather } from './conditions'
+import { DayConditionsSchema } from './schema'
 
 // docs/specs/drive-season/functional.md R1（UC-1a〜UC-1e）。当日の条件 v2（雨を足した月ごとの表）
 
@@ -14,6 +15,38 @@ describe('当日の条件 v2（drive-season R1）', () => {
   it('UC-1a: 版は 2。同じ種・日・月なら同じ条件。2 月は v1 と同じ（見本の種・2 日目は晴れ・凍結）', () => {
     expect(of(918273, 2, 7)).toEqual(of(918273, 2, 7))
     expect(of(918273, 2, 2)).toMatchObject({ version: 2, weather: 'clear', surface: 'ice' })
+  })
+
+  it('UC-1a: 冬（12〜3 月）は 200 シード × 1〜5 日で v1 と同じ条件（v1 の実装で作った指紋と照らす）', () => {
+    // 指紋は cff9f43（v1）の conditions.ts で同じ式を回した値（docs/reports/2026-11-06-spec-adversary-drive-season.md M4）
+    const text: string[] = []
+    for (let seed = 1; seed <= 200; seed++)
+      for (const month of [12, 1, 2, 3])
+        for (let day = 1; day <= 5; day++) {
+          const { version, ...rest } = dayConditions({
+            seed: seed * 7919,
+            day,
+            month,
+            departMonth: month,
+            party: persona,
+          })
+          expect(version).toBe(2)
+          text.push(JSON.stringify(rest))
+        }
+    const joined = text.join('\n')
+    let h = 0x811c9dc5
+    for (let i = 0; i < joined.length; i++) {
+      h ^= joined.charCodeAt(i)
+      h = Math.imul(h, 0x01000193) >>> 0
+    }
+    expect(text).toHaveLength(4000)
+    expect(h.toString(16)).toBe('7f9b0c8d')
+  })
+
+  it('UC-1f: 雨の日の条件が DayConditionsSchema を通る（A-2・drive・A-6 の safeParse で落ちない）', () => {
+    const rainy = all(7).find((c) => c.weather === 'rain')
+    expect(rainy).toBeDefined()
+    expect(DayConditionsSchema.safeParse(rainy).success).toBe(true)
   })
 
   it('UC-1b: 雨の日に乾燥は出ない。12〜3 月に雨・濡れは出ない。5〜10 月に雪・圧雪・凍結は出ない', () => {

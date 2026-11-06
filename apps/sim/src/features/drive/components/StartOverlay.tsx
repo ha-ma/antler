@@ -1,5 +1,5 @@
 import { placeById } from '@antler/trip'
-import { Link, useLocation } from 'react-router'
+import { Link } from 'react-router'
 import { currentDemoSeason, DEMO_SEASONS, demoSeasonHref } from '../domain/demo-season'
 import { briefHref } from '../hooks/use-drive-params'
 import type { DriveScenario } from '../types'
@@ -16,7 +16,8 @@ function placeName(slug: string): string {
  * SPA の遷移ではなくページを読み直すふつうのリンクにする
  */
 function SeasonSwitch() {
-  const { search } = useLocation()
+  // 見本の場面の engine も window.location.search から作る（DrivePage）。Router の外でも描ける
+  const search = window.location.search
   const current = currentDemoSeason(search)
   return (
     <nav className="drive-start__seasons" aria-label={SEASON_TEXT.label}>
