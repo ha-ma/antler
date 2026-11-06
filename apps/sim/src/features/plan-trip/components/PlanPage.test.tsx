@@ -119,7 +119,8 @@ describe('PlanPage（A-1 旅をつくる）', () => {
     const expectedInput: TripInput = {
       ...PERSONA_INPUT,
       lang: 'ja',
-      pleasures: [{ id: 'drift-ice-walk', weight: 5 }],
+      // 重さは送らない（plan-trip-photos）
+      pleasures: [{ id: 'drift-ice-walk' }, { id: 'akan-ainu-kotan' }],
     }
     const calls = stubFetch([{ status: 201, body: createdResponse(expectedInput) }])
     await user.click(screen.getByRole('button', SUBMIT))
@@ -137,6 +138,30 @@ describe('PlanPage（A-1 旅をつくる）', () => {
     expect(call?.body).toEqual(expectedInput)
     expect(call?.body.depart.at.endsWith('+09:00')).toBe(true)
     expect(sessionStorage.length).toBe(0)
+  })
+
+  it('PAC-1 ペルソナで開くと、カードに重さの操作が無く、写真のカードは写真と引用（出典へのリンク）を出し、右パネルに D1〜D5 と時間の配分が出る', () => {
+    renderPlan()
+    // 重さの操作・表示が無い（plan-trip-photos）
+    expect(screen.queryByRole('group', { name: /重さ/ })).toBeNull()
+    expect(screen.queryByText(/重さ/)).toBeNull()
+
+    const ice = screen.getByRole('button', { name: /^流氷ウォーク/ }).closest('article')
+    if (!ice) throw new Error('流氷ウォークのカードが無い')
+    expect(ice.querySelector('img')).toHaveAttribute('alt', '')
+    expect(within(ice).getByText(/約 3 時間/)).toBeInTheDocument()
+    const source = within(ice).getByRole('link', { name: /流氷ウォーク の写真「.*」の出典/ })
+    expect(source.getAttribute('href')).toMatch(/^https:\/\/commons\.wikimedia\.org\/wiki\/File:/)
+    expect(screen.getByText(/写真は Wikimedia Commons から/)).toBeInTheDocument()
+
+    expect(screen.getAllByTestId('plan-day').map((li) => li.textContent?.slice(0, 2))).toEqual([
+      'D1',
+      'D2',
+      'D3',
+      'D4',
+      'D5',
+    ])
+    expect(screen.getByText(/時間の配分（合計 約 6\.5 時間）/)).toBeInTheDocument()
   })
 
   it('R8 失敗すると入力を残して「もう一度」。もう一度は同じ冪等キーで送り直す', async () => {

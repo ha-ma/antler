@@ -47,11 +47,15 @@ describe('UC-4 リスクスコア（assessRisk）', () => {
   it('UC-4c: 夜・早朝の楽しみを足すとスコアが上がる。経験が上がると下がる', () => {
     const night = pleasuresInArea('doto').find((p) => p.timeOfDay !== 'day')
     if (!night) throw new Error('道東に夜・早朝の楽しみが無い')
-    const withNight = risk({
+    // ペルソナは夜のアイヌコタンを含む（plan-trip-photos）ので、昼の楽しみだけの旅と比べる
+    const dayOnly = {
       ...PERSONA_INPUT,
-      pleasures: [...PERSONA_INPUT.pleasures, { id: night.id, weight: 1 }],
-    })
-    expect(withNight.score).toBeGreaterThan(risk(PERSONA_INPUT).score)
+      pleasures: PERSONA_INPUT.pleasures.filter(
+        (p) => pleasuresInArea('doto').find((q) => q.id === p.id)?.timeOfDay === 'day',
+      ),
+    }
+    const withNight = risk({ ...dayOnly, pleasures: [...dayOnly.pleasures, { id: night.id }] })
+    expect(withNight.score).toBeGreaterThan(risk(dayOnly).score)
     const veteran = risk({
       ...PERSONA_INPUT,
       party: { ...PERSONA_INPUT.party, experience: 'experienced' },

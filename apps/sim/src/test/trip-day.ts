@@ -26,7 +26,13 @@ export function personaTrip(lang: TripPlan['lang'] = 'ja'): {
   plan: TripPlan
   details: TripDetails
 } {
-  const input = { ...PERSONA_INPUT, lang }
+  // 楽しみは流氷ウォークとタンチョウの 2 つに固定する（PERSONA_INPUT は plan-trip-photos で夜のアイヌコタンを
+  // 足したので、各テストの場面がずれないようにここで明示する）
+  const input = {
+    ...PERSONA_INPUT,
+    lang,
+    pleasures: [{ id: 'drift-ice-walk' }, { id: 'red-crowned-crane' }],
+  }
   const itinerary = buildItinerary(input)
   const plan = buildTripPlan(input, itinerary, assessRisk(input, itinerary), {
     id: TRIP_ID,

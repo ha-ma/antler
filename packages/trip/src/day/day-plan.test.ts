@@ -57,12 +57,13 @@ describe('buildDayPlan（その日の行程）', () => {
   })
 
   it('UC-2b: 移動の無い日は legs が空で、stayAt がその日の滞在地。日没はその地点で測る', () => {
-    // 釧路空港に 16:00 に着く 3 日の旅。湿原（釧路、重さ 5 ＝ 丸 1 日）は翌朝に移るので、1 日目は空港で泊まる
+    // 釧路空港で 17:30 に受け取る 3 日の旅。18:00 までに釧路の拠点へ着けないので、湿原は翌朝に移り、
+    // 1 日目は空港で泊まる（plan-trip-photos で、着けるなら当日に移動する規則になった）
     const plan = planOf({
       ...PERSONA_INPUT,
-      depart: { at: '2027-02-14T16:00:00+09:00', place: 'KUH' },
+      depart: { at: '2027-02-14T17:30:00+09:00', place: 'KUH' },
       return: { at: '2027-02-16T17:00:00+09:00', place: 'KUH' },
-      pleasures: [{ id: 'kushiro-marsh', weight: 5 }],
+      pleasures: [{ id: 'kushiro-marsh' }],
     })
     const idle = build(plan, 1)
     expect(idle.legs).toEqual([])

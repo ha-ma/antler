@@ -5,8 +5,8 @@ type DeparturePlace = TripInput['depart']['place']
 
 // plan-trip（A-1 旅をつくる）の型。仕様: docs/specs/plan-trip/functional.md R1〜R6・R8。
 
-/** 選んだ楽しみと重さ（1〜5）。 */
-export type PleasureSelection = { id: string; weight: number }
+/** 選んだ楽しみ（重さは持たない。plan-trip-photos。時間はマスターの標準の所要で決まる）。 */
+export type PleasureSelection = { id: string }
 
 /** エリアごとの選択（R2: 選択はエリアごとに保持する）。 */
 export type SelectionsByArea = Record<Area, PleasureSelection[]>

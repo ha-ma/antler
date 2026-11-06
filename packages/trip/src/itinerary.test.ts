@@ -49,22 +49,21 @@ describe('UC-1 入力の検証（TripInputSchema）', () => {
   it('UC-2d（共有の検証）: エリアのマスターに無い id（道央の id・存在しない id）は通らない', () => {
     const doo = pleasuresInArea('doo')[0]
     if (!doo) throw new Error('道央のマスターが空')
-    expect(
-      TripInputSchema.safeParse(with_({ pleasures: [{ id: doo.id, weight: 3 }] })).success,
-    ).toBe(false)
-    expect(
-      TripInputSchema.safeParse(with_({ pleasures: [{ id: 'no-such-thing', weight: 3 }] })).success,
-    ).toBe(false)
+    expect(TripInputSchema.safeParse(with_({ pleasures: [{ id: doo.id }] })).success).toBe(false)
+    expect(TripInputSchema.safeParse(with_({ pleasures: [{ id: 'no-such-thing' }] })).success).toBe(
+      false,
+    )
   })
 })
 
 describe('UC-3 しおりの組み立て（buildItinerary）', () => {
-  it('UC-3a: ペルソナ → D1〜D5 の連番、流氷ウォーク（重さ 5）は 1 日を占め、TripPlan の形を通る', () => {
+  it('UC-3a: ペルソナ → D1〜D5 の連番、楽しみはすべて入り、TripPlan の形を通る', () => {
     const it3 = buildItinerary(PERSONA_INPUT)
     expect(it3.days.map((d) => d.day)).toEqual([1, 2, 3, 4, 5])
     expect(it3.skipped).toEqual([])
-    const iceDay = it3.days.find((d) => d.stops.includes('drift-ice-walk'))
-    expect(iceDay?.stops).toEqual(['drift-ice-walk'])
+    expect(it3.days.flatMap((d) => d.stops).sort()).toEqual(
+      PERSONA_INPUT.pleasures.map((p) => p.id).sort(),
+    )
     expect(it3.days[0]?.from).toBe('cts')
     expect(it3.days[4]?.to).toBe('cts')
     expect(it3.days[4]?.stay).toBeNull()
@@ -85,17 +84,16 @@ describe('UC-3 しおりの組み立て（buildItinerary）', () => {
     expect(draftTitles(input, it3).ja).toBe('道東 5 日間のドライブ')
   })
 
-  it('UC-3c: 入りきらない → 重さの小さいものから外れ、skipped に入る', () => {
+  it('UC-3c: 入りきらない → 所要の短いものから外れ、skipped に入る（詳しくは DUR-3）', () => {
     const all = pleasuresInArea('doto').slice(0, 10)
-    const weights = [5, 5, 5, 5, 5, 5, 5, 5, 5, 1]
     const input = with_({
       return: { at: '2027-02-16T17:00:00+09:00', place: 'CTS' },
-      pleasures: all.map((p, i) => ({ id: p.id, weight: weights[i] ?? 1 })),
+      pleasures: all.map((p) => ({ id: p.id })),
     })
     const it3 = buildItinerary(input)
     expect(it3.skipped.length).toBeGreaterThan(0)
-    // 重さ 1 のものが最初に外れる
-    expect(it3.skipped[0]).toBe(all[9]?.id)
+    // 所要が最も短いもの（和商市場 1 時間）が最初に外れる
+    expect(it3.skipped[0]).toBe('washo-market-donburi')
     const placed = it3.days.flatMap((d) => d.stops)
     expect([...placed, ...it3.skipped].sort()).toEqual(all.map((p) => p.id).sort())
   })
@@ -115,7 +113,7 @@ describe('UC-3 しおりの組み立て（buildItinerary）', () => {
     const input = with_({
       depart: { at: '2027-02-14T08:00:00+09:00', place: 'KUH' },
       return: { at: '2027-02-14T20:00:00+09:00', place: 'KUH' },
-      pleasures: [{ id: 'red-crowned-crane', weight: 2 }],
+      pleasures: [{ id: 'red-crowned-crane' }],
     })
     const it3 = buildItinerary(input)
     expect(it3.days).toHaveLength(1)

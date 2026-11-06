@@ -19,11 +19,20 @@ import type {
 export const PERSONA_TRIP_ID = 'K7m2abcd'
 export const OWNER_HASH = 'f'.repeat(64)
 
+/**
+ * このテストの旅の入力: ペルソナの日程で、楽しみは流氷ウォークとタンチョウの 2 つ。
+ * PERSONA_INPUT は plan-trip-photos で夜のアイヌコタンを足したので、場面を固定するためにここで明示する。
+ */
+const STORY_INPUT = {
+  ...PERSONA_INPUT,
+  pleasures: [{ id: 'drift-ice-walk' }, { id: 'red-crowned-crane' }],
+}
+
 /** 保存済みのペルソナの旅（5 日。D2 は鶴居 → 知床の移動 1 本、タンチョウは鶴居） */
 export function personaTrip(id = PERSONA_TRIP_ID): StoredTrip {
-  const itinerary = buildItinerary(PERSONA_INPUT)
+  const itinerary = buildItinerary(STORY_INPUT)
   const plan: TripPlan = TripPlanSchema.parse(
-    buildTripPlan(PERSONA_INPUT, itinerary, assessRisk(PERSONA_INPUT, itinerary), {
+    buildTripPlan(STORY_INPUT, itinerary, assessRisk(STORY_INPUT, itinerary), {
       id,
       seed: 918273,
       title: '流氷とタンチョウ',

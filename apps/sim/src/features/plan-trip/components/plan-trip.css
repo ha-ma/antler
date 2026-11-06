@@ -324,6 +324,21 @@
   background: var(--photo-placeholder);
 }
 
+/* 写真のあるカード: 枠いっぱいに切り抜く（横長 16:9） */
+.plan-card__photo--image {
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.plan-card__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .plan-card__photo-text {
   font-size: var(--caption-size);
   line-height: var(--caption-line);
@@ -371,66 +386,35 @@
   color: var(--ink-muted);
 }
 
-.plan-weight {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
+.plan-card__hours {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* 写真の引用（plan-trip-photos R7）。ボタンの外。surface の上で ink-faint は 12px で 4.5:1 */
+.plan-card__credit {
+  margin: auto 0 0;
   padding: 0 var(--space-3) var(--space-2);
   font-size: var(--caption-size);
-  color: var(--ink-muted);
-}
-
-/* 押せるのは 44 x 44px の「−」「＋」。5 段のバーは見た目だけ */
-.plan-weight__button {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 1px solid var(--ink-faint);
-  border-radius: var(--radius-m);
-  background: var(--surface);
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.plan-weight__button path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-}
-
-.plan-weight__button[aria-disabled='true'] {
-  cursor: not-allowed;
+  line-height: var(--caption-line);
   color: var(--ink-faint);
+  overflow-wrap: anywhere;
 }
 
-.plan-weight__steps {
-  display: flex;
-  gap: 2px;
+/* 押せる面を 24px 以上にする（WCAG 2.5.8。文中のリンク） */
+.plan-card__credit a {
+  display: inline-block;
+  min-height: 24px;
+  padding: 3px 0;
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.plan-weight__step {
-  width: 10px;
-  height: 14px;
-  border: 1px solid var(--ink-faint);
-  border-radius: 3px;
-  background: var(--surface-sunken);
-}
-
-.plan-weight__step--on {
-  border-color: var(--spruce);
-  background: var(--spruce);
-}
-
-.plan-weight__value {
-  font-size: var(--label-size);
-  color: var(--ink);
-  white-space: nowrap;
+.plan-pleasures__photos {
+  margin-top: var(--space-3);
 }
 
 /* 右パネル */

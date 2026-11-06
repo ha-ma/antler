@@ -26,7 +26,7 @@ describe('PLAN_TEXT（R6・付録 A #9: 4 言語が欠けない）', () => {
   })
 
   it('fillText は差し込みを埋める', () => {
-    expect(fillText('weightValue', 'ja', { n: 3 })).toBe('重さ 3')
+    expect(fillText('hours', 'ja', { n: 3 })).toBe('約 3 時間')
     expect(fillText('nightsDays', 'en', { nights: 4, days: 5 })).toBe('4 nights, 5 days')
   })
 })

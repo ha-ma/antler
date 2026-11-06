@@ -23,11 +23,11 @@ export {
 } from './input'
 export { PLEASURES, pleasureById, pleasuresInArea } from './pleasures'
 export { AREA_CIRCUIT, DEPARTURE_PLACE_ID, PLACES, placeById } from './places'
-export { buildItinerary, HOURS_PER_WEIGHT } from './itinerary'
+export { buildItinerary } from './itinerary'
 export { assessRisk, RISK_WEIGHTS } from './risk'
 export { draftTitles } from './title'
 export { formatBudget, initialLang, USD_RATE } from './locale'
-export { buildTripPlan } from './plan'
+export { buildTripPlan, HOURS_PER_WEIGHT, weightForHours } from './plan'
 export { STATS } from './stats'
 // その日の行程（brief-map、A-2・GET /api/trips/:id/day/:n）。ルートのデータ（routes.json）は `@antler/trip/roads`
 export {

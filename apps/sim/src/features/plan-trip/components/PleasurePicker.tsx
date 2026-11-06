@@ -38,17 +38,13 @@ export function PleasurePicker() {
         className="plan-grid"
       >
         {pleasuresInArea(area).map((p) => {
-          const selection = selections.find((s) => s.id === p.id)
+          const selected = selections.some((s) => s.id === p.id)
           return (
-            <PleasureCard
-              key={p.id}
-              pleasure={p}
-              weight={selection?.weight ?? null}
-              locked={full && !selection}
-            />
+            <PleasureCard key={p.id} pleasure={p} selected={selected} locked={full && !selected} />
           )
         })}
       </div>
+      <p className="plan-caption plan-pleasures__photos">{PLAN_TEXT.photosNote[lang]}</p>
     </section>
   )
 }

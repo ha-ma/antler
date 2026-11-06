@@ -35,10 +35,19 @@ export const ROAD_DATA = new FileRoadCatalogGateway()
 /** DayPlan の計算が重いテストの時間切れ（並列で走るとき） */
 export const SLOW_TEST_MS = 30_000
 
-/** ペルソナ（台湾から 4 人・2 月・道東・流氷 5・タンチョウ 4）の保存した旅 */
+/**
+ * このテストの旅の入力: ペルソナの日程で、楽しみは流氷ウォークとタンチョウの 2 つ。
+ * PERSONA_INPUT は plan-trip-photos で夜のアイヌコタンを足したので、場面を固定するためにここで明示する。
+ */
+const STORY_INPUT = {
+  ...PERSONA_INPUT,
+  pleasures: [{ id: 'drift-ice-walk' }, { id: 'red-crowned-crane' }],
+}
+
+/** ペルソナ（台湾から 4 人・2 月・道東・流氷・タンチョウ）の保存した旅 */
 export function personaTrip(): { plan: TripPlan; details: TripDetails } {
-  const itinerary = buildItinerary(PERSONA_INPUT)
-  const plan = buildTripPlan(PERSONA_INPUT, itinerary, assessRisk(PERSONA_INPUT, itinerary), {
+  const itinerary = buildItinerary(STORY_INPUT)
+  const plan = buildTripPlan(STORY_INPUT, itinerary, assessRisk(STORY_INPUT, itinerary), {
     id: TRIP_ID,
     seed: 918273,
     title: '流氷とタンチョウ',
