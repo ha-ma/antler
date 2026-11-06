@@ -85,13 +85,6 @@ describe('時間の進め方（R4）', () => {
     expect(w.t).toBeCloseTo(6 * STEP_MS, 6)
     expect(w.t).toBeCloseTo(100, 6)
   })
-
-  it('UC-4f: ゾーンの間を 16× ・100 km/h で走っても実時間 30 秒を超える（チャイムの再武装）', () => {
-    const w = world()
-    const gapKm = (w.plan.intervals[1]?.entryKm ?? 0) - (w.plan.intervals[0]?.exitKm ?? 0)
-    const realSeconds = (gapKm / (100 * 16)) * 3600
-    expect(realSeconds).toBeGreaterThan(30)
-  })
 })
 
 describe('終わり（R8）', () => {
@@ -107,12 +100,16 @@ describe('終わり（R8）', () => {
     expect(w.t).toBe(t)
   })
 
-  it('UC-8b: 終点に着くと完走', () => {
+  it('UC-8b: 最後のステージの出口を抜けると完走（drive-tune で「終点」から変更）', () => {
     const w = world()
-    w.vehicle = { ...w.vehicle, s: w.internal.frame.lengthM - 20, speed: 20 }
+    const last = w.internal.stages[w.internal.stages.length - 1]
+    if (!last) throw new Error('ステージがない')
+    w.internal.stageIndex = w.internal.stages.length - 1
+    w.vehicle = { ...w.vehicle, s: last.exitM - 20, speed: 20 }
     w.candidates = []
     run(w, 3000, { ...NO_INPUT, throttle: true })
     expect(w.outcome).toBe('completed')
+    expect(w.vehicle.s).toBeLessThan(w.internal.frame.lengthM - 100)
   })
 
   it('UC-8c: 「同じシードでもう一度」で、同じ場面が最初から始まり、同じ鹿の候補になる', () => {

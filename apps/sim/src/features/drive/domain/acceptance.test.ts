@@ -39,7 +39,7 @@ async function drive(search: string, seed?: number, maxMinutes = 60): Promise<Ru
   const scenario = seed === undefined ? base : { ...base, seed }
   const world = createWorld(scenario, ZONES)
   const port = fakePort()
-  const sound = new AlertSoundController(port)
+  let sound = new AlertSoundController(port)
   await sound.unlock()
   const run: Run = {
     world,
@@ -56,7 +56,14 @@ async function drive(search: string, seed?: number, maxMinutes = 60): Promise<Ru
     const input = attentiveDriver(world)
     run.inputs.push(JSON.stringify(input))
     setInput(world, input)
-    for (const event of advance(world, FRAME_MS, ZONES)) run.events.push({ t: world.t, event })
+    const events = advance(world, FRAME_MS, ZONES)
+    for (const event of events) run.events.push({ t: world.t, event })
+    // DrivePage と同じく、ステージを移ったら同じ出力先でコントローラを作り直す（drive-tune R1）
+    if (events.some((e) => e.type === 'stage-clear') && world.outcome === 'driving') {
+      sound.dispose()
+      sound = new AlertSoundController(port)
+      await sound.unlock()
+    }
     if (run.states.at(-1) !== world.alert.state) run.states.push(world.alert.state)
     // AlertState と同じく、毎フレーム音のコントローラへ渡す（アラート OFF では AlertState を描かない＝渡さない）
     if (scenario.alertEnabled) {

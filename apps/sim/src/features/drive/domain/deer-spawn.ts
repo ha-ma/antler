@@ -28,26 +28,41 @@ export const PATTERN_WEIGHTS: Record<DeerPattern, number> = {
   frozen: 0.1,
 }
 
-/** ゾーン区間の中に候補地点を作る（UC-5a） */
+/** 区間ごとに必ず出す頭数と、出す上限（drive-tune R2） */
+export const MIN_DEER_PER_INTERVAL = 3
+export const MAX_DEER_PER_INTERVAL = 100
+/** 区間ごとに少なくとも作る候補の数 */
+const MIN_CANDIDATES = 3
+
+/**
+ * ゾーン区間の中に候補地点を作る（drive-3d UC-5a、drive-tune UC-2a・UC-2c）。
+ * 候補の間隔は 400 m（±150 m）。区間が短くて 3 つ作れないときは区間の長さの 3 等分にする。
+ * 道のりの順に先頭から、群れの頭数を合わせて 3 頭に届くまでの候補は「必ず出る」
+ */
 export function createCandidates(plan: RoutePlan, seed: number): DeerCandidate[] {
   const out: DeerCandidate[] = []
   plan.intervals.forEach((interval, i) => {
     const entryM = interval.entryKm * 1000 + EDGE_MARGIN_M
     const exitM = interval.exitKm * 1000 - EDGE_MARGIN_M
+    const step = Math.min(CANDIDATE_STEP_M, Math.max(1, exitM - entryM) / MIN_CANDIDATES)
+    const jitter = Math.min(CANDIDATE_JITTER_M, step * 0.35)
     let k = 0
-    // 最初の候補は入口から 280〜580 m（揺らぎで入口の際に寄りすぎない）
-    const firstM = entryM + CANDIDATE_STEP_M / 2 + CANDIDATE_JITTER_M
-    for (let base = firstM; base < exitM; base += CANDIDATE_STEP_M, k++) {
+    let guaranteedHeads = 0
+    // 最初の候補は入口から 280〜580 m（揺らぎで入口の際に寄りすぎない。短い区間はもっと手前）
+    const firstM = entryM + step / 2 + jitter
+    for (let base = firstM; base < exitM || k < MIN_CANDIDATES; base += step, k++) {
       const candidateSeed = deriveSeed(seed, `deer-${i}-${k}`)
       const rng = createRng(candidateSeed)
-      const s = Math.min(
-        exitM,
-        Math.max(entryM, base + between(rng, -CANDIDATE_JITTER_M, CANDIDATE_JITTER_M)),
-      )
+      const s = Math.min(exitM, Math.max(entryM, base + between(rng, -jitter, jitter)))
       const u = rng()
-      const pattern = pickWeighted(rng, PATTERN_WEIGHTS)
+      const drawn = pickWeighted(rng, PATTERN_WEIGHTS)
       const side = rng() < 0.5 ? 'L' : 'R'
+      const guaranteed = guaranteedHeads < MIN_DEER_PER_INTERVAL
+      // 必ず出る鹿は「出会える」鹿にする: 林縁の目の反射だけ（林に隠れて道に出ない）は横断に替える
+      // （「遭遇」は車から見える道の近くに現れること。spec-adversary M4）
+      const pattern = guaranteed && drawn === 'eyeshine' ? 'crossing' : drawn
       const herdSize = pattern === 'herd' ? 2 + Math.floor(rng() * 4) : 1
+      if (guaranteed) guaranteedHeads += herdSize
       out.push({
         id: `d${i}-${k}`,
         interval: i,
@@ -57,6 +72,7 @@ export function createCandidates(plan: RoutePlan, seed: number): DeerCandidate[]
         side,
         herdSize,
         seed: candidateSeed,
+        guaranteed,
       })
     }
   })
@@ -75,6 +91,7 @@ export function decideAppear(
   zones: ZoneCollection,
   at: string | number,
 ): boolean {
+  if (candidate.guaranteed) return true
   const ids = plan.intervals[candidate.interval]?.zoneIds ?? []
   const risk = Math.max(
     0,

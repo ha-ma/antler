@@ -2,11 +2,17 @@ import { AlertSoundController, type AudioPort, type DerivedAlert } from '@antler
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import type { DriveEngine, DriveSnapshot } from '../domain/engine'
+import { demoScenario } from '../domain/scenario'
+import { ZONES } from '../domain/zones-data'
 import { DangerOverlay } from './hud/DangerOverlay'
+import { RoutePanel } from './hud/RoutePanel'
+import { StageBanner } from './hud/StageBanner'
 import { TopBar } from './hud/TopBar'
 import { ZoneStatusPanel } from './hud/ZoneStatusPanel'
 import { PhoneScreen } from './PhoneScreen'
+import { StartOverlay } from './StartOverlay'
 
 const base: DriveSnapshot = {
   t: 65 * 60_000,
@@ -29,6 +35,9 @@ const base: DriveSnapshot = {
   weather: 'cloudy',
   surface: 'packed-snow',
   encounters: [],
+  stage: { index: 1, count: 2 },
+  stageClearedAt: null,
+  destination: { km: 30.2, etaMs: Date.parse('2027-02-15T17:30+09:00') },
 }
 
 const danger: DerivedAlert = { state: 'danger', distance: 42, side: 'L', inZone: true }
@@ -156,5 +165,55 @@ describe('アラートの見せ方（R7）', () => {
     expect(screen.getByText('鹿ゾーンの中は 1× だけ')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '一時停止' }))
     expect(onPause).toHaveBeenCalledWith(true)
+  })
+})
+
+describe('いまの区間の案内とステージ（drive-tune R1・R4）', () => {
+  const scenario = {
+    ...demoScenario(ZONES),
+    stops: ['drift-ice-walk'],
+    day: 3,
+    from: 'kushiro',
+    to: 'shiretoko',
+  }
+
+  it('UC-4a: 左の案内に D の番号・出発地 → 到着地・目的地までの km と到着予定・ステージ n / m・その日の楽しみ', () => {
+    render(<RoutePanel scenario={scenario} snapshot={base} />)
+    const panel = screen.getByTestId('route-panel')
+    expect(panel).toHaveTextContent('D3 釧路 → 知床')
+    expect(panel).toHaveTextContent('目的地まで 30 km・到着予定 17:30')
+    expect(panel).toHaveTextContent('ステージ 1 / 2')
+    expect(panel).toHaveTextContent('今日の楽しみ')
+    expect(panel).toHaveTextContent('流氷ウォーク')
+    expect(panel).toHaveTextContent('知床ウトロ ・ 2月限定')
+  })
+
+  it('UC-4a: 楽しみが無い日・ゾーンの無い日は、区間と残りだけ', () => {
+    render(
+      <RoutePanel
+        scenario={{ ...scenario, stops: [] }}
+        snapshot={{ ...base, stage: { index: 0, count: 0 } }}
+      />,
+    )
+    const panel = screen.getByTestId('route-panel')
+    expect(panel).not.toHaveTextContent('今日の楽しみ')
+    expect(panel).not.toHaveTextContent('ステージ')
+  })
+
+  it('UC-1c: クリアの帯は、クリアしてから 2 秒（シミュレーションの時計）だけ出る', () => {
+    const cleared = { ...base, stage: { index: 2, count: 2 }, stageClearedAt: base.t - 500 }
+    const { rerender } = render(<StageBanner snapshot={cleared} />)
+    expect(screen.getByTestId('stage-banner')).toHaveTextContent('ステージ 1 / 2 クリア')
+    rerender(<StageBanner snapshot={{ ...cleared, t: base.t + 2000 }} />)
+    expect(screen.queryByTestId('stage-banner')).toBeNull()
+  })
+
+  it('UC-1e: ゾーンの無い日は、出発の案内に「この日は鹿ゾーンを通りません」', () => {
+    render(
+      <MemoryRouter>
+        <StartOverlay scenario={scenario} noZone onStart={() => undefined} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('no-zone')).toHaveTextContent('この日は鹿ゾーンを通りません')
   })
 })

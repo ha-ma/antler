@@ -14,6 +14,8 @@ import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
 import { HUD_TEXT } from './hud/hud-text'
 import { TopBar } from './hud/TopBar'
+import { RoutePanel } from './hud/RoutePanel'
+import { StageBanner } from './hud/StageBanner'
 import { ZoneStatusPanel } from './hud/ZoneStatusPanel'
 import { PhoneScreen } from './PhoneScreen'
 import { StartOverlay } from './StartOverlay'
@@ -57,6 +59,7 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
   const [started, setStarted] = useState(false)
   const [soundOn, setSoundOn] = useState(true)
   const sound = useAlertSound()
+  const renewSound = sound.renew
   const snapshot = useDriveSnapshot(engine)
   const supported = useWebGL2(webgl2)
   const driving = started && snapshot.outcome === 'driving'
@@ -68,13 +71,17 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
     (dt: number) => {
       if (!started) return
       const events = engine.frame(dt)
+      // ステージを移ったら音のコントローラを作り直す（次のゾーンでチャイムが鳴るように。drive-tune R1）
+      if (events.some((e) => e.type === 'stage-clear') && engine.world.outcome === 'driving') {
+        void renewSound()
+      }
       // 衝突・完走のフレームで 1 回だけ結果を渡す（途中で離れたときは作らない）
       if (onFinish && events.some((e) => e.type === 'collided' || e.type === 'completed')) {
         const result = engine.result()
         if (result) onFinish(result)
       }
     },
-    [engine, started, onFinish],
+    [engine, started, onFinish, renewSound],
   )
   const scenario = engine.world.scenario
   const backToBrief =
@@ -124,7 +131,11 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
       </div>
       {started && (
         <div className="drive-hud">
-          <ZoneStatusPanel snapshot={snapshot} />
+          <div className="drive-hud__left">
+            <ZoneStatusPanel snapshot={snapshot} />
+            <RoutePanel scenario={scenario} snapshot={snapshot} />
+          </div>
+          <StageBanner snapshot={snapshot} />
           <TopBar
             snapshot={snapshot}
             onRate={(rate) => engine.setRate(rate)}
@@ -137,7 +148,13 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
           <EndBanner outcome={snapshot.outcome} onRetry={retry} briefHref={backToBrief} />
         </div>
       )}
-      {!started && <StartOverlay scenario={scenario} onStart={begin} />}
+      {!started && (
+        <StartOverlay
+          scenario={scenario}
+          noZone={engine.world.internal.stages.length === 0}
+          onStart={begin}
+        />
+      )}
     </main>
   )
 }

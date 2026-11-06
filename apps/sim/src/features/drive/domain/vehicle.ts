@@ -15,15 +15,30 @@ export const ROAD_EDGE_M = 4.5
 export const OFFROAD_MAX_KMH = 30
 /** これより外へは出られない（中心線から左右に、m） */
 export const OFFROAD_LIMIT_M = 8
-/** 60 km/h から乾燥路で止まるまでの距離（m） */
-export const BRAKE_DISTANCE_60_M = 50
-/** 路面ごとの制動距離の係数（推奨で決定） */
-export const SURFACE_BRAKE_FACTOR: Record<Surface, number> = {
-  dry: 1,
-  wet: 1.3,
-  'packed-snow': 1.5,
-  ice: 2,
+/** 重力加速度（m/s²） */
+export const G = 9.81
+/**
+ * 路面の摩擦係数（40 km/h のとき。drive-tune R3。docs/changes/2026-11-06-a-local-feedback.md §2.3）。
+ * ABS 付きの乗用車の実測の制動距離から μ = v²/(2gd) で逆算した値（ABS の効果は実測に含まれる）:
+ * 乾燥 0.8（パナソニックの目安、60 km/h で 17.7 m）、湿潤 0.57（JAF 2013、40 km/h で 11 m）、
+ * 圧雪 0.36・凍結 0.08（JAF 2017、スタッドレス、40 km/h で 17.3 m・78.5 m）
+ */
+export const SURFACE_MU: Record<Surface, number> = {
+  dry: 0.8,
+  wet: 0.57,
+  'packed-snow': 0.36,
+  ice: 0.08,
 }
+/** 速いほど効きが弱い: μ × (1 − MU_SPEED_SLOPE × (v − 40 km/h))、0.85〜1.05 倍に収める */
+export const MU_SPEED_SLOPE = 0.0015
+/** ブレーキを踏んでから減速度が立ち上がるまで（s） */
+export const BRAKE_RISE_S = 0.15
+/** S（走っている間の減速）はブレーキの何割か */
+export const BACK_BRAKE_RATIO = 0.6
+/** この速さ（km/h）以上のブレーキで、滑りやすい路面なら ABS が働く */
+export const ABS_MIN_KMH = 10
+/** ブレーキを踏みきったとき、横に使える摩擦がどれだけ減るか（摩擦円。spec-adversary M5） */
+export const BRAKE_LATERAL_SHARE = 0.5
 /** 路面ごとのグリップ（ステアで横に動く速さの係数。推奨で決定） */
 export const SURFACE_GRIP: Record<Surface, number> = {
   dry: 1,
@@ -57,13 +72,18 @@ const LATERAL_FULL_SPEED_MPS = 5
 const kmh = (v: number) => v / 3.6
 
 export function initialVehicle(s = 0): VehicleState {
-  return { s, d: LANE_CENTER_D, speed: 0, lateralSpeed: 0 }
+  return { s, d: LANE_CENTER_D, speed: 0, lateralSpeed: 0, brakeLevel: 0, abs: false }
 }
 
-/** ブレーキの減速度（m/s²）。60 km/h から BRAKE_DISTANCE_60_M × 路面係数で止まる */
-export function brakeDecel(surface: Surface): number {
-  const v60 = kmh(60)
-  return (v60 * v60) / (2 * BRAKE_DISTANCE_60_M * SURFACE_BRAKE_FACTOR[surface])
+/** 速さ v（m/s）のときの摩擦係数（速いほど少し下がる） */
+export function frictionAt(surface: Surface, speedMps: number): number {
+  const factor = 1 - MU_SPEED_SLOPE * (Math.abs(speedMps) * 3.6 - 40)
+  return SURFACE_MU[surface] * Math.min(1.05, Math.max(0.85, factor))
+}
+
+/** 踏みきったときのブレーキの減速度（m/s²）= μ(v) × g */
+export function brakeDecel(surface: Surface, speedMps: number): number {
+  return frictionAt(surface, speedMps) * G
 }
 
 export function isStopped(v: Pick<VehicleState, 'speed'>): boolean {
@@ -77,8 +97,9 @@ export function stepVehicle(
   surface: Surface,
   dtS: number,
 ): VehicleState {
-  const speed = nextSpeed(v, input, surface, dtS)
-  const { d, lateralSpeed } = nextLateral(v, input, surface, speed, dtS)
+  const brakeLevel = nextBrakeLevel(v, input, dtS)
+  const speed = nextSpeed(v, input, surface, brakeLevel, dtS)
+  const { d, lateralSpeed } = nextLateral(v, input, surface, speed, brakeLevel, dtS)
   let s = v.s + speed * dtS
   let finalSpeed = speed
   // 始点より前へは下がれない（UC-3f）
@@ -86,11 +107,31 @@ export function stepVehicle(
     s = 0
     finalSpeed = Math.max(0, finalSpeed)
   }
-  return { s, d, speed: finalSpeed, lateralSpeed }
+  // 滑りやすい路面で、ある程度の速さでブレーキを踏んでいる間は ABS が働く（drive-tune UC-3d）。
+  // 横の動き（ステア）はブレーキ中も効かせる（ABS がタイヤのロックを防ぐ）
+  const abs = brakeLevel > 0 && surface !== 'dry' && Math.abs(v.speed) * 3.6 >= ABS_MIN_KMH
+  return { s, d, speed: finalSpeed, lateralSpeed, brakeLevel, abs }
 }
 
-function nextSpeed(v: VehicleState, input: DriveInput, surface: Surface, dtS: number): number {
-  const brake = brakeDecel(surface)
+/**
+ * ブレーキの強さ（0〜1）。Space は 1、走っている間の S は BACK_BRAKE_RATIO を目指し、
+ * 踏んでから BRAKE_RISE_S で直線に立ち上がる。離したらすぐ 0（drive-tune UC-3c・UC-3e）
+ */
+function nextBrakeLevel(v: VehicleState, input: DriveInput, dtS: number): number {
+  const forward = v.speed > kmh(STOPPED_KMH)
+  const target = input.brake ? 1 : input.back && forward ? BACK_BRAKE_RATIO : 0
+  if (target === 0) return 0
+  return Math.min(target, v.brakeLevel + dtS / BRAKE_RISE_S)
+}
+
+function nextSpeed(
+  v: VehicleState,
+  input: DriveInput,
+  surface: Surface,
+  brakeLevel: number,
+  dtS: number,
+): number {
+  const brake = brakeDecel(surface, v.speed)
   const grip = SURFACE_GRIP[surface]
   const max = kmh(MAX_SPEED_KMH)
   let speed = v.speed
@@ -98,7 +139,7 @@ function nextSpeed(v: VehicleState, input: DriveInput, surface: Surface, dtS: nu
   const reversing = speed < -kmh(STOPPED_KMH)
 
   if (input.brake) {
-    speed = towardZero(speed, brake * dtS)
+    speed = towardZero(speed, brake * brakeLevel * dtS)
   } else if (input.throttle && !input.back) {
     if (reversing) speed = towardZero(speed, brake * dtS)
     else {
@@ -107,8 +148,8 @@ function nextSpeed(v: VehicleState, input: DriveInput, surface: Surface, dtS: nu
       speed += THROTTLE_ACCEL * traction * (1 - 0.75 * (speed / max)) * dtS
     }
   } else if (input.back) {
-    // 走っている間は減速、止まっていれば（または後退中なら）後退（UC-3c）
-    if (forward) speed = towardZero(speed, brake * dtS)
+    // 走っている間は減速（ブレーキの 6 割）、止まっていれば（または後退中なら）後退（UC-3c）
+    if (forward) speed = towardZero(speed, brake * brakeLevel * dtS)
     else speed -= REVERSE_ACCEL * dtS
   } else {
     speed = towardZero(speed, (COAST_DECEL + COAST_DRAG * Math.abs(speed)) * dtS)
@@ -132,9 +173,11 @@ function nextLateral(
   input: DriveInput,
   surface: Surface,
   speed: number,
+  brakeLevel: number,
   dtS: number,
 ): { d: number; lateralSpeed: number } {
-  const grip = SURFACE_GRIP[surface]
+  // 摩擦円: ブレーキに使っているぶん、横に使える摩擦が減る（踏みきりで半分。ABS でロックはしないので 0 にはならない）
+  const grip = SURFACE_GRIP[surface] * (1 - BRAKE_LATERAL_SHARE * brakeLevel)
   const steer = (input.right ? 1 : 0) - (input.left ? 1 : 0)
   const target =
     steer !== 0
