@@ -5,7 +5,7 @@ target_paths:
   - dataset/synth_render.py
   - dataset/synth.toml
   - dataset/tests/test_synth.py
-spec_confirmed_at: PENDING
+spec_confirmed_at: 927a675
 tier: 1
 ---
 
