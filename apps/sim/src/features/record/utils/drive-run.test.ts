@@ -21,7 +21,7 @@ const result: FinishedDrive = {
 }
 
 describe('toDriveRun', () => {
-  it('UC-9f: DriveResult の欄から run を作り、スキーマを通る。時刻は alertClockAt', () => {
+  it('UC-9f・performance UC-1f: DriveResult の欄から run を作り、スキーマを通る（frames の dropped・counted もそのまま）。時刻は alertClockAt', () => {
     const run = toDriveRun(result, '3f0c8a52-1d4e-4b6a-9c2d-7e1f0a9b8c3d')
     expect(DriveRunInputSchema.safeParse(run).success).toBe(true)
     expect(run).toMatchObject({ day: 2, alertEnabled: false, outcome: 'completed', zonePasses: 3 })
