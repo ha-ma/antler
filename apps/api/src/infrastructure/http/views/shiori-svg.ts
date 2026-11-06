@@ -1,5 +1,6 @@
 import { tokens } from '@antler/alert-ui/tokens'
 import { recordText, type RecordView } from '@antler/trip'
+import { OG_FAMILIES } from './og-fonts.js'
 import { escapeXml, fitText, wrapText } from './text-fit.js'
 
 // しおりの OG 画像（1200×630）の SVG（docs/specs/record/functional.md R6）。PNG への変換は og-image-renderer.ts。
@@ -12,9 +13,11 @@ export const OG_HEIGHT = 630
 export const OG_MAX_DAY_ROWS = 7
 
 const c = tokens.color.trip
-const SANS =
-  "'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'PingFang TC', 'Apple SD Gothic Neo', 'Noto Sans CJK JP', sans-serif"
-const MONO = "'IBM Plex Mono', Menlo, 'DejaVu Sans Mono', monospace"
+
+/** 同梱のフォント（og-fonts.ts）だけを、言語の字形が先になる順に並べる。数字（旧 IBM Plex Mono）も同じフォント */
+function fontFamily(lang: RecordView['lang']): string {
+  return `${OG_FAMILIES[lang].map((f) => `'${f}'`).join(', ')}, sans-serif`
+}
 
 type Row = RecordView['shiori']['rows'][number]
 
@@ -28,11 +31,17 @@ function mark(result: Row['result'], x: number, y: number): string {
   return `<path d="M${String(x - 8)} ${String(y)} h16" stroke="${c['ink-faint']}" stroke-width="3" stroke-linecap="round"/>`
 }
 
-function text(x: number, y: number, size: number, fill: string, body: string, extra = ''): string {
-  return `<text x="${String(x)}" y="${String(y)}" font-family="${SANS}" font-size="${String(size)}" fill="${fill}"${extra}>${escapeXml(body)}</text>`
-}
-
 export function buildShioriSvg(view: RecordView): string {
+  const family = fontFamily(view.lang)
+  const text = (
+    x: number,
+    y: number,
+    size: number,
+    fill: string,
+    body: string,
+    extra = '',
+  ): string =>
+    `<text x="${String(x)}" y="${String(y)}" font-family="${family}" font-size="${String(size)}" fill="${fill}"${extra}>${escapeXml(body)}</text>`
   const parts: string[] = []
   parts.push(`<rect width="${String(OG_WIDTH)}" height="${String(OG_HEIGHT)}" fill="${c.ground}"/>`)
   parts.push(`<rect x="0" y="0" width="${String(OG_WIDTH)}" height="10" fill="${c.spruce}"/>`)
@@ -97,7 +106,7 @@ export function buildShioriSvg(view: RecordView): string {
     )
     parts.push(text(860, rowStart + 2, 22, c['ink-muted'], fitText(stat.label, 11)))
     parts.push(
-      `<text x="860" y="${String(rowStart + 92)}" font-family="${MONO}" font-size="64" font-weight="700" fill="${c.spruce}">${escapeXml(stat.value)}</text>`,
+      `<text x="860" y="${String(rowStart + 92)}" font-family="${family}" font-size="64" font-weight="700" fill="${c.spruce}">${escapeXml(stat.value)}</text>`,
     )
   }
 
