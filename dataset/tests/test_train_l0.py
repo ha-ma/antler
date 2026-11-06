@@ -179,6 +179,7 @@ def read_any(path: Path) -> np.ndarray:
     return np.zeros((720, 1280, 3), dtype=np.uint8)
 
 
+# AC-1
 def test_ac1_データループが1周回る(tmp_path):
     root = tmp_path / "dataset"
     caps = root / "private/caps"
@@ -246,6 +247,7 @@ def test_ac1_データループが1周回る(tmp_path):
 # ---------------------------------------------------------------- UC-1 素材の一覧
 
 
+# SRC-1a
 def test_src1a_一覧の誤りはキー名つきのエラー(tmp_path):
     root = tmp_path / "dataset"
     good = commons(root)
@@ -267,6 +269,7 @@ def test_src1a_一覧の誤りはキー名つきのエラー(tmp_path):
         train_l0.load_sources(sources_toml(root, cap), root=root)
 
 
+# SRC-1b
 def test_src1b_BY_SAはevalだけ(tmp_path):
     root = tmp_path / "dataset"
     by_sa(root)
@@ -277,6 +280,7 @@ def test_src1b_BY_SAはevalだけ(tmp_path):
     assert train_l0.load_sources(sources_toml(root, by_sa(root)), root=root)[0].use == "eval"
 
 
+# SRC-1c
 def test_src1c_外を指すパスとリンクは拒否(tmp_path):
     root = tmp_path / "dataset"
     commons(root)
@@ -308,6 +312,7 @@ def test_src1c_外を指すパスとリンクは拒否(tmp_path):
 # ---------------------------------------------------------------- UC-2 YOLO
 
 
+# YOLO-1a
 def test_yolo1a_分割と評価側と負例(tmp_path):
     root = tmp_path / "dataset"
     run = build(root, sources_toml(root, commons(root), by_sa(root)))
@@ -320,6 +325,7 @@ def test_yolo1a_分割と評価側と負例(tmp_path):
     assert m["counts"] == {"train": 3, "val": 1, "eval": 3}
 
 
+# YOLO-1b
 def test_yolo1b_ラベルの誤り(tmp_path):
     root = tmp_path / "dataset"
     toml = sources_toml(root, commons(root))
@@ -341,6 +347,7 @@ def test_yolo1b_ラベルの誤り(tmp_path):
         build(root, toml)
 
 
+# YOLO-1c
 def test_yolo1c_manifestとSHAとライセンスの照合(tmp_path):
     root = tmp_path / "dataset"
     toml = sources_toml(root, commons(root))
@@ -393,6 +400,7 @@ def caps_toml(root: Path, use: str = "train", path: str = "private/caps") -> Pat
     )
 
 
+# CAP-1a
 def test_cap1a_apiとedgeの置き方_imageは使わない(tmp_path):
     root, caps = caps_root(tmp_path, ["cap_a1", "cap_0000000000b1"])
     api_capture(caps, capture("cap_A1", image="/etc/passwd.jpg"))
@@ -404,6 +412,7 @@ def test_cap1a_apiとedgeの置き方_imageは使わない(tmp_path):
     assert m["sources"]["caps"]["skipped"] == {}
 
 
+# CAP-1b
 def test_cap1b_使わないCaptureを理由ごとに数える(tmp_path):
     ids = [f"cap_{i:012x}" for i in range(1, 9)]
     root, caps = caps_root(tmp_path, ids)
@@ -441,6 +450,7 @@ def test_cap1b_使わないCaptureを理由ごとに数える(tmp_path):
     assert text.strip() == "0 0.6 0.6 0.2 0.2"
 
 
+# CAP-1c
 def test_cap1c_角を切ってから中心基準に():
     assert train_l0.tl_to_center([0.31, 0.49, 0.1, 0.14]) == pytest.approx((0.36, 0.56, 0.1, 0.14))
     assert train_l0.tl_to_center([0.9, 0.5, 0.3, 0.2]) == pytest.approx((0.95, 0.6, 0.1, 0.2))
@@ -448,6 +458,7 @@ def test_cap1c_角を切ってから中心基準に():
     assert train_l0.tl_to_center([0.95, 0.0, 0.05, 0.0]) is None
 
 
+# CAP-1d
 def test_cap1d_日本時間の日付のグループで分ける():
     assert train_l0.capture_group("sim", "2026-11-07T08:55:00+09:00") == train_l0.capture_group(
         "sim", "2026-11-07T00:05:00Z"
@@ -472,6 +483,7 @@ def test_cap1d_グループ1つならvalなしと書く(tmp_path):
     assert any("val なし" in n for n in m["notes"])
 
 
+# CAP-1e
 def test_cap1e_パスの決まりに合わないものはbad_path(tmp_path):
     ids = ["cap_000000000001", "cap_000000000002", "cap_000000000003", "cap_000000000004"]
     root, caps = caps_root(tmp_path, [*ids, "cap_000000000005", "cap_x"])
@@ -509,6 +521,7 @@ def test_cap1e_パスの決まりに合わないものはbad_path(tmp_path):
 # ---------------------------------------------------------------- UC-4 漏れと出力
 
 
+# OUT-1a・S-1
 def test_out1a_漏れと学習にならないデータ(tmp_path):
     root = tmp_path / "dataset"
     commons(root)
@@ -539,6 +552,7 @@ def test_out1a_漏れと学習にならないデータ(tmp_path):
     assert not (root4 / "out/train/r1").exists()
 
 
+# OUT-1b
 def test_out1b_yamlとmanifest(tmp_path):
     root, caps = caps_root(tmp_path, ["cap_000000000001"])
     api_capture(caps, capture("cap_000000000001"))
@@ -559,6 +573,7 @@ def test_out1b_yamlとmanifest(tmp_path):
     assert m == again
 
 
+# OUT-1c・S-2
 def test_out1c_上書きしない_作りかけを残さない(tmp_path):
     root = tmp_path / "dataset"
     toml = sources_toml(root, commons(root))
@@ -619,6 +634,7 @@ def trained(tmp_path: Path, **kw: object) -> tuple[Path, Path, FakeTrainer]:
     return run, models, trainer, args
 
 
+# TR-1a
 def test_tr1a_学習器に渡す引数とmodel_card(tmp_path):
     run, models, trainer, args = trained(tmp_path)
     pt = train_l0.train(run, models_dir=models, trainer=trainer, epochs=5, batch=4, **args)
@@ -644,6 +660,7 @@ def test_tr1a_学習器に渡す引数とmodel_card(tmp_path):
     assert str(tmp_path) not in json.dumps(card)
 
 
+# TR-1b
 def test_tr1b_上書きしない_元の重み_名前_device(tmp_path):
     run, models, trainer, args = trained(tmp_path)
     for ext in (".pt", ".json", ".mlpackage"):
@@ -663,6 +680,7 @@ def test_tr1b_上書きしない_元の重み_名前_device(tmp_path):
     assert trainer.calls == []
 
 
+# TR-1c・REV-1（*.cache）
 def test_tr1c_buildのあとの改変と元の重みの出所(tmp_path):
     run, models, trainer, args = trained(tmp_path)
     extra = run / "images/train/commons__extra.jpg"
@@ -703,6 +721,7 @@ def test_tr1c_buildのあとの改変と元の重みの出所(tmp_path):
 # ---------------------------------------------------------------- UC-6 書き出し
 
 
+# EXP-1a
 def test_exp1a_NMS付きで書き出してL0で確かめる(tmp_path):
     models = tmp_path / "models"
     models.mkdir()
@@ -718,6 +737,7 @@ def test_exp1a_NMS付きで書き出してL0で確かめる(tmp_path):
     assert seen == [ml]
 
 
+# EXP-1b
 def test_exp1b_閾値_上書き_確かめの失敗(tmp_path):
     models = tmp_path / "models"
     models.mkdir()
@@ -743,6 +763,7 @@ def test_exp1b_閾値_上書き_確かめの失敗(tmp_path):
 # ---------------------------------------------------------------- UC-7 評価
 
 
+# EV-1a・REV-1（当て方の順）
 def test_ev1a_当て方():
     gts = [(0.5, 0.5, 0.2, 0.2), (0.52, 0.5, 0.2, 0.2)]
     preds = [
@@ -766,6 +787,7 @@ def test_ev1a_当て方():
     assert train_l0.match([(0.5, wide), (0.5, g0)], [g0, g1], threshold=0.25) == (1, 1, 1)
 
 
+# EV-1b・REV-1（評価の画像の SHA）
 def test_ev1b_評価側とvalを別々に数えJSONに書く(tmp_path):
     root = tmp_path / "dataset"
     run = build(root, sources_toml(root, commons(root), by_sa(root)))
@@ -833,6 +855,7 @@ def test_cli_エラーは2で終わり理由を出す(tmp_path, capsys):
     assert "train 3" in capsys.readouterr().out
 
 
+# REV-1（CLI の終了コード）
 def test_cli_確かめの失敗は1で終わる(tmp_path, monkeypatch, capsys):
     def broken(weights, conf):
         raise train_l0.VerifyError("CoreML の出力の形が違う")
