@@ -9,6 +9,7 @@ import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -137,9 +138,14 @@ def start_stuck(tmp_path: Path) -> subprocess.Popen:
         env=env,
     )
     assert proc.stderr is not None
-    for line in proc.stderr:  # 待ち受けが始まるまで
-        if "待ち受けています" in line:
-            return proc
+    watchdog = threading.Timer(30.0, proc.kill)  # 出ないまま止まっても読み取りを終わらせる
+    watchdog.start()
+    try:
+        for line in proc.stderr:  # 待ち受けが始まるまで
+            if "待ち受けています" in line:
+                return proc
+    finally:
+        watchdog.cancel()
     proc.kill()
     raise AssertionError("起動しなかった")
 

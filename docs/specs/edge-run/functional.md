@@ -175,7 +175,7 @@ Questions は全問、推奨で決定（親セッションの指示「推奨で�
 UC-1 引数とログ:
 
 - [x] RUN-1a: `--no-l1` は `l1.enabled = false`、`--no-capture` は `capture.enabled = false` に上書きし、ほかの設定は変えない。`--config` が無いと引数エラー
-- [x] RUN-1b: 走行ログのファイルは `--log-dir`（既定は設定ファイルのディレクトリの `logs/`）の `run-YYYYMMDD-HHMMSS.jsonl`（同じ秒は `-1`）。ファイルは `--log-level` 以上、端末は WARNING 以上。書けないと exit 2
+- [x] RUN-1b: 走行ログのファイルは `--log-dir`（既定は設定ファイルのディレクトリの `logs/`）の `run-YYYYMMDD-HHMMSS.jsonl`（同じ秒は `-1`）。ファイルは `--log-level` 以上、端末は WARNING 以上。書けないと exit 2。`--log-level` は `DEBUG` / `INFO` だけ（`WARNING` を選べると `flag.sent`・`ack` の t_frame・t_sent・t_shown が落ちる。edge-latency-reviewer W1）
 - [x] RUN-1c: `run.started` にモデルのファイル名・ポート・L1 と capture の有無が入り、絶対パスが入らない。例外はスタック・文言を書かず型名だけ。websockets の logger は DEBUG でも INFO 止まり（spec-adversary W1・W2）
 
 UC-2 起動前の検査:
@@ -192,7 +192,7 @@ UC-3 組み立て:
 
 UC-4 停止:
 
-- [x] RUN-4a: 止める旗で入力の `read()` が None を返し、pump が返り、capture → WebSocket → カメラの順に閉じて exit 0。閉じる失敗は飲み込み、閉じるのは 1 回
+- [x] RUN-4a: 止める旗で入力の `read()` が None を返し、pump が返り、capture → WebSocket → カメラの順に閉じて exit 0。閉じる失敗は飲み込み（WebSocket の停止が失敗してもカメラは閉じる。code-reviewer W）、閉じるのは 1 回
 - [x] RUN-4b: 止めても `read()` が戻らないと、上限の秒数で取り消し、カメラを解放せずに `run.stopped`（`forced`）。2 回目の要求は上限を待たない。サブプロセスでは Ctrl-C から上限の秒数でプロセスが exit 0 で終わる（spec-adversary C1）
 - [x] RUN-4c: SIGINT・SIGTERM の 1 回目は旗を立て、2 回目はすぐ 130 で終わる（自分に `os.kill`、サブプロセスに 2 回の SIGINT で確かめる）
 - [x] RUN-4d: 動いている途中の `SourceError` → 片付けて exit 1、`run.stopped`（`error`）
@@ -201,7 +201,7 @@ UC-4 停止:
 
 UC-5 `--check`:
 
-- [x] RUN-5a: ポート・設定・モデル・カメラ 1 枚・推論 2 回で JSON（モデルのファイル名・frame_shape・first_infer_ms・infer_ms・detections・deer_detected）を出し、待ち受けず、カメラを閉じ、走行ログと capture の置き場所を作らずに exit 0。ポートが使用中・カメラから読めない → exit 2（spec-adversary W5）
+- [x] RUN-5a: ポート・設定・モデル・カメラ 1 枚・推論 2 回で JSON（モデルのファイル名・frame_shape・first_infer_ms・infer_ms・detections・deer_detected）を出し、待ち受けず、カメラを閉じ、走行ログと capture の置き場所を作らずに exit 0。ポートが使用中・カメラから読めない・推論が例外を出す（型名だけ出す。code-reviewer W） → exit 2（spec-adversary W5）
 - [x] RUN-5b: `--image` はカメラを開かずにその画像で推論する。読めない画像・opencv が無い → exit 2。`--check` なしの `--image` は exit 2
 
 UC-6 YOLO 単独の計測:

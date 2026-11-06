@@ -137,6 +137,7 @@ python scripts/bench_l1.py --no-l1 --model edge/detector/models/yolo26n-deer-202
 
 - 先頭に JSON（`"mode": "yolo"`）、続いて表。exit 0
 - `l0_alone.infer.p50_ms` / `p95_ms`（1 回の推論の ms）と `l0_alone.fps`。`verdict.meets_ch6` が `true`（p95 が予算 100 ms 以内、10 fps 以上）。`infer_p95_within_target`（目標 50 ms）も見る
+- これは乱数の画像での**推論の速さ**だけ。鹿を見つけられるかは 6. の `--image` と 9. で見る。赤までの遅延（1,000 ms 未満）は 9e. で測る
 - 2 行目（`cpu_only`）の `fps` が 1 行目の **半分以下**なら ANE が効いている目安。ほぼ同じなら ANE に載っていない疑い。どちらもそのまま貼る
 
 終了コード: `0` = 合格、`2` = 引数・モデルの読み込みの誤り、`3` = 結果が信用できない（推論が例外を出した・立ち上がらない）、`4` = 測れたが ch6（p95 100 ms・10 fps）を満たさない。
@@ -181,10 +182,10 @@ python -m websockets ws://192.168.1.23:8765/alerts
 **9c. 走行ログを見る（ターミナル B。9a を Ctrl-C で止めてから）**
 
 ```sh
-tail -n 400 "$(ls -t edge/detector/logs/run-*.jsonl | head -1)" | grep -E '"(run.started|flag.sent|ack|infer.over_budget|judge.stalled)"' | tail -20
+grep -E '"(run.started|flag.sent|ack|infer.over_budget|judge.stalled)"' "$(ls -t edge/detector/logs/run-*.jsonl | head -1)" | tail -20
 ```
 
-確かめる: `flag.sent` に `t_frame`（フレームの時刻）と `t_sent`（送った時刻）がある。PWA をつなぐと（9d）`ack` に `t_shown` と遅延が出る。
+確かめる: `flag.sent` に `t_frame`（フレームの時刻）と `t_sent`（送った時刻）がある。`ack`（`t_shown`）は PWA をつないだ 9d. のあとにだけ出る。
 
 **9d. スマホの PWA をつなぐ（dev Mac で PWA の開発サーバー）**
 
@@ -206,9 +207,30 @@ http://<dev Mac のアドレス>:5174/?edge=192.168.1.23
 - 本番ビルドの PWA は接続先が `ws://ezoroad.local:8765/alerts` に固定。そちらで試すときは Mac mini の名前を `ezoroad` にする（システム設定 → 一般 → 共有 → ローカルホスト名）
 - 走行後に PWA から検知フレームの一覧・同意を送るには、`config.toml` の `[capture_server]` に `allowed_origins = ["http://<dev Mac のアドレス>:5174"]` を足して 8. からやり直す
 
+**9e. 赤までの遅延を数える（9d. のあと。写真のかざし・外しを 10 回以上）**
+
+`ack` の `since_frame_ms` は「Mac mini がフレームを撮った時刻 → スマホが赤を描いた時刻」。**2 台の時計の差がそのまま入る**ので、先に Mac mini とスマホの両方で「日付と時刻を自動的に設定」をオンにする。`flag.sent` の `t_sent − t_frame`（Mac mini の中だけ、同じ時計）も一緒に出す。
+
+```sh
+python - "$(ls -t edge/detector/logs/run-*.jsonl | head -1)" <<'PY'
+import json, sys
+from datetime import datetime
+rows = [json.loads(x) for x in open(sys.argv[1], encoding="utf-8")]
+def p(xs, q):
+    xs = sorted(xs); return xs[min(len(xs) - 1, int(q * len(xs)))] if xs else None
+ack = [r["since_frame_ms"] for r in rows if r.get("event") == "ack" and r.get("since_frame_ms") is not None]
+ts = lambda s: datetime.fromisoformat(s.replace("Z", "+00:00"))
+sent = [(ts(r["t_sent"]) - ts(r["t_frame"])).total_seconds() * 1000 for r in rows if r.get("event") == "flag.sent" and r.get("t_frame") and r.get("t_sent")]
+print({"ack_n": len(ack), "ack_p50": p(ack, .5), "ack_p95": p(ack, .95), "ack_min": min(ack, default=None),
+       "edge_n": len(sent), "edge_p50": p(sent, .5), "edge_p95": p(sent, .95)})
+PY
+```
+
+確かめる: `ack_p95` が 1,000 未満（目標 500）。`ack_min` が負、または `edge_p95` より大きく外れて小さいときは時計がずれている（自動設定を確かめてやり直す）。`ack_n` が 10 未満なら回数を足す。
+
 ## 10. 止める・L1 を足す
 
-**止める**: ターミナル A で **Ctrl-C を 1 回**。「止めています」が出て、2〜3 秒でプロンプトに戻る（鹿が出ていれば OFF を送ってから）。戻らないときは 5 秒で自動で抜ける。もう一度 Ctrl-C を押すとすぐ終わる。
+**止める**: ターミナル A で **Ctrl-C を 1 回**。「止めています」が出て、2〜3 秒でプロンプトに戻る（鹿が出ていれば OFF を送ってから）。戻らないときは 10 秒ほどで自動で抜ける（カメラの読み取りを 5 秒待ち、capture の片付けを待つ）。もう一度 Ctrl-C を押すとすぐ終わる。モデルを読み込んでいる間（起動の数秒）は Ctrl-C が効かないので、待ち受けの行が出てから押す。
 **止める前に**、PWA で検知フレームの一覧・同意を済ませる（Ctrl-C で capture の HTTP も止まる）。
 
 | 終了コード（`echo $?`） | 意味                                                                            |
@@ -232,7 +254,7 @@ cat ~/day0/bench-yolo-only-ane.json ~/day0/bench-yolo-only-cpu.json
 grep -E '"(run.started|run.stopped|ack|infer.over_budget|infer.degraded|judge.stalled|camera.lost|pipeline.summary)"' "$(ls -t edge/detector/logs/run-*.jsonl | head -1)" | tail -40
 ```
 
-あわせて、9b・9d で赤が出たか（出るまでの体感の秒数）と、8.〜10. の終了コードを書く。結果は `docs/reports/2026-11-0X-edge-run-mac-mini.md` にメインセッションがまとめる。
+9e. の出力 1 行も貼る。あわせて、9b・9d で赤が出たか（出るまでの体感の秒数）と、8.〜10. の終了コードを書く。結果は `docs/reports/2026-11-0X-edge-run-mac-mini.md` にメインセッションがまとめる。
 
 ## うまくいかないとき
 
@@ -249,5 +271,5 @@ grep -E '"(run.started|run.stopped|ack|infer.over_budget|infer.degraded|judge.st
 | 9a でハートビートが止まる                              | カメラが止まった（3 秒で黙る）。走行ログの `judge.stalled`・`camera.lost` を貼る                                                                                       |
 | 写真をかざしても `deer: true` にならない               | 6. の `--image` が `true` か。部屋を明るくする・写真を大きく・近く。走行ログの `frame.processed` の `max_conf` を貼る                                                  |
 | `infer.over_budget` が続く                             | 推論が 100 ms を超えている。7. の結果と一緒に貼る                                                                                                                      |
-| Ctrl-C で戻らない                                      | 5 秒待つ（自動で抜ける）。もう一度 Ctrl-C                                                                                                                              |
+| Ctrl-C で戻らない                                      | 10 秒ほど待つ（自動で抜ける）。もう一度 Ctrl-C                                                                                                                         |
 | 終了コード `1`・`run.failed`                           | 走行ログの最後の 40 行を貼る（`camera.lost` ならカメラの接続）                                                                                                         |

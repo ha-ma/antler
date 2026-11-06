@@ -369,6 +369,30 @@ def test_RUN_4a_止める旗で入力が終わり_captureからWebSocketから�
     assert named(logbuf, "pipeline.summary")[0]["ended"] == "eof"
 
 
+# RUN-4a
+def test_RUN_4a_WebSocketの停止が失敗してもカメラを閉じる(tmp_path, logbuf, monkeypatch):
+    from detector.server import AlertServer
+
+    camera = FakeCamera()
+    real_stop = AlertServer.stop
+
+    async def stop(self):
+        await real_stop(self)
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(AlertServer, "stop", stop)
+
+    async def after(_info):
+        await asyncio.sleep(0.2)
+
+    _, result = run(
+        serve_until(make_config(tmp_path), deps(camera), app.StopControl(), after=after)
+    )
+    assert result == app.RunResult(0, "signal")
+    assert camera.closed == 1
+    assert named(logbuf, "server.stop_failed")[0]["error_type"] == "RuntimeError"
+
+
 # RUN-4b・S-4
 def test_RUN_4b_readが戻らないと上限で取り消してforced(tmp_path, logbuf):
     camera = FakeCamera(block=True)
@@ -573,6 +597,28 @@ def test_RUN_5a_カメラから読めないとexit2(tmp_path, capsys):
             deps=deps(FakeCamera(limit=0)),
         )
     assert code == 2 and "1 枚も読めない" in capsys.readouterr().err
+
+
+class BrokenDetector:
+    def detect(self, _image):
+        raise RuntimeError("/Users/someone/secret")
+
+
+# RUN-5a
+def test_RUN_5a_checkの推論が失敗するとexit2で型名だけ出す(tmp_path, capsys):
+    d = app.Deps(load_detector=lambda _c: BrokenDetector(), open_source=lambda _c: FakeCamera())
+    with RestoreLogging():
+        code = app.main(["--config", str(write_config(tmp_path)), "--check"], deps=d)
+    err = capsys.readouterr().err
+    assert code == 2 and "推論できない（RuntimeError）" in err
+    assert "/Users/someone" not in err
+
+
+# RUN-1b
+def test_RUN_1b_log_levelはDEBUGとINFOだけ_WARNINGではt_frameが落ちる(tmp_path, capsys):
+    with pytest.raises(SystemExit) as exc:
+        app.main(["--config", str(write_config(tmp_path)), "--log-level", "WARNING"])
+    assert exc.value.code == 2
 
 
 def test_RUN_5b_opencvが無いとSourceError(monkeypatch, tmp_path):

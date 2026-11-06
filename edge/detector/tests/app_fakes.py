@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import socket
 import threading
 import time
 from dataclasses import replace
@@ -31,7 +32,17 @@ dir = "captures"
 """
 
 
+def free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return int(s.getsockname()[1])
+
+
 def write_config(tmp_path: Path, text: str = CONFIG_TEXT) -> Path:
+    """main() を通すテスト用。8765・8767 は手元の偽 edge が使うことがあるので空きを書く。"""
+    for section in ("server", "capture_server"):
+        if f"[{section}]" not in text:
+            text += f"\n[{section}]\nport = {free_port()}\n"
     path = tmp_path / "config.toml"
     path.write_text(text, encoding="utf-8")
     return path

@@ -81,7 +81,8 @@ EXIT_KILLED = 130  # 2 回目の Ctrl-C・起動の直後の Ctrl-C（シェル�
 RUNBOOK = "docs/runbooks/2026-11-06-mac-mini-edge-run.md"
 STOP_TIMEOUT_S = 5.0  # 止める旗から片付けまでの上限。超えたら pump を取り消す（read() が戻らない）
 POLL_S = 0.05
-LEVELS = ("DEBUG", "INFO", "WARNING")
+# WARNING を選べると flag.sent・ack（t_frame・t_sent・t_shown）が落ちる。INFO より上は選ばせない
+LEVELS = ("DEBUG", "INFO")
 
 
 class StartupError(Exception):
@@ -386,7 +387,10 @@ async def serve(
             except Exception as exc:  # noqa: BLE001  片付けを続ける
                 logger.error("capture.close_failed", extra={"error_type": type(exc).__name__})
         if server is not None:
-            await server.stop()
+            try:
+                await server.stop()
+            except Exception as exc:  # noqa: BLE001  カメラの解放まで続ける
+                logger.error("server.stop_failed", extra={"error_type": type(exc).__name__})
         if reason != "forced":
             source.close()
         else:
@@ -453,7 +457,10 @@ def check(config: Config, deps: Deps, image: Path | None = None) -> dict[str, ob
     detections = []
     for _ in range(2):  # 1 回目は CoreML のコンパイルを含む
         started = perf_counter()
-        detections = detector.detect(resized.image)
+        try:
+            detections = detector.detect(resized.image)
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise StartupError(f"推論できない（{type(exc).__name__}）") from exc
         timings.append(round((perf_counter() - started) * 1000.0, 1))
     return {
         "check": "ok",
