@@ -16,6 +16,7 @@ import json
 import logging
 import re
 import ssl
+import sys
 import threading
 from dataclasses import dataclass, field
 from http import HTTPStatus
@@ -271,6 +272,18 @@ def _parse_ids(payload: object, *, with_consent: bool) -> tuple[list[str] | None
     return ids, consent
 
 
+class _QuietServer(ThreadingHTTPServer):
+    """途中で切れた接続（Wi-Fi が切れた・TLS の失敗）のエラー。
+
+    標準は接続元のアドレスとトレースバックを stderr に出すので、型の名前だけを debug に残す。
+    """
+
+    def handle_error(self, request: object, client_address: object) -> None:  # type: ignore[override]
+        logger.debug(
+            "capture.request_failed", extra={"error_type": type(sys.exc_info()[1]).__name__}
+        )
+
+
 class CaptureServer:
     """CaptureApi をソケットで待ち受ける。専用のスレッド。接続は保たない。"""
 
@@ -295,7 +308,7 @@ class CaptureServer:
         """待ち受けを始めて、実際のポートを返す。使用中なら CaptureServerError。"""
         handler = _make_handler(self._api, self._slots, self._timeout, self._ssl)
         try:
-            httpd = ThreadingHTTPServer((self._cfg.host, self._cfg.port), handler)
+            httpd = _QuietServer((self._cfg.host, self._cfg.port), handler)
         except OSError as exc:
             logger.critical("capture.server_failed", extra={"error_type": type(exc).__name__})
             msg = f"待ち受けを始められない: {self._cfg.host}:{self._cfg.port}"

@@ -165,6 +165,8 @@ def make(
     out: Path, ips: Sequence[ipaddress.IPv4Address], *, new_ca: bool, openssl: str
 ) -> tuple[bool, str]:
     """CA（無ければ・new_ca なら）とサーバー証明書を作る。戻り値は（CA を作ったか、CA の指紋）。"""
+    # openssl は一時ディレクトリを cwd にして走るので、既存の CA を指すパスは絶対パスにする
+    out = out.resolve()
     ca_key, ca_crt = out / "ca.key", out / "ca.crt"
     have = (ca_key.exists(), ca_crt.exists())
     if have[0] != have[1] and not new_ca:

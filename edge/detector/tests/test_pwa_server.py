@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import http.client
+import os
 import shutil
 import socket
 import ssl
@@ -49,6 +50,8 @@ def dist(tmp_path: Path) -> Path:
     (root / "fonts").mkdir()
     (root / "fonts" / "noto.woff2").write_bytes(b"wOF2")
     (root / ".DS_Store").write_bytes(b"secret")
+    (root / "server.key").write_bytes(b"-----BEGIN PRIVATE KEY-----")
+    (root / "assets" / "bundle.PEM").write_bytes(b"-----BEGIN PRIVATE KEY-----")
     (root / ".hidden").mkdir()
     (root / ".hidden" / "x.js").write_bytes(b"secret")
     secret = tmp_path / "outside.txt"
@@ -103,6 +106,8 @@ def test_uc_4b_spa_fallback_only_for_paths_without_extension(assets) -> None:
         "/linkdir/outside.txt",
         "/.DS_Store",
         "/.hidden/x.js",
+        "/server.key",
+        "/assets/bundle.PEM",
         "http://evil.example/../outside.txt",
     ],
 )
@@ -111,6 +116,7 @@ def test_uc_4c_auth_1_no_traversal_symlink_or_dotfile(assets, target: str) -> No
     assert r.status in (200, 404)
     assert b"outside-secret" not in r.body
     assert b"secret" not in r.body
+    assert b"PRIVATE KEY" not in r.body
     if r.status == 200:
         assert r.body == INDEX  # 拡張子の無いパスの SPA だけ
 
@@ -135,7 +141,10 @@ def test_uc_4d_cache_and_security_headers(assets) -> None:
     for r in (index, hashed, other, get(assets, "/healthz"), get(assets, "/nope.js")):
         assert r.headers["X-Content-Type-Options"] == "nosniff"
         assert r.headers["Referrer-Policy"] == "no-referrer"
+        assert r.headers["X-Frame-Options"] == "DENY"  # 同意の操作を枠に入れさせない
         assert "Strict-Transport-Security" not in r.headers
+    for r in (index, hashed, other):
+        assert r.headers["Content-Security-Policy"] == "frame-ancestors 'none'"
 
 
 @pytest.mark.parametrize("method", ["POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
@@ -322,6 +331,60 @@ def test_uc_4_sockets_serve_https_and_http(running, tls_dir: Path, logbuf) -> No
     with pytest.raises((http.client.HTTPException, OSError)):
         plain(https_port)
     assert https(https_port, tls_dir)[0] == 200
+
+
+def raw_https(port: int, tls: Path, request: bytes) -> bytes:
+    with (
+        socket.create_connection(("127.0.0.1", port), timeout=3) as sock,
+        ssl_client(tls).wrap_socket(sock, server_hostname="127.0.0.1") as tls_sock,
+    ):
+        tls_sock.sendall(request)
+        chunks = []
+        while chunk := tls_sock.recv(65536):
+            chunks.append(chunk)
+        return b"".join(chunks)
+
+
+def test_auth_3_lowercase_host_and_unknown_methods_over_socket(running, tls_dir: Path) -> None:
+    """AUTH-3 / UC-4b: 見出しの綴り（`host:`）を問わず、知らないメソッドも route を通って 405。"""
+    _, (https_port, _) = running
+    ok = raw_https(https_port, tls_dir, b"GET / HTTP/1.0\r\nhost: 127.0.0.1:8443\r\n\r\n")
+    assert ok.startswith(b"HTTP/1.0 200")
+    bad = raw_https(https_port, tls_dir, b"GET / HTTP/1.0\r\nhost: evil.example\r\n\r\n")
+    assert bad.startswith(b"HTTP/1.0 421")
+    for method in (b"TRACE", b"CONNECT", b"FOO"):
+        r = raw_https(https_port, tls_dir, method + b" / HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n")
+        assert r.startswith(b"HTTP/1.0 405"), r[:40]
+        assert b"X-Content-Type-Options: nosniff" in r
+
+
+def test_uc_4_request_errors_do_not_print_client_address(
+    running, capsys: pytest.CaptureFixture[str], logbuf
+) -> None:
+    """R4: 途中で切れた接続のエラーで、接続元のアドレスとトレースバックを stderr に出さない。"""
+    server, _ = running
+    for httpd in server._servers:
+        try:
+            raise ConnectionResetError
+        except ConnectionResetError:
+            httpd.handle_error(None, ("192.168.2.77", 50000))
+    captured = capsys.readouterr()
+    assert "192.168.2.77" not in captured.err + captured.out
+    assert named(logbuf, "pwa_server.request_failed")[0]["error_type"] == "ConnectionResetError"
+
+
+def test_fail_8_unreadable_dist_file_is_exit_2(dist: Path) -> None:
+    """FAIL-8: dist の中の読めないファイルは PwaServerError（main は終了コード 2）。"""
+    locked = dist / "assets" / "locked.js"
+    locked.write_bytes(b"x")
+    locked.chmod(0)
+    try:
+        if os.access(locked, os.R_OK):
+            pytest.skip("root では権限で読めなくできない")
+        with pytest.raises(PwaServerError, match="読めない"):
+            load_dist(dist)
+    finally:
+        locked.chmod(0o644)
 
 
 def test_auth_2_raw_traversal_over_socket(running, tls_dir: Path) -> None:

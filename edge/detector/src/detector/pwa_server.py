@@ -84,7 +84,15 @@ MIME = {
     ".webmanifest": "application/manifest+json",
     ".txt": "text/plain; charset=utf-8",
 }
-COMMON_HEADERS = {"X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer"}
+COMMON_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    # 同意の操作を別のページの枠に入れさせない（index.html の meta の CSP では frame-ancestors が効かない）
+    "X-Frame-Options": "DENY",
+}
+SECRET_SUFFIXES = frozenset({".key", ".pem", ".p12", ".pfx"})
+# PWA の応答のヘッダの CSP（meta の CSP と両方が効く。ここは枠への埋め込みだけを止める）
+FRAME_CSP = "frame-ancestors 'none'"
 
 
 class PwaServerError(Exception):
@@ -125,11 +133,17 @@ def load_dist(root: Path, limit: int = MAX_DIST_BYTES) -> dict[str, Asset]:
             path = here / name
             if name.startswith(".") or path.is_symlink() or not path.is_file():
                 continue
-            body = path.read_bytes()
-            total += len(body)
-            if total > limit:
-                msg = f"PWA の dist が {limit // (1024 * 1024)} MB を超える"
-                raise PwaServerError(msg)
+            if path.suffix.lower() in SECRET_SUFFIXES:
+                continue  # 鍵らしい名前は dist に紛れても配らない
+            try:
+                total += path.stat().st_size  # 読む前に上限を見る
+                if total > limit:
+                    msg = f"PWA の dist が {limit // (1024 * 1024)} MB を超える"
+                    raise PwaServerError(msg)
+                body = path.read_bytes()
+            except OSError as exc:
+                msg = f"PWA の dist を読めない（{type(exc).__name__}）"
+                raise PwaServerError(msg) from exc
             url = "/" + path.relative_to(root).as_posix()
             assets[url] = Asset(body, MIME.get(path.suffix.lower(), "application/octet-stream"), "")
     if "/index.html" not in assets:
@@ -189,7 +203,12 @@ def route_https(
     return Response(
         200,
         asset.body,
-        {**COMMON_HEADERS, "Content-Type": asset.content_type, "Cache-Control": asset.cache},
+        {
+            **COMMON_HEADERS,
+            "Content-Security-Policy": FRAME_CSP,
+            "Content-Type": asset.content_type,
+            "Cache-Control": asset.cache,
+        },
     )
 
 
@@ -416,6 +435,12 @@ class _BoundedServer(ThreadingHTTPServer):
         finally:
             self.slots.release()
 
+    def handle_error(self, request: object, client_address: object) -> None:  # type: ignore[override]
+        # 標準は接続元のアドレスとトレースバックを stderr に出す（アクセスのログは残さない。R4）
+        logger.debug(
+            "pwa_server.request_failed", extra={"error_type": type(sys.exc_info()[1]).__name__}
+        )
+
 
 def _make_handler(
     route: Callable[[str, str, Mapping[str, str]], Response],
@@ -454,7 +479,9 @@ def _make_handler(
                     self.connection.close()
 
         def _serve(self) -> None:
-            response = route(self.command, self.path, dict(self.headers.items()))
+            # 見出しの名前は大文字小文字を問わない（`host:` で送るクライアントも Host として読む）
+            headers = {k.title(): v for k, v in self.headers.items()}
+            response = route(self.command, self.path, headers)
             self.send_response(response.status)
             for key, value in response.headers.items():
                 self.send_header(key, value)
@@ -465,6 +492,15 @@ def _make_handler(
                 self.wfile.write(response.body)
 
         do_GET = do_HEAD = do_POST = do_PUT = do_DELETE = do_PATCH = do_OPTIONS = _serve
+        do_TRACE = do_CONNECT = _serve
+
+        def send_error(
+            self, code: int, message: str | None = None, explain: str | None = None
+        ) -> None:
+            if code == 501:  # 知らないメソッドも route を通して 405（Host の検査と共通の見出し）
+                self._serve()
+                return
+            super().send_error(code, message, explain)
 
         def log_message(self, format: str, *args: object) -> None:
             return  # アクセスのログ（パス・アドレス）は残さない

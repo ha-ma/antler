@@ -142,6 +142,22 @@ def test_uc_1e_second_run_keeps_ca_and_new_ca_rotates(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("openssl", OPENSSLS)
+def test_uc_1e_second_run_with_relative_out(
+    openssl: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UC-1e: 手順書どおり相対パスの --out で 2 回目を打っても、CA を残して証明書を作り直す。"""
+    monkeypatch.chdir(tmp_path)
+    assert mk.main(["--out", "tls", "--ip", "192.168.2.1", "--openssl", openssl]) == 0
+    ca1 = (tmp_path / "tls" / "ca.crt").read_bytes()
+    assert mk.main(["--out", "tls", "--ip", "192.168.2.1", "--openssl", openssl]) == 0
+    assert (tmp_path / "tls" / "ca.crt").read_bytes() == ca1
+    assert (
+        verify(openssl, tmp_path / "tls" / "ca.crt", tmp_path / "tls" / "server.crt").returncode
+        == 0
+    )
+
+
+@pytest.mark.parametrize("openssl", OPENSSLS)
 def test_uc_1e_ip_outside_ca_needs_new_ca(
     tmp_path: Path, openssl: str, capsys: pytest.CaptureFixture[str]
 ) -> None:

@@ -66,6 +66,9 @@ TLS で新たに守れるのは「AP の中のなりすまし」（AUTH-11）。
 - [x] CORS: pwa_server は CORS ヘッダを付けない。Capture は今のまま（Host と同じホスト名のオリジンだけ）
 - [x] レートリミット: pwa_server は同時 16（スレッドを作る前に数える）・受信ごとに 5 秒。CaptureServer は握手を枠の中で。AlertServer は握手 3 秒（`ssl_handshake_timeout`）
 - 受け入れたリスク: 1 バイトずつ送り続ける接続は「受信ごとの 5 秒」では閉じない（合計の期限を持たない）。AlertServer の接続数の上限は握手と HTTP のあとに数えるので、握手の洪水は 3 秒ずつイベントループに RSA の計算を載せる。どちらも AP（WPA2）の中に入れた端末だけができ、平文のときから同じ。赤の経路の遅れが測れたら edge-latency で見直す
+- 受け入れたリスク（2026-11-06 security-auditor W1・W3）: CA の配布と設定ページは http なので、同じ AP の端末が CA を差し替えうる（差し替えた CA は名前制約を持たない）。手順書でカードに CA の指紋を印刷し、ページの指紋と見比べさせ、パスフレーズを返却ごとに変える。名前制約は IP で効くので、AP のサブネットは家庭のルーターと重ならないもの（`10.73.x.1` など）を手順書で勧める。CA の有効期間（10 年）は鍵を車外に置く前提で据え置く
+- [x] クリックジャッキング（security-auditor W4）: pwa_server の応答に `X-Frame-Options: DENY` とヘッダの CSP `frame-ancestors 'none'`（index.html の meta の CSP では効かないため）
+- [x] 配布物の鍵（security-auditor W5）: dist に紛れた `.key`・`.pem`・`.p12`・`.pfx` は配らない
 - [x] エラーメッセージ: 応答にパス・例外文を出さない（本文は空か短い固定の文）
 - [x] ログマスキング: 上のとおり
 - [x] TLS: TLS 1.2 以上、Python の既定の暗号スイート。HSTS は付けない（理由: 同じホストの http の設定ページ）

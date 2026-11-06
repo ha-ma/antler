@@ -84,6 +84,7 @@ Story: レンタカーの利用者として、最初に 1 回だけ証明書を�
     - `host` が IP リテラル（`0.0.0.0` 以外）で、サーバー証明書の SAN に無い → 起動しない
     - SAN の各 IP について、`dist/index.html` の CSP に `wss://<IP>:8765` が無い → `pwa_server.csp_missing_host` を warn（PWA を `VITE_EDGE_HOSTS` を足してビルドし直す）
     - 証明書を Python で読めない（版の違い）ときは自己検査を飛ばして info に 1 行
+  - 2026-11-06 レビューで足した（security-auditor W4・W5、code-reviewer W-1・W-2・W-4・W-5）: 応答に `X-Frame-Options: DENY`、PWA の応答はヘッダの CSP `frame-ancestors 'none'`。dist の `.key`・`.pem`・`.p12`・`.pfx` は配らない。見出しの名前は大文字小文字を問わない。標準に無いメソッド（TRACE など）も 405。途中で切れた接続のエラーは型の名前だけを debug に残す（接続元のアドレスを stderr に出さない。CaptureServer も同じ）。dist は読む前に大きさを足し、読めないファイルは終了コード 2
   - **https の口**（8443）: `dist` の中身を起動時にメモリに読み、GET と HEAD だけに答える。ほかのメソッドは 405
     - 読み込みはシンボリックリンクを辿らず、ドットで始まる名前（`.DS_Store` など）は載せない
     - パスは起動時に読んだファイルの一覧との完全一致で引く（ディスクを辿らない。`..`・`%2e%2e`・絶対パス・バックスラッシュは一致しないので 404）。クエリは無視する
