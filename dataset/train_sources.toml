@@ -2,7 +2,8 @@
 # path は dataset/ からの相対。画像はどれも Git に入れない（dataset/README.md の「置き場所」と「取得方法」）。
 # use = "train" にできるのは license が CC0 / CC-BY / self（自作）/ permission（撮影者の許諾）だけ。
 # CC-BY-SA は ch6 の許可リスト外なので use = "eval" だけ（train_l0.py が止める）。
-# ラベルの無い写真（Osaki さん・Yuki Fujita さん）と S データはここに書かない（dataset-train の Deferred）。
+# ラベルの無い写真（Osaki さん・Yuki Fujita さん）はここに書かない（dataset-train の Deferred）。
+# 漏れの検査は走行（group）単位で素材をまたぐ: 同じ走行が学習側と評価側に分かれたら止まる（R4）。
 
 [[source]]
 name = "commons"
@@ -15,5 +16,34 @@ use = "train"
 name = "eval-by-sa"
 kind = "yolo"
 path = "private/antler-yolo/eval-by-sa"
+license = "CC-BY-SA"
+use = "eval"
+
+# 自分で撮った映像（匿名化済みのフレーム。dataset-footage の manifest）。走行ごとに train / val / test
+# が manifest の drives で決まる（test の走行は評価側）。鹿の箱は台帳 self_labels.toml（R12）。
+[[source]]
+name = "self"
+kind = "self"
+path = "private/self-footage"
+license = "self"
+use = "train"
+labels = "self_labels.toml"
+negative_every = 4  # 学習側の鹿なしのフレームは 4 枚に 1 枚（val・test の走行は全部）
+
+# S データ（自分の映像の鹿なしフレームに、鹿を合成したもの。dataset-synth の s1）。学習だけ。
+# 背景の走行は footage の manifest で引き、その走行が train でなければ止まる（R10）。
+[[source]]
+name = "synth-s1"
+kind = "synth"
+path = "private/self-synth/s1"
+license = "self"
+use = "train"
+footage = "self"
+
+# 鹿のいない道東の路面画像（Mapillary、CC BY-SA 4.0）。評価で 1 枚あたりの誤報だけを数える（R11）。
+[[source]]
+name = "mapillary-doto"
+kind = "negatives"
+path = "private/mapillary-doto"
 license = "CC-BY-SA"
 use = "eval"

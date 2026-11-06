@@ -297,29 +297,29 @@ UC-7 評価:
 
 UC-8 自分の映像・S データ・鹿のいない画像（2026-11-07 更新）:
 
-- [ ] SELF-1a: 走行の分割どおり（train / val / test → 評価側）。`use = "eval"` は全部評価側。台帳の `box` は中心基準の箱、`empty` は鹿なし、`ignore` は `skipped: ignore`。台帳に無い鹿ありのフレーム → エラー
-- [ ] SELF-1b: 鹿なしは train では `negative_every` 枚おき（残りは `thinned`）、評価側と val は間引かない。manifest の license・allowed_use・drives と行の group・split の食い違い・SHA の違い → エラー。`labels` は一覧のフォルダから読む
-- [ ] SYN-1a: S データは全部 train、グループは背景の SHA で引いた footage の走行。`use = "eval"`・`footage` が無い / 一覧に無い・背景が引けない / 画像が違う / group の自己申告が違う・背景の走行が train でない → エラー。`footage_manifest_sha256` の違いは notes
-- [ ] NEG-1a: negatives は全部評価側の鹿なし。`use = "train"` → エラー。グループは撮影者のハッシュで、撮影者名・経度緯度・地域は run の manifest に無い
-- [ ] LEAK-1a: [ADDED adversary C1] self と synth のグループは接頭辞なしの `self:<drive>`。同じ走行が 2 つの self の素材に分かれて train と評価側に → エラー。`use = "eval"` の self の train の走行を背景にした S データ（R10 は通る）→ R4 でエラー
-- [ ] SRC-2a: [ADDED adversary I1] 別の kind に `labels`・`negative_every`・`footage` → エラー。`negative_every` の 0・負・小数・真偽値、self・synth の `license` が self 以外、`labels` が一覧のフォルダの外・リンク → エラー。negatives を `CC-BY` と書く → エラー
-- [ ] PRIV-1a: [ADDED adversary W6] run の manifest に self の `area`・時刻、negatives の撮影者名・経度緯度・地域・`attribution`・`sequence` が無い
-- [ ] LBL-1c: [ADDED adversary W1・W2] track・mark の `video` が manifest に無い・キーの間に鹿なしのフレーム・同じ動画で track の `id` の重複・`[meta]` の `negatives_checked` の欠け → エラー。`empty` のフレームに `blur_boxes` → `blurred`。S データの背景の `uses` に `synth_background` が無い・背景が台帳で `ignore` → エラー
-- [ ] LBL-1a: 台帳の補間（キーの間だけ、端は伸ばさない）、画素 → 中心基準。キーのフレームが manifest に無い・鹿なし・昇順でない・箱が画面の外・`empty` と track の重なり・`frames` の打ち間違い・空の `range` → エラー。`ignore` は track より優先、`range` は両端を含む
-- [ ] LBL-1b: ぼかしの箱と重なる箱があるフレームは `ignore`（`blurred`）
+- [x] SELF-1a: 走行の分割どおり（train / val / test → 評価側）。`use = "eval"` は全部評価側。台帳の `box` は中心基準の箱、`empty` は鹿なし、`ignore` は `skipped: ignore`。台帳に無い鹿ありのフレーム → エラー
+- [x] SELF-1b: 鹿なしは train では `negative_every` 枚おき（残りは `thinned`）、評価側と val は間引かない。manifest の license・allowed_use・drives と行の group・split の食い違い・SHA の違い → エラー。`labels` は一覧のフォルダから読む
+- [x] SYN-1a: S データは全部 train、グループは背景の SHA で引いた footage の走行。`use = "eval"`・`footage` が無い / 一覧に無い・背景が引けない / 画像が違う / group の自己申告が違う・背景の走行が train でない → エラー。`footage_manifest_sha256` の違いは notes
+- [x] NEG-1a: negatives は全部評価側の鹿なし。`use = "train"` → エラー。グループは撮影者のハッシュで、撮影者名・経度緯度・地域は run の manifest に無い
+- [x] LEAK-1a: [ADDED adversary C1] self と synth のグループは接頭辞なしの `self:<drive>`。同じ走行が 2 つの self の素材に分かれて train と評価側に → エラー。`use = "eval"` の self の train の走行を背景にした S データ（R10 は通る）→ R4 でエラー
+- [x] SRC-2a: [ADDED adversary I1] 別の kind に `labels`・`negative_every`・`footage` → エラー。`negative_every` の 0・負・小数・真偽値、self・synth の `license` が self 以外、`labels` が一覧のフォルダの外・リンク → エラー。negatives を `CC-BY` と書く → エラー
+- [x] PRIV-1a: [ADDED adversary W6] run の manifest に self の `area`・時刻、negatives の撮影者名・経度緯度・地域・`attribution`・`sequence` が無い
+- [x] LBL-1c: [ADDED adversary W1・W2] track・mark の `video` が manifest に無い・キーの間に鹿なしのフレーム・同じ動画で track の `id` の重複・`[meta]` の `negatives_checked` の欠け → エラー。`empty` のフレームに `blur_boxes` → `blurred`。S データの背景の `uses` に `synth_background` が無い・背景が台帳で `ignore` → エラー
+- [x] LBL-1a: 台帳の補間（キーの間だけ、端は伸ばさない）、画素 → 中心基準。キーのフレームが manifest に無い・鹿なし・昇順でない・箱が画面の外・`empty` と track の重なり・`frames` の打ち間違い・空の `range` → エラー。`ignore` は track より優先、`range` は両端を含む
+- [x] LBL-1b: ぼかしの箱と重なる箱があるフレームは `ignore`（`blurred`）
 
 UC-9 後処理と連続した誤報:
 
-- [ ] EV-2a: 後処理あり / なしの両方を書く。動画は `t` の順に流して「続き」が効き、静止画は 1 枚ごと。閾値 0.25・0.4・0.8
-- [ ] EV-2b: 連続した誤報: 予測のあるサンプルが隣り合って 2 枚以上続いた塊を 1 回、1 枚だけは数えない、間が空いたら別の塊。1 分あたり = 回数 ÷（動画ごとの 枚数 × 間隔 秒 の合計 ÷ 60）。`ignore`・`empty` は入れない。negatives は画像の枚数と割合だけ
-- [ ] EV-2c: [ADDED adversary W3] 後処理は検出器の出力に 1 回流してから閾値（`region_scaled` で下げた確信度が 0.4 を下回れば 0.4 で数えない）。後処理の設定値と評価した重みの SHA-256 を JSON に書く
+- [x] EV-2a: 後処理あり / なしの両方を書く。動画は `t` の順に流して「続き」が効き、静止画は 1 枚ごと。閾値 0.25・0.4・0.8
+- [x] EV-2b: 連続した誤報: 予測のあるサンプルが隣り合って 2 枚以上続いた塊を 1 回、1 枚だけは数えない、間が空いたら別の塊。1 分あたり = 回数 ÷（動画ごとの 枚数 × 間隔 秒 の合計 ÷ 60）。`ignore`・`empty` は入れない。negatives は画像の枚数と割合だけ
+- [x] EV-2c: [ADDED adversary W3] 後処理は検出器の出力に 1 回流してから閾値（`region_scaled` で下げた確信度が 0.4 を下回れば 0.4 で数えない）。後処理の設定値と評価した重みの SHA-256 を JSON に書く
 
 UC-10 比較:
 
-- [ ] CMP-1a: real と mix を作り、val・評価側・synth 以外の train が同じ。違えば 2 つの run を消してエラー
-- [ ] CMP-1b: `summarize` は条件（元の重み・epochs・imgsz・batch・device・版・seed）がそろわない・seed が 1 つ → エラー。表は実写の鹿だけと誤報、arm の train の枚数とステップの比。評価側に self の鹿の箱が無ければ「暫定」
-- [ ] CMP-1c: [ADDED adversary W4・W5] 評価の run が arm の run でない・`.pt` でない・評価の重みの SHA が card と違う・後処理の設定が違う・元の重みが BY-SA → エラー。compare の JSON が既にある → エラー。seed の範囲が重ならないときだけ `separated`、train の model card に重みの SHA-256
-- [ ] AC-2: [受け入れ] 一時フォルダの self（train・val・test の走行）・synth・negatives・yolo で `compare_l0.py build` → 偽の学習器で 2 arm × 2 seed の `train` → 偽の検出器で `evaluate` → `summarize` を通すと、比較の JSON と表ができ、synth は評価側に無く、test の走行のフレームは学習側に無い
+- [x] CMP-1a: real と mix を作り、val・評価側・synth 以外の train が同じ。違えば 2 つの run を消してエラー
+- [x] CMP-1b: `summarize` は条件（元の重み・epochs・imgsz・batch・device・版・seed）がそろわない・seed が 1 つ → エラー。表は実写の鹿だけと誤報、arm の train の枚数とステップの比。評価側に self の鹿の箱が無ければ「暫定」
+- [x] CMP-1c: [ADDED adversary W4・W5] 評価の run が arm の run でない・`.pt` でない・評価の重みの SHA が card と違う・後処理の設定が違う・元の重みが BY-SA → エラー。compare の JSON が既にある → エラー。seed の範囲が重ならないときだけ `separated`、train の model card に重みの SHA-256
+- [x] AC-2: [受け入れ] 一時フォルダの self（train・val・test の走行）・synth・negatives・yolo で `compare_l0.py build` → 偽の学習器で 2 arm × 2 seed の `train` → 偽の検出器で `evaluate` → `summarize` を通すと、比較の JSON と表ができ、synth は評価側に無く、test の走行のフレームは学習側に無い
 
 状態パターン:
 
