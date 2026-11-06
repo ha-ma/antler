@@ -53,6 +53,7 @@ __all__ = [
     "rule_answer",
     "run_bench",
     "run_compare",
+    "run_yolo_alone",
     "summarize_ms",
 ]
 
@@ -67,6 +68,10 @@ FRAME_COUNT: Final = 4
 READY_FRAMES: Final = 5  # 単独の fps を測り始める前に済ませる推論の回数
 MIN_ANSWERED_RATIO: Final = 0.8  # 併走の区間で L1 が答えた割合の下限（下回ると判定しない）
 FRAME_SHAPE: Final = (480, 640, 3)  # パイプラインの 640×480・BGR
+# ch6「B 遅延」: 推論の予算と目標。設定（infer.budget_ms は警告のしきい値）では変えない
+INFER_BUDGET_MS: Final = 100.0
+INFER_TARGET_MS: Final = 50.0
+EXIT_SLOW: Final = 4  # YOLO 単独: 測れたが ch6 の予算か目標の fps を満たさない
 
 
 # ---- 統計 ----
@@ -350,6 +355,98 @@ async def run_bench(
     return report
 
 
+# ---- YOLO 単独（L1 なし。edge-run）----
+
+
+def run_yolo_alone(
+    detector: Detector,
+    frames: Sequence[np.ndarray],
+    seconds: float,
+    *,
+    target_fps: int = 10,
+    ready_frames: int = READY_FRAMES,
+    clock: Callable[[], float] = time.perf_counter,
+) -> dict[str, object]:
+    """検出器を同じスレッドで休みなく回し、1 回ごとの ms と fps を出す。L1 には触れない。
+
+    最初の ready_frames 回（CoreML のコンパイル）は測らず、1 回目を first_ms に残す。
+    例外が 1 回でもあれば判定は無効（例外の窓の速さは処理能力ではない）。
+    """
+    errors = 0
+    last_error: str | None = None
+    first_ms: float | None = None
+    warm_ok = 0
+    i = 0
+
+    def once() -> float | None:
+        nonlocal errors, last_error, i
+        started = clock()
+        try:
+            detector.detect(frames[i % len(frames)])
+        except Exception as exc:  # noqa: BLE001  計測を止めない。件数と型だけ残す
+            errors += 1
+            last_error = type(exc).__name__
+            return None
+        finally:
+            i += 1
+        return (clock() - started) * 1000.0
+
+    for k in range(ready_frames):
+        ms = once()
+        if k == 0 and ms is not None:
+            first_ms = ms
+        warm_ok += ms is not None
+    samples: list[float] = []
+    started = clock()
+    elapsed = 0.0
+    if warm_ok:
+        while elapsed < seconds:
+            ms = once()
+            if ms is not None:
+                samples.append(ms)
+            elapsed = clock() - started
+    fps = len(samples) / elapsed if elapsed > 0 else math.nan
+    infer = summarize_ms(samples)
+    reason = None
+    if not warm_ok:
+        reason = "yolo_not_ready"
+    elif errors:
+        reason = "yolo_errors"
+    elif not samples:
+        reason = "no_frames"
+    valid = reason is None
+    p95 = infer["p95_ms"]
+    meets_fps = bool(valid and math.isfinite(fps) and fps >= target_fps)
+    within_budget = bool(valid and p95 is not None and p95 <= INFER_BUDGET_MS)  # type: ignore[operator]
+    return {
+        "mode": "yolo",
+        "l0_alone": {
+            "fps": _r(fps, 2),
+            "seconds": _r(elapsed, 2),
+            "frames": len(samples),
+            "errors": errors,
+            "last_error": last_error,
+            "first_ms": _r(first_ms) if first_ms is not None else None,
+            "infer": infer,
+        },
+        "verdict": {
+            "valid": valid,
+            "invalid_reason": reason,
+            "target_fps": target_fps,
+            "l0_meets_target_fps": meets_fps,
+            "infer_budget_ms": INFER_BUDGET_MS,
+            "infer_p95_within_budget": within_budget,
+            "infer_target_ms": INFER_TARGET_MS,
+            "infer_p95_within_target": bool(
+                valid and p95 is not None and p95 <= INFER_TARGET_MS  # type: ignore[operator]
+            ),
+            # 合否（exit 4）: 予算 100 ms と目標の fps。50 ms は目標で、超えても不合格にしない
+            "meets_ch6": meets_fps and within_budget,
+            "note": "推論だけの参考値。入力は乱数画像（鹿が写らず後処理が軽い）",
+        },
+    }
+
+
 # ---- 比較（Step 6 の入口）----
 
 
@@ -509,7 +606,34 @@ def render_table(report: dict[str, object]) -> str:
             f"| {r.get('max_ms')} | {r.get('failed', 0)} | {r.get('warmup_ms')} |"
         )
 
-    if report["mode"] == "bench":
+    if report["mode"] == "yolo":
+        alone, v = report["l0_alone"], report["verdict"]
+        inf = alone["infer"]  # type: ignore[index]
+        lines += [
+            "| L0（YOLO 単独） | fps | n | p50 ms | p95 ms | max ms | 初回 ms | 例外 |",
+            "| --- | --- | --- | --- | --- | --- | --- | --- |",
+            f"| L1 なし | {alone['fps']} | {inf['n']} | {inf['p50_ms']} | {inf['p95_ms']} "  # type: ignore[index]
+            f"| {inf['max_ms']} | {alone['first_ms']} | {alone['errors']} |",  # type: ignore[index]
+            "",
+        ]
+        if v["valid"]:  # type: ignore[index]
+            within = {
+                k: "以内" if v[k] else "超過"
+                for k in (
+                    "infer_p95_within_budget",  # type: ignore[index]
+                    "infer_p95_within_target",
+                )
+            }
+            lines.append(
+                f"{'合格' if v['meets_ch6'] else '不合格'}（推論だけ・乱数画像の参考値）。"  # type: ignore[index]
+                f"推論 p95 {inf['p95_ms']} ms: 予算 {v['infer_budget_ms']:g} ms "  # type: ignore[index]
+                f"{within['infer_p95_within_budget']}・目標 {v['infer_target_ms']:g} ms "  # type: ignore[index]
+                f"{within['infer_p95_within_target']}。目標 {v['target_fps']} fps を"  # type: ignore[index]
+                f"{'保てる' if v['l0_meets_target_fps'] else '保てない'}"  # type: ignore[index]
+            )
+        else:
+            lines.append(f"判定できない: {v['invalid_reason']}（{alone['last_error']}）")  # type: ignore[index]
+    elif report["mode"] == "bench":
         lines += [
             "| L1 | 成功 n | p50 ms | p95 ms | max ms | 失敗 | warmup ms |",
             "| --- | --- | --- | --- | --- | --- | --- |",
@@ -580,6 +704,11 @@ def _parser() -> argparse.ArgumentParser:
         help="YOLO の compute units（既定: 設定の coreml.compute_units = cpu_and_ne）",
     )
     p.add_argument("--yolo-seconds", type=float, default=10.0, help="YOLO 単独の計測の秒数")
+    p.add_argument(
+        "--no-l1",
+        action="store_true",
+        help="L1 を呼ばずに YOLO だけを測る（--model が要る。local-jev が無くてよい）",
+    )
     p.add_argument("--seed", type=int, default=7)
     p.add_argument("--out", type=Path, help="JSON の書き出し先")
     cmp_ = p.add_argument_group("比較（Step 6）")
@@ -642,6 +771,11 @@ def _detector(config: Config, model: Path) -> Detector:
 
 def _problem(report: dict[str, object]) -> str | None:
     """結果が信用できない理由（あれば exit 3）。JSON は出したうえで知らせる。"""
+    if report["mode"] == "yolo":
+        v = report["verdict"]
+        if v["valid"]:  # type: ignore[index]
+            return None
+        return f"YOLO 単独の判定が無効: {v['invalid_reason']}"  # type: ignore[index]
     if report["mode"] == "bench":
         alone = report["l1_alone"]
         if int(alone["n"]) == 0:  # type: ignore[index]
@@ -656,6 +790,67 @@ def _problem(report: dict[str, object]) -> str | None:
         return None
     bad = [k for k, s in report["systems"].items() if not s["valid"]]  # type: ignore[attr-defined]
     return f"無効な系がある（JSON の invalid_reason）: {bad}" if bad else None
+
+
+def _config_for(args: argparse.Namespace) -> Config:
+    config = load_config(args.config) if args.config else Config()
+    if args.compute_units:
+        config = dataclasses.replace(
+            config, coreml=dataclasses.replace(config.coreml, compute_units=args.compute_units)
+        )
+    return config
+
+
+def _main_yolo(
+    args: argparse.Namespace, detector_factory: Callable[[Config, Path], Detector]
+) -> int:
+    """`--no-l1`: L1 のクライアント・合成の例を作らず、YOLO だけを測る（edge-run R7）。"""
+    if args.compare:
+        return _fail("--no-l1 と --compare は一緒に使えない", EXIT_INPUT)
+    if not args.model:
+        return _fail("--no-l1 には --model（.mlpackage）が要る", EXIT_INPUT)
+    try:
+        config = _config_for(args)
+        detector = detector_factory(config, args.model)
+    except (ConfigError, ValueError, OSError, RuntimeError) as exc:
+        return _fail(f"{type(exc).__name__}: {exc}", EXIT_INPUT)
+    started = datetime.now(UTC)
+    report = run_yolo_alone(
+        detector, make_frames(args.seed), args.yolo_seconds, target_fps=config.pipeline.target_fps
+    )
+    report = {
+        "schema": SCHEMA,
+        "generated_at": started.isoformat(timespec="seconds"),
+        "environment": environment(),
+        "params": {
+            "no_l1": True,
+            "yolo_seconds": args.yolo_seconds,
+            "model": args.model.name,
+            "compute_units": config.coreml.compute_units,
+            "seed": args.seed,
+        },
+        **report,
+    }
+    code = _emit(report, args.out)
+    if code != EXIT_OK:
+        return code
+    problem = _problem(report)
+    if problem is not None:
+        return _fail(problem, EXIT_UNREACHABLE)
+    if not report["verdict"]["meets_ch6"]:  # type: ignore[index]
+        return _fail("ch6 の予算（推論 p95 100 ms）か目標の fps を満たさない", EXIT_SLOW)
+    return EXIT_OK
+
+
+def _emit(report: dict[str, object], out: Path | None) -> int:
+    text = json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False)
+    sys.stdout.write(text + "\n\n" + render_table(report) + "\n")  # 先に出す(計測は再現できない)
+    if out:
+        try:
+            out.write_text(text + "\n", encoding="utf-8")
+        except OSError as exc:
+            return _fail(f"--out に書けない（{type(exc).__name__}）。上の出力を貼る", EXIT_INPUT)
+    return EXIT_OK
 
 
 def main(
@@ -677,13 +872,10 @@ def main(
         return _fail(
             "--n・--scenarios は 1 以上、--warmup・--interval-ms は 0 以上、--yolo-seconds は正", 2
         )
+    if args.no_l1:
+        return _main_yolo(args, detector_factory)
     try:
-        config = load_config(args.config) if args.config else Config()
-        if args.compute_units:
-            config = dataclasses.replace(
-                config,
-                coreml=dataclasses.replace(config.coreml, compute_units=args.compute_units),
-            )
+        config = _config_for(args)
         base_url = args.base_url or resolve_base_url(config.l1.base_url)
         timeout_ms = args.timeout_ms or config.l1.timeout_ms
         examples = (
@@ -751,12 +943,8 @@ def main(
         },
         **report,
     }
-    text = json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False)
-    sys.stdout.write(text + "\n\n" + render_table(report) + "\n")  # 先に出す(計測は再現できない)
-    if args.out:
-        try:
-            args.out.write_text(text + "\n", encoding="utf-8")
-        except OSError as exc:
-            return _fail(f"--out に書けない（{type(exc).__name__}）。上の出力を貼る", EXIT_INPUT)
+    code = _emit(report, args.out)
+    if code != EXIT_OK:
+        return code
     problem = _problem(report)
     return EXIT_OK if problem is None else _fail(problem, EXIT_UNREACHABLE)

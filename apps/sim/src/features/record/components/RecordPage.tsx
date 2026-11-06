@@ -38,7 +38,9 @@ export function RecordPage() {
       </main>
     )
   }
-  if (query.isPending) {
+  // キャッシュに前の記録があっても、開いたあとに取り直した記録が来るまで待つ。前の記録で「クリア」を
+  // 決めない（result-screens R4。走行の保存は記録を無効にしてから移ってくる）
+  if (query.isPending || (query.isFetching && !query.isFetchedAfterMount)) {
     return (
       <main className="record record--status">
         <p role="status">{t('loading')}</p>

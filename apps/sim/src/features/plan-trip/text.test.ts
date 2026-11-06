@@ -25,6 +25,17 @@ describe('PLAN_TEXT（R6・付録 A #9: 4 言語が欠けない）', () => {
     }
   })
 
+  it('TEXT-1 送信ボタンは押すと起きること（しおり・鹿ゾーンの確認）を言う（result-screens R1）', () => {
+    expect(PLAN_TEXT.submit).toEqual({
+      ja: 'しおりを作って鹿ゾーンを確かめる →',
+      en: 'Make my plan & check deer zones →',
+      zh: '製作手冊並確認鹿區 →',
+      ko: '일정표 만들고 사슴 구역 확인하기 →',
+    })
+    const all = Object.values(PLAN_TEXT).flatMap((entry) => Object.values(entry))
+    expect(all.filter((s) => /守りに行く|protect this trip|去守護|지키러/.test(s))).toEqual([])
+  })
+
   it('fillText は差し込みを埋める', () => {
     expect(fillText('hours', 'ja', { n: 3 })).toBe('約 3 時間')
     expect(fillText('nightsDays', 'en', { nights: 4, days: 5 })).toBe('4 nights, 5 days')

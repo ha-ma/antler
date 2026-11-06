@@ -5,9 +5,11 @@ target_paths:
   - dataset/train_sources.toml
   - dataset/tests/test_train_l0.py
   - dataset/README.md
-spec_confirmed_at: e116c19
+spec_confirmed_at: 107d7fe
 tier: 1
 ---
+
+> 2026-11-06 sdata-materials（`docs/reports/2026-11-06-sdata-research.md`）が `dataset/README.md` に Mapillary の画像（評価専用・ラベルなし）と 3D の鹿 M01〜M04 の置き場所と取得方法を足した。`train_sources.toml` と `train_l0.py` は変えていない。Mapillary の画像の登録（「鹿のいない画像」の `kind`）と「S データは一覧に書かない」Deferred の解消は、この feature の次の cycle で行う。
 
 # 仕様: dataset-train（L0 の鹿の検出器の学習スクリプト: 許可された素材 → 学習用データ → 再学習 → CoreML → 評価）
 
