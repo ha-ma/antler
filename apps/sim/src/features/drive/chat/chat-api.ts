@@ -1,8 +1,9 @@
+import { pleasureById } from '@antler/trip'
 import { z } from 'zod'
 import { logger } from '@/shared/utils/logger'
 import type { ChatDeck } from './chat-types'
 
-// 会話の束の POST（docs/specs/drive-audio-chat/functional.md R15・R18）。応答の形を zod で確かめ、
+// 会話の束の POST（docs/specs/drive-audio-chat/functional.md R15・R18、drive-tourism T10）。応答の形を zod で確かめ、
 // さらに日・版・移動の数がいまの場面と合うときだけ使う（合わなければ見本の会話）。
 
 /** 生成（Claude を含む）は最悪 30 秒 × 2 回。その上に保存の分を足す（code-reviewer api W1） */
@@ -15,17 +16,25 @@ const Text = z.object({
   ko: z.string().min(1),
 })
 
-const ChatLineSchema = z.object({
-  id: z.string().min(1),
-  cue: z.object({
-    kind: z.literal('road'),
-    leg: z.number().int().min(0),
-    km: z.number().min(0),
-  }),
-  topic: z.enum(['depart', 'pleasure', 'weather', 'light', 'scenery', 'snack', 'music']),
-  speaker: z.enum(['p1', 'p2', 'p3', 'radio']),
-  text: Text,
-})
+const ChatLineSchema = z
+  .object({
+    id: z.string().min(1),
+    cue: z.object({
+      kind: z.literal('road'),
+      leg: z.number().int().min(0),
+      km: z.number().min(0),
+    }),
+    topic: z.enum(['depart', 'pleasure', 'weather', 'light', 'scenery', 'snack', 'music']),
+    speaker: z.enum(['p1', 'p2', 'p3', 'radio']),
+    // 楽しみの id（drive-tourism T10）。任意・null 可。マスターに無い id は null（写真を出さない。threat.md）
+    pleasure: z
+      .string()
+      .nullish()
+      .transform((id) => (id && pleasureById(id) ? id : null)),
+    text: Text,
+  })
+  // 楽しみの話の行だけが楽しみを持つ（api の契約 T6。ほかの話題の行に id が付いても写真を出さない。code-reviewer I7）
+  .transform((line) => (line.topic === 'pleasure' ? line : { ...line, pleasure: null }))
 
 const ChatResponseSchema = z.object({
   chat: z.object({

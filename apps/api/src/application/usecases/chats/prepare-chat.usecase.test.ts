@@ -203,7 +203,7 @@ describe('PrepareChatUseCase', { timeout: SLOW_TEST_MS }, () => {
     }
   })
 
-  it('AC-1・UC-1e・AUTH-T1（drive-tourism）: ペルソナの D1 → 話の行の 3 分の 2 以上が楽しみの話で、id はしおりの楽しみ（D1 は立ち寄りが無いので後の日の楽しみ）。ほかの行は null。材料に名前・拠点・切り口', async () => {
+  it('AC-1・UC-1e・AUTH-61（drive-tourism）: ペルソナの D1 → 話の行の 3 分の 2 以上が楽しみの話で、id はしおりの楽しみ（D1 は立ち寄りが無いので後の日の楽しみ）。ほかの行は null。材料に名前・拠点・切り口', async () => {
     const { run, writer } = await setup()
     const out = await run(1)
     const plan = personaTrip().plan
@@ -341,6 +341,42 @@ describe('PrepareChatUseCase', { timeout: SLOW_TEST_MS }, () => {
     await expect(run(1)).rejects.toBeInstanceOf(DailyLimitError)
     expect(writer.calls).toHaveLength(0)
     expect(await savedRows()).toBe(0)
+  })
+
+  it('AUTH-62（drive-tourism）: v1 の束を保存した旅・日でも、トークンが無ければ OwnerRequiredError（403）。Claude を呼ばない', async () => {
+    const { run, usecase, writer, savedRows } = await setup()
+    const saved = await run(1)
+    // v1 の鍵（版の違う鍵のハッシュ）で保存された束がある状態
+    await db.chats.insertChat({
+      keyHash: 'v1-key',
+      tripId: TRIP_ID,
+      day: 1,
+      deck: saved.chat,
+      createdAtMs: NOW,
+    })
+    const before = await savedRows()
+    await expect(
+      usecase.execute({ tripId: TRIP_ID, day: 1, ownerToken: undefined }),
+    ).rejects.toBeInstanceOf(OwnerRequiredError)
+    expect(writer.calls).toHaveLength(1)
+    expect(await savedRows()).toBe(before)
+  })
+
+  it('AUTH-63（drive-tourism）: v1 の束も数えて 30 に達していたら、v2 の鍵の作成は ChatLimitError（409）。Claude を呼ばない', async () => {
+    const { run, writer } = await setup()
+    const saved = await run(1)
+    const deck = saved.chat
+    for (let i = 0; i < 30; i++) {
+      await db.chats.insertChat({
+        keyHash: `v1-${String(i)}`,
+        tripId: TRIP_ID,
+        day: 2,
+        deck,
+        createdAtMs: NOW,
+      })
+    }
+    await expect(run(2)).rejects.toBeInstanceOf(ChatLimitError)
+    expect(writer.calls).toHaveLength(1)
   })
 
   it('AUTH-45: 1 つの旅の会話の束が 30 に達したあと、新しい鍵 → ChatLimitError（409）。保存済みの鍵は返す', async () => {

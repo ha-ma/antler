@@ -21,6 +21,7 @@ export const CHAT_WRITING = `<guide name="chat-writing">
   - highlight: そこで見られるもの・できること・味わえるものを一つ具体的に。
   - tip: 楽しみ方のこつ（服装・防寒・見るときの工夫・寄り道の工夫）。
   - memory: さっき行った楽しみ（timing が done）の振り返り（「さっきの〜」）。
+  when で今日か後の日かを書き分ける: today はその日の楽しみ。later は旅の後半の別の日の楽しみなので「旅の後半に」「また別の日に」の言い方にし、「もうすぐ」「今日」「今夜」とは書かない。
   材料に無い施設名・店名・料金・時刻を作らない。
 - weather: その日の天気・路面（conditions）の感想。
 - light: 時間帯と空の様子（light: dawn 夜明け / day 昼 / dusk 夕暮れ / night 夜）。

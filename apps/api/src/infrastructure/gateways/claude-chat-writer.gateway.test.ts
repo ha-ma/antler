@@ -43,6 +43,7 @@ const brief: ChatWritingBrief = {
         length: 'half',
         timing: 'ahead',
         angle: 'highlight',
+        when: 'today',
       },
       light: 'dusk',
     },
@@ -116,7 +117,7 @@ describe('ClaudeChatWriterGateway', () => {
       JSON.parse(material) as { lines: { pleasure: Record<string, unknown> | null }[] }
     ).lines
     expect(Object.keys(lines[1]?.pleasure ?? {}).sort()).toEqual(
-      ['angle', 'length', 'name', 'place', 'timeOfDay', 'timing'].sort(),
+      ['angle', 'length', 'name', 'place', 'timeOfDay', 'timing', 'when'].sort(),
     )
     expect(lines[1]?.pleasure).toMatchObject({
       timing: 'ahead',
@@ -131,6 +132,8 @@ describe('ClaudeChatWriterGateway', () => {
       expect(CHAT_WRITER_SYSTEM_PROMPT).toContain(word)
     }
     expect(CHAT_WRITER_SYSTEM_PROMPT).toContain('材料に無い施設名・店名・料金・時刻を作らない')
+    // 後の日の楽しみを「もうすぐ」と書かせない（M5）
+    expect(CHAT_WRITER_SYSTEM_PROMPT).toContain('later は旅の後半の別の日の楽しみ')
   })
 
   it('WRITE-2d: system は会話の書き方の部品を持ち、繁体字・鹿の語・数字・運転の指図・長い問いかけを禁じる。鹿の注意の部品は入れない', () => {

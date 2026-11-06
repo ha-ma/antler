@@ -17,6 +17,7 @@ import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
 import { HUD_TEXT } from './hud/hud-text'
 import { TopBar } from './hud/TopBar'
+import { RecommendCard } from './hud/RecommendCard'
 import { RoutePanel } from './hud/RoutePanel'
 import { StageBanner } from './hud/StageBanner'
 import { ZoneStatusPanel } from './hud/ZoneStatusPanel'
@@ -34,6 +35,7 @@ import './drive.css'
 // - useEffect: キー入力・タブの表示・音のコントローラの片づけ（外部の購読。hooks/ に隔離）
 // - 運転の音と車内の会話（drive-audio-chat）: useDriveSoundAndChat が音・音量の設定・会話の表示を持ち、
 //   会話の束（POST /api/trips/:id/day/:n/chat、TanStack Query）を取る
+// - ゾーンの前のおすすめ（drive-tourism）: RecommendCard が自分で RecommendTracker を持ち、エンジンを購読する
 
 // 3D（three・R3F、gzip 約 300 KB）だけを遅れて読む。出発の案内・HUD・エンジンは three なしで先に出す
 // （performance-analyzer W-2。出発を押すまでに届けばよい）
@@ -154,13 +156,15 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
             <DangerOverlay alert={snapshot.alert} lang={snapshot.lang} />
           )}
           <BottomBar speedKmh={snapshot.speedKmh} soundOn={soundOn} onSound={setSoundOn} />
-          {/* 右の列（drive-tune が --drive-chat-w を空けた）: 車内の会話と、運転の音の操作 */}
+          {/* 右の列（drive-tune が --drive-chat-w を空けた）: 右上に車内の会話、右下にゾーンの前のおすすめと
+              運転の音の操作（drive-tourism T8・T14） */}
           <div className="drive-chat-column">
             <ChatFeed
               feed={drive.feed}
               lang={snapshot.lang}
               dimmed={snapshot.alert.state === 'danger'}
             />
+            <RecommendCard engine={engine} lang={snapshot.lang} />
             <AudioControls settings={drive.settings} lang={snapshot.lang} />
           </div>
           <EndBanner outcome={snapshot.outcome} onRetry={retry} briefHref={backToBrief} />

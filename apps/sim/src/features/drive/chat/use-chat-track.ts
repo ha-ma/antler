@@ -6,6 +6,7 @@ import { deckFits, fetchChatDeck, shouldRetryChat } from './chat-api'
 import { buildChatTrack } from './chat-track'
 import type { ChatDeck, ChatTrack } from './chat-types'
 import { fallbackChatDeck } from './fallback-deck'
+import { tourismPleasures } from './tourism'
 
 // その日の会話（docs/specs/drive-audio-chat/functional.md R18・R19）。
 // - Server state: POST /api/trips/:id/day/:n/chat（TanStack Query。旅と日で決まるので staleTime: Infinity）
@@ -46,7 +47,16 @@ export function useChatTrack(scenario: DriveScenario, route: RouteInfo): ChatTra
   const legKey = scenario.legStarts.map((l) => l.sM).join(',')
   const zonesKey = route.zonesKm.map(([a, b]) => `${String(a)}:${String(b)}`).join(',')
   const { totalM } = route
+  // 見本の会話の楽しみ（drive-tourism T9）。値（立ち寄りの id の列・到着地・出発の時刻）だけを依存にし、
+  // 選ぶのは useMemo の中（約 10 Hz の描き直しで毎回選ばない。component-guard W1）
+  const stopsKey = scenario.stops.join(',')
+  const { to, startAt } = scenario
   return useMemo(() => {
+    const stops = stopsKey ? stopsKey.split(',') : []
+    const pleasures = tourismPleasures({ stops, to, startAt }).map((p) => ({
+      id: p.id,
+      name: p.name,
+    }))
     const legStartsM = [0, ...(legKey ? legKey.split(',').map(Number) : [])]
     const zonesKm = zonesKey
       ? zonesKey.split(',').map((z) => z.split(':').map(Number) as [number, number])
@@ -60,7 +70,30 @@ export function useChatTrack(scenario: DriveScenario, route: RouteInfo): ChatTra
     const deck: ChatDeck =
       data && deckFits(data, scene)
         ? data
-        : fallbackChatDeck({ tripId, day, legStartsM, totalM, zonesKm, partySize, seed })
+        : fallbackChatDeck({
+            tripId,
+            day,
+            legStartsM,
+            totalM,
+            zonesKm,
+            partySize,
+            seed,
+            pleasures,
+          })
     return buildChatTrack(deck, { legStartsM, totalM, partySize, seed })
-  }, [data, tripId, day, seed, partySize, routes, zones, legKey, zonesKey, totalM])
+  }, [
+    data,
+    tripId,
+    day,
+    seed,
+    partySize,
+    routes,
+    zones,
+    legKey,
+    zonesKey,
+    totalM,
+    stopsKey,
+    to,
+    startAt,
+  ])
 }

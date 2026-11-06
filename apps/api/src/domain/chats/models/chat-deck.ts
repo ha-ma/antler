@@ -29,6 +29,9 @@ export type PleasureTiming = 'ahead' | 'done'
 /** 楽しみの話の切り口（drive-tourism T3）。同じ楽しみの話が続いても同じ文にならないように */
 export type PleasureAngle = 'anticipation' | 'highlight' | 'tip' | 'memory'
 
+/** その日の楽しみか、後の日の楽しみか（drive-tourism T4・M5。Claude が「今日」と「旅の後半」を書き分ける） */
+export type PleasureWhen = 'today' | 'later'
+
 /**
  * 束の 1 行の計画。pleasure は応答・保存にも出す（drive-tourism T6。写真を出すため）。
  * timing・angle・light は Claude の材料だけに使い、応答・保存には出さない
@@ -44,6 +47,8 @@ export type ChatPlanLine = {
   timing: PleasureTiming | null
   /** pleasure の話題のときの切り口。ほかは null */
   angle: PleasureAngle | null
+  /** pleasure の話題のとき、その日の楽しみか後の日の楽しみか（drive-tourism M5）。ほかは null */
+  when: PleasureWhen | null
   /** light の話題のときの、しおりどおりの通過時刻の光。ほかは null */
   light: Light | null
 }
@@ -123,4 +128,5 @@ export type PleasureBrief = {
   length: 'short' | 'half' | 'long'
   timing: PleasureTiming
   angle: PleasureAngle
+  when: PleasureWhen
 }

@@ -266,7 +266,7 @@ export class PrepareChatUseCase {
 
 /**
  * 計画（いつ・誰が・何の話題・どの楽しみ）と Claude の一言を合わせる。pleasure は残し（写真を出す。drive-tourism T6）、
- * 材料だけの欄（timing・angle・light）は落とす。pleasure は計画から取り、Claude の出力からは取らない（AUTH-T1）
+ * 材料だけの欄（timing・angle・light）は落とす。pleasure は計画から取り、Claude の出力からは取らない（AUTH-61）
  */
 function assemble(plan: ChatPlan, writing: ChatWriting): ChatDeck {
   return {
@@ -298,7 +298,7 @@ function toDeck(deck: ChatDeck): ChatDeck {
       cue: { kind: 'road', leg: l.cue.leg, km: l.cue.km },
       topic: l.topic,
       speaker: l.speaker,
-      // v1 の束（pleasure の欄が無い）は鍵の版（chat:v2）が違うので、ここには来ない（FAIL-T1）
+      // v1 の束（pleasure の欄が無い）は鍵の版（chat:v2）が違うので、ここには来ない（FAIL-61）
       pleasure: l.pleasure,
       text: { ja: l.text.ja, en: l.text.en, zh: l.text.zh, ko: l.text.ko },
     })),

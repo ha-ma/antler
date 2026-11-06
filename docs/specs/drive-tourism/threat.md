@@ -49,6 +49,8 @@
 
 ## Test List への追加
 
-新しい ❌ セルは CHAT_LIMIT（所有者の列）だけで、drive-audio-chat の AUTH-45（1 つの旅 30 束）が守る。このほかに AUTH-T1 を足す:
+マトリクスの ❌ セルは 3 つ（会話の POST の未認証、鍵の版を上げた後の未認証、所有者の上限）。drive-audio-chat の AUTH-41・AUTH-45 と同じ守りを、鍵の版を上げた後（v1 の束がある旅）で確かめる。ID は sfad-drift の形（`AUTH-数字`）に合わせて 61 から:
 
-- [ ] AUTH-T1: 応答の行の `pleasure` はしおりの楽しみの id か null だけ（Claude の出力に id の欄があっても使わない。domain の割り当てから来る）
+- [x] AUTH-61: 応答の行の `pleasure` はしおりの楽しみの id か null だけ（Claude の出力に id の欄があっても使わない。domain の割り当てから来る）
+- [x] AUTH-62: v1 の束を保存した旅・日でも、トークンが無ければ 403 OWNER_REQUIRED（鍵の版を上げても Claude を呼ばせない）
+- [x] AUTH-63: v1 の束も数えて 1 つの旅 30 束に達していたら、v2 の鍵の作成は 409 CHAT_LIMIT（Claude を呼ばない）

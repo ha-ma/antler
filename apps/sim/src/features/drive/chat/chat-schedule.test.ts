@@ -8,7 +8,14 @@ import { fallbackChatDeck } from './fallback-deck'
 const L = (ja: string) => ({ ja, en: ja, zh: ja, ko: ja })
 
 function line(id: string, leg: number, km: number): ChatLine {
-  return { id, cue: { kind: 'road', leg, km }, topic: 'scenery', speaker: 'p1', text: L(id) }
+  return {
+    id,
+    cue: { kind: 'road', leg, km },
+    topic: 'scenery',
+    speaker: 'p1',
+    pleasure: null,
+    text: L(id),
+  }
 }
 
 const DECK: ChatDeck = {

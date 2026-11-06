@@ -42,5 +42,5 @@ drive-audio-chat のまま。
 
 ## Test List への追加
 
-- [ ] FAIL-T1: v1 の鍵で保存した束があっても、v2 の鍵では読まれず新しく作る（鍵の材料の版）
-- [ ] FAIL-T2: sim は `pleasure` の無い応答・マスターに無い id を null として使う（UC-3a と同じテスト）
+- [x] FAIL-61: v1 の鍵で保存した束があっても、v2 の鍵では読まれず新しく作る（鍵の材料の版）
+- [x] FAIL-62: sim は `pleasure` の無い応答・マスターに無い id を null として使う（UC-3a と同じテスト）

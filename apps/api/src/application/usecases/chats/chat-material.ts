@@ -25,7 +25,10 @@ export function toChatMaterial(plan: TripPlan, dayPlan: DayPlan): ChatMaterial {
       distanceKm: leg.distanceKm,
     })),
     zones: dayPlan.zones.map((z) => ({ leg: z.leg, entryKm: z.entryKm, exitKm: z.exitKm })),
-    stops: dayPlan.stops.map((s) => ({ id: s.id, base: s.base })),
+    // マスターにある楽しみだけ（材料の名前が引けない行を Claude に渡さない。code-reviewer W2・security W1）
+    stops: dayPlan.stops
+      .filter((s) => pleasureById(s.id) !== undefined)
+      .map((s) => ({ id: s.id, base: s.base })),
     laterStops: laterStopsOf(plan, dayPlan),
     // DayPlan.data の conditions は混ぜない（応答の data は routes・zones の 2 欄）
     data: { routes: dayPlan.data.routes, zones: dayPlan.data.zones },
@@ -51,7 +54,7 @@ function lengthOf(hours: number): PleasureBrief['length'] {
 
 function pleasureBrief(line: ChatPlan['lines'][number]): PleasureBrief | null {
   const pleasure = line.pleasure ? pleasureById(line.pleasure) : undefined
-  if (!pleasure || !line.timing || !line.angle) return null
+  if (!pleasure || !line.timing || !line.angle || !line.when) return null
   return {
     name: pleasure.name,
     place: placeName(pleasure.base),
@@ -59,6 +62,7 @@ function pleasureBrief(line: ChatPlan['lines'][number]): PleasureBrief | null {
     length: lengthOf(pleasure.hours),
     timing: line.timing,
     angle: line.angle,
+    when: line.when,
   }
 }
 

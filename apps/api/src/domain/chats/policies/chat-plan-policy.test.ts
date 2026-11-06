@@ -158,11 +158,13 @@ describe('buildChatPlan', () => {
           expect(l.pleasure).toBeNull()
           expect(l.timing).toBeNull()
           expect(l.angle).toBeNull()
+          expect(l.when).toBeNull()
         }
         expect(l.light).toBe(l.topic === 'light' ? 'dusk' : null)
       })
-      for (const l of departs(p))
-        expect([l.pleasure, l.timing, l.angle]).toEqual([null, null, null])
+      for (const l of departs(p)) {
+        expect([l.pleasure, l.timing, l.angle, l.when]).toEqual([null, null, null, null])
+      }
       // 楽しみの行は話の行の 3 分の 2 以上
       expect(ts.filter((l) => l.topic === 'pleasure').length * 3).toBeGreaterThanOrEqual(
         ts.length * 2 - 2,
@@ -198,12 +200,36 @@ describe('buildChatPlan', () => {
           // 済んだ後: いちばん最近の drift-ice の振り返りと、後の日の sushi
           expect(['drift-ice', 'sushi']).toContain(l.pleasure)
           expect(l.timing).toBe(l.pleasure === 'drift-ice' ? 'done' : 'ahead')
+          expect(l.when).toBe(l.pleasure === 'drift-ice' ? 'today' : 'later')
           if (l.timing === 'done') expect(l.angle).toBe('memory')
         }
       }
+      expect(pleasures.length).toBeGreaterThan(0)
       // leg 0 の楽しみの行が 2 つ以上なら、2 件を交互に回す
       const first = pleasures.filter((l) => l.cue.leg === 0).map((l) => l.pleasure)
       if (first.length >= 2) expect(first[0]).not.toBe(first[1])
+    }
+  })
+
+  it('UC-1b: 移動ごとに候補が変わっても、話した回数の少ない楽しみから選ぶ（飛ばされる楽しみを作らない。code-reviewer W3）', () => {
+    // leg 0 の候補は a・b・c、leg 1 は b・c、leg 2 は c。どの楽しみも少なくとも 1 回は話す
+    const legs = [leg(30, 0), leg(30, 1), leg(30, 2)]
+    for (const seed of SEEDS) {
+      const p = plan({
+        seed,
+        legs,
+        stops: [
+          { id: 'a', base: 'p1' },
+          { id: 'b', base: 'p2' },
+          { id: 'c', base: 'p3' },
+        ],
+      })
+      const used = talks(p)
+        .filter((l) => l.topic === 'pleasure')
+        .map((l) => l.pleasure)
+      if (used.length >= 3) expect(new Set(used)).toEqual(new Set(['a', 'b', 'c']))
+      // 同じ回数なら候補の順（しおりの順）
+      expect(used[0]).toBe('a')
     }
   })
 
@@ -220,12 +246,34 @@ describe('buildChatPlan', () => {
         .map((l) => l.pleasure)
       expect(ids.length).toBeGreaterThan(0)
       for (const id of ids) expect(['a', 'b', 'c']).toContain(id)
-      for (const l of talks(later)) if (l.topic === 'pleasure') expect(l.timing).toBe('ahead')
+      for (const l of talks(later)) {
+        if (l.topic !== 'pleasure') continue
+        expect(l.timing).toBe('ahead')
+        // 後の日の楽しみは「今日」と区別する（M5）
+        expect(l.when).toBe('later')
+      }
 
       const none = plan({ seed, legs })
       expect(none.lines.some((l) => l.topic === 'pleasure')).toBe(false)
       const ts = talks(none)
       for (let i = 1; i < ts.length; i++) expect(ts[i]?.topic).not.toBe(ts[i - 1]?.topic)
+    }
+  })
+
+  it('UC-1f: 拠点がどの移動の両端にも無い楽しみは、その日の最後まで ahead（done の振り返りにしない）', () => {
+    for (const seed of SEEDS) {
+      const p = plan({
+        seed,
+        legs: [leg(60, 0), leg(60, 1)],
+        stops: [{ id: 'far', base: 'nowhere' }],
+      })
+      const pleasures = talks(p).filter((l) => l.topic === 'pleasure')
+      expect(pleasures.length).toBeGreaterThan(0)
+      for (const l of pleasures) {
+        expect(l.pleasure).toBe('far')
+        expect(l.timing).toBe('ahead')
+        expect(l.when).toBe('today')
+      }
     }
   })
 
@@ -316,7 +364,7 @@ describe('buildChatPlan', () => {
     expect(a).toMatchObject({ tripId: 'K7m2abcd', day: 1, data: { routes: '2026-11-03' } })
   })
 
-  it('PLAN-1g・UC-1e・FAIL-T1: 保存の鍵の材料は chat:v2|旅|日|routes|zones（v1 の束は読まれない）', () => {
+  it('PLAN-1g・UC-1e・FAIL-61: 保存の鍵の材料は chat:v2|旅|日|routes|zones（v1 の束は読まれない）', () => {
     expect(chatKeyMaterial('K7m2abcd', 2, { routes: 'r', zones: 'z' })).toBe(
       'chat:v2|K7m2abcd|2|r|z',
     )
