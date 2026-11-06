@@ -1,0 +1,3 @@
+# edge-run: 走行ログ（python -m detector が書く）と、車ごとの設定（LAN のアドレスを含む）
+logs/
+config.toml

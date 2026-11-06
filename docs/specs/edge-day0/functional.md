@@ -16,6 +16,8 @@ tier: 1
 
 # 仕様: edge-day0（Mac mini の実機作業 Step 0 の道具と手順書）
 
+**edge-run（2026-11-06）での変更**: `bench.py` に `--no-l1`（L1 のクライアント・合成の例を作らず、YOLO だけを測る。`mode: "yolo"`、ch6 の予算 100 ms・目標 50 ms に対する判定、満たさなければ exit 4）を足した。既存の bench / compare の出力と終了コードは同じ（出力の書き出しを `_emit` にまとめただけ）。`scripts/bench_l1.py` の docstring に例を足し、手順書の冒頭に「起動と YOLO 単独の計測は `docs/runbooks/2026-11-06-mac-mini-edge-run.md`」を足した。pyproject に実行用の extra `run` を足した（`docs/specs/edge-run/functional.md`）。
+
 **og-font（2026-11-06）での変更**: CLAUDE.md の MUST と CREDITS.md に、フォントは SIL OFL も可を足した（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 **dataset-train（2026-11-06）での変更**: CREDITS.md の Ultralytics の行に、学習スクリプトの元の重み（COCO の yolo26n.pt、v8.4.0）を足した。この feature の挙動は変わらない。ただし実データで、正方形の 640×640 で書き出したモデルを L0 が 640×480 から引き伸ばすと精度が大きく落ちた（`docs/reports/2026-11-06-dataset-train-run.md`）。そこで `export_yolo_world.py` の既定の入力も 640×480 にした（EXP-1g。YOLO-World での書き出しは Mac mini での実行が初めての確認）。
