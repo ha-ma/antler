@@ -236,5 +236,5 @@ UC-7 評価:
 - [x] 全 UC / 全状態パターンのテストが Green、既存テストが Green
 - [x] Test List の全項目にチェック
 - [x] 静的解析ゲート通過（ruff check・ruff format）
-- [ ] code-reviewer の Critical 0
-- [ ] 実データで 1 周（Commons の train / val・評価専用の BY-SA、開発用の Mac）を回し、件数と評価の数だけを `docs/reports/2026-11-06-dataset-train-run.md` に残す（M2 での値で、Mac mini の値ではないと書く。評価側の V006 は前のモデルの学習に入っていたと書く）
+- [x] code-reviewer の Critical 0（`docs/reports/2026-11-06-code-reviewer-dataset-train.md`。Warning は REV-1 と R6〜R8 の追記で対応）
+- [x] 実データで 1 周（Commons の train / val・評価専用の BY-SA、開発用の Mac）を回し、件数と評価の数だけを `docs/reports/2026-11-06-dataset-train-run.md` に残す（M2 での値で、Mac mini の値ではないと書く。評価側の V006 は前のモデルの学習に入っていたと書く）
