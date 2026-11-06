@@ -9,11 +9,13 @@ target_paths:
   - edge/detector/tests/test_l0_fp_filter.py
   - edge/detector/tests/test_l0_fp_acceptance.py
   - edge/detector/tests/fp_geometry.py
-spec_confirmed_at: fdbc87c
+spec_confirmed_at: 94f0477
 tier: 1
 ---
 
 # 仕様: l0-fp-filter（L0 の誤検出を減らす後処理: 大きすぎる枠と、車の部品の位置の枠）
+
+**main の取り込み（2026-11-07）**: edge-run が config.example.toml の `[infer]` にコメントを足した。この仕様の後処理と `[l0_filter]` は変わらない。
 
 ## 概要
 
