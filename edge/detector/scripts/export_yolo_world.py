@@ -179,7 +179,7 @@ def export(
     name_fixer: Callable[[Path, Sequence[str]], bool] | None = None,
     check_image: Path | None = None,
 ) -> dict[str, object]:
-    imgsz = imgsz if isinstance(imgsz, int) else list(imgsz)
+    imgsz = [imgsz, imgsz] if isinstance(imgsz, int) else list(imgsz)  # いつも [高さ, 幅]
     out_dir = out_dir or default_out_dir()
     target = out_dir / f"{name}.mlpackage"
     if target.exists() and not force:
@@ -219,6 +219,15 @@ def export(
         report = (
             verify(target, classes, image=image) if verifier is None else verifier(target, classes)
         )
+        size = (
+            report.get("input", {}).get("size") if isinstance(report.get("input"), dict) else None
+        )
+        if size is not None and list(size) != [imgsz[1], imgsz[0]]:
+            # ultralytics が黙って正方形などに丸めた（YOLO-World の 640×480 は Mac mini で初）
+            msg = (
+                f"書き出したモデルの入力 {list(size)}（幅, 高さ）が頼んだ {imgsz}（高さ, 幅）と違う"
+            )
+            raise ExportError(msg)
     except ExportError:
         failed = target.with_name(f"{target.stem}.failed.mlpackage")
         _remove(failed)
