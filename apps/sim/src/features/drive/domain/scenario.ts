@@ -28,7 +28,7 @@ export const DEMO_TRIP: TripPlan = TripPlanSchema.parse({
   title: '流氷とタンチョウと、雪見の温泉。道東をめぐる5日間。',
   days: [
     { day: 1, from: 'cts', to: 'kushiro', stops: ['washo-market'], stay: 'kushiro' },
-    { day: 2, from: 'kushiro', to: 'akanko', stops: [], stay: 'akanko' },
+    { day: 2, from: 'kushiro', to: 'akan', stops: [], stay: 'akan' },
   ],
   riskScore: 0.78,
   alertEnabled: true,
@@ -58,7 +58,8 @@ export function demoScenario(zones: ZoneCollection, search = ''): DriveScenario 
     weather: 'cloudy',
     windowFog: 'light',
     from: 'kushiro',
-    to: 'akanko',
+    // 地点のマスタ（@antler/trip の places）の id。HUD の区間の案内は名前（阿寒湖）で出す
+    to: 'akan',
     distanceKm: polylineLengthM(route) / 1000,
     stops: [],
     legStarts: [],
