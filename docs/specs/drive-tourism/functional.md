@@ -10,7 +10,7 @@ target_paths:
   - apps/api/src/application/usecases/chats/
   - apps/api/src/infrastructure/gateways/prompts/chat-writing.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: cff9f43
+spec_confirmed_at: 764720a
 tier: 2
 ---
 
@@ -29,6 +29,8 @@ tier: 2
 **Tier 2 の理由**: 外部副作用（Claude に渡す材料とプロンプトが変わる）、永続化（保存する会話の束の行に `pleasure` が増える。表は変えない＝`trip_chats.deck` は JSON の列なので `SCHEMA_VERSION` は据え置き、保存の鍵の版を `chat:v2` に上げる）。認可と並行性は drive-audio-chat のまま（新しいルートなし）。
 
 **範囲外**: 鹿の出方・ステージ（`domain/deer-*`・`stages` ほか）、路面・季節（`vehicle.ts`・`scene/`）は別のセッションが同時に直す。ここは `engine` のスナップショット（`zone`・`alert`・`stage`・`destination`）を読むだけ。立ち寄り（A-4）の組み込み、会話の読み上げ。
+
+> 2026-11-06 main（drive-deer #46・drive-season #47）を取り込んだ。drive-season が会話のファイル（`chat/chat-deck.ts` の天気に `rain`、`chat/chat-ui.test.tsx` の当日の条件 v2）を変えたが、話題・写真・おすすめのカードのルール（R1〜R6）は変えていない。両方の変更を残した。
 
 ## Example Map
 
