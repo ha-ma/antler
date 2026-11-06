@@ -193,10 +193,12 @@ export function advance(world: World, realDtMs: number, zones: ZoneCollection): 
     const steps = Math.round(scaledDt(world.playback, STEP_MS) / STEP_MS)
     for (let k = 0; k < steps; k++) {
       const fast = world.playback.rate > 1
+      const stageBefore = world.internal.stageIndex
       const entered = stepOnce(world, zones, events, fast)
       if (world.outcome !== 'driving') return events
-      // 倍速で入口を越えたら、残りのステップを打ち切る（ゾーンの中を早送りしない）
-      if (entered) break
+      // 倍速で入口を越えたら、残りのステップを打ち切る（ゾーンの中を早送りしない）。
+      // ステージを移ったときも打ち切る（次のステージは 1× で始める。code-reviewer W-2）
+      if (entered || world.internal.stageIndex !== stageBefore) break
     }
   }
   return events
@@ -242,11 +244,14 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
     tick(world, events)
   }
   const stage = internal.stages[internal.stageIndex]
-  if (stage && world.vehicle.s > stage.exitM) {
+  const atEnd = world.vehicle.s >= internal.frame.lengthM - 1
+  const lastStage = internal.stageIndex === internal.stages.length - 1
+  // ゾーンが終点まで続く日も、最後のステージのクリアとして終える（code-reviewer W-3）
+  if (stage && (world.vehicle.s > stage.exitM || (lastStage && atEnd))) {
     clearStage(world, events)
     return entered
   }
-  if (world.vehicle.s >= internal.frame.lengthM - 1) {
+  if (atEnd) {
     world.outcome = 'completed'
     settlePending(world)
     events.push({ type: 'completed' })
@@ -265,9 +270,14 @@ function clearStage(world: World, events: SimEvent[]): void {
   if (internal.detector.showing) events.push({ type: 'alert-release' })
   events.push({ type: 'stage-clear', stage: internal.stageIndex + 1, of: total })
   internal.stageClearedAt = world.t
-  // 後ろに過ぎた鹿は回避。まだ前にいる鹿（出口の際の横断など）は決まらないまま pending に残す（M3）
-  settlePending(world)
-  for (const d of world.deer) internal.leftBehind.add(d.id)
+  // 後ろに過ぎた鹿は回避。まだ前にいる鹿（出口の際の横断など）は決まらないまま pending に残す（M3）。
+  // ステージを離れるので、通り過ぎた直後（10 m 以内）の鹿も回避にする（code-reviewer W-1）
+  const ahead = new Set(world.deer.filter((d) => d.s >= world.vehicle.s).map((d) => d.id))
+  for (const e of world.encounters) {
+    if (e.outcome !== 'pending' || internal.leftBehind.has(e.deerId)) continue
+    if (!ahead.has(e.deerId)) e.outcome = 'avoided'
+  }
+  for (const id of ahead) internal.leftBehind.add(id)
   world.deer = []
   world.flag = null
   world.flagAt = null

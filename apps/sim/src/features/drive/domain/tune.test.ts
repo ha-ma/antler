@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { planRoute, type RoutePlan } from '@antler/zones'
 import { describe, expect, it } from 'vitest'
 import { personaDay, personaTrip } from '@/test/trip-day'
-import { NO_INPUT, type World } from '../types'
+import { NO_INPUT, type Deer, type Encounter, type World } from '../types'
 import { navHint, outsideTempC } from './dashboard'
 import { createCandidates, MAX_DEER_PER_INTERVAL, MIN_DEER_PER_INTERVAL } from './deer-spawn'
 import { attentiveDriver } from './drive-harness'
@@ -160,6 +160,68 @@ describe('ステージ（R1）', () => {
     const events = advance(w, 100, ZONES)
     expect(events.map((e) => e.type)).toContain('completed')
     expect(w.outcome).toBe('completed')
+  })
+
+  it('UC-1c: クリアのとき、通り過ぎた直後（10 m 以内）の鹿は回避、まだ前にいる鹿は pending に残る。16× でも次のステージは 1× のまま始まる', () => {
+    const w = createWorld(demoScenario(ZONES), ZONES)
+    const stage = w.internal.stages[0]
+    const next = w.internal.stages[1]
+    if (!stage || !next) throw new Error('ステージが 2 つない')
+    w.vehicle = { ...w.vehicle, s: stage.exitM - 1, speed: 20 }
+    const deer = (id: string, s: number): Deer => ({
+      id,
+      candidateId: id,
+      pattern: 'crossing',
+      index: 0,
+      s,
+      d: 3,
+      heading: 0,
+      pose: 'look',
+      occluded: false,
+      startedAt: null,
+      gone: false,
+    })
+    const encounter = (deerId: string): Encounter => ({
+      deerId,
+      pattern: 'crossing',
+      alertAt: null,
+      alertClockAt: null,
+      brakeAt: null,
+      alertToBrakeMs: null,
+      closestM: 5,
+      outcome: 'pending',
+    })
+    w.deer = [deer('behind', stage.exitM - 4), deer('ahead', stage.exitM + 40)]
+    w.encounters = [encounter('behind'), encounter('ahead')]
+    w.playback = { rate: 16, paused: false, locked: false }
+    advance(w, 100, ZONES)
+    expect(w.encounters.find((e) => e.deerId === 'behind')?.outcome).toBe('avoided')
+    expect(w.encounters.find((e) => e.deerId === 'ahead')?.outcome).toBe('pending')
+    expect(w.playback.rate).toBe(1)
+    // 移ったフレームの残りのステップを 16× で走らない（1 フレーム分 = 20 m/s × 0.1 s 程度まで）
+    expect(w.vehicle.s - next.startM).toBeLessThan(3)
+  })
+
+  it('UC-1d: ゾーンが終点まで続く日も、赤の最中なら alert-release → stage-clear → completed の順で終える', () => {
+    const w = createWorld(demoScenario(ZONES), ZONES)
+    const last = w.internal.stages[w.internal.stages.length - 1]
+    if (!last) throw new Error('ステージがない')
+    w.internal.stageIndex = w.internal.stages.length - 1
+    // 最後のステージの出口を終点の先に置く（ゾーンが終点まで続く）
+    w.internal.stages[w.internal.stageIndex] = { ...last, exitM: w.internal.frame.lengthM + 500 }
+    w.vehicle = { ...w.vehicle, s: w.internal.frame.lengthM - 2, speed: 20 }
+    w.internal.detector = { ...w.internal.detector, showing: true }
+    const types = advance(w, 100, ZONES).map((e) => e.type)
+    expect(types.indexOf('alert-release')).toBeGreaterThanOrEqual(0)
+    expect(types.indexOf('alert-release')).toBeLessThan(types.indexOf('stage-clear'))
+    expect(types.indexOf('stage-clear')).toBeLessThan(types.indexOf('completed'))
+    expect(w.outcome).toBe('completed')
+  })
+
+  it('UC-1b: 距離 0 の移動があっても時計は数（NaN にならない）', () => {
+    const scenario = demoScenario(ZONES)
+    const zeroLeg = { ...scenario, legPace: [{ sM: 0, departAt: scenario.startAt, mps: 0 }] }
+    expect(Number.isFinite(scheduledClockAt(zeroLeg, 1000))).toBe(true)
   })
 
   it('UC-1e: ゾーンの無い日は出発ですぐに completed（zonePasses 0）', () => {

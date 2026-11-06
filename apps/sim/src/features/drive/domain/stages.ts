@@ -41,5 +41,7 @@ export function scheduledClockAt(scenario: DriveScenario, sM: number): number {
   let leg = scenario.legPace[0]
   for (const l of scenario.legPace) if (l.sM <= sM) leg = l
   if (!leg) return toInstant(scenario.startAt)
-  return toInstant(leg.departAt) + (Math.max(0, sM - leg.sM) / leg.mps) * 1000
+  const at = toInstant(leg.departAt) + (Math.max(0, sM - leg.sM) / leg.mps) * 1000
+  // 速さ 0 の移動（距離 0）で NaN / Infinity にしない（code-reviewer W-4）
+  return Number.isFinite(at) ? at : toInstant(leg.departAt)
 }
