@@ -5,11 +5,13 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 5939fc8
+spec_confirmed_at: a806e60
 tier: 2
 ---
 
 # 仕様: plan-trip（A-1 旅をつくる・Claude がしおりを仕上げる）
+
+**og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要
 

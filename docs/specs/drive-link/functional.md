@@ -2,7 +2,7 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 4eb3c7a
+spec_confirmed_at: 1b72615
 tier: 1
 ---
 
@@ -47,6 +47,7 @@ Story: A-1 で自分の旅をつくった旅行者として、A-2 で「エン�
   - 2 つ目以降の移動は、その移動の始まりに着いた時点で、時計をその移動の `departAt` まで進める（しおりの立ち寄り・待ちの時間。既に過ぎていれば進めない）。A-2 が「薄暮に通過」と出したゾーンを、運転でも同じ光の頃に通る。立ち寄りの画面は stop-events
   - 当日の条件: `conditions.weather`・`surface`・`windowFog` をそのまま使う（brief-map R4 が drive と同じ語彙で作っている）
   - 移動の区切り（2 つ目以降の移動の始まりの道のり m と `departAt`）、出発地・到着地、移動の距離の合計（`distanceKm` の和。A-2 の要約と同じ数）を場面に残す
+  - drive-tune（2026-11-06）で、運転は鹿ゾーンの 5 km 手前から出口までのステージだけになった。そのため、すべての移動の始まりと平均の速さ（`legPace`。距離 ÷ 所要、距離か所要が 0 なら 50 km/h）と、その日の立ち寄りの id（`stops`）も場面に残す。ステージの始まりの時計は「その移動の `departAt` ＋ 平均の速さで走った時間」（docs/specs/drive-tune/functional.md R1）。AC-3 の「最後まで走らせる」は、すべてのステージを走りきることを指す
   - 鹿アラート: URL の `alert` の最初の値がちょうど `off` なら OFF、それ以外は ON（brief-map の `driveHref` が書く形）。`plan.alertEnabled` は見ない（plan-trip R10: TripPlan は作成時の初期値のまま。ON/OFF は走行の記録の側に持つ）
 - R4: 同じ旅・同じ日なら同じ場面
   - 鹿の候補と検知の乱数の種は `deriveSeed(旅のシード, "drive:" + 日)`。日が違えば違う鹿、同じ日なら同じ鹿

@@ -1,5 +1,5 @@
 import { AlertSoundController } from '@antler/alert-ui'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -62,16 +62,20 @@ describe('drive の画面（R7・R8・R12）', () => {
   it('UC-7g: 終わりの帯の「同じシードでもう一度」で最初からやり直し、音のコントローラを作り直して unlock() する', async () => {
     const { engine, frames, unlock } = setup()
     await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    // 最後のステージの出口の手前に置く（その出口を抜けると完走。drive-tune R1）
+    const stages = engine.world.internal.stages
+    engine.world.internal.stageIndex = stages.length - 1
     engine.world.vehicle = {
       ...engine.world.vehicle,
-      s: engine.world.internal.frame.lengthM - 1.5,
+      s: (stages[stages.length - 1]?.exitM ?? 0) - 1.5,
       speed: 20,
     }
     act(() => frames.onFrame(100))
     expect(screen.getByRole('heading', { name: '完走しました' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '同じシードでもう一度' }))
     expect(unlock).toHaveBeenCalledTimes(2)
-    expect(engine.world.vehicle.s).toBe(0)
+    expect(engine.world.vehicle.s).toBe(engine.world.internal.stages[0]?.startM)
+    expect(engine.world.internal.stageIndex).toBe(0)
     expect(screen.queryByRole('heading', { name: '完走しました' })).toBeNull()
   })
 
@@ -106,6 +110,19 @@ describe('drive の画面（R7・R8・R12）', () => {
     expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ muted: false }))
     await userEvent.click(screen.getByRole('button', { name: '一時停止' }))
     expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ muted: true }))
+  })
+
+  it('UC-4f: ステージを移るときに音のコントローラを作り直す（2 つ目のゾーンでもチャイムが鳴る。drive-tune R1）', async () => {
+    const { engine, frames, unlock } = setup()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    expect(unlock).toHaveBeenCalledTimes(1)
+    const first = engine.world.internal.stages[0]
+    if (!first) throw new Error('ステージがない')
+    engine.world.vehicle = { ...engine.world.vehicle, s: first.exitM - 1, speed: 20 }
+    act(() => frames.onFrame(100))
+    expect(engine.world.internal.stageIndex).toBe(1)
+    await waitFor(() => expect(unlock).toHaveBeenCalledTimes(2))
+    expect(screen.getByTestId('stage-banner')).toHaveTextContent('ステージ 1 / 2 クリア')
   })
 
   it('UC-7h: WebGL2 が使えなければ 3D を出さずに案内を出す', () => {

@@ -11,7 +11,12 @@ import type {
 } from '../types'
 import { NO_INPUT } from '../types'
 import { boxesOverlap, carBox, deerBox } from './collision'
-import { candidatesToDecide, createCandidates, decideAppear } from './deer-spawn'
+import {
+  candidatesToDecide,
+  createCandidates,
+  decideAppear,
+  MAX_DEER_PER_INTERVAL,
+} from './deer-spawn'
 import { spawnDeer, stepDeer } from './deer-motion'
 import {
   CAMERA_FORWARD_M,
@@ -24,11 +29,13 @@ import {
   type Sighting,
 } from './detection'
 import { INITIAL_PLAYBACK, requestRate, scaledDt, setInZone, setPaused } from './playback'
+import { INITIAL_POWERTRAIN, stepPowertrain } from './powertrain'
 import { createRng, deriveSeed } from './rng'
 import { createRoadFrame, lonLatAt, poseAt } from './road'
 import { buildSimFlag } from './sim-flag'
+import { buildStages, scheduledClockAt } from './stages'
 import { firstEntryBetween, intervalAt, withoutRanges, zoneStatusFromS } from './zone-status'
-import { initialVehicle, stepVehicle } from './vehicle'
+import { initialVehicle, LANE_CENTER_D, stepVehicle } from './vehicle'
 
 // シミュレーションの 1 歩（R4）。R3F から切り離した関数で、固定ステップ（1/60 秒）で World を進める。
 // World は毎フレーム作り直さず、その場で書き換える（60 fps でゴミを出さない）。同じ場面・シード・入力の列なら同じ結果。
@@ -49,6 +56,9 @@ export type SimEvent =
   | { type: 'alert-start'; deerId: string }
   | { type: 'alert-release' }
   | { type: 'collided'; deerId: string }
+  /** ステージの出口を越えた（drive-tune R1） */
+  | { type: 'stage-clear'; stage: number; of: number }
+  /** その日の旅程をクリア */
   | { type: 'completed' }
 
 export function createWorld(scenario: DriveScenario, zones: ZoneCollection): World {
@@ -56,7 +66,11 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
   const plan = withoutRanges(planRoute(scenario.route, zones), scenario.straightRangesM)
   const frame = createRoadFrame(scenario.route)
   const startMs = toInstant(scenario.startAt)
-  const vehicle = initialVehicle(0)
+  // 最初のステージの始まり（鹿ゾーンの 5 km 手前）から走る。時計はしおりどおりに走った時刻（drive-tune R1・UC-1b）
+  const stages = buildStages(plan)
+  const firstS = stages[0]?.startM ?? 0
+  const vehicle = initialVehicle(firstS)
+  const clockShiftMs = Math.max(0, scheduledClockAt(scenario, firstS) - startMs)
   const position = lonLatAt(frame, vehicle.s, vehicle.d)
   const zone = zoneStatusFromS(plan, vehicle.s)
   const playback = setInZone(INITIAL_PLAYBACK, zone.gps.status === 'inside')
@@ -65,10 +79,11 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
     plan,
     t: 0,
     vehicle,
+    powertrain: INITIAL_POWERTRAIN,
     input: NO_INPUT,
     playback,
     zone,
-    light: lightPeriod(startMs, { lon: position[0], lat: position[1] }),
+    light: lightPeriod(startMs + clockShiftMs, { lon: position[0], lat: position[1] }),
     // 種は旅のシードと日から（drive-link R4。同じ旅・同じ日なら同じ鹿）
     candidates: createCandidates(plan, scenario.seed),
     decided: new Set(),
@@ -94,11 +109,16 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
       braking: false,
       detector: INITIAL_DETECTOR,
       detectRng: createRng(deriveSeed(scenario.seed, 'detect')),
-      clockShiftMs: 0,
+      clockShiftMs,
       inputLog: [],
       collidedDeerId: null,
       // ゾーンの中から出発したら進入と同じに数える（zones R5）
       zoneEnters: zone.gps.status === 'inside' ? 1 : 0,
+      stages,
+      stageIndex: 0,
+      stageClearedAt: null,
+      spawnedHeads: {},
+      leftBehind: new Set(),
     },
   }
 }
@@ -155,6 +175,12 @@ export function setInput(world: World, input: DriveInput): void {
 export function advance(world: World, realDtMs: number, zones: ZoneCollection): SimEvent[] {
   const events: SimEvent[] = []
   if (world.outcome !== 'driving') return events
+  // 鹿ゾーンの無い日は、走り出した最初のフレームでその日の旅程をクリア（drive-tune UC-1e）
+  if (world.internal.stages.length === 0) {
+    world.outcome = 'completed'
+    events.push({ type: 'completed' })
+    return events
+  }
   if (world.playback.paused) {
     world.internal.accumulatorMs = 0
     return events
@@ -167,10 +193,12 @@ export function advance(world: World, realDtMs: number, zones: ZoneCollection): 
     const steps = Math.round(scaledDt(world.playback, STEP_MS) / STEP_MS)
     for (let k = 0; k < steps; k++) {
       const fast = world.playback.rate > 1
+      const stageBefore = world.internal.stageIndex
       const entered = stepOnce(world, zones, events, fast)
       if (world.outcome !== 'driving') return events
-      // 倍速で入口を越えたら、残りのステップを打ち切る（ゾーンの中を早送りしない）
-      if (entered) break
+      // 倍速で入口を越えたら、残りのステップを打ち切る（ゾーンの中を早送りしない）。
+      // ステージを移ったときも打ち切る（次のステージは 1× で始める。code-reviewer W-2）
+      if (entered || world.internal.stageIndex !== stageBefore) break
     }
   }
   return events
@@ -183,6 +211,11 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
   const t = world.t
   const before = world.vehicle.s
   world.vehicle = stepVehicle(world.vehicle, world.input, world.scenario.surface, STEP_MS / 1000)
+  world.powertrain = stepPowertrain(
+    world.powertrain,
+    world.vehicle.speed * 3.6,
+    world.input.throttle,
+  )
   internal.stoppedMs =
     Math.abs(world.vehicle.speed) < STOPPED_MPS ? internal.stoppedMs + STEP_MS : 0
   advanceClockAtLegStart(world, before)
@@ -210,12 +243,73 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
     internal.nextTickAt += DETECT_TICK_MS
     tick(world, events)
   }
-  if (world.vehicle.s >= internal.frame.lengthM - 1) {
+  const stage = internal.stages[internal.stageIndex]
+  const atEnd = world.vehicle.s >= internal.frame.lengthM - 1
+  const lastStage = internal.stageIndex === internal.stages.length - 1
+  // ゾーンが終点まで続く日も、最後のステージのクリアとして終える（code-reviewer W-3）
+  if (stage && (world.vehicle.s > stage.exitM || (lastStage && atEnd))) {
+    clearStage(world, events)
+    return entered
+  }
+  if (atEnd) {
     world.outcome = 'completed'
     settlePending(world)
     events.push({ type: 'completed' })
   }
   return entered
+}
+
+/**
+ * ステージの出口を越えた（drive-tune R1・UC-1c・UC-1d）。鹿モードを解き（フラグを解除して safe、鹿を消す）、
+ * 次のステージの始まりへ移る。最後のステージならその日の旅程をクリア（completed）
+ */
+function clearStage(world: World, events: SimEvent[]): void {
+  const { internal } = world
+  const total = internal.stages.length
+  // 赤の最中なら先に解除を知らせる（音を鳴らす側のビープを止める。spec-adversary M2）
+  if (internal.detector.showing) events.push({ type: 'alert-release' })
+  events.push({ type: 'stage-clear', stage: internal.stageIndex + 1, of: total })
+  internal.stageClearedAt = world.t
+  // 後ろに過ぎた鹿は回避。まだ前にいる鹿（出口の際の横断など）は決まらないまま pending に残す（M3）。
+  // ステージを離れるので、通り過ぎた直後（10 m 以内）の鹿も回避にする（code-reviewer W-1）
+  const ahead = new Set(world.deer.filter((d) => d.s >= world.vehicle.s).map((d) => d.id))
+  for (const e of world.encounters) {
+    if (e.outcome !== 'pending' || internal.leftBehind.has(e.deerId)) continue
+    if (!ahead.has(e.deerId)) e.outcome = 'avoided'
+  }
+  for (const id of ahead) internal.leftBehind.add(id)
+  world.deer = []
+  world.flag = null
+  world.flagAt = null
+  internal.detector = { ...INITIAL_DETECTOR, captured: internal.detector.captured }
+  internal.stageIndex += 1
+  const next = internal.stages[internal.stageIndex]
+  if (next) {
+    // 次のステージの始まりへ。速さは保ち、左車線の中央に戻す。時計はしおりどおりに走った時刻（前には戻さない）
+    world.vehicle = {
+      ...world.vehicle,
+      s: next.startM,
+      d: LANE_CENTER_D,
+      lateralSpeed: 0,
+    }
+    const target = scheduledClockAt(world.scenario, next.startM)
+    const now = clockMs(world)
+    if (target > now) internal.clockShiftMs += target - now
+    world.playback = { ...setInZone(world.playback, false), rate: 1 }
+  }
+  // 鹿モードを解く: いまの位置（ゾーンの外）で safe にする
+  world.zone = zoneStatusFromS(world.plan, world.vehicle.s)
+  world.alert = deriveAlertState({
+    flag: null,
+    flagReceivedAt: null,
+    gps: world.zone.gps,
+    now: world.t,
+    previous: null,
+  })
+  if (!next) {
+    world.outcome = 'completed'
+    events.push({ type: 'completed' })
+  }
 }
 
 /**
@@ -253,7 +347,11 @@ function spawnAndMoveDeer(world: World, zones: ZoneCollection, events: SimEvent[
   const { vehicle, internal } = world
   for (const c of candidatesToDecide(world.candidates, world.decided, vehicle.s)) {
     world.decided.add(c.id)
+    // 区間ごとに 100 頭まで（drive-tune R2・UC-2b）。必ず出る候補（u < 0）は危険度に関わらず出る
+    const heads = internal.spawnedHeads[c.interval] ?? 0
+    if (heads + c.herdSize > MAX_DEER_PER_INTERVAL) continue
     if (decideAppear(c, world.plan, zones, clockMs(world))) {
+      internal.spawnedHeads[c.interval] = heads + c.herdSize
       const herd = spawnDeer(c, world.t)
       world.deer.push(...herd)
       events.push({ type: 'deer-appear', deerIds: herd.map((d) => d.id) })
@@ -358,6 +456,7 @@ function tick(world: World, events: SimEvent[]): void {
   for (const e of world.encounters) {
     if (e.outcome !== 'pending') continue
     const deer = world.deer.find((d) => d.id === e.deerId)
+    if (internal.leftBehind.has(e.deerId)) continue
     if (!deer || deer.s < vehicle.s - PASSED_BEHIND_M) e.outcome = 'avoided'
   }
 }
@@ -388,7 +487,7 @@ function encounterFor(world: World, deerId: string, pattern: Encounter['pattern'
 /** 終了の時点で、もう車の後ろに過ぎた鹿だけ回避にする（ほかは pending のまま） */
 function settlePending(world: World): void {
   for (const e of world.encounters) {
-    if (e.outcome !== 'pending') continue
+    if (e.outcome !== 'pending' || world.internal.leftBehind.has(e.deerId)) continue
     const deer = world.deer.find((d) => d.id === e.deerId)
     if (!deer || deer.s < world.vehicle.s - PASSED_BEHIND_M) e.outcome = 'avoided'
   }

@@ -25,6 +25,7 @@ function candidate(pattern: DeerPattern, overrides: Partial<DeerCandidate> = {})
     side: 'L',
     herdSize: pattern === 'herd' ? 4 : 1,
     seed: 123456,
+    guaranteed: false,
     ...overrides,
   }
 }

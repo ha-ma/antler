@@ -161,7 +161,13 @@ export async function buildContainer(
       records: new DrizzleRecordRepository(connection.db),
       log: logger,
     }),
-    ogImages: new OgImageRenderer({ fontFiles: env.OG_FONT_FILES }),
+    ogImages: new OgImageRenderer({
+      fontFiles: env.OG_FONT_FILES,
+      onFontsMissing: () => {
+        // 同梱のフォントが無い（assets/fonts/ が欠けた）。OG 画像の日本語などが四角になりうる
+        logger.warn('og.fonts_missing', {})
+      },
+    }),
     urls: { api: env.PUBLIC_API_URL, sim: env.SIM_PUBLIC_URL, pwa: env.PWA_PUBLIC_URL },
   }
 
