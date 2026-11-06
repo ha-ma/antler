@@ -43,7 +43,7 @@ YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の�
    - `data/yolo/dataset/{images,labels}/{train,val,test}/` のうち、ファイル名が `V002_`・`V003_`・`V009_` のもの → `external/antler-yolo/commons/` の同じ構成
    - 同じく `V001_`・`V005_`〜`V008_` のもの → `private/antler-yolo/eval-by-sa/` の同じ構成
 5. **`V004_` は入れない**（全フレームに GPS 座標・速度・日時が焼き込まれている）
-6. 入れないもの: S データ（合成画像 600 枚）・生成鹿 8 種（ch9 ③「学習データ配布の可否確認」が未）、元動画、研究スクリプト、Commons のメタデータ（撮影地点の座標を含む）、`handoff/`
+6. 入れないもの: S データ（合成画像 600 枚）・生成鹿 8 種（AI 生成で、ch9 ③ の b＋d と配布の可否の対象外）、元動画、研究スクリプト、Commons のメタデータ（撮影地点の座標を含む）、`handoff/`
 7. JPEG に EXIF・XMP・ICC があれば消す（この版のフレームには無い。エンコーダ名のコメントだけある）
 
 コピー後の一覧と SHA-256 は各フォルダの `manifest.json`。元の研究の結果と限界は `docs/reports/2026-11-06-yolo-materials.md`。
@@ -67,7 +67,7 @@ YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の�
 1. 台帳 `data/mapillary/acquisition.json`（SHA-256 `b8a77c49c9990ce679e8c4866bc69b556b55973e3faf2aca3b717ad2ff88e252`）を照合する
 2. 画像 `data/raw/mapillary/<sequence>/<image_id>.jpg`（1,500 枚、長辺 2048 px）を 1 枚ずつ台帳の `sha256` と照合する
 3. JPEG の APP0（JFIF）と APP14（Adobe）以外の APPn（EXIF・XMP・ICC・IPTC）と COM を落として `private/mapillary-doto/images/<image_id>.jpg` に書く。再圧縮しない（復号した画素が元と同じことを確かめる）。この版では EXIF が 17 枚（`ImageDescription`・`Artist` だけ、GPS は 0）、APP13（IPTC）が全枚にあった。ICC は無かった
-4. 書いた後に、全ファイルで EXIF・XMP・ICC が 0 であることを確かめる
+4. 書いた後に、全ファイルで EXIF・XMP・ICC・IPTC が 0 であることを確かめる
 5. `manifest.json` に、台帳の `image_id`・`creator_username`・`attribution`・`source_page_url`・`region`・`area_rough`（約 10 km の区画）・`camera_type`・`sequence`・月と、元と出力の SHA-256 を書く。**正確な緯度経度・撮影時刻・機種・creator_id は書かない**
 6. Mapillary の規約: 顔・ナンバーのぼかしを外さない（§12）、車の自動制御に使わない（§5。運転者への警告は対象外）、画像を見せる場所では撮影者・Mapillary・元のページへのリンクを出す、合成画像などを外に出すときは CC BY-SA 4.0
 7. API のトークン（`~/.config/antler/mapillary_token`）はどこにも写さない。この検索 API は空かエラー 500 を返すので、追加で取るときは公式の公開タイルを読む方式で書き直す
