@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 
+from detector.l0.fp_filter import build_box_filter
 from detector.l0.inference import DeerDetector
 from detector.ports import ConfigError, Detection
 
@@ -168,11 +169,15 @@ def load_coreml_detector(
     loader: Callable[[str, str], LoadedModel] = load_with_coremltools,
     prepare: Callable[[np.ndarray], object] = _to_pil,
 ) -> DeerDetector:
-    """設定からパイプラインに渡す検出器を作る。deer だけを確信度順に返す DeerDetector で包む。"""
+    """設定からパイプラインに渡す検出器を作る。deer だけを確信度順に返す DeerDetector で包む。
+
+    `[l0_filter]` の後処理（l0-fp-filter）もここで付ける。起動の入口・bench はこの関数を通せば効く。
+    """
     path = config.infer.model_path
     if not path:
         msg = "infer.model_path が空（CoreML のモデルのパスを書く）"
         raise ConfigError(msg)
     loaded = loader(path, config.coreml.compute_units)
     names = parse_names(loaded.metadata.get("names"))
-    return DeerDetector(CoreMLDetector(loaded, names, prepare))
+    box_filter = build_box_filter(config.l0_filter)
+    return DeerDetector(CoreMLDetector(loaded, names, prepare), box_filter=box_filter)
