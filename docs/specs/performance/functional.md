@@ -14,7 +14,7 @@ target_paths:
   - apps/sim/src/app/DriveRoute.tsx
   - packages/trip/src/record/run.ts
   - scripts/perf/
-spec_confirmed_at: 925bb98
+spec_confirmed_at: fb09c09
 tier: 1
 ---
 
@@ -29,6 +29,8 @@ tier: 1
 **配る順**（spec-adversary 12）: `FrameSummarySchema` は `strictObject` なので、古い API は新しい欄を知らない欄として 400 で弾く。sim と api は同じ配備（`build:vercel`）で出すが、別々に出すときは api を先に出す。戻すときは欄の省略（optional）を残したまま戻す（欄ごと消すと、`dropped` を持つ run が読むときの検証に落ちて A-7 から消える）。
 
 **範囲外**: CSS・HUD の配置・タッチとジャイロの入力（mobile-landscape のセッション）、文言の表（i18n のセッション）、A-7 の画面に fps を出すこと（文言が増えるので i18n の後。記録には残る）、B（apps/pwa・edge）、`vite.config.ts` の `test` の節。
+
+> 2026-11-06 main（mobile-landscape #49・i18n #50）を取り込んだ。`DrivePage.tsx` は両方を残した（`.drive__content`・縦の案内・指の入力・旅の言語は main のまま、末尾に開発用の fps の表示）。実測（R3・R5）は取り込みの前の本番ビルドで測った。取り込み後もバンドルの上限（R6）を測り直して通した。
 
 ## Example Map
 
