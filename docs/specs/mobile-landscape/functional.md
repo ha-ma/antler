@@ -2,7 +2,7 @@
 feature: mobile-landscape
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: fb09c09
+spec_confirmed_at: c603167
 tier: 1
 ---
 
@@ -11,6 +11,8 @@ tier: 1
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）を main に合わせて取り込んだ: 運転の画面の `<main>` に旅の言語の `lang`、`BottomBar`・`EndBanner` に `lang`、出発の案内とキーの説明は `hudText(lang)`、指の端末の説明は `MOBILE_TEXT[lang]`（場面の言語）。横画面の配置・入力のルールは変えていない。
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）を main に合わせて取り込んだ: `DrivePage.tsx` の 3D の読み込み口（`scene/load-drive-canvas.ts`）と、`<main>` の末尾の開発用の fps の表示（`?fps=1` のときだけ、`.drive__content` の外・縦の案内の後）、`scene/` の DPR の自動の段（粗いポインタは 27 fps 未満でだけ下げる）、`engine.ts` の落ちたフレームの数え方。横画面の配置・入力・縦の案内は変えていない。
+
+> 2026-11-06 drive-sound-tourism（`docs/specs/drive-sound-tourism/functional.md`）が `audio/`・`chat/`・おすすめのカードを変えた（音源・通知音・衝突音・観光の表示の頻度）。横画面の配置・入力・縦の案内は変えていない。
 
 ## 概要
 

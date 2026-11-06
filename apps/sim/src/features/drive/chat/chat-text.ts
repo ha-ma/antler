@@ -202,6 +202,47 @@ export const RADIO_PLEASURE_TEXT: readonly PleasureLine[] = [
   }),
 ]
 
+/**
+ * 補いの観光の行（drive-sound-tourism S14）にだけ足す言い回し（同乗者）。見本の会話の 3 種の後に続けて使う。
+ * 決まりは見本の会話と同じ（数字・鹿の語を含まない。名前は助詞・冠詞に左右されない位置。すべて「これから」の言い方）
+ */
+export const FILLER_PLEASURE_TEXT: readonly PleasureLine[] = [
+  (n) => ({
+    ja: `${n.ja}で何をしようか、考えるだけで楽しい`,
+    en: `${n.en}: just thinking about it makes me happy.`,
+    zh: `光是想到${n.zh}就好開心`,
+    ko: `${n.ko}, 생각만 해도 즐거워`,
+  }),
+  (n) => ({
+    ja: `${n.ja}、写真をたくさん撮りたいな`,
+    en: `${n.en}: I want to take lots of photos.`,
+    zh: `到了${n.zh}想拍好多照片`,
+    ko: `${n.ko}, 사진 많이 찍고 싶다`,
+  }),
+  (n) => ({
+    ja: `${n.ja}に着いたら、まず何から見る？`,
+    en: `${n.en}: what should we check out first?`,
+    zh: `到了${n.zh}要先看什麼呢？`,
+    ko: `${n.ko}에 도착하면 뭐부터 볼까?`,
+  }),
+]
+
+/** 補いの観光の行にだけ足す言い回し（ラジオの DJ。S14） */
+export const RADIO_FILLER_PLEASURE_TEXT: readonly PleasureLine[] = [
+  (n) => ({
+    ja: `今日の旅のお楽しみは${n.ja}。安全運転でどうぞ`,
+    en: `Today's highlight: ${n.en}. Drive safely.`,
+    zh: `今天旅程的亮點是${n.zh}，請注意行車安全`,
+    ko: `${n.ko}, 오늘 여행의 즐거움입니다. 안전 운전하세요`,
+  }),
+  (n) => ({
+    ja: `${n.ja}を楽しみに、のんびり行きましょう`,
+    en: `${n.en}: something to look forward to. Take it easy.`,
+    zh: `期待${n.zh}的同時，慢慢開吧`,
+    ko: `${n.ko}, 기대하면서 천천히 가요`,
+  }),
+]
+
 /** 1 人旅（話し手がラジオの DJ だけ）の見本の会話。話題に関係なく順に使う */
 export const RADIO_FALLBACK_TEXT: readonly LocalizedLine[] = [
   {

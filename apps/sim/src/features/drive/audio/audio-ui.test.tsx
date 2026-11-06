@@ -12,7 +12,11 @@ function fakeGraph(): AudioGraphPort {
     suspend: vi.fn(() => Promise.resolve()),
     currentTime: () => 0,
     setLevels: vi.fn(),
-    scheduleNotes: vi.fn(),
+    setMusic: vi.fn(),
+    onMusicEvent: vi.fn(),
+    loadSamples: vi.fn(),
+    playSqueal: vi.fn(),
+    playCrash: vi.fn(),
     playNotify: vi.fn(),
     close: vi.fn(),
   }

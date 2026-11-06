@@ -1,37 +1,32 @@
 import { act, render, screen } from '@testing-library/react'
-import type { AudioGraphPort, ScheduledNote } from '../audio/audio-graph'
 import { AudioSettingsStore } from '../audio/audio-settings'
 import { DriveAudio } from '../audio/drive-audio'
-import { DEFAULT_AUDIO_SETTINGS, mixLevels, type AudioLevels } from '../audio/mix'
+import { FakeAudioGraph } from '../audio/fake-audio-graph'
+import { DEFAULT_AUDIO_SETTINGS, mixLevels } from '../audio/mix'
+import { firstTrackIndex, MUSIC_TRACKS } from '../audio/music-tracks'
 import { driveAudioSignals } from '../audio/signals'
-import type { DriveSnapshot, DriveTelemetry } from '../domain/engine'
+import { RecommendTracker } from '../components/hud/recommend-tracker'
+import {
+  DriveEngine,
+  type CueListener,
+  type DriveSnapshot,
+  type DriveTelemetry,
+} from '../domain/engine'
+import { CRASH_MS } from '../domain/crash'
+import { demoScenario } from '../domain/scenario'
+import { ZONES } from '../domain/zones-data'
 import type { Encounter } from '../types'
 import { ChatFeedStore } from './chat-feed-store'
 import { REACTION_TEXT } from './chat-text'
 import { buildChatTrack } from './chat-track'
 import type { ChatDeck } from './chat-types'
 import { ChatFeed } from './ChatFeed'
+import { fallbackChatDeck } from './fallback-deck'
 import { linkDriveSoundAndChat, type DriveSource } from './link-drive'
+import { tourismStops } from './tourism'
 
 // 受け入れ（AC-42）: 会話の束と運転のスナップショットの列を部品（音・会話・表示）に通す。
 // 運転画面への組み込みは PR 2（drive-tune の後）。ここでは DriveEngine の代わりにスナップショットを手で流す。
-
-class FakeGraph implements AudioGraphPort {
-  time = 0
-  levels: AudioLevels[] = []
-  notifies = 0
-  resume = () => Promise.resolve()
-  suspend = () => Promise.resolve()
-  close = () => undefined
-  currentTime = () => this.time
-  setLevels = (l: AudioLevels) => {
-    this.levels.push(l)
-  }
-  scheduleNotes = (_n: readonly ScheduledNote[]) => undefined
-  playNotify = () => {
-    this.notifies += 1
-  }
-}
 
 const L = (ja: string) => ({ ja, en: ja, zh: ja, ko: ja })
 const DECK: ChatDeck = {
@@ -126,15 +121,23 @@ class FakeEngine implements DriveSource {
     return () => this.listeners.delete(l)
   }
   getSnapshot = () => this.current
+  private readonly cues = new Set<CueListener>()
+  onCue = (l: CueListener) => {
+    this.cues.add(l)
+    return () => this.cues.delete(l)
+  }
   publish(next: DriveSnapshot) {
     this.current = next
     for (const l of this.listeners) l()
   }
+  cue(events: Parameters<CueListener>[0]) {
+    for (const l of this.cues) l(events)
+  }
 }
 
-describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
-  it('会話が順に出て、通知音は緑のときだけ鳴り、赤で BGM が 0・エンジンが半分になる', async () => {
-    const graph = new FakeGraph()
+describe('AC-42・AC-1・SND-3b: 運転の音と車内の会話（部品の通し）', () => {
+  it('会話が順に出て、通知音は緑で 2 音・琥珀で 1 音、赤で BGM が 0・エンジンが半分、ブレーキで鳴き、衝突で衝撃音', async () => {
+    const graph = new FakeAudioGraph()
     let nowMs = 0
     const audio = new DriveAudio({
       createGraph: () => graph,
@@ -143,6 +146,9 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
       nowMs: () => nowMs,
     })
     await audio.start()
+    // AC-1: 「出発」でシードの曲を流す（短い音は読み込みを始める）
+    expect(graph.music[0]).toBe(`/${MUSIC_TRACKS[firstTrackIndex(1)]?.file ?? ''}`)
+    expect(graph.samplesBase).toBe('/')
     const feed = new ChatFeedStore()
     const track = buildChatTrack(DECK, { legStartsM: [0], totalM: 40_000, partySize: 4, seed: 1 })
     const engine = new FakeEngine()
@@ -158,7 +164,7 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
     engine.tele = { ...TELEMETRY, throttle: true, rpm: 2400 }
     step(snapshot({ t: 1000, km: 0.3 }))
     expect(screen.getByText('出発だね')).toBeInTheDocument()
-    expect(graph.notifies).toBe(1)
+    expect(graph.notifies).toHaveLength(1)
     const cruising = graph.levels.at(-1)
     expect(cruising?.engine).toBeGreaterThan(0)
     expect(cruising?.music).toBeGreaterThan(0)
@@ -168,7 +174,7 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
     const texts = [...document.querySelectorAll('.drive-chat__text')].map((n) => n.textContent)
     // 見えるのは新しい 3 行（drive-tourism T8）
     expect(texts).toEqual(['雪だ', 'おやつ', 'いい曲'])
-    expect(graph.notifies).toBe(2)
+    expect(graph.notifies).toHaveLength(2)
     // 楽しみの行だけに写真（飾り）と出典の平文
     const photos = document.querySelectorAll('.drive-chat__photo')
     expect(photos).toHaveLength(1)
@@ -181,11 +187,12 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
       '写真: pakku / CC BY 3.0',
     )
 
-    // ゾーンに入る → 2.5 秒後に zone-enter が出るが、琥珀なので通知音は鳴らない
+    // ゾーンに入る → 2.5 秒後に zone-enter が出て、琥珀なので 1 音で鳴る（drive-sound-tourism S11 で R8 を変えた）
     step(snapshot({ t: 61_000, km: 19, inZone: true }))
     step(snapshot({ t: 63_600, km: 19.05, inZone: true }))
     expect(screen.getByText(REACTION_TEXT['zone-enter'][0].ja)).toBeInTheDocument()
-    expect(graph.notifies).toBe(2)
+    expect(graph.notifies).toHaveLength(3)
+    expect(graph.notifies[2]?.tones).toBe(1)
     expect(graph.levels.at(-1)?.music).toBeCloseTo((cruising?.music ?? 0) * 0.6)
 
     // 赤 → BGM 0、エンジン半分。避けた行は待たされる
@@ -219,24 +226,159 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
     expect(danger?.engine).toBeCloseTo(same.engine / 2)
     expect(danger?.brakeNoise).toBeCloseTo(same.brakeNoise / 2)
     expect(danger?.brakeNoise).toBeGreaterThan(0)
+    // AC-1: 強く踏むとタイヤの鳴き（ABS なので 0.6 倍）。赤でも曲は止めず大きさだけ 0
+    expect(graph.squeals.length).toBeGreaterThan(0)
+    expect(graph.playing()).not.toBeNull()
 
     // 避けた（赤が終わってから遭遇が avoided になる）→ 赤の後 1.5 秒は待たされ、その後に出る。
-    // 琥珀の中なので通知音は鳴らない
+    // 琥珀の中なので 1 音で鳴る（S11）
     engine.tele = { ...TELEMETRY }
     step(snapshot({ t: 66_000, km: 19.12, inZone: true, encounters: [avoided] }))
     expect(screen.queryByText(REACTION_TEXT.avoided[0].ja)).not.toBeInTheDocument()
     step(snapshot({ t: 67_600, km: 19.2, inZone: true, encounters: [avoided] }))
     expect(screen.getByText(REACTION_TEXT.avoided[0].ja)).toBeInTheDocument()
-    expect(graph.notifies).toBe(2)
+    expect(graph.notifies).toHaveLength(4)
 
     // 見えるのは新しい 3 行まで（drive-tourism T8）
     expect(document.querySelectorAll('.drive-chat__line')).toHaveLength(3)
+
+    // SND-4a: エンジンの合図 collided で衝突音を 1 回だけ鳴らす（同じ走行の 2 回目は鳴らさない）
+    engine.cue([{ type: 'collided', deerId: 'd2' }])
+    engine.cue([{ type: 'collided', deerId: 'd3' }])
+    expect(graph.crashes).toHaveLength(1)
 
     // 「もう一度」（t が戻る）→ 表示が消え、最初の行がまた出る
     step(snapshot({ t: 0, km: 0, speedKmh: 0 }))
     expect(document.querySelectorAll('.drive-chat__line')).toHaveLength(0)
     step(snapshot({ t: 1000, km: 0.3 }))
     expect(screen.getByText('出発だね')).toBeInTheDocument()
+    unlink()
+    audio.dispose()
+  })
+})
+
+describe('AC-2: 見本の場面でゾーンの外を走る（観光の行とおすすめの頻度）', () => {
+  it('AC-2: 15 秒ごとに楽しみの行が右上に出て、おすすめのカードが 12 秒ごとに替わる', async () => {
+    const scenario = demoScenario(ZONES)
+    const engine = new DriveEngine(scenario, ZONES)
+    const totalM = engine.world.plan.totalKm * 1000
+    const legStartsM = [0, ...scenario.legStarts.map((l) => l.sM)]
+    const placed = tourismStops(scenario, totalM)
+    const deck = fallbackChatDeck({
+      tripId: scenario.trip.id,
+      day: scenario.day,
+      legStartsM,
+      totalM,
+      zonesKm: [],
+      partySize: scenario.trip.party.size,
+      seed: scenario.seed,
+      pleasures: placed.map(({ pleasure }) => ({ id: pleasure.id, name: pleasure.name })),
+    })
+    const track = buildChatTrack(deck, {
+      legStartsM,
+      totalM,
+      partySize: scenario.trip.party.size,
+      seed: scenario.seed,
+      pleasures: placed.map(({ pleasure, atM }) => ({ id: pleasure.id, name: pleasure.name, atM })),
+    })
+    const graph = new FakeAudioGraph()
+    const audio = new DriveAudio({
+      createGraph: () => graph,
+      settings: new AudioSettingsStore(null),
+      seed: scenario.seed,
+    })
+    await audio.start()
+    const feed = new ChatFeedStore()
+    const pushedAtS: number[] = []
+    feed.subscribe(() => pushedAtS.push(engine.getSnapshot().t / 1000))
+    const unlink = linkDriveSoundAndChat(engine, audio, feed, () => track)
+    const tracker = new RecommendTracker(engine, scenario, totalM)
+    const offTracker = tracker.subscribe(() => undefined)
+    const cards: (string | undefined)[] = []
+
+    // 止まったまま（ゾーンの外）実時間 61 秒
+    expect(engine.getSnapshot().zone.gps.status).toBe('outside')
+    for (let i = 1; i <= 610; i++) {
+      engine.frame(100)
+      if (i % 120 === 10) cards.push(tracker.getSnapshot()?.pleasure.id)
+    }
+    // 楽しみの行（写真つき）が 15 秒ごと
+    const lines = feed.getSnapshot().lines
+    expect(lines.some((l) => l.pleasure !== null)).toBe(true)
+    const gaps = pushedAtS.slice(1).map((s, i) => s - (pushedAtS[i] ?? 0))
+    expect(pushedAtS.length).toBeGreaterThanOrEqual(4)
+    for (const gap of gaps.slice(1)) expect(gap).toBeCloseTo(15, 0)
+    // カードは 12 秒ごとに替わる（見本は到着地の楽しみが 2 つ）
+    expect(cards).toHaveLength(6)
+    for (let i = 1; i < cards.length; i++) {
+      expect(cards[i]).toBeDefined()
+      expect(cards[i]).not.toBe(cards[i - 1])
+    }
+    offTracker()
+    unlink()
+    audio.dispose()
+  })
+})
+
+describe('SND-4c: 衝突音と衝突の演出（drive-crash-spot R3）の始まり', () => {
+  it('SND-4c: 当たったフレームで、演出が読む outcome: collided の知らせの直後に衝突音を鳴らす（同じ engine.frame の中）。演出 3.5 秒は衝突音より長い', async () => {
+    const engine = new DriveEngine({ ...demoScenario(ZONES), weather: 'clear' }, ZONES)
+    const graph = new FakeAudioGraph()
+    const audio = new DriveAudio({
+      createGraph: () => graph,
+      settings: new AudioSettingsStore(null),
+      seed: 1,
+    })
+    await audio.start()
+    const unlink = linkDriveSoundAndChat(engine, audio, new ChatFeedStore(), () =>
+      buildChatTrack(DECK, { legStartsM: [0], totalM: 40_000, partySize: 4, seed: 1 }),
+    )
+    // 演出（DrivePage の CrashOverlay）は outcome: collided の知らせで描き始める。そのときの衝突音の数を記録する
+    const crashesAtCollidedPublish: number[] = []
+    engine.subscribe(() => {
+      if (engine.getSnapshot().outcome === 'collided') {
+        crashesAtCollidedPublish.push(graph.crashes.length)
+      }
+    })
+    // ゾーンの中を 60 km/h で走り、4 m 先に立つ鹿（drive-crash-spot のテストと同じ置き方）
+    const w = engine.world
+    const s = (w.plan.intervals[0]?.entryKm ?? 0) * 1000 + 500
+    w.vehicle = { ...w.vehicle, s, d: -1.75, speed: 60 / 3.6 }
+    w.playback = { rate: 1, paused: false, locked: true }
+    w.candidates = []
+    w.deer = [
+      {
+        id: 'hit',
+        candidateId: 'hit',
+        pattern: 'frozen',
+        motion: 'frozen',
+        seed: 1,
+        phase: 'stand',
+        index: 0,
+        s: s + 4,
+        d: -1.75,
+        heading: Math.PI / 2,
+        pose: 'look',
+        occluded: false,
+        startedAt: 0,
+        gone: false,
+      },
+    ]
+    let collidedFrame = -1
+    for (let i = 0; i < 120 && collidedFrame < 0; i += 1) {
+      engine.frame(1000 / 60)
+      if (engine.getSnapshot().outcome === 'collided') collidedFrame = i
+    }
+    expect(collidedFrame).toBeGreaterThanOrEqual(0)
+    // 知らせ（演出の始まり）の時点では 0、同じフレームを返したときには 1（合図は知らせの後に届く）
+    expect(crashesAtCollidedPublish[0]).toBe(0)
+    expect(graph.crashes).toHaveLength(1)
+    expect(graph.crashes[0]).toBeGreaterThan(0)
+    // 衝突音（録音 0.58 秒＋ドスン 0.45 秒）は演出（CRASH_MS）より短く、A-6 に移る前に鳴り終わる
+    expect(CRASH_MS).toBeGreaterThan(1000)
+    // その後のフレームでは鳴らさない
+    for (let i = 0; i < 30; i += 1) engine.frame(1000 / 60)
+    expect(graph.crashes).toHaveLength(1)
     unlink()
     audio.dispose()
   })

@@ -5,7 +5,13 @@ import { describe, expect, it } from 'vitest'
 import { demoScenario } from '../domain/scenario'
 import { ZONES } from '../domain/zones-data'
 import { advanceChat, initialChatState, type ChatFrame } from './advance-chat'
-import { FALLBACK_PLEASURE_TEXT, RADIO_FALLBACK_TEXT, RADIO_PLEASURE_TEXT } from './chat-text'
+import {
+  FALLBACK_PLEASURE_TEXT,
+  FILLER_PLEASURE_TEXT,
+  RADIO_FALLBACK_TEXT,
+  RADIO_FILLER_PLEASURE_TEXT,
+  RADIO_PLEASURE_TEXT,
+} from './chat-text'
 import { buildChatTrack } from './chat-track'
 import type { ChatDeck } from './chat-types'
 import { fallbackChatDeck } from './fallback-deck'
@@ -23,6 +29,8 @@ const frame = (over: Partial<ChatFrame>): ChatFrame => ({
   zoneInterval: null,
   alert: 'safe',
   alertEnabled: true,
+  rate: 1,
+  toZoneM: null,
   paused: false,
   outcome: 'driving',
   avoidedCount: 0,
@@ -161,7 +169,13 @@ describe('UC-3d: 見本の会話の楽しみ（T9）', () => {
         expect(value).not.toMatch(DIGIT)
         expect(hasDeerWord(value)).toBe(false)
       }
-      for (const make of [...FALLBACK_PLEASURE_TEXT, ...RADIO_PLEASURE_TEXT]) {
+      for (const make of [
+        ...FALLBACK_PLEASURE_TEXT,
+        ...RADIO_PLEASURE_TEXT,
+        // 補いの観光の行の言い回し（drive-sound-tourism S14）
+        ...FILLER_PLEASURE_TEXT,
+        ...RADIO_FILLER_PLEASURE_TEXT,
+      ]) {
         const text = make(p.name)
         expect(Object.keys(text).sort()).toEqual(['en', 'ja', 'ko', 'zh'])
         for (const [lang, value] of Object.entries(text)) {

@@ -1,5 +1,6 @@
-// 会話の通知音（docs/specs/drive-audio-chat/functional.md R8）。自作の 2 音（C6 → F6）。
+// 会話の通知音（docs/specs/drive-audio-chat/functional.md R8、drive-sound-tourism S11）。自作の 2 音（C6 → F6）。
 // 実在のサービスの通知音はまねない。2 秒以内に続けては鳴らさない。
+// 琥珀の間は最初の 1 音だけ（ゾーンのチャイム（alert-ui、2 音）と聞き分ける）。ゾーンに入って 2 秒は鳴らさない。
 
 export type Tone = { freqHz: number; startS: number; durS: number }
 
@@ -9,6 +10,8 @@ export const NOTIFY_TONES: readonly Tone[] = [
 ]
 
 export const NOTIFY_MIN_INTERVAL_MS = 2000
+/** 緑からゾーンに入ってから鳴らさない間（チャイムと重ねない。S11） */
+export const ZONE_CHIME_QUIET_MS = 2000
 
 /** 続けて鳴らさないための門（時刻は ms） */
 export class NotifyGate {

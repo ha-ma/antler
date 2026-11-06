@@ -10,6 +10,8 @@ import type { ChatTrack, LocalizedLine, ReactionKind, Speaker } from './chat-typ
 // - 赤の間は待たせ、赤が終わって 1.5 秒後にまとめて出す（新しい 3 行まで。また赤なら数え直す）
 // - 束が替わったら、いまの道のりより先だけを新しい束から出し、待ち行列は捨てる
 // - t が戻ったら（restart）最初から
+// - 観光の行を足す（drive-sound-tourism S13〜S15）: ゾーンの外・赤でないとき、最後の行から実時間で 15 秒あいたら、
+//   まだ出していない楽しみの行（無ければ補いの行）を 1 行。実時間は経過 ÷ 再生速度（タイムラプスで流れ込まない）
 
 /** 1 フレームの入力（スナップショットから作る） */
 export type ChatFrame = {
@@ -27,6 +29,10 @@ export type ChatFrame = {
   avoidedCount: number
   /** いまのステージ（drive-tune R1。ステージを移ると道のりが先へ飛ぶ） */
   stage: number
+  /** 再生速度（1・4・16）。実時間 = 経過 ÷ 速度（S13） */
+  rate: number
+  /** 次の鹿ゾーンの入口までの道のり（m）。無ければ null（S13） */
+  toZoneM: number | null
 }
 
 export type EmittedLine = {
@@ -59,11 +65,21 @@ export type ChatState = {
   wasDanger: boolean
   releaseAt: number | null
   seq: number
+  /** 走り始めからの実時間（ms。S13） */
+  realMs: number
+  /** 最後に行を出した実時間（ms） */
+  lastLineRealMs: number
+  /** 次に出す補いの行の番号 */
+  fillerIndex: number
 }
 
 export const ZONE_ENTER_DELAY_MS = 2500
 export const RELEASE_AFTER_DANGER_MS = 1500
 export const MAX_HELD = 3
+/** 観光の行を足すまでの実時間の間（S13） */
+export const CHAT_GAP_MS = 15_000
+/** 次のゾーンの入口がこれより近ければ観光の行を足さない（入口のチャイムと重ねない。S13） */
+export const NO_FILL_BEFORE_ZONE_M = 300
 
 export function initialChatState(): ChatState {
   return {
@@ -84,6 +100,9 @@ export function initialChatState(): ChatState {
     wasDanger: false,
     releaseAt: null,
     seq: 0,
+    realMs: 0,
+    lastLineRealMs: 0,
+    fillerIndex: 0,
   }
 }
 
@@ -103,7 +122,34 @@ export function chatFrameFromSnapshot(
     outcome: s.outcome,
     avoidedCount: s.encounters.filter((e) => e.outcome === 'avoided').length,
     stage: s.stage.index,
+    rate: s.playback.rate,
+    toZoneM:
+      s.zone.nextEntryKm === null
+        ? null
+        : Math.max(0, (s.zone.nextEntryKm - s.zone.positionKm) * 1000),
   }
+}
+
+/** 足す観光の行（S13・S14）。過ぎたのに出していない楽しみの行、無ければ位置を過ぎていない補いの行 */
+function nextTourismLine(
+  track: ChatTrack,
+  shown: ReadonlySet<string>,
+  posM: number,
+  minM: number,
+  fillerIndex: number,
+): { road: ChatTrack['road'][number] | null; filler: number | null } {
+  // 束が替わったときの手前（minM 以前）の行は出さない（code-reviewer W7）
+  const skipped = track.road.find(
+    (r) => r.pleasure !== null && r.atM > minM && r.atM <= posM && !shown.has(r.id),
+  )
+  if (skipped) return { road: skipped, filler: null }
+  const n = track.filler.length
+  for (let k = 0; k < n; k++) {
+    const i = (fillerIndex + k) % n
+    const line = track.filler[i]
+    if (line && line.untilM > posM) return { road: null, filler: i }
+  }
+  return { road: null, filler: null }
 }
 
 export function advanceChat(
@@ -127,6 +173,11 @@ export function advanceChat(
   if (f.paused || f.outcome !== 'driving') return { state, emitted: [], reset }
 
   const posM = f.positionKm * 1000
+  // 実時間（S13）。走り始めの 1 フレーム目は数えない
+  const realMs =
+    state.prevM === null
+      ? state.realMs
+      : state.realMs + Math.max(0, f.t - state.lastT) / Math.max(1, f.rate)
   let seq = state.seq
   const make = (speaker: Speaker, text: LocalizedLine, pleasure: string | null): EmittedLine => {
     seq += 1
@@ -141,11 +192,13 @@ export function advanceChat(
   const jumped = state.prevM === null || (state.stage !== null && f.stage !== state.stage)
   const from = Math.max(state.prevM ?? -Infinity, state.minM)
   const crossed = track.road.filter((r) => r.atM > from && r.atM <= posM && !state.shown.has(r.id))
-  const newlyShown = crossed.map((r) => r.id)
-  for (const r of jumped ? crossed.slice(-1) : crossed) {
+  const spoken = jumped ? crossed.slice(-1) : crossed
+  // 飛ばした楽しみの行は出したことにしない（後で S13 の観光の行として出せる。S15）
+  const newlyShown = crossed.filter((r) => !r.pleasure || spoken.includes(r)).map((r) => r.id)
+  for (const r of spoken) {
     due.push(make(r.speaker, r.text, r.pleasure))
   }
-  const shown = newlyShown.length > 0 ? new Set([...state.shown, ...newlyShown]) : state.shown
+  let shown = newlyShown.length > 0 ? new Set([...state.shown, ...newlyShown]) : state.shown
 
   // 反応
   let counts = state.counts
@@ -177,6 +230,28 @@ export function advanceChat(
     react('zone-enter')
   }
   for (let n = state.avoidedSeen; n < f.avoidedCount; n++) react('avoided')
+
+  // 観光の行を足す（S13・S14）。ゾーンの中・入口の手前・赤・待たせている行があるときは足さない
+  let fillerIndex = state.fillerIndex
+  if (
+    due.length === 0 &&
+    realMs - state.lastLineRealMs >= CHAT_GAP_MS &&
+    f.zoneInterval === null &&
+    (f.toZoneM === null || f.toZoneM > NO_FILL_BEFORE_ZONE_M) &&
+    f.alert !== 'danger' &&
+    state.held.length === 0 &&
+    state.releaseAt === null
+  ) {
+    const next = nextTourismLine(track, shown, posM, state.minM, fillerIndex)
+    if (next.road) {
+      shown = new Set(shown).add(next.road.id)
+      due.push(make(next.road.speaker, next.road.text, next.road.pleasure))
+    } else if (next.filler !== null) {
+      const line = track.filler[next.filler]
+      fillerIndex = next.filler + 1
+      if (line) due.push(make(line.speaker, line.text, line.pleasure))
+    }
+  }
 
   // 赤の間は待たせる
   let held = state.held
@@ -222,6 +297,9 @@ export function advanceChat(
       wasDanger,
       releaseAt,
       seq,
+      realMs,
+      lastLineRealMs: emitted.length > 0 ? realMs : state.lastLineRealMs,
+      fillerIndex,
     },
     emitted,
     reset,
