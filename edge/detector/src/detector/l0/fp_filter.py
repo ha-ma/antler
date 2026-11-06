@@ -6,10 +6,10 @@
   カメラから 2 m より近い枠だけに当たる（水平画角 70° の暫定値での見積もり）
 - 規則 b: 車載カメラの取り付けで決まる「無視する領域」に 8 割以上入る枠の確信度を下げる
   （0 なら除く）
-- 続き: 直前 1 秒にそのまま通した枠と IoU 0.3 以上で重なる枠は、規則 a・b に当たっても通す
+- 続き: 直前 3 秒にそのまま通した枠と IoU 0.3 以上で重なる枠は、規則 a・b に当たっても通す
   （遠くから近づいた鹿・止まった車の前にいる鹿・群れの手前の鹿の赤を落とさない）
 
-画像を見ない算術だけ。推論のスレッドだけが呼ぶ（状態は直前 1 秒の枠だけ）。
+画像を見ない算術だけ。推論のスレッドだけが呼ぶ（状態は直前 3 秒の枠だけ）。
 例外は DeerDetector が受けて、除かない側に倒す。
 """
 
@@ -33,10 +33,14 @@ Box = tuple[float, float, float, float]
 
 # 境界ちょうど（0.7 ちょうど・8 割ちょうど）を浮動小数の誤差で取りこぼさない
 EPS = 1e-9
-CONTINUITY_S = 1.0  # 「続き」とみなす直前の時間（トラッカーの max_age_s の既定と同じ）
+# 「続き」とみなす直前の時間。YOLO が至近の鹿を 1 秒あまり見失ってから見つけ直しても除かない
+# （赤の解除 1.5 秒より長く。edge-latency-reviewer W2）。単調時計で測る（実走では t_frame と揃う。
+# 動画を実時間より速く流すと、フレームの数では長めの窓になる＝除かない側）
+CONTINUITY_S = 3.0
 CONTINUITY_IOU = 0.3  # 「続き」とみなす重なり（トラッカーの iou_threshold の既定と同じ）
-SEEDS_PER_FRAME = 16  # 1 フレームで「続き」の元に覚える枠（確信度の高い順。トラッカーと同じ上限）
-SEED_FRAMES = 12  # 覚えるフレームの上限（10 fps で 1.2 秒。呼ばれ方が速くても計算量を抑える）
+SEEDS_PER_FRAME = 8  # 1 フレームで「続き」の元に覚える枠（確信度の高い順）
+CHECKS_PER_FRAME = 16  # 1 フレームで「続き」を調べる大きい枠（確信度の高い順。計算量を抑える）
+SEED_FRAMES = 30  # 覚えるフレームの上限（10 fps で 3 秒。呼ばれ方が速くても計算量を抑える）
 
 
 def _in_any(xywh: Box, regions: tuple[Box, ...], need: float) -> bool:
@@ -116,17 +120,22 @@ class BoxFilter:
             self._seeds.popleft()
         return [b for _, boxes in self._seeds for b in boxes]
 
+    @property
+    def remembered(self) -> int:
+        """「続き」の元として覚えている枠の数（古いものは次の呼び出しで捨てる）。"""
+        return sum(len(boxes) for _, boxes in self._seeds)
+
     def __call__(self, detections: list[Detection]) -> list[Detection]:
         now = self._clock()
         previous = self._previous(now)
         counts = {"area": 0, "width": 0, "region_drop": 0, "region_scaled": 0, "continued": 0}
         removed: list[float] = []
         kept: list[Detection] = []
-        passed: list[Detection] = []  # そのまま通した枠（次のフレームの「続き」の元）
-        checks = 0  # 「続き」を調べた枠の数。確信度の高い 16 枠まで（最悪の計算量を抑える）
+        passed: list[Detection] = []  # そのまま通した枠（確信度の順。次のフレームの「続き」の元）
+        checks = 0
         for d in sorted(detections, key=lambda d: d.conf, reverse=True):
             reason = self._reason(d.xywh)
-            if reason is not None and previous and checks < SEEDS_PER_FRAME:
+            if reason is not None and previous and checks < CHECKS_PER_FRAME:
                 checks += 1
                 if _continues(d.xywh, previous):
                     counts["continued"] += 1
@@ -139,19 +148,18 @@ class BoxFilter:
             removed.append(d.conf)
             if reason == "region_scaled":
                 kept.append(replace(d, conf=d.conf * self._cfg.region_conf_scale))  # 座標はそのまま
-        top = sorted(passed, key=lambda d: d.conf, reverse=True)[:SEEDS_PER_FRAME]
-        if top:
-            self._seeds.append((now, [_corners(d.xywh) for d in top]))
+        if passed:  # 枠の無いフレームは元を押し出さない
+            self._seeds.append((now, [_corners(d.xywh) for d in passed[:SEEDS_PER_FRAME]]))
         if removed or counts["continued"]:
-            logger.info(
-                "l0.filtered",
-                extra={
-                    **counts,
-                    "max_conf_removed": max(removed) if removed else None,
-                    "kept": len(kept),
-                },
-            )
+            _log(counts, removed, len(kept))
         return sorted(kept, key=lambda d: d.conf, reverse=True)
+
+
+def _log(counts: dict[str, int], removed: list[float], kept: int) -> None:
+    logger.info(
+        "l0.filtered",
+        extra={**counts, "max_conf_removed": max(removed) if removed else None, "kept": kept},
+    )
 
 
 def build_box_filter(

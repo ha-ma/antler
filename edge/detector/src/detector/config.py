@@ -105,7 +105,7 @@ class L0FilterConfig:
     """L0 の誤検出の後処理（docs/specs/l0-fp-filter）。即時ルールの手前で枠を除く・弱める。
 
     既定は「本物の鹿ならカメラから 2 m より近い」枠だけに当たる（水平画角 70° の暫定値で見積もり）。
-    直前 1 秒に通した枠から続く枠は除かない（近づいた鹿・止まった車の前の鹿）。
+    直前 3 秒に通した枠から続く枠は除かない（近づいた鹿・止まった車の前の鹿）。
     無視する領域は車載カメラの取り付けで決まるので、既定は空（測ってから車ごとの設定に書く）。
     """
 
@@ -244,6 +244,7 @@ MAX_IGNORE_REGIONS = 8
 MAX_REGION_AREA = 0.25
 MAX_REGIONS_TOTAL_AREA = 0.4
 LANE_WATCH_BAND = (0.25, 0.3, 0.75, 0.8)  # x1, y1, x2, y2
+HORIZON_Y = 0.5  # 水平の取り付けでの地平線
 
 # オリジン（スキームとホスト、任意のポート）。パス・ワイルドカード・空は許さない
 _ORIGIN_RE = re.compile(r"https?://[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::\d{1,5})?")
@@ -301,6 +302,10 @@ def _region(row: object, where: str) -> tuple[float, float, float, float]:
     bx1, by1, bx2, by2 = LANE_WATCH_BAND
     if x1 < bx2 and bx1 < x2 and y1 < by2 and by1 < y2:
         msg = f"{where} は車線の見張りの帯 {list(LANE_WATCH_BAND)} と交われない: {row}"
+        raise ConfigError(msg)
+    if y1 < HORIZON_Y < y2:
+        # 路肩の鹿は地平線の上下にまたがって写る。画面の端の縦の帯で路肩を覆えないようにする
+        msg = f"{where} は地平線（y {HORIZON_Y}）をまたげない（路肩の鹿を弱めない）: {row}"
         raise ConfigError(msg)
     if (x2 - x1) * (y2 - y1) > MAX_REGION_AREA + 1e-9:  # 0.25 ちょうどを誤差で拒まない
         msg = f"{where} の 1 つの領域は面積 {MAX_REGION_AREA} 以下にする: {row}"

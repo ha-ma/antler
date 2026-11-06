@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     import numpy as np
 
 logger = logging.getLogger("detector.inference")
+l0_logger = logging.getLogger("detector.l0")  # 後処理の失敗（l0.fp_filter_failed）
 
 FAIL_LOG_INTERVAL_S = 1.0
 
@@ -38,6 +39,7 @@ class DeerDetector:
 
     box_filter（l0-fp-filter の後処理）を渡すと、選別の後に当てる。後処理が例外を出したら
     元の検出をそのまま返す（除かない側。赤を落とさない）。`l0.fp_filter_failed` は 1 秒に 1 回まで。
+    clock はこの警告の間引きだけに使う（後処理の「続き」の時計は BoxFilter が別に持つ）。
     """
 
     def __init__(
@@ -74,9 +76,7 @@ class DeerDetector:
         now = self._clock()
         if self._last_fail_log is None or now - self._last_fail_log >= FAIL_LOG_INTERVAL_S:
             self._last_fail_log = now
-            logging.getLogger("detector.l0").warning(
-                "l0.fp_filter_failed", extra={"error_type": type(exc).__name__}
-            )
+            l0_logger.warning("l0.fp_filter_failed", extra={"error_type": type(exc).__name__})
 
 
 class ScriptedDetector:

@@ -93,25 +93,25 @@ def test_fpf1c_至近の鹿は除かれる():
 
 
 # FPF-1d
-def test_fpf1d_直前1秒に通した枠から続く大きい枠は通る(logbuf):
+def test_fpf1d_直前3秒に通した枠から続く大きい枠は通る(logbuf):
     clock = Clock()
     f = BoxFilter(L0FilterConfig(), clock)
     near = box(0.6, 0.8, x=0.5, y=0.6)  # 面積 0.48: 通す
     whole = box(0.9, 0.95, x=0.5, y=0.5)  # 面積 0.855: 大きすぎる。near と IoU 0.56
     assert f([near]) == [near]
-    clock.advance(1.0)  # ちょうど 1 秒は続き
+    clock.advance(3.0)  # ちょうど 3 秒（YOLO が見失って赤が解けた後に見つけ直した）は続き
     assert f([whole]) == [whole]
     assert named(logbuf, "l0.filtered")[-1]["continued"] == 1
     clock.advance(0.5)
     assert f([whole]) == [whole]  # 続きで通した枠も次の元になる（止まった車の前の鹿）
 
-    clock.advance(1.1)  # 1 秒を超えて空いた
+    clock.advance(3.1)  # 3 秒を超えて空いた
     assert f([whole]) == []
     clock.advance(0.1)
     assert f([whole]) == []  # 除いた枠は続きの元にならない（ぶれが続いても通らない）
 
 
-def test_fpf1d_IoUが03未満なら続きにならず元は1フレーム16枠まで():
+def test_fpf1d_IoUが03未満なら続きにならず元は1フレーム8枠まで():
     clock = Clock()
     f = BoxFilter(L0FilterConfig(), clock)
     small = box(0.1, 0.1, x=0.5, y=0.5)
@@ -120,8 +120,8 @@ def test_fpf1d_IoUが03未満なら続きにならず元は1フレーム16枠ま
     assert f([box(0.9, 0.95)]) == []  # IoU 0.01
 
     g = BoxFilter(L0FilterConfig(), clock)
-    many = [box(0.02, 0.02, x=0.03 * i + 0.02, y=0.1, conf=0.9) for i in range(16)]
-    low = box(0.6, 0.8, x=0.5, y=0.6, conf=0.3)  # 17 番目（確信度がいちばん低い）
+    many = [box(0.02, 0.02, x=0.03 * i + 0.02, y=0.1, conf=0.9) for i in range(8)]
+    low = box(0.6, 0.8, x=0.5, y=0.6, conf=0.3)  # 9 番目（確信度がいちばん低い）
     g([*many, low])
     clock.advance(0.1)
     assert g([box(0.9, 0.95)]) == []  # low は元に入っていない
@@ -260,8 +260,9 @@ def test_fpf3e_切ったときと後処理なしは従来と同じ():
 
 
 def per_call_s(call, repeat: int) -> float:
-    """1 回あたりの秒。repeat 回の平均を 5 組とり、いちばん速い組（同時に走る処理の揺れを避ける）。
+    """1 回あたりの CPU 秒。repeat 回の平均を 5 組とり、いちばん速い組。
 
+    スレッドの CPU 時間で測る（並行して走るほかの処理に待たされた時間を数えない）。
     計測の間だけカバレッジのトレースを外す（行ごとのトレースで数倍遅くなり、本番の速さを測れない）。
     """
     saved = sys.gettrace()
@@ -270,10 +271,10 @@ def per_call_s(call, repeat: int) -> float:
         call()  # 暖める
         batches = []
         for _ in range(5):
-            started = time.perf_counter()
+            started = time.thread_time()
             for _ in range(repeat):
                 call()
-            batches.append((time.perf_counter() - started) / repeat)
+            batches.append((time.thread_time() - started) / repeat)
     finally:
         sys.settrace(saved)
     return min(batches)
@@ -288,17 +289,17 @@ def test_fpf4a_300枠と8領域で1回1ms未満():
 
 
 def test_fpf4a_続きの元が満杯で大きい枠が300でも2ms未満():
-    # 最悪: 直前 12 フレームに面積の近い 16 枠ずつ（重ならない）、今のフレームは大きい枠が 300
+    # 最悪: 直前 30 フレームに面積の近い 8 枠ずつ（重ならない）、今のフレームは大きい枠が 300
     clock = Clock()
     f = BoxFilter(L0FilterConfig(), clock)
-    for _ in range(12):
+    for _ in range(30):
         # 面積 0.25（大きい枠の 0.3 倍以上なので IoU を計算する）。IoU は 0.2 前後で続きにならない
         f([box(0.5, 0.5, x=0.01 * i + 0.25, y=0.25, conf=0.5) for i in range(16)])
         clock.advance(0.05)
     large = [box(0.9, 0.9, x=0.5, y=0.55 + 0.0001 * i, conf=0.9) for i in range(300)]
     # 除かれるので元は増えない（空のフレームは元を押し出さない）
     assert per_call_s(lambda: f(large), 20) < 0.002  # 手元で 0.5 ms
-    assert sum(len(b) for _, b in f._seeds) == 12 * 16  # 最後まで満杯のまま測った
+    assert f.remembered == 30 * 8  # 最後まで満杯のまま測った
 
 
 def test_fpf1d_続きを調べるのは確信度の高い16枠まで():
@@ -369,6 +370,8 @@ def test_fpc1b_指定した値と領域が読める(tmp_path):
         "ignore_regions = [[0.05, 0.85, 0.2, 0.95]]",  # 辺に接しない
         "ignore_regions = [[0.3, 0.55, 0.7, 1.0]]",  # 見張りの帯と交わる（正面の車線）
         "ignore_regions = [[0.0, 0.4, 0.3, 0.6]]",  # 端に接していても帯に食い込む
+        "ignore_regions = [[0.0, 0.0, 0.25, 1.0]]",  # 路肩の縦の帯（地平線をまたぐ。W1）
+        "ignore_regions = [[0.9, 0.3, 1.0, 0.7]]",  # 右端の小さな帯でも地平線をまたげない
         "ignore_regions = [[0.0, 0.0, 1.0, 0.3]]",  # 面積 0.3 > 0.25
         "ignore_regions = [[0.0, 0.8, 1.0, 1.0], [0.0, 0.0, 1.0, 0.25]]",  # 和 0.45 > 0.4
         "ignore_regions = [[0.0, 0.9, 1.0]]",  # 形が違う
@@ -399,7 +402,12 @@ def test_fpc1c_境界の値は読める(tmp_path):
 
 
 def test_fpc1c_見張りの帯に接するだけの領域と和04ちょうどは書ける(tmp_path):
-    # 帯 (0.25, 0.3)〜(0.75, 0.8) の下の辺に接するボンネット（面積 0.2）と、右端の帯（0.2）
-    text = "[l0_filter]\nignore_regions = [[0.0, 0.8, 1.0, 1.0], [0.75, 0.0, 1.0, 0.8]]\n"
+    # 帯 (0.25, 0.3)〜(0.75, 0.8) の下の辺に接するボンネット（面積 0.2）は書ける。
+    # 地平線に接する右上の帯（0.6〜1.0 × 0〜0.5）は、帯に食い込むので書けない
+    text = "[l0_filter]\nignore_regions = [[0.0, 0.8, 1.0, 1.0], [0.6, 0.0, 1.0, 0.5]]\n"
+    with pytest.raises(ConfigError, match="見張りの帯"):  # 0.6〜1.0 × 0.3〜0.5 が帯に食い込む
+        load_config(write(tmp_path, text))
+    # ボンネットと上端の帯（面積 0.2 ずつ、和 0.4 ちょうど）
+    text = "[l0_filter]\nignore_regions = [[0.0, 0.8, 1.0, 1.0], [0.0, 0.0, 0.8, 0.25]]\n"
     c = load_config(write(tmp_path, text))
-    assert c.l0_filter.ignore_regions == ((0.0, 0.8, 1.0, 1.0), (0.75, 0.0, 1.0, 0.8))
+    assert c.l0_filter.ignore_regions == ((0.0, 0.8, 1.0, 1.0), (0.0, 0.0, 0.8, 0.25))

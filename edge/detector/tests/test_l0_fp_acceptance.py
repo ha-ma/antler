@@ -10,6 +10,7 @@ from dataclasses import replace
 from detector.config import Config, L0FilterConfig
 from detector.hub import AlertHub
 from detector.inference import DeerDetector, ScriptedDetector
+from detector.l0 import fp_filter
 from detector.l0.fp_filter import build_box_filter
 from detector.l0.stage import L0Stage
 from detector.pipeline import process_frames
@@ -50,7 +51,8 @@ def test_fpa1_近づく鹿は2フレーム目で赤になり至近でも続き�
 
     assert red_from_second_deer_to_end(sent)
     filtered = named(logbuf, "l0.filtered")
-    assert filtered and all(e["continued"] == 1 and e["area"] + e["width"] == 0 for e in filtered)
+    assert sum(e["continued"] for e in filtered) >= 1
+    assert all(e["max_conf_removed"] is None for e in filtered)  # 1 枠も除いていない
 
 
 # FPA-2
@@ -76,10 +78,16 @@ def test_fpa3_左の路肩から出る鹿は既定でも隅の領域があって
 
 
 # FPA-4・S-1
-def test_fpa4_止まった車の前に3秒とどまる鹿は最後まで赤():
+def test_fpa4_止まった車の前に3秒とどまる鹿は最後まで赤(monkeypatch):
     walk = [4.0 - 0.1 * i for i in range(31)]  # 1 m/s で 4 m → 1 m
     stay = [1.0] * 30  # 3 秒
     boxes = [deer_box(d, 0.0) for d in walk + stay]
     assert boxes[-1][2] * boxes[-1][3] >= 0.7  # 除かれる大きさ
-    sent, _ = run([[], []] + [[deer(b)] for b in boxes])
+    script = [[], []] + [[deer(b)] for b in boxes]
+    sent, _ = run(script)
     assert red_from_second_deer_to_end(sent)
+
+    # 対照: 「続き」が無ければ、とどまるあいだに枠が除かれて 1.5 秒で赤が切れる（このテストの感度）
+    monkeypatch.setattr(fp_filter, "CONTINUITY_S", -1.0)
+    sent, _ = run(script)
+    assert sent[-1]["deer"] is False
