@@ -4,7 +4,7 @@ target_paths:
   - apps/sim/src/features/drive/domain/
   - apps/sim/src/features/drive/scene/
   - apps/sim/src/features/drive/types.ts
-spec_confirmed_at: 3e91a6e
+spec_confirmed_at: c712268
 tier: 1
 ---
 
@@ -19,6 +19,8 @@ tier: 1
 **Tier 1**: 認可・永続化・外部への副作用・並行性に触れない。記録の形（`Encounter.pattern` の 5 つの語）は変えない。
 
 **範囲外**: 路面・季節（`vehicle.ts`・`Road`・`Ground`・`Atmosphere`・`palette.ts`）と、会話・HUD（`chat/`・`audio/`・`components/hud/`・`DriveScreen.tsx`）。同じ日に別のセッションが直す。鹿のモデル（ch9 ③）の差し替え。
+
+**drive-season（2026-11-06）での変更**: 天候に `rain` を足し、検知の `WEATHER_FACTOR` に雨 0.85 を 1 行足した（雪 0.8 と曇り 0.95 の間）。景色（`scene/`）は季節・路面・天候で変わるが、鹿の置き方・法面の高さ（`terrainHeight`）・当たり判定は変えていない（`docs/specs/drive-season/functional.md`）。
 
 敵対レビュー（spec-adversary）の指摘と取り込みは `docs/reports/2026-11-06-spec-adversary-drive-deer.md`。
 
