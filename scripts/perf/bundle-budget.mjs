@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { gzipSync } from 'node:zlib'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -72,18 +72,22 @@ const OTHER_DYNAMIC = [SCENE, /(^|\/)node_modules\/maplibre-gl\//, 'src/app/Driv
  * manifest のキー。feature の barrel をほかのチャンクも静的に読むと、バンドラはそれを共有のチャンク
  * （キー `_<feature>-<hash>.js`）にまとめるので、元のファイルのキーが無ければその名前で探す
  */
-function resolveKey(manifest, key) {
+export function resolveKey(manifest, key) {
   if (manifest[key]) return key
   const feature = /^src\/features\/([^/]+)\/index\.ts$/.exec(key)?.[1]
   const shared = feature
     ? Object.keys(manifest).filter((k) => k.startsWith(`_${feature}-`) && k.endsWith('.js'))
     : []
   if (shared.length === 1) return shared[0]
+  if (shared.length > 1)
+    throw new Error(
+      `${key} の共有のチャンクが複数ある（${shared.join(', ')}）。ROUTES のキーを直す`,
+    )
   throw new Error(`manifest に ${key} がない（ルートの元のファイルを確かめる）`)
 }
 
 /** key と、それが静的に読むチャンクの全部（JS と CSS のファイル名の集合） */
-function closure(manifest, keys, into = new Set()) {
+export function closure(manifest, keys, into = new Set()) {
   for (const key of keys) {
     const chunk = manifest[resolveKey(manifest, key)]
     if (into.has(chunk.file)) continue
@@ -95,8 +99,13 @@ function closure(manifest, keys, into = new Set()) {
 }
 
 /** ROUTES にも OTHER_DYNAMIC にも無い遅延読込の口（新しい画面を足したら ROUTES と上限に足す） */
-function unknownDynamicEntries(manifest) {
-  const known = new Set(Object.values(ROUTES).flat())
+export function unknownDynamicEntries(manifest) {
+  // ROUTES のキーは共有のチャンクに移っていることがあるので、resolveKey で解いた名前で比べる
+  const known = new Set(
+    Object.values(ROUTES)
+      .flat()
+      .map((k) => resolveKey(manifest, k)),
+  )
   return Object.keys(manifest).filter(
     (k) =>
       manifest[k].isDynamicEntry &&
@@ -136,30 +145,35 @@ export function measure(manifest, outDir) {
   return rows.map((r) => ({ ...r, budget: BUDGET_KB[r.name], ok: r.kb <= BUDGET_KB[r.name] }))
 }
 
-const outDir = mkdtempSync(join(tmpdir(), 'antler-bundle-'))
-try {
-  const manifest = build(outDir)
-  const unknown = unknownDynamicEntries(manifest)
-  if (unknown.length > 0) {
-    console.error(`上限の無い遅延読込の口: ${unknown.join(', ')}（ROUTES と BUDGET_KB に足す）`)
-    process.exitCode = 1
-  }
-  const rows = measure(manifest, outDir)
-  if (process.argv.includes('--json')) console.log(JSON.stringify(rows, null, 2))
-  else {
-    for (const r of rows) {
-      const mark = r.ok ? 'ok  ' : 'OVER'
-      console.log(
-        `${mark} ${r.name.padEnd(24)} ${String(r.kb).padStart(7)} KB gz / 上限 ${r.budget} KB`,
-      )
+function main() {
+  const outDir = mkdtempSync(join(tmpdir(), 'antler-bundle-'))
+  try {
+    const manifest = build(outDir)
+    const unknown = unknownDynamicEntries(manifest)
+    if (unknown.length > 0) {
+      console.error(`上限の無い遅延読込の口: ${unknown.join(', ')}（ROUTES と BUDGET_KB に足す）`)
+      process.exitCode = 1
     }
+    const rows = measure(manifest, outDir)
+    if (process.argv.includes('--json')) console.log(JSON.stringify(rows, null, 2))
+    else {
+      for (const r of rows) {
+        const mark = r.ok ? 'ok  ' : 'OVER'
+        console.log(
+          `${mark} ${r.name.padEnd(24)} ${String(r.kb).padStart(7)} KB gz / 上限 ${r.budget} KB`,
+        )
+      }
+    }
+    if (rows.some((r) => !r.ok)) {
+      console.error(
+        'バンドルが上限を超えた（docs/specs/performance/functional.md R6）。遅延読込にするか、理由を書いて上限を上げる',
+      )
+      process.exitCode = 1
+    }
+  } finally {
+    rmSync(outDir, { recursive: true, force: true })
   }
-  if (rows.some((r) => !r.ok)) {
-    console.error(
-      'バンドルが上限を超えた（docs/specs/performance/functional.md R6）。遅延読込にするか、理由を書いて上限を上げる',
-    )
-    process.exitCode = 1
-  }
-} finally {
-  rmSync(outDir, { recursive: true, force: true })
 }
+
+// import したとき（テスト）はビルドしない
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main()

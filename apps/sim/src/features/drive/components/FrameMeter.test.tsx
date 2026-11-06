@@ -25,10 +25,13 @@ describe('開発用の fps の表示（performance R2）', () => {
     expect(isFrameMeterOn('?fps=true')).toBe(false)
     expect(isFrameMeterOn('')).toBe(false)
 
-    window.history.replaceState(null, '', '/drive')
-    const engine = new DriveEngine(demoScenario(ZONES), ZONES)
-    render(<FrameMeter engine={engine} />)
-    expect(screen.queryByTestId('frame-meter')).toBeNull()
+    for (const url of ['/drive', '/drive?fps=0', '/drive?fps=true']) {
+      window.history.replaceState(null, '', url)
+      const engine = new DriveEngine(demoScenario(ZONES), ZONES)
+      const { unmount } = render(<FrameMeter engine={engine} />)
+      expect(screen.queryByTestId('frame-meter')).toBeNull()
+      unmount()
+    }
   })
 
   it('UC-2c: 0.5 秒ごとにエンジンの要約を出し直す。読み上げない', () => {

@@ -64,7 +64,17 @@ describe('DriveRunInputSchema', () => {
     const withTotals = { ...VALID_RUN, frames: { ...frames, dropped: 12, counted: 9000 } }
     expect(DriveRunInputSchema.safeParse(withTotals).success).toBe(true)
     expect(DriveRunInputSchema.safeParse(VALID_RUN).success).toBe(true)
-    for (const bad of [{ dropped: -1 }, { dropped: 1.5 }, { counted: -1 }, { counted: 2.5 }]) {
+    for (const bad of [
+      { dropped: -1, counted: 10 },
+      { dropped: 1.5, counted: 10 },
+      { dropped: 0, counted: -1 },
+      { dropped: 0, counted: 2.5 },
+      // 片方だけ・dropped が counted を超える・上限を超える
+      { dropped: 1 },
+      { counted: 10 },
+      { dropped: 11, counted: 10 },
+      { dropped: 0, counted: 10_000_001 },
+    ]) {
       const run = { ...VALID_RUN, frames: { ...frames, ...bad } }
       expect(DriveRunInputSchema.safeParse(run).success).toBe(false)
     }

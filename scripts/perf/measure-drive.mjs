@@ -6,7 +6,8 @@
 // 赤（前方に鹿）の間はブレーキ（Space）。衝突したら「もう一度」で走り直す。音は --mute-audio で出さない。
 // 場面ごとにブラウザを起動し直す（GPU のプログラムのキャッシュを場面の間で持ち越さない）。
 // rAF の間隔はページに差し込んだ requestAnimationFrame のループで取る（アプリの計測とは独立）。
-// フレームのタグ: settle（出発・やり直しから 2 秒。判定から除く）/ onset（赤が出てから 1 秒）/ danger / zone / approach。
+// フレームのタグ: ended（衝突・完走のバナーの間。判定から除く）/ settle（出発・やり直しから 2 秒。判定から除く）/
+// onset（赤が出てから 1 秒）/ danger / zone / approach。50 ms を超えたフレームは long に間隔とタグを残す。
 //
 // 使い方（Playwright はリポジトリの依存に入れていない。手元の npx のキャッシュなどを PLAYWRIGHT_DIR で指す）:
 //   npm --prefix apps/sim run build && npx --prefix apps/sim vite preview --port 5224 --strictPort
@@ -20,8 +21,7 @@
 // --scenes: カンマ区切りの URL のクエリ（既定は 既定・雪・紅葉の雨・夏の晴れ）。--query: 各場面に足すクエリ
 
 import { writeFileSync } from 'node:fs'
-import { homedir } from 'node:os'
-import { pathToFileURL } from 'node:url'
+import { launchOptions, loadPlaywright } from './lib.mjs'
 
 const args = Object.fromEntries(
   process.argv
@@ -74,17 +74,14 @@ const PASS = {
   pc1: { fpsP50: 59, msP95: 18.2, over33PerK: 1, msMax: 50, onsetOver: ['over33', 0] },
   phone: { fpsP50: 30, msP95: 34, over50PerK: 1, msMax: 100, onsetOver: ['over50', 0] },
 }
-const MIN_FRAMES = { approach: 600, zone: 300 }
+const MIN_FRAMES = { approach: 600, zone: 300, onset: 30 }
 
-const dir = (args.playwright ?? process.env.PLAYWRIGHT_DIR ?? 'playwright').replace(/^~/, homedir())
-const pw = await import(dir.includes('/') ? pathToFileURL(`${dir}/index.mjs`).href : dir)
+const pw = await loadPlaywright(args.playwright)
 
 const flags = ['--mute-audio', '--autoplay-policy=user-gesture-required']
 if (!VSYNC) flags.push('--disable-gpu-vsync', '--disable-frame-rate-limit')
 if (GPU) flags.push('--enable-gpu', '--ignore-gpu-blocklist')
 else flags.push('--use-angle=swiftshader', '--enable-unsafe-swiftshader')
-// CHROME_PATH: Playwright の版とブラウザの版が合わないとき、手元の Chromium を直接指す
-const executablePath = process.env.CHROME_PATH?.replace(/^~/, homedir())
 
 const profile = PROFILES[PROFILE]
 if (!profile) throw new Error(`unknown profile ${PROFILE}`)
@@ -101,6 +98,9 @@ const SAMPLER = () => {
     onsetUntil: 0,
     danger: false,
     locked: false,
+    ended: false,
+    /** 50 ms を超えたフレーム（間隔とタグ。どこで落ちたかを報告に書く） */
+    long: [],
   }
   globalThis.__perfSampler = s
   s.settle = () => {
@@ -111,13 +111,14 @@ const SAMPLER = () => {
     if (danger && !s.danger) s.onsetUntil = performance.now() + 1000
     s.danger = danger
     s.locked = Boolean(document.getElementById('drive-playback-locked'))
+    s.ended = Boolean(document.querySelector('.drive-hud__end'))
   }
   new MutationObserver(read).observe(document.body, { childList: true, subtree: true })
   const tick = (t) => {
     if (s.on && s.last > 0) {
-      s.dts.push(t - s.last)
-      s.tags.push(
-        t < s.settleUntil
+      const tag = s.ended
+        ? 'ended'
+        : t < s.settleUntil
           ? 'settle'
           : t < s.onsetUntil
             ? 'onset'
@@ -125,8 +126,10 @@ const SAMPLER = () => {
               ? 'danger'
               : s.locked
                 ? 'zone'
-                : 'approach',
-      )
+                : 'approach'
+      s.dts.push(t - s.last)
+      s.tags.push(tag)
+      if (t - s.last > 50) s.long.push({ ms: Math.round(t - s.last), tag })
     }
     s.last = t
     requestAnimationFrame(tick)
@@ -182,18 +185,24 @@ function judge(row) {
     if (s.msMax > pass.msMax) reasons.push(`${tag} 最大 ${s.msMax} ms > ${pass.msMax}`)
   }
   const [key, limit] = pass.onsetOver
-  if (row.onset && row.onset[key] > limit) reasons.push(`赤の出始め ${key} ${row.onset[key]}`)
+  // 赤の出始めを測れていない場面は合格にしない（鹿が出なかった・早送りで飛ばした）
+  if (!row.onset || row.onset.frames < MIN_FRAMES.onset)
+    reasons.push(`赤の出始めを測れていない（${row.onset?.frames ?? 0} < ${MIN_FRAMES.onset}）`)
+  else if (row.onset[key] > limit) reasons.push(`赤の出始め ${key} ${row.onset[key]}`)
   return reasons
 }
 
-const results = []
-for (const scene of SCENES) {
-  const browser = await pw.chromium.launch({
-    channel: 'chromium',
-    headless: true,
-    args: flags,
-    ...(executablePath ? { executablePath } : {}),
-  })
+/** 1 場面を測る（ブラウザは場面ごとに起動し、途中で落ちても必ず閉じる） */
+async function measureScene(scene) {
+  const browser = await pw.chromium.launch(launchOptions(flags))
+  try {
+    return await driveScene(browser, scene)
+  } finally {
+    await browser.close()
+  }
+}
+
+async function driveScene(browser, scene) {
   const context = await browser.newContext(contextOptions)
   const page = await context.newPage()
   if (cpu > 1) {
@@ -237,6 +246,8 @@ for (const scene of SCENES) {
       collisions += 1
       await page.keyboard.up('KeyW')
       await page.keyboard.up('Space')
+      // やり直しの作り直しのフレームも settle に入るよう、押す前に印を付ける
+      await page.evaluate(() => globalThis.__perfSampler.settle())
       await page.locator('.drive-hud__end .drive-hud__primary').click()
       await page.evaluate(() => globalThis.__perfSampler.settle())
       await page.keyboard.down('KeyW')
@@ -258,10 +269,10 @@ for (const scene of SCENES) {
     const s = globalThis.__perfSampler
     s.on = false
     const c = document.querySelector('.drive__scene canvas')
-    return { dts: s.dts, tags: s.tags, canvas: c ? [c.width, c.height] : null }
+    return { dts: s.dts, tags: s.tags, long: s.long, canvas: c ? [c.width, c.height] : null }
   })
   const byTag = {}
-  for (const tag of ['settle', 'approach', 'zone', 'onset', 'danger']) {
+  for (const tag of ['settle', 'approach', 'zone', 'onset', 'danger', 'ended']) {
     byTag[tag] = summarize(sample.dts.filter((_, i) => sample.tags[i] === tag))
   }
   const row = {
@@ -271,15 +282,28 @@ for (const scene of SCENES) {
     gpu: GPU,
     renderer,
     canvas: sample.canvas,
+    long: sample.long,
     collisions,
     ...byTag,
   }
   row.fail = judge(row)
+  return row
+}
+
+const results = []
+for (const scene of SCENES) {
+  let row
+  try {
+    row = await measureScene(scene)
+  } catch (error) {
+    // 1 場面が落ちても、ほかの場面は測る（落ちた場面は NG として残す）
+    row = { scene: scene || 'default', profile: PROFILE, fail: [`計測が落ちた: ${String(error)}`] }
+  }
   results.push(row)
   console.log(JSON.stringify(row))
-  await browser.close()
+  // 場面ごとに書き直す（途中で止めても測れた分は残る）
+  if (args.out) writeFileSync(args.out, JSON.stringify(results, null, 2))
 }
-if (args.out) writeFileSync(args.out, JSON.stringify(results, null, 2))
 const failed = results.filter((r) => r.fail && r.fail.length > 0)
 for (const r of failed) console.error(`NG ${r.profile} ${r.scene}: ${r.fail.join(' / ')}`)
 if (failed.length > 0) process.exitCode = 1

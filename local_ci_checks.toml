@@ -47,3 +47,10 @@ cmd = ["node", "scripts/perf/bundle-budget.mjs"]
 needs_path = "node_modules"
 hint = "遅延読込にするか、理由を functional.md R6 に書いて scripts/perf/bundle-budget.mjs の上限を上げる"
 timeout = 600
+
+# バンドルの上限のスクリプトの自己テスト（ビルドしない。共有のチャンク・遅延読込の口の扱い）
+[[check]]
+name = "sim bundle budget self-test"
+stack = "sim"
+cmd = ["node", "--test", "scripts/perf/bundle-budget.test.mjs"]
+hint = "scripts/perf/bundle-budget.mjs の resolveKey・closure・unknownDynamicEntries を直す"

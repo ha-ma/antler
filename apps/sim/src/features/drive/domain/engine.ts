@@ -107,7 +107,8 @@ export class DriveEngine {
 
   /** 1 フレーム進める。realDtMs は前のフレームからの実時間 */
   frame(realDtMs: number): SimEvent[] {
-    if (realDtMs > 0 && !this.current.playback.paused) {
+    // 数えるのは走っている間だけ（一時停止・終了のバナーの間は数えない。performance R1）
+    if (realDtMs > 0 && !this.current.playback.paused && this.current.outcome === 'driving') {
       this.frameMs.push(realDtMs)
       if (this.frameMs.length > MAX_FRAMES) this.frameMs.shift()
       this.frameTotals.counted += 1

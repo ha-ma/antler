@@ -8,8 +8,7 @@
 //   none:   制限なし
 // 使い方: PLAYWRIGHT_DIR=... [CHROME_PATH=...] node scripts/perf/measure-load.mjs --paths /plan,/drive --runs 3
 
-import { homedir } from 'node:os'
-import { pathToFileURL } from 'node:url'
+import { launchOptions, loadPlaywright } from './lib.mjs'
 
 const args = Object.fromEntries(
   process.argv
@@ -40,15 +39,8 @@ const NETWORK = {
   none: null,
 }
 
-const dir = (args.playwright ?? process.env.PLAYWRIGHT_DIR ?? 'playwright').replace(/^~/, homedir())
-const pw = await import(dir.includes('/') ? pathToFileURL(`${dir}/index.mjs`).href : dir)
-const executablePath = process.env.CHROME_PATH?.replace(/^~/, homedir())
-const browser = await pw.chromium.launch({
-  channel: 'chromium',
-  headless: true,
-  args: ['--mute-audio'],
-  ...(executablePath ? { executablePath } : {}),
-})
+const pw = await loadPlaywright(args.playwright)
+const browser = await pw.chromium.launch(launchOptions(['--mute-audio']))
 
 const median = (xs) => {
   const s = [...xs].sort((a, b) => a - b)
@@ -56,65 +48,73 @@ const median = (xs) => {
 }
 
 const rows = []
-for (const path of PATHS) {
-  for (const net of NETS) {
-    const runs = []
-    for (let i = 0; i < RUNS; i += 1) {
-      const context = await browser.newContext({
-        viewport: { width: 844, height: 390 },
-        deviceScaleFactor: 3,
-      })
-      const page = await context.newPage()
-      const cdp = await context.newCDPSession(page)
-      await cdp.send('Network.enable')
-      await cdp.send('Network.setCacheDisabled', { cacheDisabled: true })
-      const n = NETWORK[net]
-      if (n) {
-        await cdp.send('Network.emulateNetworkConditions', { offline: false, ...n, cpu: undefined })
-        await cdp.send('Emulation.setCPUThrottlingRate', { rate: n.cpu })
-      }
-      await page.addInitScript(() => {
-        globalThis.__lcp = 0
-        new PerformanceObserver((list) => {
-          for (const e of list.getEntries()) globalThis.__lcp = e.startTime
-        }).observe({ type: 'largest-contentful-paint', buffered: true })
-      })
-      // 写真など後から来る LCP の候補も入るよう、通信が止んでから 1 秒待つ
-      await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle', timeout: 90_000 })
-      await page.waitForTimeout(1000)
-      const m = await page.evaluate(() => {
-        const nav = performance.getEntriesByType('navigation')[0]
-        const fcp = performance.getEntriesByName('first-contentful-paint')[0]
-        const res = performance.getEntriesByType('resource')
-        const own = res.filter((r) => r.name.startsWith(location.origin))
-        const kb = (xs) =>
-          Math.round(
-            xs.reduce((a, r) => a + (r.transferSize || r.encodedBodySize || 0), 0) / 102.4,
-          ) / 10
-        return {
-          fcp: Math.round(fcp?.startTime ?? 0),
-          lcp: Math.round(globalThis.__lcp),
-          load: Math.round(nav?.loadEventEnd ?? 0),
-          jsKb: kb(own.filter((r) => r.name.endsWith('.js'))),
-          cssKb: kb(own.filter((r) => r.name.endsWith('.css'))),
-          jsFiles: own.filter((r) => r.name.endsWith('.js')).map((r) => r.name.split('/').pop()),
+// 途中で落ちてもブラウザを残さない
+try {
+  for (const path of PATHS) {
+    for (const net of NETS) {
+      const runs = []
+      for (let i = 0; i < RUNS; i += 1) {
+        const context = await browser.newContext({
+          viewport: { width: 844, height: 390 },
+          deviceScaleFactor: 3,
+        })
+        const page = await context.newPage()
+        const cdp = await context.newCDPSession(page)
+        await cdp.send('Network.enable')
+        await cdp.send('Network.setCacheDisabled', { cacheDisabled: true })
+        const n = NETWORK[net]
+        if (n) {
+          await cdp.send('Network.emulateNetworkConditions', {
+            offline: false,
+            ...n,
+            cpu: undefined,
+          })
+          await cdp.send('Emulation.setCPUThrottlingRate', { rate: n.cpu })
         }
-      })
-      runs.push(m)
-      await context.close()
+        await page.addInitScript(() => {
+          globalThis.__lcp = 0
+          new PerformanceObserver((list) => {
+            for (const e of list.getEntries()) globalThis.__lcp = e.startTime
+          }).observe({ type: 'largest-contentful-paint', buffered: true })
+        })
+        // 写真など後から来る LCP の候補も入るよう、通信が止んでから 1 秒待つ
+        await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle', timeout: 90_000 })
+        await page.waitForTimeout(1000)
+        const m = await page.evaluate(() => {
+          const nav = performance.getEntriesByType('navigation')[0]
+          const fcp = performance.getEntriesByName('first-contentful-paint')[0]
+          const res = performance.getEntriesByType('resource')
+          const own = res.filter((r) => r.name.startsWith(location.origin))
+          const kb = (xs) =>
+            Math.round(
+              xs.reduce((a, r) => a + (r.transferSize || r.encodedBodySize || 0), 0) / 102.4,
+            ) / 10
+          return {
+            fcp: Math.round(fcp?.startTime ?? 0),
+            lcp: Math.round(globalThis.__lcp),
+            load: Math.round(nav?.loadEventEnd ?? 0),
+            jsKb: kb(own.filter((r) => r.name.endsWith('.js'))),
+            cssKb: kb(own.filter((r) => r.name.endsWith('.css'))),
+            jsFiles: own.filter((r) => r.name.endsWith('.js')).map((r) => r.name.split('/').pop()),
+          }
+        })
+        runs.push(m)
+        await context.close()
+      }
+      const row = {
+        path,
+        net,
+        fcp: median(runs.map((r) => r.fcp)),
+        lcp: median(runs.map((r) => r.lcp)),
+        load: median(runs.map((r) => r.load)),
+        jsKb: runs[0].jsKb,
+        cssKb: runs[0].cssKb,
+        jsFiles: runs[0].jsFiles,
+      }
+      rows.push(row)
+      console.log(JSON.stringify(row))
     }
-    const row = {
-      path,
-      net,
-      fcp: median(runs.map((r) => r.fcp)),
-      lcp: median(runs.map((r) => r.lcp)),
-      load: median(runs.map((r) => r.load)),
-      jsKb: runs[0].jsKb,
-      cssKb: runs[0].cssKb,
-      jsFiles: runs[0].jsFiles,
-    }
-    rows.push(row)
-    console.log(JSON.stringify(row))
   }
+} finally {
+  await browser.close()
 }
-await browser.close()

@@ -58,6 +58,16 @@ describe('フレームの要約（performance R1）', () => {
     engine.frame(FRAME_60)
     expect(engine.frameSummary()).toMatchObject({ frames: 1, dropped: 0, counted: 1 })
   })
+
+  it('UC-1d: 終わった後（衝突・完走のバナーの間）のフレームは数えない', () => {
+    const engine = new DriveEngine(demoScenario(ZONES), ZONES)
+    engine.frame(FRAME_60)
+    // 終了の状態だけを作る（衝突までを走らせる代わり）
+    engine.world.outcome = 'collided'
+    engine.frame(500)
+    engine.frame(FRAME_60)
+    expect(engine.frameSummary()).toMatchObject({ frames: 1, dropped: 0, counted: 1 })
+  })
 })
 
 describe('開発用の表示の文字列（performance R2）', () => {
