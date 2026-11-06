@@ -13,7 +13,10 @@ fps = 60
 target_fps = 10       # 5〜10 に間引く（B2-1）
 
 [infer]
-model_path = ""       # YOLO の CoreML（.mlpackage）。空なら CoreML の検出器は作れない
+# YOLO の CoreML（.mlpackage）。相対パスはこのファイルのディレクトリから。空なら起動できない。
+# 実行（python -m detector）の候補: "models/yolo26n-deer-20261105-480.mlpackage"
+# （dev Mac から運ぶ。docs/runbooks/2026-11-06-mac-mini-edge-run.md）
+model_path = ""
 budget_ms = 100
 
 [coreml]
