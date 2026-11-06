@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { logger } from '@/shared/utils/logger'
 import type { CreateTripFailure } from '../types'
 
-// 「この旅を守りに行く」→ POST /api/trips（R5・R8）。
+// 「しおりを作って鹿ゾーンを確かめる」→ POST /api/trips（R5・R8）。
 // 押すごとに冪等キーを作り、入力と一緒に sessionStorage に残す。失敗後の「もう一度」は同じキーと入力で送り直す
 // （api は同じキーの 2 回目に作り終えた旅を返す）。成功したら消す。
 // ownerToken（A-7 の削除の権利）は作成時の 1 回しか受け取れないので、旅の id ごとに localStorage に残す（R7）。

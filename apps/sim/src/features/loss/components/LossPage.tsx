@@ -1,7 +1,7 @@
 import type { Lang } from '@antler/schema'
 import { formatBudget } from '@antler/trip'
 import { Link } from 'react-router'
-import { recordHref } from '@/features/record'
+import { RECORD_AFTER_COLLISION, recordHref } from '@/features/record'
 import { browserLang } from '@/shared/utils/browser-lang'
 import baseline from '../data/loss-baseline.json'
 import { assessLoss } from '../domain/assess-loss'
@@ -13,6 +13,7 @@ import { fillText, LOSS_TEXT } from '../text'
 import type { LossBaseline, ResolvedCollision, TripDay } from '../types'
 import { checkAgainstDay, resolveCollision } from '../utils/collision-url'
 import { clockOf, factSentence, placeName } from '../utils/format'
+import { dropSequence } from '../utils/drop'
 import { replayHref, retryHref } from '../utils/links'
 import { LossCard } from './LossCard'
 import { StatTile } from './StatTile'
@@ -109,6 +110,9 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
     from: placeName(leg?.from ?? '', lang),
     to: placeName(leg?.to ?? '', lang),
   })
+  // カードが DOM の順（＝読み上げ・Tab の順）に落ちて積み重なる（result-screens R2）。数え手は描画ごとに作る。
+  // 行を足すときは、DOM の位置で drop() を呼んで渡す
+  const drop = dropSequence()
 
   return (
     <div className="loss" data-theme="night" lang={htmlLang(lang)}>
@@ -128,13 +132,14 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
               </p>
             )}
           </div>
-          <StoryPanel collision={collision} lang={lang} />
+          <StoryPanel collision={collision} lang={lang} drop={drop()} />
           <section aria-labelledby="loss-metrics-heading">
             <h2 id="loss-metrics-heading" className="loss-visually-hidden">
               {t.metrics[lang]}
             </h2>
             <dl className="loss-tiles">
               <StatTile
+                drop={drop()}
                 label={t.tileVehicle[lang]}
                 value={formatBudget(loss.vehicle.averageJPY, lang)}
                 tone="clay"
@@ -143,6 +148,7 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
                 })}
               />
               <StatTile
+                drop={drop()}
                 label={t.tileCancel[lang]}
                 value={formatBudget(loss.cancel.jpy, lang)}
                 tone="clay"
@@ -160,6 +166,7 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
                 }
               />
               <StatTile
+                drop={drop()}
                 label={t.tileDays[lang]}
                 value={
                   <>
@@ -170,6 +177,7 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
                 note={fillText(t.daysNote[lang], { from: loss.days.fromDay, to: loss.days.toDay })}
               />
               <StatTile
+                drop={drop()}
                 label={fillText(t.tilePleasures[lang], { total: loss.pleasures.total })}
                 value={`${String(loss.pleasures.achieved)} / ${String(loss.pleasures.total)}`}
                 note={fillText(t.pleasuresNote[lang], {
@@ -179,7 +187,12 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
               />
             </dl>
           </section>
-          <nav className="loss-actions" aria-label={t.actions[lang]}>
+          {/* 導線は落とさず、並びの位置で静かに現れる（loss-drop--fade） */}
+          <nav
+            className="loss-actions loss-drop loss-drop--fade"
+            style={drop(0)}
+            aria-label={t.actions[lang]}
+          >
             <Link className="loss-button loss-button--primary" to={retryHref(collision)}>
               {collision.alertEnabled ? t.primaryOn[lang] : t.primaryOff[lang]}
             </Link>
@@ -192,7 +205,12 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
               </Link>
             </div>
             {/* A-7 の旅の記録（record）。その日は衝突として残る。A6-4 の 3 つより控えめに */}
-            <Link className="loss-record-link" to={recordHref(collision.tripId)}>
+            {/* 衝突のあとの合図を付ける。A-7 は祝い（クリア）を一切出さない（result-screens R4） */}
+            <Link
+              className="loss-record-link"
+              to={recordHref(collision.tripId)}
+              state={RECORD_AFTER_COLLISION}
+            >
               {t.toRecord[lang]}
             </Link>
           </nav>
@@ -203,8 +221,9 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
             title={details.titles[lang]}
             dayCount={plan.days.length}
             rows={rows}
+            drop={drop(-1.5)}
           />
-          <StatsCard lang={lang} />
+          <StatsCard lang={lang} drop={drop()} />
         </aside>
       </main>
     </div>

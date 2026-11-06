@@ -78,3 +78,38 @@ def test_uc1g_open_系は偽cv2を解像度とfps付きで使う(fake_cv2):
     video = open_video_file("a.mp4", start=T0)
     assert fake_cv2.opened_with[1] == "a.mp4"
     assert video.read().t_frame == T0
+
+
+class CountingCapture(FakeCapture):
+    def __init__(self, count: int = 3) -> None:
+        super().__init__(count)
+        self.releases = 0
+
+    def release(self) -> None:
+        self.releases += 1
+
+
+# RUN-4f（edge-run）
+def test_RUN_4f_カメラと動画のcloseは解放を1回だけ行う():
+    cam_cap = CountingCapture()
+    cam = CameraSource(cam_cap, clock=lambda: T0)
+    cam.read()
+    cam.close()
+    cam.close()
+    assert cam_cap.releases == 1
+    vid_cap = CountingCapture(count=1)
+    vid = VideoFileSource(vid_cap, fps=30, start=T0)
+    assert vid.read() is not None
+    assert vid.read() is None  # 尽きたら解放
+    vid.close()
+    assert vid_cap.releases == 1
+
+
+# RUN-4f（edge-run）
+def test_RUN_4f_読めなくなったカメラのあとのcloseも解放は1回(logbuf):
+    cap = CountingCapture(count=0)
+    cam = CameraSource(cap, clock=lambda: T0)
+    with pytest.raises(SourceError):
+        cam.read()
+    cam.close()
+    assert cap.releases == 1

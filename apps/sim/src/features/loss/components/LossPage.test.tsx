@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { formatBudget, placeById, STATS } from '@antler/trip'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -7,7 +10,11 @@ import { TRIP_ID, tripDayBody } from '@/test/trip-day'
 import baseline from '../data/loss-baseline.json'
 import type { ResolvedCollision } from '../types'
 import { lossHref } from '../utils/collision-url'
+import { LOSS_TEXT } from '../text'
 import { LossPage } from './LossPage'
+
+// vitest は CSS を空にして読む（?raw でも）ので、ファイルを直に読む
+const lossCss = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'loss.css'), 'utf8')
 
 // A-6 の画面（docs/specs/loss/functional.md AC-2・UC-1b・UC-2c・UC-2d・UC-4a・UC-5d・UC-5e・UC-7b、resilience.md の端末の行）。
 // api は fetch のスタブ。ペルソナの旅（5 日・4 人・楽しみ 2 件）の D2 の移動（鶴居 → 知床）で、タンチョウのあとに衝突。
@@ -94,6 +101,19 @@ function renderLoss(path: string) {
   return router
 }
 
+/** CSS の文字列から `head { … }` の中身を取り出す（入れ子の {} を数える） */
+function cssBlock(css: string, head: string): string {
+  const start = css.indexOf(`${head} {`)
+  if (start < 0) return ''
+  let depth = 0
+  for (let i = css.indexOf('{', start); i < css.length; i += 1) {
+    if (css[i] === '{') depth += 1
+    if (css[i] === '}') depth -= 1
+    if (depth === 0) return css.slice(start, i + 1)
+  }
+  return ''
+}
+
 const place = (id: string) => placeById(id)?.name.ja ?? id
 const TSURUI = place('tsurui')
 const SHIRETOKO = place('shiretoko')
@@ -162,7 +182,8 @@ describe('LossPage（A-6）', () => {
     stubApi(() => okDay())
     renderLoss(lossHref(collision))
     await heading()
-    expect(screen.getByRole('link', { name: '衝突の 3 秒前を見る' })).toHaveAttribute(
+    // TEXT-2 リプレイは見送り（result-screens R6）。文言は実際にすること（その日の最初から走り直す）
+    expect(screen.getByRole('link', { name: 'この日を最初から走り直す' })).toHaveAttribute(
       'href',
       `/drive?trip=${TRIP_ID}&day=2&alert=off&replay=${String(collision.simMs - 3000)}`,
     )
@@ -365,7 +386,7 @@ describe('LossPage（A-6）', () => {
       `/trip/${TRIP_ID}/brief?day=2`,
     )
     expect(screen.queryByText(/OFF でした/)).toBeNull()
-    expect(screen.getByRole('link', { name: '衝突の 3 秒前を見る' })).not.toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'この日を最初から走り直す' })).not.toHaveAttribute(
       'href',
       expect.stringContaining('alert=off') as unknown as string,
     )
@@ -407,6 +428,106 @@ describe('LOSS-1: しおりを読む前・失敗はブラウザの言語（i18n 
     renderLoss(lossHref(collision))
     expect(await screen.findByRole('status')).toHaveTextContent('正在載入行程表')
     expect(document.querySelector('main')).toHaveAttribute('lang', 'zh-Hant')
+  })
+
+  describe('落ちて積み重なる（docs/specs/result-screens/functional.md R2）', () => {
+    const dropOrder = (el: Element) =>
+      Number((el as HTMLElement).style.getPropertyValue('--loss-drop-i'))
+
+    it('DROP-2 カード（文の欄・4 指標・導線・しおり・統計）が DOM の順に 0 から抜けなく増える番号を持ち、見出しは持たない', async () => {
+      stubApi(() => okDay())
+      renderLoss(lossHref(collision))
+      const h1 = await heading()
+      const drops = [...document.querySelectorAll('.loss-drop')]
+      // 決まった番号を書かない（他のセッションが行を足しても通る）。DOM の順に 0, 1, 2 …
+      expect(drops.map(dropOrder)).toEqual(drops.map((_, i) => i))
+      expect(drops.length).toBeGreaterThanOrEqual(8)
+      // 何が落ちるか（文の欄 → 4 指標 → 導線 → しおり → 統計の順）
+      const kinds = drops.map((el) =>
+        el.classList.contains('loss-story')
+          ? 'story'
+          : el.classList.contains('loss-tile')
+            ? 'tile'
+            : el.classList.contains('loss-actions')
+              ? 'actions'
+              : el.classList.contains('loss-card')
+                ? 'card'
+                : el.classList.contains('loss-stats')
+                  ? 'stats'
+                  : 'other',
+      )
+      expect(kinds.filter((k) => k !== 'other')).toEqual([
+        'story',
+        'tile',
+        'tile',
+        'tile',
+        'tile',
+        'actions',
+        'card',
+        'stats',
+      ])
+      // 傾きは 1° 以内、しおりのカードは −1.5°
+      const card = screen.getByRole('region', { name: '旅のしおり' })
+      expect(card.style.getPropertyValue('--loss-tilt')).toBe('-1.5deg')
+      // 見出しは落ちない。遷移のフォーカスを受ける
+      expect(h1.closest('.loss-drop')).toBeNull()
+      expect(h1).toHaveFocus()
+    })
+
+    it('DROP-4 読み込み中・読めない画面には loss-drop が無い', async () => {
+      stubApi(() => 'hang')
+      renderLoss(lossHref(collision))
+      await screen.findByRole('status')
+      expect(document.querySelector('.loss-drop')).toBeNull()
+
+      stubApi(() => okDay())
+      renderLoss('/loss/x?day=abc')
+      await screen.findByRole('heading', { level: 1, name: '衝突の情報が読めません。' })
+      expect(document.querySelector('.loss-drop')).toBeNull()
+    })
+
+    it('DROP-3・DROP-5 loss.css: 動きを減らす設定は不透明度だけ、フォーカスが入ったら動きを止める', () => {
+      const css = lossCss
+      const reduced = cssBlock(css, '@media (prefers-reduced-motion: reduce)')
+      expect(reduced).toContain('animation-name: loss-fade')
+      expect(reduced).not.toMatch(/translate|scale/)
+      expect(cssBlock(css, '@keyframes loss-fade')).not.toContain('transform')
+      // フォーカスが入ったら止まった形で見せる。animation は外さない（外すと抜けたときに落ち直す）
+      const focused = cssBlock(css, '.loss-drop:focus-within')
+      expect(focused).toContain('opacity: 1 !important')
+      expect(focused).toContain('transform: rotate(var(--loss-tilt, 0deg)) !important')
+      expect(focused).not.toContain('animation')
+      // 喪失の画面の動きに alert-danger を使わない（✕ の行だけ）
+      expect(cssBlock(css, '@keyframes loss-drop')).not.toContain('alert-danger')
+    })
+  })
+
+  it('TEXT-2 副の導線の文言は 4 言語とも「この日を最初から走り直す」で、「3 秒前」を言わない（result-screens R6）', () => {
+    expect(LOSS_TEXT.replay).toEqual({
+      ja: 'この日を最初から走り直す',
+      en: 'Restart this day from the beginning',
+      zh: '從頭重跑這一天',
+      ko: '이 날을 처음부터 다시 달리기',
+    })
+    const all = Object.values(LOSS_TEXT).flatMap((entry) => Object.values(entry))
+    expect(all.filter((s) => /3 秒前|3 seconds|前 3 秒|3초 전/.test(s))).toEqual([])
+  })
+
+  it('LINK-1 「この旅の記録を見る」は衝突のあとの合図（location state）を付けて /t/:id へ移る（result-screens R4）', async () => {
+    const user = userEvent.setup()
+    stubApi(() => okDay())
+    const router = createMemoryRouter(
+      [
+        { path: '/loss/:id', element: <LossPage /> },
+        { path: '/t/:id', element: <p>record</p> },
+      ],
+      { initialEntries: [lossHref(collision)] },
+    )
+    renderWithProviders(<RouterProvider router={router} />)
+    await heading()
+    await user.click(screen.getByRole('link', { name: 'この旅の記録を見る' }))
+    expect(router.state.location.pathname).toBe(`/t/${TRIP_ID}`)
+    expect(router.state.location.state).toEqual({ arrival: 'after-collision' })
   })
 
   it('LOSS-1: en のブラウザで読めない URL は en', async () => {
