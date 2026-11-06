@@ -275,5 +275,6 @@ describe('出発の案内と結果（R7・R8）', () => {
     await userEvent.click(screen.getByRole('button', { name: '同じシードでもう一度' }))
     expect(frames.world()?.vehicle.s).toBe(frames.world()?.internal.stages[0]?.startM)
     expect(calls).toHaveLength(1)
-  })
+    // 単独で約 1.5 秒。全 workspace を並列で回すと既定の 5 秒を超えることがある（sfad-done で 5.4 秒）
+  }, 20_000)
 })
