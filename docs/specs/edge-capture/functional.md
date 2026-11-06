@@ -157,6 +157,7 @@ Story: 運転手として、鹿が出た場面の写真を、あとで自分で�
   5. 全部終わったら「N 件を提供しました（失敗 M 件）」と閉じるボタン
 - P4: 送るもの・送らないもの。送るのは Capture の JSON と画像だけ。端末の位置・識別子・クッキー・Referer を付けない。api の URL は `VITE_API_BASE_URL`（**必須**。本番の PWA は Mac mini の静的配信で `/api` が無いので、同じオリジンへの代わりは作らない。無ければ画面を出さない = `CaptureGate` は何も描かない）、edge の URL は WebSocket と同じホストの `capture_server.port`（8767。`?edge=host[:port]` の host だけを使う開発用の上書きは今の `resolveEdgeUrl` に合わせる）
   - **CSP（本番ビルド）**: `apps/pwa/vite.config.ts` の CSP に、`connect-src` と `img-src` へ edge の `http://ezoroad.local:8767`、`connect-src` へ `VITE_API_BASE_URL` のオリジンを足す（pwa-connect の「CSP を変えない」を、この feature で必要な 2 か所の追加に限って改める。spec-adversary C3）。`VITE_API_BASE_URL` が無ければ api の追加はしない。`apps/pwa/.env.example` に見本を足す
+    - **2026-11-06 pwa-https R5 で改めた**: edge の URL は WebSocket と同じく、ページのホスト（`VITE_EDGE_HOSTS` にあるとき）か一覧の先頭の 8767。ページが https なら `https://`。CSP の `connect-src`・`img-src` には一覧の各ホストの `https://h:8767` と `http://h:8767` が入る（既定のビルドでは `ezoroad.local` の 2 つ）。`[tls]` を設定すると CaptureServer は https で待ち受ける
 - P5: sim から呼べる形。`features/capture/lib/upload.ts` の `uploadCapture({baseUrl, capture, image, fetch})` は PWA にも sim にも依存しない純粋な関数（`fetch` を渡す）。欄名と応答の読み方はここだけ。sim が使うときに共有パッケージへ移す（Deferred）
 
 ## エラーパターン（api）
