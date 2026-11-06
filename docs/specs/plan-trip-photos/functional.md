@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: 107d7fe
+spec_confirmed_at: c603167
 tier: 1
 ---
 
@@ -43,6 +43,8 @@ main の取り込み（2026-11-06、og-font・YOLO の素材）で共有の CRED
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `app/routes.tsx`（画面ごとの遅延読込）を変えた。写真の出し方は変えていない。`packages/trip` は記録の形（`frames`）だけを変えた。
 
 > 2026-11-06 sdata-materials が CREDITS.md のデータ・素材の表に Mapillary の画像と 3D の鹿の行を足した。楽しみの写真の表は変えていない。
+
+> 2026-11-06 drive-sound-tourism が CREDITS.md の運転の音の行を CC0 の曲・効果音に替えた（`docs/specs/drive-sound-tourism/functional.md`）。楽しみの写真の表は変えていない。
 
 ## Example Map
 

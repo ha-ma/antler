@@ -10,7 +10,7 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
-spec_confirmed_at: 107d7fe
+spec_confirmed_at: c603167
 tier: 1
 ---
 
@@ -27,6 +27,8 @@ tier: 1
 **drive-audio-chat（2026-11-06）での変更**: CREDITS.md の素材の表に、運転の音（Web Audio の合成、自作）と車内の会話の固定の文（自作）の 2 行を足した（`docs/specs/drive-audio-chat/`）。この feature の挙動は変わらない。
 
 **sdata-materials（2026-11-06）での変更**: CREDITS.md に Mapillary の道東の画像（CC BY-SA 4.0、評価専用）と 3D の鹿 M01〜M04（CC0）の行を足した（`docs/reports/2026-11-06-sdata-research.md`）。この feature の挙動は変わらない。
+
+**drive-sound-tourism（2026-11-06）での変更**: CREDITS.md の運転の音の行を、CC0 の曲 3 曲・タイヤの鳴き・衝突の録音と、自作の合成（エンジン・通知音・ドスン）に替えた（`docs/specs/drive-sound-tourism/`）。この feature の挙動は変わらない。
 
 ## 概要
 
