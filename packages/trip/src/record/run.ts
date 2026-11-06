@@ -49,6 +49,25 @@ export const FrameSummarySchema = z
     { message: 'dropped and counted must both be present or both absent, with dropped <= counted' },
   )
 
+/** 1 回の run の鹿の発見の上限（見えた頭数。遭遇の上限より大きい: 目の反射だけの鹿・路肩の鹿も入る） */
+export const MAX_SPOTTED_PER_RUN = 999
+
+/**
+ * 鹿の発見（drive-crash-spot R4・A5-5）。appeared は一度でも見えた頭数、found は利用者が見つけた頭数、
+ * early はそのうち車の前 60 m 以上で見つけた頭数。early ≤ found ≤ appeared
+ */
+export const SpottingSchema = z
+  .strictObject({
+    appeared: z.number().int().min(0).max(MAX_SPOTTED_PER_RUN),
+    found: z.number().int().min(0).max(MAX_SPOTTED_PER_RUN),
+    early: z.number().int().min(0).max(MAX_SPOTTED_PER_RUN),
+  })
+  .refine((s) => s.early <= s.found && s.found <= s.appeared, {
+    // 利用者に出ない検証の文（API の 400 の詳細）
+    message: 'spotting must satisfy early <= found <= appeared',
+  })
+export type Spotting = z.infer<typeof SpottingSchema>
+
 export const DriveRunInputSchema = z.strictObject({
   /** 端末が作る UUID（crypto.randomUUID）。同じ runId の再送は 1 件として扱う */
   runId: z.uuid(),
@@ -58,6 +77,8 @@ export const DriveRunInputSchema = z.strictObject({
   /** その走行で入った鹿ゾーンの区間の数 */
   zonePasses: z.number().int().min(0).max(MAX_ZONE_PASSES),
   encounters: z.array(DriveEncounterSchema).max(MAX_ENCOUNTERS_PER_RUN),
+  /** 鹿の発見（drive-crash-spot R4）。足す前に保存した run には無いので省略を許す */
+  spotting: SpottingSchema.optional(),
   /** 描画のフレーム時間の要約（ch6「requestAnimationFrame 計測を A-7 に記録」）。無ければ null */
   frames: FrameSummarySchema.nullable(),
 })

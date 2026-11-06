@@ -52,4 +52,15 @@ describe('toDriveRun', () => {
     expect(run.encounters[0]).toMatchObject({ closestM: 500, alertToBrakeMs: null })
     expect(toDriveRun(result).runId).not.toBe(toDriveRun(result).runId)
   })
+
+  it('UC-4i（drive-crash-spot）: 鹿の発見をそのまま残し、無い・範囲外なら欄ごと送らない（保存を 400 にしない）', () => {
+    const spotting = { appeared: 5, found: 3, early: 1 }
+    const run = toDriveRun({ ...result, spotting })
+    expect(DriveRunInputSchema.safeParse(run).success).toBe(true)
+    expect(run.spotting).toEqual(spotting)
+    expect('spotting' in toDriveRun(result)).toBe(false)
+    const bad = toDriveRun({ ...result, spotting: { appeared: 1, found: 3, early: 0 } })
+    expect('spotting' in bad).toBe(false)
+    expect(DriveRunInputSchema.safeParse(bad).success).toBe(true)
+  })
 })

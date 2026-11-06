@@ -29,6 +29,8 @@ export type RecordView = {
   keptEmpty: string
   logHeading: string
   logEmpty: string
+  /** 鹿の発見の 1 行（drive-crash-spot R4）。合計が無い・見えた鹿が 0 なら null */
+  spotting: string | null
   log: { when: string; what: string; brake: string; tone: LogTone; outcomeLabel: string }[]
   shiori: {
     heading: string
@@ -116,6 +118,10 @@ export function buildRecordView(trip: RecordTrip, record: TripRecord): RecordVie
     keptEmpty: t('keptEmpty'),
     logHeading: t('logHeading', { n: record.log.length }),
     logEmpty: t('logEmpty'),
+    spotting:
+      totals.spotting && totals.spotting.appeared > 0
+        ? t('spotting', { ...totals.spotting })
+        : null,
     log: record.log.map((l) => {
       const tone: LogTone =
         l.outcome === 'collided' ? 'collided' : l.closeCall ? 'closeCall' : 'avoided'

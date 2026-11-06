@@ -89,7 +89,7 @@ describe('drive-link 受け入れ（場面）', () => {
         }
       }
     }
-    // ステージごとに、入口の手前 50 m まで飛んで出口まで走る（5 km の手前を全部は走らない。テストを軽くする）。
+    // ステージごとに、入口の手前 50 m まで飛んで出口まで走る（1 km の手前を全部は走らない。テストを軽くする）。
     // 出口を越えるとステージをクリアして次のステージの始まりへ移り、最後のクリアで completed（drive-tune R1）
     for (const st of w.internal.stages) {
       const first = w.plan.intervals[st.intervals[0] ?? 0]

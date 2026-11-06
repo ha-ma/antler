@@ -88,6 +88,13 @@ export const RECORD_TEXT = {
     zh: '沒有遇到鹿。',
     ko: '사슴을 만나지 않았습니다.',
   },
+  /** 鹿の発見の 1 行（drive-crash-spot R4）。{found}・{appeared}・{early} */
+  spotting: {
+    ja: '自分で見つけた鹿 {found} / {appeared} 頭（60 m より前で {early} 頭）',
+    en: 'Deer you spotted: {found} / {appeared} ({early} more than 60 m ahead)',
+    zh: '自己發現的鹿 {found} / {appeared} 頭（60 公尺以外 {early} 頭）',
+    ko: '직접 발견한 사슴 {found} / {appeared}마리 (60 m 앞에서 {early}마리)',
+  },
   patternRoadside: {
     ja: '路肩に静止',
     en: 'Standing at the roadside',

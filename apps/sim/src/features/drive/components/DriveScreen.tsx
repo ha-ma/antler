@@ -20,16 +20,18 @@ import './drive.css'
 type PageProps = ComponentProps<typeof DrivePage>
 
 type Props = {
-  /** 衝突・完走したときに走行の結果を渡す（A-6・A-7 が使う） */
+  /** 衝突・完走したフレームで走行の結果を渡す（A-6・A-7 が使う。run の保存はここで） */
   onFinish?: PageProps['onFinish']
+  /** 衝突の演出が終わったときに 1 回だけ呼ぶ（A-6 への移動はここで。drive-crash-spot R3） */
+  onCrashEnd?: PageProps['onCrashEnd']
   /** テストで差し替える（jsdom には WebGL が無い）。DrivePage にそのまま渡す */
   canvas?: PageProps['canvas']
   webgl2?: PageProps['webgl2']
 }
 
-export function DriveScreen({ onFinish, canvas, webgl2 }: Props) {
+export function DriveScreen({ onFinish, onCrashEnd, canvas, webgl2 }: Props) {
   const params = useDriveParams()
-  const page = { onFinish, canvas, webgl2 }
+  const page = { onFinish, onCrashEnd, canvas, webgl2 }
   if (params.kind === 'demo') {
     const search = params.search
     return (

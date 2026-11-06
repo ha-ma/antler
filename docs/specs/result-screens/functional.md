@@ -12,11 +12,13 @@ target_paths:
   - apps/sim/src/features/record/hooks/useTripRecord.ts
   - apps/sim/src/features/record/text.ts
   - apps/sim/src/features/record/index.ts
-spec_confirmed_at: 0aa0bc1
+spec_confirmed_at: d986329
 tier: 1
 ---
 
 # 仕様: result-screens（A-1 の送信ボタンの文言、A-6 の「落ちて積み重なる」、A-7 の「クリア」）
+
+> 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md` R4）が A-6 の導入（`loss-intro`）に鹿の発見の 1 行（`data-testid="loss-spotting"`、URL の `spot` があるときだけ）、A-7 の導入（`record-intro`）に 1 行（`record-spotting`）を足した。落ちて積み重なるカード・クリアの演出には入れていない（導入の中の静的な行）。並べ方・演出に入れるかはこの feature で決めてよい。
 
 ## 概要
 

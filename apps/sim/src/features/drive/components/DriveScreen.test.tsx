@@ -2,7 +2,6 @@ import { AlertSoundController } from '@antler/alert-ui'
 import { placeById } from '@antler/trip'
 import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '@/test/render'
@@ -59,14 +58,10 @@ type Frames = { onFrame: (dt: number) => void; world: () => World | null }
 
 function renderDrive(path: string, onFinish?: (r: DriveResult) => void) {
   const frames: Frames = { onFrame: () => undefined, world: () => null }
-  const canvas = (props: {
-    world: () => World
-    phone: ReactNode
-    onFrame: (dt: number) => void
-  }) => {
+  const canvas = (props: { world: () => World; onFrame: (dt: number) => void }) => {
     frames.onFrame = props.onFrame
     frames.world = props.world
-    return <div data-testid="phone">{props.phone}</div>
+    return <div data-testid="scene" />
   }
   vi.spyOn(AlertSoundController.prototype, 'unlock').mockResolvedValue(true)
   const router = createMemoryRouter(

@@ -178,7 +178,28 @@ describe('drive-link の DriveResult から A-6 へ（R1）', () => {
     encounters: [],
     inputs: [],
     frames: null,
+    spotting: { appeared: 0, found: 0, early: 0 },
   }
+
+  it('UC-4h（drive-crash-spot）: 見えた鹿があれば spot=found.early.appeared を往復する。形・範囲が違う spot は読まずにほかの欄は読む', () => {
+    const c = lossReportFromDrive({
+      ...driveResult,
+      spotting: { appeared: 5, found: 3, early: 1 },
+    })
+    if (!c) throw new Error('null')
+    expect(c.spotting).toEqual({ appeared: 5, found: 3, early: 1 })
+    const href = lossHref(c)
+    expect(href).toContain('spot=3.1.5')
+    expect(roundTrip(href)).toEqual(c)
+    const base = href.replace(/&spot=[^&]*/, '')
+    for (const bad of ['4.1.3', '1.2.5', '01.0.5', '1.0', 'a.b.c', '1000.0.1000', '0.0.0']) {
+      const parsed = roundTrip(`${base}&spot=${bad}`)
+      expect(parsed).not.toBeNull()
+      expect(parsed?.spotting).toBeUndefined()
+    }
+    // 同じ名前が 2 回は、ほかの欄と同じく形の違い
+    expect(roundTrip(`${href}&spot=1.0.5`)).toBeNull()
+  })
 
   it('UC-1c: 衝突した走行 → 速さ・光・側・経過・済ませた楽しみは null の CollisionReport。URL を往復しても同じ', () => {
     const c = lossReportFromDrive(driveResult)

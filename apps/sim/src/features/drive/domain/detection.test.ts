@@ -8,6 +8,8 @@ import {
   DETECT_TICK_MS,
   detectProbability,
   INITIAL_DETECTOR,
+  NEAR_DELAY_MAX_MS,
+  NEAR_DELAY_MIN_MS,
   stepDetector,
   type CameraPose,
   type DetectorState,
@@ -104,6 +106,33 @@ describe('フラグ（R6）', () => {
       expect(first?.sighting).toEqual(deer)
       expect(run((t) => (t >= 1000 ? [deer] : []), 3000, seed)).toEqual(log)
     }
+  })
+
+  it('UC-6c（drive-crash-spot R5）: 至近の飛び出し（near）の鹿は 80〜150 ms 後に deer:true。ほかの鹿は 150〜400 ms のまま', () => {
+    const near: Sighting = { deerId: 'a', distanceM: 25, side: 'R', near: true }
+    const delays = new Set<number>()
+    for (let seed = 1; seed <= 50; seed++) {
+      const log = run((t) => (t >= 1000 ? [near] : []), 3000, seed)
+      const delay = (log[0]?.t ?? 0) - 1000
+      expect(delay).toBeGreaterThanOrEqual(NEAR_DELAY_MIN_MS)
+      // 判定は 0.1 秒ごとなので、150 ms の遅延は次の判定（200 ms）で出る
+      expect(delay).toBeLessThanOrEqual(200)
+      delays.add(delay)
+    }
+    expect(Math.max(...delays)).toBeLessThan(DELAY_MAX_MS)
+    expect(NEAR_DELAY_MIN_MS).toBe(80)
+    expect(NEAR_DELAY_MAX_MS).toBe(150)
+  })
+
+  it('UC-6b（drive-crash-spot R5）: 至近の飛び出しの鹿は、最初の抽選から近い帯（30 m 未満）の確率で引く。ほかの鹿は距離の帯のまま', () => {
+    // 0.8 は帯 0（0.5）では外れ、近い帯（0.875）では当たる
+    const draw = (near: boolean) => {
+      const s: Sighting = { deerId: 'a', distanceM: 90, side: 'R', near }
+      return stepDetector(INITIAL_DETECTOR, 100, [s], 0.5, () => 0.8).state
+    }
+    expect(draw(true).captured.a).toBe(true)
+    expect(draw(true).bands.a).toBe(2)
+    expect(draw(false).captured.a).toBe(false)
   })
 
   it('UC-6d: どの鹿も検知していない時間が 1.5 秒続くと deer:false。deriveAlertState は zone に戻る', () => {

@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/src/features/drive/components/season-text.ts
   - packages/trip/src/day/conditions.ts
   - packages/trip/src/day/schema.ts
-spec_confirmed_at: 38693f1
+spec_confirmed_at: c7cea1f
 tier: 1
 ---
 
@@ -31,6 +31,8 @@ tier: 1
 **drive-deer（2026-11-06、先にマージ）との合流**: 鹿の数・動き・検知の画角が drive-deer で変わった。この仕様の景色・ブレーキ（UC-4a・UC-4b の停止距離）はその上でも同じ値で通ることを、合流の後に確かめた。
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `scene/`（DPR の自動の段・3D のチャンクの読み込み口）と `engine.ts` を変えた。季節・路面・天気の粒（雪 2,000・雨 1,500）・霧は変えていない（実測で 60 fps を保ったため。申し送りの W1〜W3 は performance R4 で「直さない」と判断した）。
+
+> 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md`）が `scene/`（車内のスマホの本体と台を外した・衝突のカメラの揺れ・鹿のタップ）と `domain/`（1 km 手前から・検知・発見）を変えた。季節・路面・天気・ブレーキは変えていない。
 
 ## Example Map
 

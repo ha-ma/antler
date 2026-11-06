@@ -69,7 +69,7 @@ describe('車内の計器とミラー（drive-tune R5、smoke）', () => {
     world.vehicle.abs = true
     world.powertrain = { gear: 3, rpm: 2100 }
     const renderer = await ReactThreeTestRenderer.create(
-      <DriveScene world={() => world} phone={null} onFrame={() => {}} />,
+      <DriveScene world={() => world} onSpot={() => {}} onFrame={() => {}} />,
     )
     await frames(renderer, 2)
 
@@ -94,7 +94,7 @@ describe('車内の計器とミラー（drive-tune R5、smoke）', () => {
   it('ミラーは後ろ向きのカメラの映像（描画先のテクスチャ）を左右反転して貼る', async () => {
     const world: World = createWorld(demoScenario(ZONES), ZONES)
     const renderer = await ReactThreeTestRenderer.create(
-      <DriveScene world={() => world} phone={null} onFrame={() => {}} />,
+      <DriveScene world={() => world} onSpot={() => {}} onFrame={() => {}} />,
     )
     await frames(renderer, 3)
     const mirror = byName(renderer, 'rear-mirror')[0]?.instance as Mesh | undefined

@@ -102,7 +102,7 @@ describe('DriveScene の季節と天気（drive-season R3・R6）', () => {
       const world: World = createWorld(scenario, ZONES)
       world.vehicle.s = 2000
       const renderer = await ReactThreeTestRenderer.create(
-        <DriveScene world={() => world} phone={null} onFrame={() => {}} />,
+        <DriveScene world={() => world} onSpot={() => {}} onFrame={() => {}} />,
       )
       await frames(renderer, 2)
       // 名前の付いた Object3D だけ（fog・color などは名前を持たない）
@@ -135,7 +135,7 @@ describe('DriveScene（R12、smoke）', () => {
     world.vehicle.s = 2000
     const onFrame = vi.fn()
     const renderer = await ReactThreeTestRenderer.create(
-      <DriveScene world={() => world} phone={null} onFrame={onFrame} />,
+      <DriveScene world={() => world} onSpot={() => {}} onFrame={onFrame} />,
     )
     await frames(renderer, 2)
     expect(onFrame).toHaveBeenCalled()
@@ -170,13 +170,19 @@ describe('DriveScene（R12、smoke）', () => {
     await renderer.unmount()
   })
 
-  it('smoke: スマホの中身（phone）を渡しても落ちない（Html は車内のスマホの板に付く）', async () => {
+  it('UC-2b（drive-crash-spot R2）: 車内のスマホは 3D に置かない（画面に固定した HUD に出す）。車内の部品にスマホ・台が無い', async () => {
     const world: World = createWorld(demoScenario(ZONES), ZONES)
+    world.vehicle.s = 2000
     const renderer = await ReactThreeTestRenderer.create(
-      <DriveScene world={() => world} phone={<div>phone</div>} onFrame={() => {}} />,
+      <DriveScene world={() => world} onSpot={() => {}} onFrame={() => {}} />,
     )
     await frames(renderer, 2)
     expect(renderer.scene.findAll((node) => node.instance.name === 'cabin')).toHaveLength(1)
+    expect(
+      renderer.scene.findAll(
+        (node) => typeof node.instance.name === 'string' && /phone/i.test(node.instance.name),
+      ),
+    ).toHaveLength(0)
     await renderer.unmount()
   })
 
@@ -185,7 +191,7 @@ describe('DriveScene（R12、smoke）', () => {
     world.vehicle.s = 2000
     world.deer = [deer('d0-3-0', 2050, -1.75, { heading: Math.PI, pose: 'idle' })]
     const renderer = await ReactThreeTestRenderer.create(
-      <DriveScene world={() => world} phone={null} onFrame={() => {}} />,
+      <DriveScene world={() => world} onSpot={() => {}} onFrame={() => {}} />,
     )
     await frames(renderer, 2)
     // 鹿の頭（deer の中の group）に付いた光の板

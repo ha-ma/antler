@@ -229,8 +229,6 @@ export const CABIN = {
   navRoute: TOKEN.spruceNight,
   navWater: TOKEN.mapWaterNight,
   navCar: TOKEN.inkNight,
-  phoneBody: '#0D1011',
-  phoneMount: '#202527',
   /** 車内の自発光（暗い時間に真っ黒にならないための下駄） */
   ambientGlow: '#2A3330',
 } as const

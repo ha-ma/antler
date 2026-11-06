@@ -65,7 +65,7 @@ function driveToEnd(w: World, cruiseKmh: number): SimEvent[] {
 const candidateOf = (deerId: string) => deerId.split('-').slice(0, 2).join('-')
 
 describe('drive-deer 受け入れ', () => {
-  it('AC-1: 見本の場面を慎重な運転者（30 km/h）で走ると、区間ごとに 3〜8 回の遭遇があり、区間は 8 km 以下、5 km 手前から出口でクリアする', () => {
+  it('AC-1: 見本の場面を慎重な運転者（30 km/h）で走ると、区間ごとに 3〜8 回の遭遇があり、区間は 8 km 以下、手前（drive-crash-spot で 1 km）から出口でクリアする', () => {
     const w = createWorld(demoScenario(ZONES), ZONES)
     for (const v of w.plan.intervals) expect(v.exitKm - v.entryKm).toBeLessThanOrEqual(8 + 1e-9)
     const events = driveToEnd(w, 30)

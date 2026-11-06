@@ -101,6 +101,7 @@ function snapshot(over: Partial<DriveSnapshot> & { km: number; inZone?: boolean 
     stage: { index: 1, count: 1 },
     stageClearedAt: null,
     destination: { km: 40, etaMs: 0 },
+    spotting: { appeared: 0, found: 0, early: 0 },
     ...rest,
   }
 }
