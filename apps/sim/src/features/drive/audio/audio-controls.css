@@ -53,3 +53,20 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* 小さい画面（mobile-landscape R1）: 右の列の幅に収める。スライダーが縮み、ボタンの文字は折り返さない */
+@media (max-width: 1100px), (max-height: 560px) {
+  .drive-audio {
+    max-width: 100%;
+  }
+
+  .drive-audio__volume {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 64px;
+  }
+
+  .drive-audio__button {
+    white-space: nowrap;
+  }
+}
