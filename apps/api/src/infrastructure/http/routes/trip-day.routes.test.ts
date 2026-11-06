@@ -18,6 +18,7 @@ import { DrizzleTripRepository } from '../../repositories/drizzle-trip.repositor
 import { SystemClock } from '../../system/system-clock.js'
 import { createApp } from '../app.js'
 import { TRIP_DAYS_PER_MINUTE_PER_IP } from './trip-day.routes.js'
+import { SLOW_TEST_MS } from '../../../../tests/factories/stop-events.js'
 
 // GET /api/trips/:id/day/:n の e2e（Hono の app.request ＋ 一時ファイルの SQLite ＋ 同梱データ）。
 // docs/specs/brief-map/functional.md AC-1・UC-5、threat.md AUTH-1〜AUTH-4
@@ -80,7 +81,8 @@ async function setup() {
   return { get, plan }
 }
 
-describe('GET /api/trips/:id/day/:n', () => {
+// 全日を 2 回ずつ組み立てるので、全 workspace を並列で回すと既定の 5 秒を超えることがある（sfad-done で 5.3 秒）
+describe('GET /api/trips/:id/day/:n', { timeout: SLOW_TEST_MS }, () => {
   it('AC-1 / AUTH-1: ヘッダなしで全日 200。形が正しく、ゾーンを通る日があり、時刻と移動の順がそろい、2 回目も同じ', async () => {
     const { get, plan } = await setup()
     let passages = 0
