@@ -5,7 +5,7 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 7435a29
+spec_confirmed_at: c7cea1f
 tier: 2
 ---
 
@@ -36,6 +36,8 @@ A-1 の画面で、人数・日程・出発地・楽しみを選ぶと、その�
 **範囲外**: `GET /api/trips/{id}/day/{n}`・地図（brief-map。`/trip/:id/brief` の仮の画面は brief-map が本物の A-2 に置き換えた。2026-11-03）、`/t/{id}` と削除の画面・API（record）、出来事の文（stop-events）、喪失文（loss）。
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `app/routes.tsx` を変えた。A-1（`/plan`）は入口のチャンクに残し、ほかの画面をルートの `lazy` で読む（A-1 の初回読込の JS が 222.6 → 185.1 KB）。A-1 の振る舞いは変えていない。`packages/trip` の記録の形（`frames` の `dropped`・`counted`）も同じ PR で足したが、行程の形は変えていない。
+
+> 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md`）が `packages/trip` の記録（run の省略できる `spotting`・集計・A-7 の 1 行）を変えた。旅の作り方・行程の形は変えていない。
 
 ## Example Map
 
