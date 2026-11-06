@@ -2,7 +2,7 @@
 feature: drive-tune
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 999f968
+spec_confirmed_at: e67bbea
 tier: 1
 ---
 
