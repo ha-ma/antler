@@ -2,13 +2,13 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: f43b292
+spec_confirmed_at: 999f968
 tier: 1
 ---
 
 # 仕様: drive-link（A-1・A-2 で作った旅を運転 A-3 へ渡す）
 
-> 2026-11-06 drive-tourism が場面の `stops`・`to`・`startAt` を読んで、会話とおすすめのカードの楽しみを選ぶ（`docs/specs/drive-tourism/functional.md` T9・T12）。この仕様のルール（旅の渡し方）は変えていない。
+> 2026-11-06 drive-tourism が場面の `stops`・`to`・`startAt` を読んで、会話とおすすめのカードの楽しみを選ぶ（`docs/specs/drive-tourism/functional.md` T9・T12）。UC-5b のテストに時間の上限（20 秒）を付けた。この仕様のルール（旅の渡し方）は変えていない。
 
 ## 概要
 
