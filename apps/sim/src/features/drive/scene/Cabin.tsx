@@ -3,7 +3,6 @@ import { useMemo, useRef, type ReactNode } from 'react'
 import { Color, type Group, MeshBasicMaterial, MeshLambertMaterial, type Mesh } from 'three'
 import { CABIN, SKY } from './palette'
 import {
-  METER_CENTER,
   NAV_CENTER,
   PHONE_CENTER,
   PHONE_TILT_RAD,
@@ -12,16 +11,17 @@ import {
   WHEEL_TILT_RAD,
   buildCabinShell,
   buildNavScreen,
-  buildNeedle,
   buildPhoneBody,
   buildWheel,
-  meterAngle,
 } from './cabin-models'
+import { Dashboard } from './Dashboard'
 import { PhoneScreenHtml } from './PhoneScreenHtml'
+import { RearMirror } from './RearMirror'
 import { PRIORITY, useSceneFrame } from './frame-state'
 
 // 右ハンドルの車内（R10・A3-1）。車に付いて動き、視線（DriverCamera）だけが中で回る。
-// ハンドルは A/D で回り、速度計の針は車の速さを指す。数字は HUD（DOM）が出すので、3D には文字を置かない。
+// ハンドルは A/D で回る。メーター（Dashboard）は速度・回転・ギア・時計・気温・ABS・ナビを canvas の文字盤に出し
+// （drive-tune R5。drive-3d の「3D に文字を置かない」を改めた）、ルームミラー（RearMirror）は後ろの映像を映す。
 
 /** ハンドルの最大の切れ角（rad）と、追いつく時定数（s） */
 const WHEEL_MAX_RAD = 1.1
@@ -33,13 +33,11 @@ export function Cabin({ phone }: Props) {
   const scene = useSceneFrame()
   const root = useRef<Group>(null)
   const wheel = useRef<Mesh>(null)
-  const needle = useRef<Mesh>(null)
   const steer = useRef(0)
   const parts = useMemo(
     () => ({
       shell: buildCabinShell(),
       wheel: buildWheel(),
-      needle: buildNeedle(),
       nav: buildNavScreen(),
       phone: buildPhoneBody(),
     }),
@@ -73,7 +71,6 @@ export function Cabin({ phone }: Props) {
     steer.current += (target - steer.current) * (1 - Math.exp(-Math.min(delta, 0.1) / WHEEL_EASE_S))
     // 右へ切ると時計回り（運転者から見て）。輪は +Z が運転者の方なので rotation.z は負
     if (wheel.current) wheel.current.rotation.z = -steer.current
-    if (needle.current) needle.current.rotation.z = meterAngle(Math.abs(world.vehicle.speed) * 3.6)
   }, PRIORITY.place)
 
   return (
@@ -82,12 +79,8 @@ export function Cabin({ phone }: Props) {
       <group position={[...WHEEL_CENTER]} rotation={[WHEEL_TILT_RAD, 0, 0]}>
         <mesh ref={wheel} geometry={parts.wheel} material={materials.interior} />
       </group>
-      <mesh
-        ref={needle}
-        geometry={parts.needle}
-        material={materials.lit}
-        position={[...METER_CENTER]}
-      />
+      <Dashboard />
+      <RearMirror />
       <mesh
         geometry={parts.nav}
         material={materials.lit}

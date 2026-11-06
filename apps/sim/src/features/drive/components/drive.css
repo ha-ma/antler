@@ -10,6 +10,8 @@
   font-family: var(--font-sans);
   font-size: var(--body-size);
   line-height: var(--body-line);
+  /* 右側は車内の会話の表示（drive-audio-chat）のために空ける幅（drive-tune R4。HUD はここに置かない） */
+  --drive-chat-w: 360px;
 }
 
 .drive__scene {
@@ -39,10 +41,78 @@
 }
 
 /* 左上のゾーン状態 */
-.drive-hud__zone {
+/* 左の列: ゾーン状態と、いまの区間の案内（drive-tune R4） */
+.drive-hud__left {
   position: absolute;
   top: var(--space-5);
   left: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: 360px;
+}
+
+.drive-hud__route {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+}
+
+.drive-hud__route p {
+  margin: 0;
+}
+
+.drive-hud__route-leg {
+  font-weight: var(--heading-weight);
+}
+
+.drive-hud__route-title {
+  margin: var(--space-2) 0 0;
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-line);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+  color: var(--ink-muted);
+}
+
+.drive-hud__route-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drive-hud__route-list li {
+  display: flex;
+  flex-direction: column;
+}
+
+.drive-hud__route-note {
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  color: var(--ink-muted);
+}
+
+/* ステージのクリアの帯（drive-tune R1） */
+.drive-hud__stage {
+  position: absolute;
+  top: 120px;
+  left: calc((100% - var(--drive-chat-w)) / 2);
+  transform: translateX(-50%);
+  margin: 0;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-l);
+  background: var(--spruce);
+  color: var(--on-spruce);
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+  white-space: nowrap;
+}
+
+.drive-hud__zone {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -68,7 +138,7 @@
 .drive-hud__top {
   position: absolute;
   top: var(--space-5);
-  left: 50%;
+  left: calc((100% - var(--drive-chat-w)) / 2);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -135,11 +205,12 @@
 .drive-hud__bottom {
   position: absolute;
   left: var(--space-5);
-  right: var(--space-5);
+  right: calc(var(--drive-chat-w) + var(--space-5));
   bottom: var(--space-5);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  flex-wrap: wrap;
   gap: var(--space-4);
 }
 
@@ -175,7 +246,7 @@
 }
 
 .drive-hud__speed {
-  margin: 0 0 0 auto;
+  margin: 0;
   padding: var(--space-1) var(--space-4);
   border-radius: var(--radius-m);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
@@ -191,7 +262,7 @@
 .drive-hud__banner {
   position: absolute;
   top: 120px;
-  left: 50%;
+  left: calc((100% - var(--drive-chat-w)) / 2);
   transform: translateX(-50%);
   margin: 0;
   padding: var(--space-2) var(--space-5);

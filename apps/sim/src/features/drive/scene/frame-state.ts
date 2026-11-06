@@ -13,6 +13,8 @@ export const PRIORITY = {
   resolve: -50,
   /** カメラ・車内・光を置く（drei の Html より先に、行列まで更新する） */
   place: -20,
+  /** バックミラーの映像を描く（置き終わってから。メインの描画より先） */
+  mirror: -10,
 } as const
 
 export type SceneFrame = {

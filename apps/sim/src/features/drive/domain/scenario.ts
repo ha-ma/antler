@@ -28,7 +28,7 @@ export const DEMO_TRIP: TripPlan = TripPlanSchema.parse({
   title: '流氷とタンチョウと、雪見の温泉。道東をめぐる5日間。',
   days: [
     { day: 1, from: 'cts', to: 'kushiro', stops: ['washo-market'], stay: 'kushiro' },
-    { day: 2, from: 'kushiro', to: 'akanko', stops: [], stay: 'akanko' },
+    { day: 2, from: 'kushiro', to: 'akan', stops: [], stay: 'akan' },
   ],
   riskScore: 0.78,
   alertEnabled: true,
@@ -37,7 +37,7 @@ export const DEMO_TRIP: TripPlan = TripPlanSchema.parse({
 /** 固定の場面で通るゾーン（この順に通る） */
 export const DEMO_ZONE_IDS = ['R240-akan-1', 'R240-akan-2'] as const
 /** 最初のゾーンの手前と、最後のゾーンの後ろに足す長さ（m） */
-export const LEAD_IN_M = 1500
+export const LEAD_IN_M = 5000
 export const LEAD_OUT_M = 1000
 
 /** 鹿の候補と検知の乱数の種（drive-link R4）。同じ旅・同じ日なら同じ鹿、日が違えば違う鹿 */
@@ -58,9 +58,13 @@ export function demoScenario(zones: ZoneCollection, search = ''): DriveScenario 
     weather: 'cloudy',
     windowFog: 'light',
     from: 'kushiro',
-    to: 'akanko',
+    // 地点のマスタ（@antler/trip の places）の id。HUD の区間の案内は名前（阿寒湖）で出す
+    to: 'akan',
     distanceKm: polylineLengthM(route) / 1000,
+    stops: [],
     legStarts: [],
+    // 見本は 1 本の移動を 50 km/h の目安で（drive-tune R1）
+    legPace: [{ sM: 0, departAt: '2027-02-15T16:40+09:00', mps: 50 / 3.6 }],
     straightRangesM: [],
     data: null,
     seed: driveSeed(DEMO_TRIP.seed, 2),

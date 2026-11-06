@@ -7,6 +7,7 @@ import {
   OFFROAD_MAX_KMH,
   REVERSE_MAX_KMH,
   ROAD_EDGE_M,
+  brakeDecel,
   initialVehicle,
   isStopped,
   stepVehicle,
@@ -60,15 +61,64 @@ describe('vehicle（R3）', () => {
     expect(drop).toBeLessThan(6)
   })
 
+  // drive-tune で実測（JAF・パナソニック）に合わせた。drive-3d の 50 m・×1.3 / ×1.5 / ×2.0 は廃止
   it.each([
-    ['dry', 50],
-    ['wet', 65],
-    ['packed-snow', 75],
-    ['ice', 100],
-  ] as const)('UC-3b: 60 km/h から Space で止まるまで（%s）は %d m ±5%%', (surface, expected) => {
-    const distance = brakingDistance(surface)
-    expect(distance).toBeGreaterThan(expected * 0.95)
-    expect(distance).toBeLessThan(expected * 1.05)
+    ['dry', 7.9],
+    ['wet', 11],
+    ['packed-snow', 17.3],
+    ['ice', 78.5],
+  ] as const)(
+    'UC-3b（drive-3d）/ UC-3a（drive-tune）: 40 km/h から Space で止まるまで（%s）は実測 %d m の ±10%%',
+    (surface, measured) => {
+      const distance = brakingDistance(surface, 40)
+      expect(distance).toBeGreaterThan(measured * 0.9)
+      expect(distance).toBeLessThan(measured * 1.1)
+    },
+  )
+
+  it('UC-3b（drive-tune）: 60 km/h 乾燥で 18〜21 m。速いほど効きが弱い（100 km/h の減速度 < 40 km/h）', () => {
+    const d60 = brakingDistance('dry', 60)
+    expect(d60).toBeGreaterThan(18)
+    expect(d60).toBeLessThan(21)
+    for (const surface of ['dry', 'wet', 'packed-snow', 'ice'] as const) {
+      expect(brakeDecel(surface, 100 / 3.6)).toBeLessThan(brakeDecel(surface, 40 / 3.6))
+    }
+    expect(brakeDecel('dry', 40 / 3.6)).toBeCloseTo(0.8 * 9.81, 6)
+  })
+
+  it('UC-3c（drive-tune）: 踏んでから 0.15 秒は減速度が立ち上がる途中', () => {
+    const v0: VehicleState = { ...initialVehicle(100), speed: 60 / 3.6 }
+    const first = stepVehicle(v0, { ...NO_INPUT, brake: true }, 'dry', DT)
+    expect(first.brakeLevel).toBeCloseTo(DT / 0.15, 6)
+    const halfway = run(v0, { brake: true }, 'dry', 0.075)
+    expect(halfway.brakeLevel).toBeGreaterThan(0.4)
+    expect(halfway.brakeLevel).toBeLessThan(0.6)
+    expect(run(v0, { brake: true }, 'dry', 0.2).brakeLevel).toBe(1)
+    expect(stepVehicle(first, NO_INPUT, 'dry', DT).brakeLevel).toBe(0)
+  })
+
+  it('UC-3d（drive-tune）: 湿潤・圧雪・凍結で 10 km/h 以上のブレーキ中は ABS が働き、ステアで横に動ける。乾燥では働かない', () => {
+    for (const surface of ['wet', 'packed-snow', 'ice'] as const) {
+      const v0: VehicleState = { ...initialVehicle(100), speed: 50 / 3.6 }
+      const after = run(v0, { brake: true, right: true }, surface, 0.5)
+      expect(after.abs).toBe(true)
+      expect(after.d).toBeGreaterThan(v0.d + 0.1)
+    }
+    const dry = run({ ...initialVehicle(100), speed: 50 / 3.6 }, { brake: true }, 'dry', 0.5)
+    expect(dry.abs).toBe(false)
+    const slow = run({ ...initialVehicle(100), speed: 8 / 3.6 }, { brake: true }, 'ice', 0.05)
+    expect(slow.abs).toBe(false)
+  })
+
+  it('UC-3e（drive-tune）: 走っている間の S の減速はブレーキの 6 割', () => {
+    const v0: VehicleState = { ...initialVehicle(100), speed: 60 / 3.6 }
+    const brake = run(v0, { brake: true }, 'dry', 0.5)
+    const back = run(v0, { back: true }, 'dry', 0.5)
+    expect(back.brakeLevel).toBeCloseTo(0.6, 6)
+    const dropBrake = v0.speed - brake.speed
+    const dropBack = v0.speed - back.speed
+    expect(dropBack / dropBrake).toBeGreaterThan(0.5)
+    expect(dropBack / dropBrake).toBeLessThan(0.7)
   })
 
   it('UC-3c: 止まっているときに S で後退し、20 km/h で頭打ち。走っている間の S は減速', () => {

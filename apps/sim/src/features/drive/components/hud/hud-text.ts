@@ -41,6 +41,17 @@ export const HUD_TEXT = {
     completedNote: '旅の記録（A-7）はこの後の作業で入ります。',
     retry: '同じシードでもう一度',
   },
+  route: {
+    label: 'いまの区間',
+    destination: '目的地まで',
+    arrival: '到着予定',
+    stage: 'ステージ',
+    today: '今日の楽しみ',
+  },
+  stage: {
+    cleared: (n: number, of: number) => `ステージ ${String(n)} / ${String(of)} クリア`,
+    noZone: 'この日は鹿ゾーンを通りません。「出発」でこの日の運転を終えます。',
+  },
   trip: {
     loading: '旅を読み込んでいます',
     notFound: '旅が見つかりません',
