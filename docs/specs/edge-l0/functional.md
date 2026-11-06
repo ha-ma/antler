@@ -12,7 +12,7 @@ target_paths:
   - edge/detector/tests/test_l0_tracker.py
   - edge/detector/tests/test_l0_stage.py
   - edge/detector/tests/test_l0_config.py
-spec_confirmed_at: d0c7eea
+spec_confirmed_at: 9b54027
 tier: 1
 ---
 
@@ -34,6 +34,8 @@ ch4-edge.md B2-1・B2-4（2 フレーム・1.5 秒・距離表・左右）、ch6
 `bench_l1.py` と Mac mini 実機での ANE fps 計測（Step 0・Step 6。ユーザーの実機作業）、起動の入口（CLI。edge-judge の Deferred のまま）、Capture の `l1Probs`（edge-capture / edge-l1）。
 
 **Tier 1 の根拠**: 認可・永続化スキーマ・外部副作用（新しい待ち受けや送信）・並行性のどれも足さない。追加は同期の計算（トラッカー）と、推論モデルの読み込み設定だけ。配信と WebSocket は edge-judge のまま。
+
+> 2026-11-06 pwa-https（`docs/specs/pwa-https/functional.md` R3）が `AlertServer` に省略できる `ssl_context` を足した。渡すと wss（握手は `open_timeout` の 3 秒まで）、渡さなければ今までどおり ws。フラグの中身・配信の順序・遅延の経路は変わらない（足すのはフラグ 1 通の暗号化だけ）。
 
 ## Example Map
 

@@ -26,7 +26,7 @@ target_paths:
   - apps/pwa/src/features/connect/hooks/use-vehicle-uplink.ts
   - apps/pwa/src/features/connect/components/DriveScreen.tsx
   - apps/pwa/scripts/fake-edge.mjs
-spec_confirmed_at: 806b4e1
+spec_confirmed_at: 9b54027
 tier: 2
 ---
 
@@ -53,6 +53,8 @@ edge の L1 は JudgeRequest の `state`（`speedKmh`・`zone`・`light`・`head
 - 複数の端末の突き合わせ（最後に届いた値を使う。R4）
 
 **Tier 2 の根拠**: ネットワークから届く新しい入力が、L1 の降格（赤を下げる判断）の材料になる。認可マトリクスに行が増える（threat.md）。永続化スキーマは足さない。
+
+> 2026-11-06 pwa-https が `AlertServer` に省略できる `ssl_context`（wss）を、偽 edge に `--tls-cert`・`--tls-key` を足した。上りの `vehicle` の受け方・写す 3 項目は変わらない（wss でも同じ）。
 
 ## Example Map
 

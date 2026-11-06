@@ -10,7 +10,7 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
-spec_confirmed_at: 5ab439a
+spec_confirmed_at: 9b54027
 tier: 1
 ---
 
@@ -43,6 +43,8 @@ tier: 1
 
 **Tier 1 の根拠**: 開発者の手元で動く計測・書き出しの道具で、サービスの挙動を変えない。新しい待ち受けを作らず、外へ送る先は既存の L1 client と同じループバックの local-jev だけ（`remote_not_allowed` を継承）。
 認可・永続化スキーマに触れない。並行性はスレッド 1 本（YOLO のループ）で、計測の中に閉じる。
+
+> 2026-11-06 pwa-https が `pyproject.toml` の ruff に `src/detector/pwa_server.py` の E501 の除外を足した（設定ページの 4 言語の文言が長いため）。Day 0 の手順と依存は変わらない。
 
 ## Example Map
 

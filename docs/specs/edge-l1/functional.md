@@ -19,7 +19,7 @@ target_paths:
   - edge/detector/tests/test_fusion.py
   - edge/detector/tests/test_l1_hub.py
   - edge/detector/tests/test_l1_authz.py
-spec_confirmed_at: 806b4e1
+spec_confirmed_at: 9b54027
 tier: 2
 ---
 
@@ -49,6 +49,8 @@ B の判断を 3 層にする変更指示の Step 3。L1 は Mac mini 上の jev
   `instructions`、choice の `criteria`、答えは `answers.<名前>` に `noul` か `choice`・`probabilities`・`confidence`）と、既定のポート 8765 を確かめた。
   **detector の依存には入れない**（別プロセスのサーバー。torch とモデルの重みを引く）。Mac mini で `local-jev serve --model llm-qwen2.5-1.5b --port 8766` として別に動かす（Step 0）。コミットは `CREDITS.md` と config の見本に書く
 - `mlx` とモデルの重みは入れない（local-jev の側が使う）
+
+> 2026-11-06 pwa-https が `config.py` に `[tls]`・`[pwa_server]` のセクションを足した（`pyproject.toml` は pwa_server の E501 の除外だけ）。`[l1]` の読み方・既定値は変わらない。
 
 ## Example Map
 

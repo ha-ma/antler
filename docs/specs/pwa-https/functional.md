@@ -10,7 +10,7 @@ target_paths:
   - edge/detector/src/detector/tls.py
   - edge/detector/src/detector/pwa_server.py
   - edge/detector/scripts/make_tls.py
-spec_confirmed_at: 0aa0bc1
+spec_confirmed_at: 9b54027
 tier: 2
 ---
 

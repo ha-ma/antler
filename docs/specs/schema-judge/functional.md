@@ -7,7 +7,7 @@ target_paths:
   - edge/detector/tests/test_judge_request_model.py
   - edge/detector/tests/test_schema_contract.py
   - edge/detector/pyproject.toml
-spec_confirmed_at: 5ab439a
+spec_confirmed_at: 9b54027
 tier: 2
 ---
 
@@ -29,6 +29,8 @@ TypeScript の型（Zod）・JSON Schema・Python の pydantic を **同じ定�
 **範囲外**（別 feature）: L1 のクライアント（`l1/client.py`）、質問定義の利用側（`l1/questions.py`）、応答の型（choice / probabilities / confidence）、
 `fusion.py`、校正（`calibrate.py`）、PWA の表示、A 側。**`JudgeRequest` を作る・送る処理はこの feature に無い**（型と検証だけ）。
 応答の型は原本の注記（「応答は question ごとに choice / probabilities / confidence」）にあるだけで形が決まっていないので、edge-l1 の cycle で決める。
+
+> 2026-11-06 pwa-https が `config.py` に `[tls]`・`[pwa_server]` を、`AlertServer` に省略できる `ssl_context` を足した（`pyproject.toml` は E501 の除外だけ）。`[judge]` と AlertFlag の形は変わらない。
 
 ## Example Map
 
