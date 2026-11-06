@@ -312,4 +312,4 @@ UC-6 偽 edge の TLS:
 - [x] 受け入れテスト AC-1 が Green、AC-2 の結果が runbook にある
 - [x] Test List の全項目にチェック
 - [x] 静的解析ゲート通過（lint / format / 型・ruff）
-- [ ] security-auditor・code-reviewer・alert-contract-guard の Critical が 0
+- [x] security-auditor・code-reviewer・alert-contract-guard の Critical が 0（code-reviewer C-1 を直して 0。`docs/reports/2026-11-06-*-pwa-https.md`）
