@@ -219,6 +219,7 @@ def run(config_path: Path, raw: Path, out: Path, *, video: FakeVideo | None = No
 
 
 # ---------------------------------------------------------------- 受け入れ
+# AC-1: test_ac1_ingest_end_to_end
 
 
 def test_ac1_ingest_end_to_end(setup):
@@ -272,6 +273,9 @@ def test_ac1_ingest_end_to_end(setup):
 
 
 # ---------------------------------------------------------------- UC-1 一覧
+# CFG-1a: test_cfg_1a_*。CFG-1b: test_cfg_1b_*。CFG-1c: test_cfg_1b_rejects_bad_clip の時刻の形。
+# CFG-1d: test_cfg_1b_night_across_midnight_and_duplicate_sha。CFG-1e: test_cfg_1b_* の末尾の
+# 改行・21-35 / 21h35・nan / inf / true
 
 
 def test_cfg_1a_reads_config_and_defaults(setup, tmp_path):
@@ -320,7 +324,12 @@ def _clip(**kw: str) -> str:
         (_clip(id='"20261131_x"'), "日付ではない"),
         (_clip(id='"20261106_213512"'), "時刻の形"),
         (_clip(id='"20261106_x-2135"'), "時刻の形"),
+        (_clip(id='"20261106_dr-21-35"'), "時刻の形"),
+        (_clip(id='"20261106_dr-21h35"'), "時刻の形"),
+        (_clip(id='"20261106_x\\n"'), "書式"),
         (_clip(file='"20261106_213512.mp4"'), "日付・時刻"),
+        (_clip(file='"dr_21-35-02.mp4"'), "日付・時刻"),
+        (_clip(sha256='"' + "a" * 64 + '\\n"'), "sha256"),
         (_clip(sha256='"{sha}"'.replace("{sha}", "0" * 64), id='"20261106_y"'), None),
         (_clip(area='"43.123,145.456"'), "area"),
         (_clip(area='"根室市 R44-37km"'), "area"),
@@ -372,6 +381,9 @@ def test_cfg_1b_night_across_midnight_and_duplicate_sha(setup):
             "無ければ 0",
         ),
         ("margin_s = 1.0", "margin_s = 0.0", "正の数"),
+        ("margin_s = 1.0", "margin_s = nan", "数ではない"),
+        ("margin_s = 1.0", "margin_s = inf", "数ではない"),
+        ("margin_s = 1.0", "margin_s = true", "数ではない"),
         ("margin_s = 1.0", "margin = 1.0", "知らないキー"),
         ('id = "2026-09-07"', 'id = "2026-9-7"', "書式"),
         ('id = "2026-09-07"', 'id = "2026-11-06"', "重複"),
@@ -402,6 +414,7 @@ def test_cfg_1b_unreadable_and_unknown_top_level(tmp_path):
 
 
 # ---------------------------------------------------------------- UC-2 照合
+# SRC-2a: test_src_2a_*。SRC-2b: test_src_2b_size_mismatch
 
 
 def _config_clip(write, cid: str):
@@ -476,6 +489,8 @@ def test_src_2b_size_mismatch(setup):
 
 
 # ---------------------------------------------------------------- UC-3 区間
+# SEG-3a: test_seg_3a_*。SEG-3b: test_seg_3b_* と test_cfg_1b_rejects_bad_clip の区間。
+# SEG-3c: test_seg_3a_boundaries
 
 
 def test_seg_3a_segments_and_margins():
@@ -491,6 +506,18 @@ def test_seg_3a_segments_and_margins():
     assert [(s.start, s.end, s.deer) for s in none] == [(0, 60, False)]
     beyond = sf.segments([DeerSpan(10.0, 99.0)], FPS, COUNT, 1.0)
     assert [(s.start, s.end, s.deer) for s in beyond] == [(0, 45, False), (50, 60, True)]
+
+
+def test_seg_3a_dashcam_fps_rounds_seconds_up():
+    """27.5 fps: 38 秒 = 1045 フレーム、161 秒 = 4427.5 → 4428（切り上げ）。余白 5 秒も切り上げ。"""
+    crossing = sf.segments([DeerSpan(38.0, None)], 27.5, 4951, 5.0)
+    assert [(s.start, s.end, s.deer) for s in crossing] == [(0, 908, False), (1045, 4951, True)]
+    roadside = sf.segments([DeerSpan(161.0, 170.0)], 27.5, 5227, 5.0)
+    assert [(s.start, s.end, s.deer) for s in roadside] == [
+        (0, 4290, False),
+        (4428, 4675, True),
+        (4813, 5227, False),
+    ]
 
 
 def test_seg_3a_boundaries():
@@ -525,6 +552,9 @@ def test_seg_3b_start_beyond_duration():
 
 
 # ---------------------------------------------------------------- UC-4 匿名化
+# ANON-4a: test_anon_4a_*。ANON-4b: test_anon_4b_*。ANON-4c: test_anon_4c_overlay_meter_* と
+# test_anon_4c_ingest_stops_*。ANON-4d: test_anon_4c_check_overlay_rules。
+# ANON-4e: test_anon_4c_colored_overlay_and_mask_seam
 
 
 def test_anon_4a_fill_masks_only_inside():
@@ -600,6 +630,24 @@ def test_anon_4c_overlay_meter_inside_outside_near():
         few.outside([MASK])
 
 
+def test_anon_4c_colored_overlay_and_mask_seam():
+    """監査 W-1: 黄色（平均 170）の文字も明るい縁に数える。
+
+    レビュー W-5: 塗った黒と明るい背景の境目は数えない。
+    """
+    yellow = sf.OverlayMeter()
+    seam = sf.OverlayMeter()
+    for i in range(12):
+        frame = frame_at(i, overlay=None)
+        frame[50:56:2, 60:72:2] = (0, 255, 255)  # BGR の黄
+        yellow.add(frame)
+        bright = np.full((H, W, 3), 230, dtype=np.uint8)
+        seam.add(sf.fill_masks(bright, [(20, 20, 20, 20)]))
+    assert yellow.inside([MASK]) > 0
+    assert seam.outside([(20, 20, 20, 20)]) == 0
+    assert seam.near([(20, 20, 20, 20)]) == 0
+
+
 def _camera(masks=(MASK,), least=5):
     return sf.Camera("cam", "dashcam", "front", (W, H), tuple(masks), least)
 
@@ -648,6 +696,8 @@ def test_anon_4c_ingest_stops_when_overlay_outside_mask(setup):
 
 
 # ---------------------------------------------------------------- UC-5 書き出しと manifest
+# OUT-5a: test_out_5a_*。OUT-5b: test_out_5b_manifest_records。OUT-5c: test_out_5c_*。
+# OUT-5d・OUT-5e: test_add_6a_lock_and_locations と test_main_checks_locations_before_detector
 
 
 def test_out_5a_jpeg_metadata_markers():
@@ -738,6 +788,10 @@ def test_out_5c_unreadable_video_metadata(setup):
 
 
 # ---------------------------------------------------------------- UC-6 追加
+# ADD-6a: test_add_6a_*。ADD-6b: test_add_6b_*。ADD-6c: test_add_6c_*。
+# ADD-6d: test_add_6a_redo_cannot_move_clip_to_another_drive と test_cfg_1b_night_across_*。
+# ADD-6e: test_add_6a_unlisted_clip_stays_in_manifest。
+# ADD-6f: test_add_6a_redo_crash_after_removal_* と test_add_6a_orphan_frames_folder
 
 
 NEW_DRIVE = '\n[[drive]]\nid = "2026-11-07"\nsplit = "test"\n'
@@ -856,7 +910,15 @@ def test_add_6a_lock_and_locations(setup, tmp_path):
         run(write(), raw, tmp_path / "dataset/private")
     with pytest.raises(FootageError, match="dataset/raw/"):
         run(write(), tmp_path / "elsewhere", out)
+    with pytest.raises(FootageError, match="dataset/private/self-footage"):
+        run(write(), raw, tmp_path / "dataset/private/other")
+    alias = tmp_path / "alias/dataset/private/self-footage"
+    alias.parent.mkdir(parents=True)
+    alias.symlink_to(out, target_is_directory=True)
+    with pytest.raises(FootageError, match="リンク"):
+        run(write(), raw, alias)
     assert not (tmp_path / "dataset/self-footage").exists()
+    assert not (tmp_path / "dataset/private/other").exists()
 
 
 def test_add_6a_orphan_frames_folder(setup):
@@ -865,9 +927,47 @@ def test_add_6a_orphan_frames_folder(setup):
     with pytest.raises(FootageError, match="manifest に無いフレーム"):
         run(write(), raw, out)
     (out / "frames/.tmp-20261106_deer").mkdir()
+    (out / "frames/.tmp-20991231_gone").mkdir()
     (out / "frames/20261106_night").rmdir()
     run(write(), raw, out)
     assert not (out / "frames/.tmp-20261106_deer").exists()
+    assert not (out / "frames/.tmp-20991231_gone").exists(), "別のクリップの一時フォルダが残った"
+
+
+def test_add_6a_redo_crash_after_removal_is_caught_next_time(setup, monkeypatch):
+    """レビュー W-1: 作り直しで manifest から外した後に落ちたら、次の実行が止める。"""
+    raw, out, write, _ = setup
+    run(write(), raw, out)
+    real = sf._write_json
+    calls = []
+
+    def flaky(path, data):
+        calls.append(path)
+        if len(calls) == 2:
+            raise OSError("disk full")
+        real(path, data)
+
+    monkeypatch.setattr(sf, "_write_json", flaky)
+    with pytest.raises(OSError):
+        run(write(), raw, out, redo={"20261106_deer"})
+    monkeypatch.setattr(sf, "_write_json", real)
+    manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
+    assert "20261106_deer" not in manifest["clips"]
+    assert not any(f["video"] == "20261106_deer" for f in manifest["files"])
+    with pytest.raises(FootageError, match="manifest に無いフレーム"):
+        run(write(), raw, out)
+    assert run(write(), raw, out, redo={"20261106_deer"}).done == ["20261106_deer"]
+
+
+def test_add_6a_same_input_same_output(setup, tmp_path):
+    """非機能: 同じ映像・一覧・検出器なら、別の置き場所でも同じ manifest とフレーム。"""
+    raw, out, write, _ = setup
+    run(write(), raw, out)
+    other = tmp_path / "copy/dataset/private/self-footage"
+    run(write(), raw, other)
+    assert (out / "manifest.json").read_bytes() == (other / "manifest.json").read_bytes()
+    for p in (out / "frames").rglob("*.jpg"):
+        assert p.read_bytes() == (other / p.relative_to(out)).read_bytes()
 
 
 def test_add_6b_split_change_of_known_drive(setup):
@@ -891,6 +991,18 @@ def test_add_6b_broken_manifest(setup):
     (out / "manifest.json").write_text('{"version": 2}', encoding="utf-8")
     with pytest.raises(FootageError, match="version"):
         run(write(), raw, out)
+    base = {"version": 1, "drives": {}, "clips": {}, "sources": {}, "files": []}
+    bad = [
+        ({**base, "files": {}}, "files が無いか形が違う"),
+        ({k: v for k, v in base.items() if k != "drives"}, "drives が無いか"),
+        ({**base, "clips": {"20261106_x": {"sha256": "a"}}}, "clips.20261106_x の形"),
+        ({**base, "files": [{"video": "x"}]}, "files の形"),
+        ([], "version 1"),
+    ]
+    for data, message in bad:
+        (out / "manifest.json").write_text(json.dumps(data), encoding="utf-8")
+        with pytest.raises(FootageError, match=message):
+            run(write(), raw, out)
 
 
 def test_add_6c_reports_missing_test_deer_drive(setup):
@@ -913,6 +1025,28 @@ def test_main_reports_config_error(tmp_path, capsys):
     bad.write_text("x = 1\n", encoding="utf-8")
     assert sf.main(["ingest", "--config", str(bad)]) == 2
     assert "エラー" in capsys.readouterr().err
+
+
+def test_main_checks_locations_before_detector(setup, tmp_path, capsys):
+    """監査 W-3: 置き場所の誤りは、重みを読む前に 2 で止まる。"""
+    raw, _, write, _ = setup
+    code = sf.main(
+        [
+            "ingest",
+            "--config",
+            str(write()),
+            "--raw",
+            str(raw),
+            "--out",
+            str(tmp_path / "public"),
+            "--weights",
+            str(tmp_path / "none.pt"),
+        ]
+    )
+    assert code == 2
+    err = capsys.readouterr().err
+    assert "self-footage" in err
+    assert "重み" not in err
 
 
 def test_repository_config_is_valid():

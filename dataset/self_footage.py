@@ -37,11 +37,15 @@ REPO: Final = HERE.parent
 CONFIG: Final = HERE / "self_footage.toml"
 WEIGHTS: Final = REPO / "edge/detector/models/yolo26n.pt"
 
-CLIP_ID: Final = re.compile(r"^(\d{4})(\d{2})(\d{2})_([a-z0-9][a-z0-9-]*)$")
-TIME_LIKE: Final = re.compile(r"\d{4,}")  # 時・分・秒の形（Git に入る一覧に残さない）
-DRIVE_ID: Final = re.compile(r"^(\d{4})-(\d{2})-(\d{2})(?:-[a-z0-9]+)?$")
-CAMERA_ID: Final = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-SHA256: Final = re.compile(r"^[0-9a-f]{64}$")
+# 書式は fullmatch で使う（$ は末尾の改行を許すため）
+CLIP_ID: Final = re.compile(r"(\d{4})(\d{2})(\d{2})_([a-z0-9][a-z0-9-]*)")
+# 時・分・秒の形（Git に入る一覧に残さない）: 4 桁以上の数字か、区切りのある 2 桁 × 2〜3
+TIME_LIKE: Final = re.compile(r"\d{4,}|\d{1,2}[-_:.h]\d{2}(?:[-_:.m]\d{2})?")
+DRIVE_ID: Final = re.compile(r"(\d{4})-(\d{2})-(\d{2})(?:-[a-z0-9]+)?")
+CAMERA_ID: Final = re.compile(r"[a-z0-9][a-z0-9-]*")
+SHA256: Final = re.compile(r"[0-9a-f]{64}")
+OUT_PLACE: Final = ("dataset", "private", "self-footage")
+RAW_PLACE: Final = ("dataset", "raw", "self")
 SPLITS: Final = ("train", "val", "test")
 CAMERA_KINDS: Final = ("dashcam", "phone", "vehicle")
 FACINGS: Final = ("front",)  # ch5: 車内を写す映像は保存しない。前向き以外は受けない
@@ -63,7 +67,8 @@ BLUR_GROW: Final = 0.10
 BLOCK_MIN: Final = 12
 COCO_YOLO26N: Final = "9b09cc8bf347f0fc8a5f7657480587f25db09b34bf33b0652110fb03a8ad4fef"
 
-# R4 焼き込みの残り: 明るい縁が 1 秒おきのフレームの半分以上で同じ画素に続けば「動かない文字」
+# R4 焼き込みの残り: 明るい縁が 1 秒おきのフレームの半分以上で同じ画素に続けば「動かない文字」。
+# 明るさは色の最大値で見る（平均だと黄・シアン・橙の文字が 180 に届かない）
 OVERLAY_BRIGHT: Final = 180.0
 OVERLAY_EDGE: Final = 60.0
 OVERLAY_PERSIST: Final = 0.5
@@ -73,6 +78,9 @@ OVERLAY_MIN_FRAMES: Final = 10
 # 明るい縁になる画素が 1 つでもあればエラー（実データでは正しい矩形で 0、文字を切る矩形で 277〜871）
 OVERLAY_BAND: Final = 60
 OVERLAY_NEAR_FREQ: Final = 0.05
+# 塗った矩形のすぐ外の 2 px は数えない（黒と明るい背景の境目そのものが縁になるため）
+OVERLAY_SEAM: Final = 2
+JPEG_QUALITY: Final = 95
 
 # R5 JPEG で許すマーカー（SOS より前）。APP0（JFIF）・量子化表・フレーム・ハフマン表・
 # リスタート間隔だけ。
@@ -162,7 +170,7 @@ def _choice(value: object, choices: Sequence[str], label: str) -> str:
 
 def _camera(cid: str, table: object) -> Camera:
     label = f"camera.{cid}"
-    if not CAMERA_ID.match(cid):
+    if not CAMERA_ID.fullmatch(cid):
         raise _fail(f"{label}: id の書式が違う")
     keys = {"kind", "facing", "size", "overlay_masks", "overlay_min_pixels"}
     t = _keys(table, keys, keys, label)
@@ -212,27 +220,25 @@ def _clip(table: object, n: int, cameras: Mapping[str, Camera], drives: Mapping[
     keys = {"id", "file", "sha256", "drive", "camera", "time_of_day", "area", "deer"}
     t = _keys(table, keys, keys, f"clip[{n}]")
     cid = t["id"]
-    match = CLIP_ID.match(cid) if isinstance(cid, str) else None
+    match = CLIP_ID.fullmatch(cid) if isinstance(cid, str) else None
     if match is None:
         raise _fail(f"clip[{n}].id: {cid!r} の書式が違う（YYYYMMDD_name）")
     label = f"clip {cid}"
     if TIME_LIKE.search(match.group(4)):
-        raise _fail(f"{label}.id: 日付の後ろに 4 桁以上の数字（時刻の形）を書かない")
+        raise _fail(f"{label}.id: 日付の後ろに時刻の形（4 桁以上の数字・21-35 など）を書かない")
     name = t["file"]
     if not isinstance(name, str) or not name or "/" in name or "\\" in name or name.startswith("."):
         raise _fail(f"{label}.file: フォルダの中のファイル名ではない（{name!r}）")
     if TIME_LIKE.search(name):
-        raise _fail(
-            f"{label}.file: 4 桁以上の数字（日付・時刻の形）を含む名前にしない（改名して置く）"
-        )
+        raise _fail(f"{label}.file: 日付・時刻の形を含む名前にしない（改名して置く）")
     sha = t["sha256"]
-    if not isinstance(sha, str) or not SHA256.match(sha):
+    if not isinstance(sha, str) or not SHA256.fullmatch(sha):
         raise _fail(f"{label}.sha256: 64 桁の 16 進ではない")
     drive = t["drive"]
     if drive not in drives:
         raise _fail(f"{label}.drive: 知らない走行 {drive!r}")
     clip_day = _day(match.groups()[:3], label)
-    drive_day = _day(DRIVE_ID.match(drive).groups(), f"drive {drive}")  # type: ignore[union-attr]
+    drive_day = _day(DRIVE_ID.fullmatch(drive).groups(), f"drive {drive}")  # type: ignore[union-attr]
     if clip_day not in (drive_day, drive_day + timedelta(days=1)):
         raise _fail(f"{label}: クリップの日付が走行 {drive} の日付かその翌日（0 時を跨ぐ夜）でない")
     if t["camera"] not in cameras:
@@ -273,7 +279,7 @@ def load_config(path: Path) -> Config:
     for n, table in enumerate(data["drive"] if isinstance(data["drive"], list) else [0]):
         t = _keys(table, {"id", "split"}, {"id", "split"}, f"drive[{n}]")
         did = t["id"]
-        if not isinstance(did, str) or not DRIVE_ID.match(did):
+        if not isinstance(did, str) or not DRIVE_ID.fullmatch(did):
             raise _fail(f"drive[{n}].id: {did!r} の書式が違う（YYYY-MM-DD）")
         if did in drives:
             raise _fail(f"drive {did}: 重複")
@@ -318,7 +324,9 @@ def verify_source(raw: Path, clip: Clip) -> Path:
     if not path.is_file():
         raise _fail(f"{label}: 元の映像が無い（{clip.id}/{clip.file}）")
     real = path.resolve()
-    if root not in real.parents:
+    if (
+        root not in real.parents
+    ):  # pragma: no cover  上のリンクの検査が先に止める（念のための二重の確かめ）
         raise _fail(f"{label}: 元の映像が raw の外にある")
     if not side.is_file() or side.is_symlink():
         raise _fail(f"{label}: {clip.file}.sha256 が無い")
@@ -467,10 +475,10 @@ class OverlayMeter:
     frames: int = 0
 
     def add(self, frame: np.ndarray) -> None:
-        gray = frame.astype(np.float32).mean(axis=2)
-        gx = np.abs(np.diff(gray, axis=1, prepend=gray[:, :1]))
-        gy = np.abs(np.diff(gray, axis=0, prepend=gray[:1]))
-        hit = (gray > OVERLAY_BRIGHT) & ((gx + gy) > OVERLAY_EDGE)
+        bright = frame.max(axis=2).astype(np.float32)  # 色の最大値（黄・橙の文字も明るい）
+        gx = np.abs(np.diff(bright, axis=1, prepend=bright[:, :1]))
+        gy = np.abs(np.diff(bright, axis=0, prepend=bright[:1]))
+        hit = (bright > OVERLAY_BRIGHT) & ((gx + gy) > OVERLAY_EDGE)
         self.counts = hit.astype(np.int32) if self.counts is None else self.counts + hit
         self.frames += 1
 
@@ -487,8 +495,9 @@ class OverlayMeter:
         return int((p & _mask_union(p.shape, masks)).sum())
 
     def outside(self, masks: Iterable[Rect]) -> int:
+        """矩形（とすぐ外の 2 px の境目）の外に続く明るい縁の画素。"""
         p = self.persistent()
-        return int((p & ~_mask_union(p.shape, masks)).sum())
+        return int((p & ~_mask_union(p.shape, masks, OVERLAY_SEAM)).sum())
 
     def near(self, masks: Sequence[Rect]) -> int:
         """矩形のまわりの帯で、5% 以上のフレームで明るい縁になる画素（はみ出した変わる桁）。"""
@@ -497,7 +506,7 @@ class OverlayMeter:
         if not masks:
             return 0
         shape = self.counts.shape
-        band = _mask_union(shape, masks, OVERLAY_BAND) & ~_mask_union(shape, masks)
+        band = _mask_union(shape, masks, OVERLAY_BAND) & ~_mask_union(shape, masks, OVERLAY_SEAM)
         return int(((self.counts >= OVERLAY_NEAR_FREQ * self.frames) & band).sum())
 
 
@@ -587,6 +596,20 @@ def redo_part(clip: Clip, config: Config, detector: Detector) -> dict:
             "imgsz": BLUR_IMGSZ,
             "classes": BLUR_CLASSES,
         },
+        "anonymize": {  # 匿名化と確かめの定数（変えたら済みのクリップも作り直す）
+            "blur_grow": BLUR_GROW,
+            "block_min": BLOCK_MIN,
+            "jpeg_quality": JPEG_QUALITY,
+            "overlay": {
+                "bright_max_channel": OVERLAY_BRIGHT,
+                "edge": OVERLAY_EDGE,
+                "persist": OVERLAY_PERSIST,
+                "max_residual": OVERLAY_MAX_RESIDUAL,
+                "band": OVERLAY_BAND,
+                "near_freq": OVERLAY_NEAR_FREQ,
+                "seam": OVERLAY_SEAM,
+            },
+        },
     }
 
 
@@ -613,6 +636,16 @@ def load_manifest(path: Path) -> dict:
         raise _fail(f"manifest.json: 読めない（{exc}）") from exc
     if not isinstance(data, dict) or data.get("version") != 1:
         raise _fail("manifest.json: version 1 ではない")
+    shapes = {"drives": dict, "clips": dict, "sources": dict, "files": list}
+    for key, kind in shapes.items():
+        if not isinstance(data.get(key), kind):
+            raise _fail(f"manifest.json: {key} が無いか形が違う")
+    for cid, clip in data["clips"].items():
+        need = ("fixed", "redo", "sha256", "drive", "split", "segments")
+        if not isinstance(clip, dict) or any(k not in clip for k in need):
+            raise _fail(f"manifest.json: clips.{cid} の形が違う")
+    if any(not isinstance(f, dict) or "video" not in f or "frame" not in f for f in data["files"]):
+        raise _fail("manifest.json: files の形が違う")
     return data
 
 
@@ -820,15 +853,14 @@ def ingest(
 
 
 def check_locations(raw: Path, out: Path) -> None:
-    """--raw は dataset/raw/ の中、--out は dataset/private/ の中（Git の対象外）だけを受ける。"""
-    for path, place in ((raw, "raw"), (out, "private")):
-        parts = path.resolve().parts
-        inside = any(
-            parts[i] == "dataset" and parts[i + 1] == place and len(parts) > i + 2
-            for i in range(len(parts) - 1)
-        )
-        if not inside:
-            raise _fail(f"{path}: dataset/{place}/ の下のフォルダではない")
+    """--raw は <checkout>/dataset/raw/self、--out は <checkout>/dataset/private/self-footage だけ。
+
+    どちらも Git の対象外。リンクを通した別名も受けない（W1・監査 W-3）。
+    """
+    for path, place in ((raw, RAW_PLACE), (out, OUT_PLACE)):
+        absolute = path.absolute()
+        if absolute.parts[-3:] != place or absolute.resolve() != absolute:
+            raise _fail(f"{path}: {'/'.join(place)} のフォルダではない（リンクも受けない）")
 
 
 def _ingest(
@@ -846,10 +878,10 @@ def _ingest(
     todo = plan(manifest, config, out, redo, detector)
     summary = Summary(skipped=[c.id for c in config.clips if c not in todo])
     summary.unlisted = sorted(set(manifest["clips"]) - {c.id for c in config.clips})
+    for leftover in (out / "frames").glob(".tmp-*"):  # 前の実行が残した一時フォルダ（W4 (c)）
+        shutil.rmtree(leftover)
     for clip in todo:
         tmp = out / "frames" / f".tmp-{clip.id}"
-        if tmp.exists():
-            shutil.rmtree(tmp)
         tmp.mkdir()
         try:
             source = verify_source(raw, clip)
@@ -857,11 +889,17 @@ def _ingest(
         except BaseException:
             shutil.rmtree(tmp, ignore_errors=True)
             raise
+        # 作り直し: 先に manifest から外して書く。差し替えの途中で落ちても「manifest に無い
+        # フレームのフォルダ」として次の実行が止める（古い manifest の行が黙って残らない）
+        if clip.id in manifest["clips"]:
+            del manifest["clips"][clip.id]
+            manifest["sources"].pop(clip.id, None)
+            manifest["files"] = [f for f in manifest["files"] if f.get("video") != clip.id]
+            _write_json(manifest_path, manifest)
         final = out / "frames" / clip.id
         if final.exists():
             shutil.rmtree(final)
         tmp.rename(final)
-        manifest["files"] = [f for f in manifest["files"] if f.get("video") != clip.id]
         manifest["files"].extend(result["files"])
         manifest["files"].sort(key=lambda f: (f["video"], f["frame"]))
         manifest["clips"][clip.id] = result["clip"]
@@ -938,7 +976,7 @@ class _CvVideo:  # pragma: no cover  day0 の環境（opencv）
 def _encode_jpeg(frame: np.ndarray) -> bytes:  # pragma: no cover  day0 の環境（opencv）
     import cv2
 
-    ok, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+    ok, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY])
     if not ok:
         raise _fail("JPEG に書けない")
     return bytes(buf)
@@ -957,10 +995,14 @@ class _CocoDetector:  # pragma: no cover  day0 の環境（ultralytics）
         self.sha256 = sha256_file(self.weights)
         if self.sha256 != COCO_YOLO26N:
             raise _fail(f"{self.weights.name}: COCO の yolo26n.pt ではない（SHA-256 が違う）")
-        os.environ.setdefault("YOLO_OFFLINE", "1")
+        # import の前に必ずオフラインにする（setdefault だと環境の 0 が残る。送信の有効は
+        # import 時の ONLINE で決まる。監査 W-2）。import の後も送信を止めて確かめる
+        os.environ["YOLO_OFFLINE"] = "1"
         from ultralytics import YOLO, settings
+        from ultralytics.utils import events
 
         settings.update({"sync": False})
+        events.events.enabled = False
         self._model = YOLO(str(self.weights))
         self.name = self.weights.name
 
@@ -998,6 +1040,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         config = load_config(args.config)
+        check_locations(args.raw, args.out)  # 検出器（重い import）より先に確かめる
         summary = ingest(  # pragma: no cover  day0 の環境
             config,
             args.raw,
@@ -1009,6 +1052,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     except FootageError as exc:
         sys.stderr.write(f"エラー: {exc}\n")
+        return 2
+    except ImportError as exc:  # pragma: no cover  dev だけの環境
+        sys.stderr.write(f"エラー: day0 の環境（opencv・ultralytics）で回す（{exc.name}）\n")
         return 2
     report(summary, sys.stdout)  # pragma: no cover
     return 0  # pragma: no cover
