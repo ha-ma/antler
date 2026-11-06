@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/src/features/drive/components/season-text.ts
   - packages/trip/src/day/conditions.ts
   - packages/trip/src/day/schema.ts
-spec_confirmed_at: c712268
+spec_confirmed_at: 38693f1
 tier: 1
 ---
 
@@ -25,6 +25,8 @@ tier: 1
 **範囲外**: 鹿の出方（drive-deer）、車内の会話・音（drive-audio-chat の後継のセッション）、HUD の配置（`components/hud/` は天候の文言 1 行だけ）、B の L1 の天候の語彙（`dataset/`・edge）、時刻（見本の場面は 16:40 のまま）。
 
 **drive-deer（2026-11-06、先にマージ）との合流**: 鹿の数・動き・検知の画角が drive-deer で変わった。この仕様の景色・ブレーキ（UC-4a・UC-4b の停止距離）はその上でも同じ値で通ることを、合流の後に確かめた。
+
+> 2026-11-06 performance（`docs/specs/performance/functional.md`）が `scene/`（DPR の自動の段・3D のチャンクの読み込み口）と `engine.ts` を変えた。季節・路面・天気の粒（雪 2,000・雨 1,500）・霧は変えていない（実測で 60 fps を保ったため。申し送りの W1〜W3 は performance R4 で「直さない」と判断した）。
 
 ## Example Map
 

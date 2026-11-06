@@ -11,7 +11,7 @@ target_paths:
   - apps/api/src/infrastructure/http/views/
   - apps/sim/src/features/record/
   - apps/sim/src/app/DriveRoute.tsx
-spec_confirmed_at: a806e60
+spec_confirmed_at: 38693f1
 tier: 2
 ---
 
@@ -36,6 +36,8 @@ tier: 2
 **deploy-a（2026-11-05）での変更**: Vercel では sim と api が同じオリジンになり、`/t/:id` を api（SSR）に書き換える。共有ページの「EZO ROAD で開く」は `${SIM_PUBLIC_URL}/t/{id}?app=1`（クエリ `app` があると sim の A-7 が開く。UC-7b のテストを更新）。sim の `recordShareUrl`・`recordImageUrl` は `VITE_API_BASE_URL` が空ならページのオリジンを付けた絶対の URL（UC-9a は今までどおり）。レート制限（R12）の枠は名前（`record.writes`・`record.reads`・`record.og`）で、書き込み・読み出しをそれぞれ route で分け合うのは今までどおり。詳しくは docs/specs/deploy-a/。
 
 **範囲外**: drive の中の変更（運転の終わりは drive-link の `onFinish(DriveResult)` を app 層の `DriveRoute` で受けてつなぐ。R11）、A-6 喪失の画面（loss。衝突の run は DriveRoute が残す）、出来事の時系列 `POST /api/trips/:id/events`（stop-events）、楽しみの写真の実物（Day 6）、Claude が書く「今日の鹿レポート」（付録 A #10、deer-report）、同意のチェックと Capture（capture）、保持期間による自動削除（Deferred）。
+
+> 2026-11-06 performance（`docs/specs/performance/functional.md` R1）が記録の `frames` に省略できる `dropped`・`counted` を足した（R2 に書いた）。両方あるか両方無いかで、`dropped` は `counted` 以下。足す前の run はそのまま通る。
 
 ## Example Map
 

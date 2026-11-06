@@ -10,7 +10,7 @@ target_paths:
   - apps/api/src/application/usecases/chats/
   - apps/api/src/infrastructure/gateways/prompts/chat-writing.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: 764720a
+spec_confirmed_at: 38693f1
 tier: 2
 ---
 
@@ -31,6 +31,8 @@ tier: 2
 **範囲外**: 鹿の出方・ステージ（`domain/deer-*`・`stages` ほか）、路面・季節（`vehicle.ts`・`scene/`）は別のセッションが同時に直す。ここは `engine` のスナップショット（`zone`・`alert`・`stage`・`destination`）を読むだけ。立ち寄り（A-4）の組み込み、会話の読み上げ。
 
 > 2026-11-06 main（drive-deer #46・drive-season #47）を取り込んだ。drive-season が会話のファイル（`chat/chat-deck.ts` の天気に `rain`、`chat/chat-ui.test.tsx` の当日の条件 v2）を変えたが、話題・写真・おすすめのカードのルール（R1〜R6）は変えていない。両方の変更を残した。
+
+> 2026-11-06 performance（`docs/specs/performance/functional.md`）が `DrivePage.tsx`（3D のチャンクの読み込み口・開発用の fps の表示）と `engine.ts`（落ちたフレームを数える）を変えた。話題・写真・おすすめのカード（R1〜R6）は変えていない。
 
 ## Example Map
 
