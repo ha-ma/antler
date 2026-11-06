@@ -2,7 +2,7 @@
 feature: drive-3d
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 7a58bf3
+spec_confirmed_at: 70bb182
 tier: 1
 ---
 

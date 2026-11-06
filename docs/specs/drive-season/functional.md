@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/src/features/drive/components/season-text.ts
   - packages/trip/src/day/conditions.ts
   - packages/trip/src/day/schema.ts
-spec_confirmed_at: 7a58bf3
+spec_confirmed_at: 70bb182
 tier: 1
 ---
 
