@@ -1,5 +1,5 @@
 import { MAX_PLEASURES, PERSONA_INPUT, pleasuresInArea } from '@antler/trip'
-import { DEFAULT_WEIGHT, initialPlanTripState, usePlanTripStore } from './store'
+import { initialPlanTripState, usePlanTripStore } from './store'
 
 describe('plan-trip store', () => {
   beforeEach(() => usePlanTripStore.getState().resetPlanTrip(['ja-JP']))
@@ -10,17 +10,17 @@ describe('plan-trip store', () => {
     expect(initialPlanTripState(['ko-KR']).lang).toBe('ko')
   })
 
-  it('初期値はペルソナの選択（道東・流氷 5・タンチョウ 4）', () => {
+  it('初期値はペルソナの選択（道東・流氷・タンチョウ・アイヌコタン。重さは持たない）', () => {
     const state = usePlanTripStore.getState()
     expect(state.area).toBe(PERSONA_INPUT.area)
     expect(state.selections.doto).toEqual(PERSONA_INPUT.pleasures)
     expect(state.selections.doo).toEqual([])
   })
 
-  it('UC-2b 10 件選択済みで 11 件目は増えない。外すと重さも消える', () => {
-    const { togglePleasure, setWeight } = usePlanTripStore.getState()
+  it('UC-2b 10 件選択済みで 11 件目は増えない。外して選び直すと id だけで戻る', () => {
+    const { togglePleasure } = usePlanTripStore.getState()
     for (const p of pleasuresInArea('doto')) togglePleasure(p.id)
-    // ペルソナの 2 件は外れ、残りが選ばれる。上限まで足す
+    // ペルソナの分は外れ、残りが選ばれる。上限まで足す
     const doto = () => usePlanTripStore.getState().selections.doto
     for (const p of pleasuresInArea('doto')) {
       if (!doto().some((s) => s.id === p.id)) togglePleasure(p.id)
@@ -29,11 +29,10 @@ describe('plan-trip store', () => {
 
     const first = doto()[0]
     if (!first) throw new Error('選択が無い')
-    setWeight(first.id, 5)
     togglePleasure(first.id)
     expect(doto().some((s) => s.id === first.id)).toBe(false)
     togglePleasure(first.id)
-    expect(doto().find((s) => s.id === first.id)?.weight).toBe(DEFAULT_WEIGHT)
+    expect(doto().find((s) => s.id === first.id)).toEqual({ id: first.id })
   })
 
   it('UC-2c 選択はエリアごとに保持する', () => {

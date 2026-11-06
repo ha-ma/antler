@@ -27,8 +27,9 @@ export const TripInputSchema = z
     return: Endpoint,
     budgetPerPersonJPY: z.number().int().min(0).max(MAX_BUDGET_JPY),
     area: z.enum(['doto', 'doo']),
+    // weight は古い画面との互換のためだけに受ける（使わない。plan-trip-photos）
     pleasures: z
-      .array(z.strictObject({ id: Slug, weight: z.number().int().min(1).max(5) }))
+      .array(z.strictObject({ id: Slug, weight: z.number().int().min(1).max(5).optional() }))
       .max(MAX_PLEASURES),
   })
   .superRefine((t, ctx) => {
@@ -80,8 +81,7 @@ export const PERSONA_INPUT: TripInput = {
   return: { at: '2027-02-18T17:00:00+09:00', place: 'CTS' },
   budgetPerPersonJPY: 120_000,
   area: 'doto',
-  pleasures: [
-    { id: 'drift-ice-walk', weight: 5 },
-    { id: 'red-crowned-crane', weight: 4 },
-  ],
+  // 夜のアイヌコタンは plan-trip-photos で足した（重さを外すと D1 の薄暮の移動が減り、リスクが 0.59「注意」に
+  // 下がったため。流氷が目的のまま、デザインの「高い」を保つ。推奨で決定）
+  pleasures: [{ id: 'drift-ice-walk' }, { id: 'red-crowned-crane' }, { id: 'akan-ainu-kotan' }],
 }

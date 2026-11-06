@@ -33,6 +33,8 @@ tier: 1
 (2) YOLO-World → CoreML の書き出し `edge/detector/scripts/export_yolo_world.py`、(3) 手順書 `docs/runbooks/2026-11-04-mac-mini-day0.md`、
 (4) extra `day0`（ultralytics・coremltools・mlx）と CREDITS.md。
 
+**plan-trip-photos（2026-11-06）**: 共有の CREDITS.md に「楽しみの写真」の節を足した（A-1 の写真 24 枚）。この仕様が書いた行（Ultralytics・coremltools・mlx など）と挙動は変わらない。
+
 要件: 変更指示 §3.2（`scripts/bench_l1.py`）・§4 Step 0・Step 6・§6（L1 の p50/p95、併走で L0 の fps 低下 20% 以内）。ch4-edge.md B1-1（`pmset`）。
 既存: `docs/specs/edge-l0`（CoreML の読み方）・`edge-l1`（client）・`edge-l1-calibration`（`dataset/export_l1_labels.py`）。
 

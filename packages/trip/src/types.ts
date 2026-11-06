@@ -38,6 +38,8 @@ export type Pleasure = {
   timeOfDay: 'day' | 'night' | 'dawn'
   /** 楽しめる月（1〜12）。空なら通年 */
   months: number[]
+  /** 標準の所要（時間、0.5〜8 の 0.5 刻み）。しおりはこの時間で割り当てる（重さは使わない） */
+  hours: number
   /** 事実（季節・所要・拠点）をユーザーが確かめたか（Deferred。暫定は false） */
   verified: boolean
 }
@@ -50,7 +52,11 @@ export type TripInput = {
   return: { at: string; place: DeparturePlace }
   budgetPerPersonJPY: number
   area: Area
-  pleasures: { id: string; weight: number }[]
+  /**
+   * 選んだ楽しみ。weight（1〜5）は古い画面との互換のためだけに受け、組み立てにも保存にも使わない
+   * （plan-trip-photos。保存の weight は所要から換算する）
+   */
+  pleasures: { id: string; weight?: number | undefined }[]
 }
 
 /** 1 回の移動（リスクの「暗い時間の移動」に使う）。 */
@@ -65,7 +71,7 @@ export type Leg = {
 
 export type Itinerary = {
   days: TripPlan['days']
-  /** 入りきらなかった楽しみの id（重さの小さい順に外したもの） */
+  /** 入りきらなかった楽しみの id（所要の短い順に外したもの） */
   skipped: string[]
   legs: Leg[]
 }

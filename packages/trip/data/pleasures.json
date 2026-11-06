@@ -5,6 +5,7 @@
     "base": "shiretoko",
     "timeOfDay": "day",
     "months": [2],
+    "hours": 3,
     "verified": false,
     "name": { "ja": "流氷ウォーク", "en": "Drift ice walk", "zh": "流冰漫步", "ko": "유빙 워크" },
     "note": {
@@ -20,6 +21,7 @@
     "base": "tsurui",
     "timeOfDay": "day",
     "months": [12, 1, 2, 3],
+    "hours": 2,
     "verified": false,
     "name": { "ja": "タンチョウ", "en": "Red-crowned cranes", "zh": "丹頂鶴", "ko": "두루미" },
     "note": {
@@ -35,6 +37,7 @@
     "base": "akan",
     "timeOfDay": "day",
     "months": [12, 1, 2, 3],
+    "hours": 3,
     "verified": false,
     "name": {
       "ja": "阿寒湖温泉・雪見",
@@ -55,6 +58,7 @@
     "base": "kushiro",
     "timeOfDay": "day",
     "months": [],
+    "hours": 1,
     "verified": false,
     "name": {
       "ja": "和商市場の勝手丼",
@@ -75,6 +79,7 @@
     "base": "teshikaga",
     "timeOfDay": "day",
     "months": [],
+    "hours": 2,
     "verified": false,
     "name": {
       "ja": "摩周湖・硫黄山",
@@ -95,6 +100,7 @@
     "base": "obihiro",
     "timeOfDay": "day",
     "months": [],
+    "hours": 1.5,
     "verified": false,
     "name": {
       "ja": "帯広 豚丼・スイーツ",
@@ -115,6 +121,7 @@
     "base": "kushiro",
     "timeOfDay": "day",
     "months": [],
+    "hours": 4,
     "verified": false,
     "name": {
       "ja": "釧路湿原 展望・ノロッコ号",
@@ -135,6 +142,7 @@
     "base": "nemuro",
     "timeOfDay": "dawn",
     "months": [],
+    "hours": 2,
     "verified": false,
     "name": {
       "ja": "納沙布岬の日の出",
@@ -155,6 +163,7 @@
     "base": "shiretoko",
     "timeOfDay": "day",
     "months": [1, 2, 3],
+    "hours": 3,
     "verified": false,
     "name": {
       "ja": "知床五湖・フレペの滝",
@@ -175,6 +184,7 @@
     "base": "akan",
     "timeOfDay": "night",
     "months": [],
+    "hours": 1.5,
     "verified": false,
     "name": {
       "ja": "阿寒湖アイヌコタン",
@@ -195,6 +205,7 @@
     "base": "betsukai",
     "timeOfDay": "day",
     "months": [1, 2, 3],
+    "hours": 2.5,
     "verified": false,
     "name": {
       "ja": "野付半島・氷平線",
@@ -215,6 +226,7 @@
     "base": "teshikaga",
     "timeOfDay": "day",
     "months": [],
+    "hours": 2,
     "verified": false,
     "name": { "ja": "川湯温泉", "en": "Kawayu hot spring", "zh": "川湯溫泉", "ko": "가와유 온천" },
     "note": {
@@ -231,6 +243,7 @@
     "base": "sapporo-city",
     "timeOfDay": "day",
     "months": [],
+    "hours": 2,
     "verified": false,
     "name": {
       "ja": "札幌ジンギスカン",
@@ -251,6 +264,7 @@
     "base": "otaru",
     "timeOfDay": "day",
     "months": [],
+    "hours": 4,
     "verified": false,
     "name": {
       "ja": "小樽運河と寿司",
@@ -271,6 +285,7 @@
     "base": "niseko",
     "timeOfDay": "day",
     "months": [12, 1, 2, 3],
+    "hours": 8,
     "verified": false,
     "name": {
       "ja": "ニセコのパウダー",
@@ -291,6 +306,7 @@
     "base": "biei",
     "timeOfDay": "day",
     "months": [],
+    "hours": 4,
     "verified": false,
     "name": { "ja": "美瑛の丘", "en": "Biei hills", "zh": "美瑛之丘", "ko": "비에이의 언덕" },
     "note": {
@@ -306,6 +322,7 @@
     "base": "furano",
     "timeOfDay": "day",
     "months": [],
+    "hours": 4,
     "verified": false,
     "name": { "ja": "富良野", "en": "Furano", "zh": "富良野", "ko": "후라노" },
     "note": {
@@ -321,6 +338,7 @@
     "base": "asahikawa",
     "timeOfDay": "day",
     "months": [],
+    "hours": 4,
     "verified": false,
     "name": {
       "ja": "旭山動物園",
@@ -341,6 +359,7 @@
     "base": "noboribetsu",
     "timeOfDay": "day",
     "months": [],
+    "hours": 3,
     "verified": false,
     "name": {
       "ja": "登別温泉",
@@ -361,6 +380,7 @@
     "base": "toya",
     "timeOfDay": "day",
     "months": [],
+    "hours": 2,
     "verified": false,
     "name": { "ja": "洞爺湖", "en": "Lake Toya", "zh": "洞爺湖", "ko": "도야호" },
     "note": {
@@ -376,6 +396,7 @@
     "base": "shikotsu",
     "timeOfDay": "night",
     "months": [1, 2],
+    "hours": 2,
     "verified": false,
     "name": {
       "ja": "支笏湖氷濤まつり",
@@ -396,6 +417,7 @@
     "base": "jozankei",
     "timeOfDay": "day",
     "months": [],
+    "hours": 3,
     "verified": false,
     "name": { "ja": "定山渓", "en": "Jozankei", "zh": "定山溪", "ko": "조잔케이" },
     "note": {
@@ -411,6 +433,7 @@
     "base": "sapporo-city",
     "timeOfDay": "night",
     "months": [2],
+    "hours": 3,
     "verified": false,
     "name": {
       "ja": "さっぽろ雪まつり",
@@ -431,6 +454,7 @@
     "base": "shakotan",
     "timeOfDay": "day",
     "months": [6, 7, 8],
+    "hours": 2,
     "verified": false,
     "name": {
       "ja": "積丹のウニ",

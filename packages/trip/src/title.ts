@@ -12,12 +12,13 @@ const AREA_NAME: Record<TripInput['area'], Localized> = {
 export function draftTitles(input: TripInput, itinerary: Itinerary): Localized {
   const days = String(tripDayCount(input))
   const area = AREA_NAME[input.area]
-  // 重さの大きい順に 2 つまで（入りきらなかったものは除く）
-  const top = [...input.pleasures]
+  // 所要の長い順に 2 つまで（入りきらなかったものは除く。plan-trip-photos）
+  const top = input.pleasures
     .filter((p) => !itinerary.skipped.includes(p.id))
-    .sort((a, b) => b.weight - a.weight || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+    .flatMap((p) => pleasureById(p.id) ?? [])
+    .sort((a, b) => b.hours - a.hours || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
     .slice(0, 2)
-    .flatMap((p) => pleasureById(p.id)?.name ?? [])
+    .map((p) => p.name)
   if (top.length === 0) {
     return {
       ja: `${area.ja} ${days} 日間のドライブ`,

@@ -21,6 +21,12 @@ const PleasureSchema = z.strictObject({
   base: z.string().min(1),
   timeOfDay: z.enum(['day', 'night', 'dawn']),
   months: z.array(z.number().int().min(1).max(12)),
+  // 標準の所要（時間、0.5 刻み）。しおりはこの時間で割り当てる（plan-trip-photos R1）
+  hours: z
+    .number()
+    .min(0.5)
+    .max(8)
+    .refine((h) => Number.isInteger(h * 2), '0.5 刻み'),
   verified: z.boolean(),
 })
 

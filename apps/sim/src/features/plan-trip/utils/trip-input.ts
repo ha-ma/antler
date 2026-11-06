@@ -55,7 +55,8 @@ export function toTripInput(values: Partial<PlanFormValues>, context: PlanFormCo
     return: { at: jstLocalToIso(values.returnAt ?? ''), place: values.returnPlace },
     budgetPerPersonJPY: values.budget,
     area: context.area,
-    pleasures: context.pleasures.map((p) => ({ id: p.id, weight: p.weight })),
+    // 重さは送らない（api は任意の欄として受け、使わない。plan-trip-photos）
+    pleasures: context.pleasures.map((p) => ({ id: p.id })),
   }
 }
 

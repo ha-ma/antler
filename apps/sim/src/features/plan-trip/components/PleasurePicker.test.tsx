@@ -19,7 +19,7 @@ function counter(): string {
 describe('PleasurePicker（A1-2・A1-3）', () => {
   beforeEach(() => usePlanTripStore.getState().resetPlanTrip(['ja-JP']))
 
-  it('UC-2b 10 件選択済みで 11 件目は選べない。外すと重さも消える', async () => {
+  it('UC-2b 10 件選択済みで 11 件目は選べない。外して選び直せる', async () => {
     const user = userEvent.setup()
     render(<PleasurePicker />)
     const doto = pleasuresInArea('doto')
@@ -45,51 +45,47 @@ describe('PleasurePicker（A1-2・A1-3）', () => {
     expect(counter()).toContain(`${String(MAX_PLEASURES)} / ${String(MAX_PLEASURES)}`)
     expect(screen.getByText(/10 件まで選べます/)).toBeInTheDocument()
 
-    // 流氷ウォークの重さを 5 → 外す → 重さの欄が消える → 選び直すと 3 から
+    // 流氷ウォークを外す → 選び直す
     const ice = doto.find((p) => p.id === 'drift-ice-walk')
     if (!ice) throw new Error('流氷ウォークがマスターに無い')
-    const weightGroup = () => screen.queryByRole('group', { name: `${ice.name.ja} の重さ` })
-    expect(weightGroup()).not.toBeNull()
     await user.click(card(ice.name.ja))
-    expect(weightGroup()).toBeNull()
     expect(card(ice.name.ja)).toHaveAttribute('aria-pressed', 'false')
     await user.click(card(ice.name.ja))
-    const group = weightGroup()
-    if (!group) throw new Error('重さの欄が出ない')
-    expect(within(group).getByRole('status')).toHaveTextContent('重さ 3')
+    expect(card(ice.name.ja)).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('UC-2b 重さは「−」「＋」で 1〜5 のあいだを変わる', async () => {
+  it('DUR-7 カードに重さの操作が無く「約 n 時間」が出る。選択は id だけ', async () => {
     const user = userEvent.setup()
     render(<PleasurePicker />)
-    const group = screen.getByRole('group', { name: 'タンチョウ の重さ' })
-    const weight = () =>
-      usePlanTripStore.getState().selections.doto.find((p) => p.id === 'red-crowned-crane')?.weight
-    const down = within(group).getByRole('button', { name: '重さを下げる' })
-    const up = within(group).getByRole('button', { name: '重さを上げる' })
-
-    await user.click(down)
-    await user.click(down)
-    expect(weight()).toBe(2)
-    expect(within(group).getByRole('status')).toHaveTextContent('重さ 2')
-    await user.click(down)
-    await user.click(down)
-    expect(weight()).toBe(1)
-    expect(down).toHaveAttribute('aria-disabled', 'true')
-    for (let i = 0; i < 6; i += 1) await user.click(up)
-    expect(weight()).toBe(5)
-    expect(up).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.queryByRole('group', { name: /重さ/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /重さ/ })).toBeNull()
+    expect(screen.queryByText(/重さ/)).toBeNull()
+    for (const p of pleasuresInArea('doto')) {
+      const article = card(p.name.ja).closest('article')
+      if (!article) throw new Error('カードが無い')
+      const hours = Number.isInteger(p.hours) ? String(p.hours) : p.hours.toFixed(1)
+      expect(within(article).getByText(`約 ${hours} 時間`)).toBeInTheDocument()
+    }
+    const marsh = pleasuresInArea('doto').find((p) => p.id === 'kushiro-marsh')
+    if (!marsh) throw new Error('釧路湿原がマスターに無い')
+    await user.click(card(marsh.name.ja))
+    expect(usePlanTripStore.getState().selections.doto).toContainEqual({ id: 'kushiro-marsh' })
+    for (const s of usePlanTripStore.getState().selections.doto) {
+      expect(Object.keys(s)).toEqual(['id'])
+    }
   })
 
   it('UC-2c 選択はエリアごとに保持し、カウンターは表示中のエリアの数', async () => {
     const user = userEvent.setup()
     render(<PleasurePicker />)
+    const initial = usePlanTripStore.getState().selections.doto.length
     const third = pleasuresInArea('doto').find(
-      (p) => p.id !== 'drift-ice-walk' && p.id !== 'red-crowned-crane',
+      (p) => !usePlanTripStore.getState().selections.doto.some((s) => s.id === p.id),
     )
     if (!third) throw new Error('道東のマスターが足りない')
     await user.click(card(third.name.ja))
-    expect(counter()).toContain(`3 / ${String(MAX_PLEASURES)}`)
+    const picked = `${String(initial + 1)} / ${String(MAX_PLEASURES)}`
+    expect(counter()).toContain(picked)
 
     await user.click(screen.getByRole('tab', { name: /道央/ }))
     expect(screen.getByRole('tab', { name: /道央/ })).toHaveAttribute('aria-selected', 'true')
@@ -99,7 +95,7 @@ describe('PleasurePicker（A1-2・A1-3）', () => {
     expect(card(firstDoo.name.ja)).toHaveAttribute('aria-pressed', 'false')
 
     await user.click(screen.getByRole('tab', { name: /道東/ }))
-    expect(counter()).toContain(`3 / ${String(MAX_PLEASURES)}`)
+    expect(counter()).toContain(picked)
     expect(card(third.name.ja)).toHaveAttribute('aria-pressed', 'true')
   })
 

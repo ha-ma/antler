@@ -1,16 +1,20 @@
 import { metersBetween, type LonLat } from '@antler/zones'
 import { atHour, dayOf, HOUR_MS, jstDayIndex, tripDayCount } from './dates'
 import { AREA_CIRCUIT, DEPARTURE_PLACE_ID, placeById } from './places'
+import { activityHours } from './plan'
 import { pleasureById } from './pleasures'
 import type { Itinerary, Leg, Pleasure, TripInput } from './types'
 
 // しおりの組み立て（functional.md R3、A1-4）。決定的な純粋関数で、端末は入力のたびに、api は保存の前に呼ぶ。
-// - 重さ w の楽しみは w × 1.6 時間（重さ 5 ＝ 8 時間 ＝ 丸 1 日）。活動は 8:00〜18:00 の枠に入れる
+// - 楽しみはマスターの標準の所要（hours）を 1.6 時間の枠に切り上げた時間だけ活動する（駐車・歩きを含む。
+//   保存の weight・stop-events の滞在と同じ枠）。活動は 8:00〜18:00 の枠に入れる
+//   （重さは使わない。plan-trip-photos R2。入力の weight は互換のために受けるだけ）
+// - 今日の枠に活動が入らないとき: 移動だけなら 18:00 までに着けるなら今日移動して泊まり、活動は翌朝。
+//   着けず、翌朝からなら 1 日に収まるなら、今夜は今いる場所に泊まって翌朝に移動する
 // - 移動は直線距離 × 1.3 ÷ 時速 50 km（目安）。移動は枠を越えてよい（暗い時間の運転はリスクで数える）
 // - 拠点はエリアの周回順に回る（出発地に近い側から。向きは移動の合計が短い方）
-// - 返却の 1 時間前までに返却地へ着けなければ、重さの小さい楽しみから外す（skipped）
+// - 返却の 1 時間前までに返却地へ着けなければ、所要の短い楽しみから外す（skipped。同じなら周回順で後ろ）
 
-export const HOURS_PER_WEIGHT = 1.6
 const ROAD_FACTOR = 1.3
 const SPEED_KMH = 50
 const ACTIVITY_START_H = 8
@@ -18,7 +22,7 @@ const ACTIVITY_END_H = 18
 /** 車を受け取る・返す手続きの時間 */
 const HANDOVER_H = 1
 
-type Chosen = { pleasure: Pleasure; weight: number; order: number }
+type Chosen = { pleasure: Pleasure; order: number }
 type Activity = { id: string; day: number }
 type Schedule = { legs: Leg[]; activities: Activity[]; feasible: boolean }
 
@@ -53,7 +57,10 @@ export function buildItinerary(input: TripInput): Itinerary {
   let schedule = simulate(input, chosen, start, end, firstDay)
   while (!schedule.feasible && chosen.length > 0) {
     const drop = chosen.reduce((worst, c) =>
-      c.weight < worst.weight || (c.weight === worst.weight && c.order > worst.order) ? c : worst,
+      c.pleasure.hours < worst.pleasure.hours ||
+      (c.pleasure.hours === worst.pleasure.hours && c.order > worst.order)
+        ? c
+        : worst,
     )
     skipped.push(drop.pleasure.id)
     chosen = chosen.filter((c) => c !== drop)
@@ -72,7 +79,7 @@ function orderByCircuit(input: TripInput, start: string): Chosen[] {
   const circuit = AREA_CIRCUIT[input.area]
   const picked = input.pleasures.flatMap((p) => {
     const pleasure = pleasureById(p.id)
-    return pleasure ? [{ pleasure, weight: p.weight }] : []
+    return pleasure ? [{ pleasure }] : []
   })
   const sortBy = (forward: boolean) =>
     picked
@@ -83,7 +90,7 @@ function orderByCircuit(input: TripInput, start: string): Chosen[] {
       .sort(
         (a, b) =>
           a.order - b.order ||
-          b.weight - a.weight ||
+          b.pleasure.hours - a.pleasure.hours ||
           (a.pleasure.id < b.pleasure.id ? -1 : a.pleasure.id > b.pleasure.id ? 1 : 0),
       )
   const cost = (list: Chosen[]) =>
@@ -123,13 +130,16 @@ function simulate(
 
   for (const c of chosen) {
     const travel = travelHours(at, c.pleasure.base)
-    const act = c.weight * HOURS_PER_WEIGHT
+    const act = activityHours(c.pleasure.hours)
     const today = dayOf(t)
-    // 今日の枠に入らないが、翌朝からなら 1 日に収まる → 今夜は今いる場所に泊まり、翌朝に移動する
+    // 今日の枠に入らず、移動だけでも今日の枠のうちに着けないが、翌朝からなら 1 日に収まる
+    // → 今夜は今いる場所に泊まり、翌朝に移動する（着けるなら今日移動し、活動は下の繰り越しで翌朝）
     const fitsToday = t + (travel + act) * HOUR_MS <= atHour(today, ACTIVITY_END_H)
+    const arrivesToday = t + travel * HOUR_MS <= atHour(today, ACTIVITY_END_H)
     const fitsADay = travel + act <= ACTIVITY_END_H - ACTIVITY_START_H
     let departAt = t
-    if (!fitsToday && fitsADay) departAt = Math.max(t, atHour(today + 1, ACTIVITY_START_H))
+    if (!fitsToday && !arrivesToday && fitsADay)
+      departAt = Math.max(t, atHour(today + 1, ACTIVITY_START_H))
     else if (t < atHour(today, ACTIVITY_START_H) && travel === 0)
       departAt = atHour(today, ACTIVITY_START_H)
     const arrive = drive(c.pleasure.base, departAt)
