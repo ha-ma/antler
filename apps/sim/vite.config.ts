@@ -50,6 +50,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     passWithNoTests: true,
+    // 手元の .env.local（VITE_API_BASE_URL=http://localhost:8787 など）にテストを左右させない。
+    // 接続先を変えて確かめるテストは vi.stubEnv で上書きする
+    env: { VITE_API_BASE_URL: '' },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
