@@ -192,6 +192,31 @@ def test_cu2e_deerの無いモデルは拒否_大文字は小文字に_端の座
     assert det.detect(np.zeros((4, 4, 3), dtype=np.uint8)) == [] and det.last_invalid == 1
 
 
+def padded(rows, width):
+    """ultralytics が MLProgram の NMS で作る形: クラスの列を width まで埋める。"""
+    conf = np.zeros((len(rows), width))
+    for i, row in enumerate(rows):
+        conf[i, : len(row)] = row
+    return conf
+
+
+# CU-2f
+def test_cu2f_80の倍数まで埋めたクラスの列は無視して読む():
+    image = np.zeros((480, 640, 3), dtype=np.uint8)
+    conf = padded([[0.6], [0.3]], 80)
+    conf[1, 5] = 0.99  # 埋めた列に値があっても選ばない
+    out = {"confidence": conf, "coordinates": [[0.5, 0.5, 0.2, 0.2], [0.3, 0.4, 0.1, 0.1]]}
+    found = CoreMLDetector(loaded(out), ("deer",), prepare=lambda a: a).detect(image)
+    assert [(d.label, d.conf) for d in found] == [("deer", 0.6), ("deer", 0.3)]
+    two = {"confidence": padded([[0.2, 0.7]], 80), "coordinates": [[0.5, 0.5, 0.2, 0.2]]}
+    found = CoreMLDetector(loaded(two), ("deer", "car"), prepare=lambda a: a).detect(image)
+    assert [(d.label, d.conf) for d in found] == [("car", 0.7)]
+    for width in (79, 81, 160):
+        bad = {"confidence": padded([[0.6]], width), "coordinates": [[0.5, 0.5, 0.2, 0.2]]}
+        with pytest.raises(CoreMLOutputError, match="形が違う"):
+            CoreMLDetector(loaded(bad), ("deer",), prepare=lambda a: a).detect(image)
+
+
 # MV-1
 def test_mv1_detector_inferenceから従来どおりimportできl0と同じもの():
     assert legacy.DeerDetector is inference.DeerDetector
