@@ -114,7 +114,7 @@ Questions は 2026-11-06 に推奨で決定（CLAUDE.md の方針「推奨案の
   - 同じ鍵の同時の要求は、プロセスの中で 1 つにまとめる（single-flight）。保存で負けたら先に保存した行を返す
   - 1 つの旅に保存できる会話の束は 30 まで（旅程の作り直しで鍵を変え続けられないように）
   - Claude の呼び出しは、plan-trip と共有の同時の枠と 1 日の上限（`countWriterCall`）を使う。外れたら 1 回だけ作り直す（理由のコードだけを渡す）
-  - 2 回とも外れた・Claude が失敗した鍵は、プロセスの中で 10 分覚え、その間の同じ鍵の要求には Claude を呼ばずに 502 を返す（画面を開き直すたびに呼ばない。spec-adversary Major。推奨で決定）
+  - 2 回とも中身が外れた（検証・上限で切れた・断られた・形が違う）鍵は、プロセスの中で 10 分覚え（時間切れ・上流の失敗・認証の失敗・同時の枠・1 日の上限は覚えない。FAIL-41 のとおり、もう一度送れば呼び直す）、その間の同じ鍵の要求には Claude を呼ばずに 502 を返す（画面を開き直すたびに呼ばない。spec-adversary Major。推奨で決定）
   - IP あたり 1 分 10 件（`rateLimit` の名前 `chats.prepare`）
 - R16 事実と文の分担: いつ・誰が・何の話題で・どの楽しみ・天気・光は api が決める。Claude は road の行の一言（text）だけを書く。Claude に渡す材料は、マスターの地名・楽しみの名前（4 言語）、話題、話し手の席、人数、経験、月、天気・路面、光だけ（自由入力・統計の数字・金額・時刻を渡さない）。zh は繁体字（台湾）で書かせる
 - R17 文の検証（外れたら作り直し → 2 回目も外れたら 502、保存しない）
@@ -269,19 +269,20 @@ UC-4 会話を出す（sim）:
 
 ## Rule → ドメイン語彙対応
 
-| Rule                       | 語彙                                        | 置き場所                                  | 証明           |
-| -------------------------- | ------------------------------------------- | ----------------------------------------- | -------------- |
-| R1: 鳴らすか               | `gameAudioEnabled`                          | apps/sim/src/features/drive/audio/        | AUD-3a         |
-| R3・R4: エンジン・ブレーキ | `engineVoice` / `brakeVoice`                | apps/sim/src/features/drive/audio/        | AUD-3b〜d      |
-| R5: BGM                    | `radioScore`                                | apps/sim/src/features/drive/audio/        | AUD-3f         |
-| R6: 混ぜ方                 | `mixLevels`                                 | apps/sim/src/features/drive/audio/        | AUD-3e         |
-| R7〜R9: 鳴らし方           | `DriveAudio` / `AudioGraphPort`             | apps/sim/src/features/drive/audio/        | AUD-3g〜i      |
-| R11: 束の組み立て          | `buildChatPlan`                             | apps/api/src/domain/chats/policies/       | PLAN-*         |
-| R12: 出すタイミング        | `advanceChat`                               | apps/sim/src/features/drive/chat/         | CHAT-4a〜e     |
-| R13・R14: 表示と操作       | `ChatFeed` / `AudioControls`                | apps/sim/src/features/drive/chat/・audio/ | CHAT-4h〜i     |
-| R15: 生成の API            | `PrepareChatUseCase`                        | apps/api/src/application/usecases/chats/  | SAVE-_・AUTH-_ |
-| R17: 文の検証              | `ChatWriterGateway` / `validateChatWriting` | apps/api/src/domain/chats/policies/       | WRITE-*        |
-| R18・R19: 端末の取り方     | `useChatDeck` / `fallbackChatDeck`          | apps/sim/src/features/drive/chat/         | CHAT-4f〜g     |
+| Rule                       | 語彙                                        | 置き場所                                 | 証明           |
+| -------------------------- | ------------------------------------------- | ---------------------------------------- | -------------- |
+| R1: 鳴らすか               | `gameAudioEnabled`                          | apps/sim/src/features/drive/audio/       | AUD-3a         |
+| R3・R4: エンジン・ブレーキ | `engineVoice` / `brakeVoice`                | apps/sim/src/features/drive/audio/       | AUD-3b〜d      |
+| R5: BGM                    | `radioScore`                                | apps/sim/src/features/drive/audio/       | AUD-3f         |
+| R6: 混ぜ方                 | `mixLevels`                                 | apps/sim/src/features/drive/audio/       | AUD-3e         |
+| R7〜R9: 鳴らし方           | `DriveAudio` / `AudioGraphPort`             | apps/sim/src/features/drive/audio/       | AUD-3g〜i      |
+| R11: 束の組み立て          | `buildChatPlan`                             | apps/api/src/domain/chats/policies/      | PLAN-*         |
+| R12: 出すタイミング        | `advanceChat`                               | apps/sim/src/features/drive/chat/        | CHAT-4a〜e     |
+| R13: 会話の表示            | `ChatFeed`                                  | apps/sim/src/features/drive/chat/        | CHAT-4h        |
+| R14: 音量の操作            | `AudioControls`                             | apps/sim/src/features/drive/audio/       | CHAT-4i        |
+| R15: 生成の API            | `PrepareChatUseCase`                        | apps/api/src/application/usecases/chats/ | SAVE-_・AUTH-_ |
+| R17: 文の検証              | `ChatWriterGateway` / `validateChatWriting` | apps/api/src/domain/chats/policies/      | WRITE-*        |
+| R18・R19: 端末の取り方     | `useChatDeck` / `fallbackChatDeck`          | apps/sim/src/features/drive/chat/        | CHAT-4f〜g     |
 
 ## 受け入れ基準
 
