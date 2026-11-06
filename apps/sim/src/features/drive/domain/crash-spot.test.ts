@@ -192,7 +192,8 @@ describe('衝突の合図とカメラの揺れ（R3）', () => {
     expect(late).toBeLessThan(peak)
     expect(at(CRASH_SHAKE_S)).toBe(0)
     expect(at(2)).toBe(0)
-    for (const s of [0, 0.02, 0.3]) expect(crashShake(s, true)).toEqual({ yaw: 0, pitch: 0, roll: 0 })
+    for (const s of [0, 0.02, 0.3])
+      expect(crashShake(s, true)).toEqual({ yaw: 0, pitch: 0, roll: 0 })
     // 乱数を使わない（同じ時刻なら同じ揺れ）
     expect(crashShake(0.1, false)).toEqual(crashShake(0.1, false))
   })
@@ -323,6 +324,28 @@ describe('鹿の発見（R4）', () => {
     expect(pickDeer(ray, [{ id: 'y', center: [1.5, 1, -100] }])).toBe('y')
     // 後ろの鹿には当たらない
     expect(pickDeer(ray, [{ id: 'z', center: [0, 1, 20] }])).toBeNull()
+  })
+
+  it('UC-5c（R5）: dart・graze-dash だけ最初の抽選を近い帯で引く。林の中の目の反射だけの鹿は赤にならず、目が光れば発見の的', () => {
+    const w = inZoneWith([
+      { motion: 'dart' },
+      { motion: 'graze-dash' },
+      { motion: 'graze' },
+      { motion: 'eyeshine', s: 0, d: 11, occluded: true, heading: -Math.PI * 0.75 },
+    ])
+    const s = w.vehicle.s
+    w.deer[3] = { ...(w.deer[3] as Deer), s: s + 40 }
+    // 夜（目が光る）: 時計を 4 時間進める（見本の出発は薄暮）
+    w.internal.clockShiftMs += 4 * 3_600_000
+    advance(w, 100, ZONES)
+    const { bands } = w.internal.detector
+    expect(bands.t0).toBe(2)
+    expect(bands.t1).toBe(2)
+    expect(bands.t2).toBe(0)
+    // 目の反射だけの鹿は検知の抽選にも入らない（林の中）
+    expect(bands.t3).toBeUndefined()
+    expect(w.light).not.toBe('day')
+    expect(spotTargets(w).map((t) => t.id)).toContain('t3')
   })
 
   it('UC-4f: 押してから 8 px を超えて動いたらタップではない。的は見えていてまだ見つけていない鹿だけ', () => {

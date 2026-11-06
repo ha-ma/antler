@@ -43,6 +43,17 @@ export const TripRecordSchema = z.strictObject({
     collided: z.number().int().min(0),
     /** アラート→ブレーキの平均（ms、整数）。測れた遭遇が無ければ null */
     alertToBrakeAvgMs: z.number().int().min(0).nullable(),
+    /**
+     * 鹿の発見の合計（drive-crash-spot R4）。その日の結果にした run がすべて spotting を持つときだけ
+     * （欄の無い古い run が混ざれば出さない。一部の合計を全体に見せない）。足す前の応答には無いので省略を許す
+     */
+    spotting: z
+      .strictObject({
+        appeared: z.number().int().min(0),
+        found: z.number().int().min(0),
+        early: z.number().int().min(0),
+      })
+      .optional(),
   }),
   /** ゾーンでの各回（日 → 時刻の順。時刻の無いものはその日の後ろ） */
   log: z.array(
@@ -67,7 +78,7 @@ export type RecordPlan = { days: readonly Pick<TripPlan['days'][number], 'day' |
 /** 集計に要る run の部分（保存順に並べて渡す） */
 export type RecordRun = Pick<
   DriveRunInput,
-  'day' | 'alertEnabled' | 'outcome' | 'zonePasses' | 'encounters'
+  'day' | 'alertEnabled' | 'outcome' | 'zonePasses' | 'encounters' | 'spotting'
 >
 
 export function summarizeRecord(plan: RecordPlan, runs: readonly RecordRun[]): TripRecord {
@@ -120,6 +131,7 @@ export function summarizeRecord(plan: RecordPlan, runs: readonly RecordRun[]): T
     )
     .sort(byDayThenTime)
   const measured = log.flatMap((l) => (l.alertToBrakeMs === null ? [] : [l.alertToBrakeMs]))
+  const spotting = sumSpotting(latestRuns)
 
   return {
     status:
@@ -143,9 +155,23 @@ export function summarizeRecord(plan: RecordPlan, runs: readonly RecordRun[]): T
         measured.length === 0
           ? null
           : Math.round(measured.reduce((a, b) => a + b, 0) / measured.length),
+      ...(spotting ? { spotting } : {}),
     },
     log,
   }
+}
+
+/** その日の結果にした run の発見の合計。run が無い・欄の無い run が混ざるなら undefined（drive-crash-spot R4） */
+function sumSpotting(runs: readonly RecordRun[]): NonNullable<RecordRun['spotting']> | undefined {
+  if (runs.length === 0) return undefined
+  const total = { appeared: 0, found: 0, early: 0 }
+  for (const run of runs) {
+    if (!run.spotting) return undefined
+    total.appeared += run.spotting.appeared
+    total.found += run.spotting.found
+    total.early += run.spotting.early
+  }
+  return total
 }
 
 function byDayThenTime(

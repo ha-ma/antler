@@ -84,7 +84,10 @@ export function spotTargets(world: World): SpotTarget[] {
   for (const deer of world.deer) {
     if (world.internal.spotted.has(deer.id) || !deerVisible(world, deer)) continue
     const p = poseAt(world.internal.frame, deer.s, deer.d)
-    out.push({ id: deer.id, center: [p.x, deer.motion === 'eyeshine' ? EYE_Y : BODY_CENTER_Y, p.z] })
+    out.push({
+      id: deer.id,
+      center: [p.x, deer.motion === 'eyeshine' ? EYE_Y : BODY_CENTER_Y, p.z],
+    })
   }
   return out
 }

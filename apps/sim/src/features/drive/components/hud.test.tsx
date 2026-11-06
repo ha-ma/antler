@@ -38,6 +38,7 @@ const base: DriveSnapshot = {
   stage: { index: 1, count: 2 },
   stageClearedAt: null,
   destination: { km: 30.2, etaMs: Date.parse('2027-02-15T17:30+09:00') },
+  spotting: { appeared: 0, found: 0, early: 0 },
 }
 
 const danger: DerivedAlert = { state: 'danger', distance: 42, side: 'L', inZone: true }

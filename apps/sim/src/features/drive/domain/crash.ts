@@ -1,7 +1,7 @@
 // 衝突の演出（drive-crash-spot R3）。鹿に当たってから A-6 に移るまでの時間と、カメラの揺れ。
 // 揺れは乱数を使わず、時刻の正弦の和で決める（同じ時刻なら同じ揺れ）。world.t は衝突で止まるので、実時間で測る。
 
-/** 当たってから onFinish（A-6 へ移る）までの時間（ms） */
+/** 当たってから onCrashEnd（A-6 へ移る）までの時間（ms）。run の保存（onFinish）は当たったフレーム */
 export const CRASH_MS = 3500
 /** カメラが揺れる時間（s） */
 export const CRASH_SHAKE_S = 0.8

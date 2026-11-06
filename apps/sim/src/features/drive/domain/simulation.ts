@@ -12,7 +12,7 @@ import type {
 } from '../types'
 import { NO_INPUT } from '../types'
 import { boxesOverlap, carBox, deerBox } from './collision'
-import { candidatesToDecide, createCandidates } from './deer-spawn'
+import { candidatesToDecide, createCandidates, NEAR_MOTIONS } from './deer-spawn'
 import { spawnDeer, stepDeer } from './deer-motion'
 import {
   CAMERA_FORWARD_M,
@@ -451,7 +451,14 @@ function tick(world: World, events: SimEvent[]): void {
       const e = world.encounters.find((x) => x.deerId === d.id)
       if (e) e.closestM = Math.min(e.closestM, distanceM)
     }
-    const seen = cameraSees(camera, { id: d.id, x: p.x, z: p.z, occluded: d.occluded })
+    // 目の反射だけの鹿は林の中（occluded）にいるので検知しない（drive-crash-spot R5）。至近の飛び出しは near
+    const seen = cameraSees(camera, {
+      id: d.id,
+      x: p.x,
+      z: p.z,
+      occluded: d.occluded,
+      near: NEAR_MOTIONS.includes(d.motion),
+    })
     if (seen) sightings.push(seen)
   }
   // 運転者から見えた鹿を「出た数」に数える（drive-crash-spot R4）

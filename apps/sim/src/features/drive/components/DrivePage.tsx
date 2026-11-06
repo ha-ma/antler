@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { lazy, memo, Suspense, useCallback, useState, type ReactNode } from 'react'
 import { AudioControls } from '../audio/AudioControls'
 import { ChatFeed, htmlLang } from '../chat/ChatFeed'
 import { useDriveSoundAndChat } from '../chat/use-drive-sound-and-chat'
@@ -7,6 +7,7 @@ import { demoScenario } from '../domain/scenario'
 import { ZONES } from '../domain/zones-data'
 import { useAlertSound } from '../hooks/use-alert-sound'
 import { useAutoPause } from '../hooks/use-auto-pause'
+import { useCrashSequence } from '../hooks/use-crash-sequence'
 import { useDriveSnapshot } from '../hooks/use-drive-snapshot'
 import { useKeyboardDrive } from '../hooks/use-keyboard-drive'
 import { useMobileDrive } from '../hooks/use-mobile-drive'
@@ -14,6 +15,8 @@ import { briefHref } from '../hooks/use-drive-params'
 import { useWebGL2 } from '../hooks/use-webgl2'
 import type { DriveResult, World } from '../types'
 import { BottomBar } from './hud/BottomBar'
+import { CrashOverlay } from './hud/CrashOverlay'
+import { SpotCount } from './hud/SpotCount'
 import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
 import { hudText } from './hud/hud-text'
@@ -38,7 +41,10 @@ import './drive.css'
 // - Local UI state: エンジン（作るのは 1 回）・出発したか・音トグル（3 個）
 // - Form / URL state: URL の ?trip・?day・?alert=off（DriveScreen が読み、場面を作るときに 1 回使う）、
 //   ?fps=1（開発用の fps の表示。FrameMeter が描くときに 1 回読む。performance R2）
-// - useEffect: キー入力・タブの表示・音のコントローラの片づけ（外部の購読。hooks/ に隔離）
+// - 衝突の演出（drive-crash-spot R3）: 演出が終わったか（useCrashSequence の中の 1 個）。当たったかはエンジンの outcome
+// - 鹿の発見（drive-crash-spot R4）: 件数はエンジン（World.spotting）が持ち、スナップショットで読む。タップはシーンが拾う
+// - 車内のスマホ（drive-crash-spot R2）: 3D に貼らず、HUD の決まった位置に置く（中身は PhoneScreen がエンジンを購読）
+// - useEffect: キー入力・タブの表示・音のコントローラの片づけ・衝突の演出の時計（外部の購読。hooks/ に隔離）
 // - 運転の音と車内の会話（drive-audio-chat）: useDriveSoundAndChat が音・音量の設定・会話の表示を持ち、
 //   会話の束（POST /api/trips/:id/day/:n/chat、TanStack Query）を取る
 // - ゾーンの前のおすすめ（drive-tourism）: RecommendCard が自分で RecommendTracker を持ち、エンジンを購読する
@@ -55,18 +61,29 @@ type Props = {
   canvas?:
     | ((props: {
         world: () => World
-        phone: ReactNode
         onFrame: (dt: number) => void
+        onSpot: (deerId: string) => void
       }) => ReactNode)
     | undefined
   webgl2?: (() => boolean) | undefined
-  /** 衝突・完走したときに走行の結果を渡す（A-6・A-7 が使う。drive-link R8） */
+  /**
+   * 衝突・完走したフレームで走行の結果を渡す（A-6・A-7 が使う。drive-link R8）。run の保存はここで始める
+   * （衝突の演出の途中で離れても残る。drive-crash-spot R3・spec-adversary C1）
+   */
   onFinish?: ((result: DriveResult) => void) | undefined
+  /** 衝突の演出（約 3.5 秒）が終わったときに 1 回だけ呼ぶ。A-6 への移動はここで（drive-crash-spot R3） */
+  onCrashEnd?: ((result: DriveResult) => void) | undefined
 }
 
 const defaultEngine = () => new DriveEngine(demoScenario(ZONES, window.location.search), ZONES)
 
-export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFinish }: Props) {
+export function DrivePage({
+  createEngine = defaultEngine,
+  canvas,
+  webgl2,
+  onFinish,
+  onCrashEnd,
+}: Props) {
   const [engine] = useState(createEngine)
   const [started, setStarted] = useState(false)
   const [soundOn, setSoundOn] = useState(true)
@@ -99,6 +116,14 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
     },
     [engine, started, onFinish, renewSound],
   )
+  // 3D の鹿をクリック / タップした（drive-crash-spot R4。数えるかはエンジンが決める）
+  const onSpot = useCallback((deerId: string) => void engine.spot(deerId), [engine])
+  // 衝突の演出（drive-crash-spot R3）: 当たってから約 3.5 秒は終わりの帯を出さず、終わったら A-6 へ移る合図を出す
+  const crashed = started && snapshot.outcome === 'collided'
+  const crashEnded = useCrashSequence(crashed, () => {
+    const result = engine.result()
+    if (result && onCrashEnd) onCrashEnd(result)
+  })
   const scenario = engine.world.scenario
   const backToBrief =
     scenario.source === 'trip'
@@ -121,14 +146,6 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
 
   // 一時停止・終了・音トグル OFF ではビープと読み上げを止める（R7）
   const muted = !soundOn || snapshot.playback.paused || snapshot.outcome !== 'driving'
-  // スマホの中身は自分で購読するので、ここは変わったときだけ作り直す（memo(DriveCanvas) を 10 Hz で破らない）
-  const phone = useMemo(
-    () =>
-      snapshot.alertEnabled ? (
-        <PhoneScreen engine={engine} controller={sound.controller} muted={muted} />
-      ) : null,
-    [snapshot.alertEnabled, engine, sound.controller, muted],
-  )
 
   if (!supported) {
     return (
@@ -141,22 +158,37 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
   }
 
   return (
-    <main className="drive" data-theme="night" lang={htmlLang(snapshot.lang)}>
+    <main
+      className="drive"
+      data-theme="night"
+      lang={htmlLang(snapshot.lang)}
+      data-crash={crashed ? (crashEnded ? 'ended' : 'on') : undefined}
+    >
       {/* 縦の案内の間は、下の画面に Tab・読み上げで届かないようにする（inert。a11y C2） */}
       <div className="drive__content" inert={mobile.portrait}>
         <div className="drive__scene" {...mobile.sceneLook}>
           {canvas ? (
-            canvas({ world, phone, onFrame })
+            canvas({ world, onFrame, onSpot })
           ) : (
             <Suspense fallback={null}>
-              <Scene world={world} phone={phone} onFrame={onFrame} />
+              <Scene world={world} onFrame={onFrame} onSpot={onSpot} />
             </Suspense>
           )}
         </div>
         {started && (
           <div className="drive-hud" data-touch={touchPads}>
+            {/* 車内のスマホ（drive-crash-spot R2）: 3D に貼らず、画面の決まった位置に固定する。HUD の帯・赤の縁・
+              終わりの帯より下（先に描く）。アラート OFF では出さない */}
+            {snapshot.alertEnabled && (
+              <div className="drive-phone" data-testid="drive-phone">
+                <div className="drive-phone__screen">
+                  <PhoneScreen engine={engine} controller={sound.controller} muted={muted} />
+                </div>
+              </div>
+            )}
             <div className="drive-hud__left">
               <ZoneStatusPanel snapshot={snapshot} />
+              <SpotCount spotting={snapshot.spotting} lang={snapshot.lang} />
               <RoutePanel scenario={scenario} snapshot={snapshot} />
             </div>
             <StageBanner snapshot={snapshot} />
@@ -188,8 +220,10 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
               <RecommendCard engine={engine} lang={snapshot.lang} />
               <AudioControls settings={drive.settings} lang={snapshot.lang} />
             </div>
+            {crashed && <CrashOverlay lang={snapshot.lang} />}
+            {/* 衝突の帯は演出が終わってから（drive-crash-spot R3・UC-3c） */}
             <EndBanner
-              outcome={snapshot.outcome}
+              outcome={crashed && !crashEnded ? 'driving' : snapshot.outcome}
               onRetry={retry}
               briefHref={backToBrief}
               lang={snapshot.lang}
