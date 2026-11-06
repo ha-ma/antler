@@ -27,6 +27,8 @@ tier: 2
 
 # 仕様: edge-capture（検知フレームの保存 → 走行後の同意 → 同意済みだけアップロード）
 
+**edge-run（2026-11-06）での変更**: 起動の入口 `python -m detector` が `CaptureService` を docstring の順（`from_config` → `wrap` → `start_l1(observer=on_l1_answer)` → `start` → … → `close`）で組み立てる。`--no-capture` で `capture.enabled = false` に上書きできる。config.example.toml は `[infer]` のコメントだけ変えた（`docs/specs/edge-run/functional.md`）。保存・同意・HTTP の挙動は変わらない。
+
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要

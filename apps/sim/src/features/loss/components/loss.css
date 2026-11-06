@@ -282,7 +282,7 @@
   background: var(--ground);
   color: var(--ink);
   box-shadow: var(--shadow-card);
-  transform: rotate(-1.5deg);
+  transform: rotate(var(--loss-tilt, -1.5deg));
 }
 
 .loss-card__head {
@@ -392,4 +392,92 @@
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* 落ちて積み重なる（docs/specs/result-screens/functional.md R2）。
+   --loss-drop-i（DOM の順の番号）で遅れ、--loss-tilt で止まったときの傾きが決まる（utils/drop.ts）。
+   画面の上から加速して落ち（重さ）、着地で少し潰れて小さく 2 回弾み、わずかに傾いたまま止まる。
+   transform と opacity だけを動かす（レイアウトを動かさない）。色は変えない。 */
+.loss-drop {
+  --loss-drop-duration: 820ms;
+  --loss-drop-stagger: 150ms;
+
+  position: relative;
+  z-index: calc(1 + var(--loss-drop-i, 0));
+  transform: rotate(var(--loss-tilt, 0deg));
+  transform-origin: 50% 100%;
+  animation: loss-drop var(--loss-drop-duration) both;
+  animation-delay: calc(var(--loss-drop-i, 0) * var(--loss-drop-stagger));
+}
+
+/* 導線は落とさず、並びの位置で静かに現れる */
+.loss-drop--fade {
+  animation-name: loss-fade;
+  animation-duration: 360ms;
+}
+
+/* 落ちる前（不透明度 0）の要素にフォーカスが入ったら、即座に止まった形で見せる（WCAG 2.4.7）。
+   animation を外すとフォーカスが抜けたときに最初から再生し直す（カードが消えて落ち直す）ので、animation は
+   そのまま進め、見た目だけを !important で止まった形に固定する（!important の宣言はアニメーションより強い） */
+.loss-drop:focus-within {
+  opacity: 1 !important;
+  transform: rotate(var(--loss-tilt, 0deg)) !important;
+}
+
+@keyframes loss-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-70vh) rotate(calc(var(--loss-tilt, 0deg) * 4));
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+
+  10% {
+    opacity: 1;
+  }
+
+  /* 着地。少し潰れる */
+  58% {
+    transform: translateY(0) rotate(var(--loss-tilt, 0deg)) scale(1.015, 0.96);
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.35, 1);
+  }
+
+  /* 1 回目の弾み（小さい） */
+  72% {
+    transform: translateY(-12px) rotate(calc(var(--loss-tilt, 0deg) * 1.8)) scale(1);
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+
+  84% {
+    transform: translateY(0) rotate(var(--loss-tilt, 0deg)) scale(1.005, 0.985);
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.35, 1);
+  }
+
+  /* 2 回目の弾み（もっと小さい） */
+  92% {
+    transform: translateY(-3px) rotate(var(--loss-tilt, 0deg)) scale(1);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--loss-tilt, 0deg));
+  }
+}
+
+@keyframes loss-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* 動きを減らす設定: 落下・弾み・潰れなし。同じ順に不透明度だけで現れる（傾きは静止のまま残す） */
+@media (prefers-reduced-motion: reduce) {
+  .loss-drop {
+    animation-name: loss-fade;
+    animation-duration: 240ms;
+    animation-delay: calc(var(--loss-drop-i, 0) * 80ms);
+  }
 }

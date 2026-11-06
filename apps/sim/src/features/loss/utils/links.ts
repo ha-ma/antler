@@ -9,7 +9,11 @@ export function retryHref(c: Pick<CollisionReport, 'tripId' | 'day'>): string {
   return `/trip/${encodeURIComponent(c.tripId)}/brief?day=${String(c.day)}`
 }
 
-/** 副: 衝突の 3 秒前から再生（drive の機能。drive が replay を読むまでは、その日の最初から走る） */
+/**
+ * 副:「この日を最初から走り直す」。同じ日を同じアラートの設定で、A-2 を通らずにその日の最初から走る。
+ * 衝突の 3 秒前からのリプレイは 2026-11-06 にユーザーが見送った（result-screens R6）。drive は replay を読まず、
+ * simMs は今は常に null なので replay は付かない（付いても drive は無視する）
+ */
 export function replayHref(
   c: Pick<CollisionReport, 'tripId' | 'day' | 'alertEnabled' | 'simMs'>,
 ): string {

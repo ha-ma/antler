@@ -172,10 +172,10 @@ export const LOSS_TEXT = {
     ko: '같은 길을 한 번 더 달리기',
   },
   replay: {
-    ja: '衝突の 3 秒前を見る',
-    en: 'Watch the 3 seconds before',
-    zh: '查看碰撞前 3 秒',
-    ko: '충돌 3초 전 보기',
+    ja: 'この日を最初から走り直す',
+    en: 'Restart this day from the beginning',
+    zh: '從頭重跑這一天',
+    ko: '이 날을 처음부터 다시 달리기',
   },
   newTrip: {
     ja: '別の旅をつくる',

@@ -10,11 +10,13 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
-spec_confirmed_at: 9b54027
+spec_confirmed_at: 107d7fe
 tier: 1
 ---
 
 # 仕様: edge-day0（Mac mini の実機作業 Step 0 の道具と手順書）
+
+**edge-run（2026-11-06）での変更**: `bench.py` に `--no-l1`（L1 のクライアント・合成の例を作らず、YOLO だけを測る。`mode: "yolo"`、ch6 の予算 100 ms・目標 50 ms に対する判定、満たさなければ exit 4）を足した。既存の bench / compare の出力と終了コードは同じ（出力の書き出しを `_emit` にまとめただけ）。`scripts/bench_l1.py` の docstring に例を足し、手順書の冒頭に「起動と YOLO 単独の計測は `docs/runbooks/2026-11-06-mac-mini-edge-run.md`」を足した。pyproject に実行用の extra `run` を足した（`docs/specs/edge-run/functional.md`）。
 
 **og-font（2026-11-06）での変更**: CLAUDE.md の MUST と CREDITS.md に、フォントは SIL OFL も可を足した（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
@@ -23,6 +25,8 @@ tier: 1
 **YOLO の素材の取り込み（2026-11-06）での変更**: CREDITS.md に Commons の実写フレーム・Osaki さんの写真・外部の研究の検出器の重み（yolo26n-deer-20261105、AGPL-3.0）の行を足した（`docs/reports/2026-11-06-yolo-materials.md`）。この feature の挙動は変わらない。
 
 **drive-audio-chat（2026-11-06）での変更**: CREDITS.md の素材の表に、運転の音（Web Audio の合成、自作）と車内の会話の固定の文（自作）の 2 行を足した（`docs/specs/drive-audio-chat/`）。この feature の挙動は変わらない。
+
+**sdata-materials（2026-11-06）での変更**: CREDITS.md に Mapillary の道東の画像（CC BY-SA 4.0、評価専用）と 3D の鹿 M01〜M04（CC0）の行を足した（`docs/reports/2026-11-06-sdata-research.md`）。この feature の挙動は変わらない。
 
 ## 概要
 

@@ -7,8 +7,10 @@
     python scripts/bench_l1.py --n 100 --out /tmp/bench-no-yolo.json
     python scripts/bench_l1.py --n 100 --model edge/detector/models/yolov8s-worldv2-deer.mlpackage
     python scripts/bench_l1.py --compare --systems llm-qwen2.5-1.5b nli-deberta-large
+    python scripts/bench_l1.py --no-l1 --model edge/detector/models/yolo26n-480.mlpackage
 
-依存: pip install -e "edge/detector[dev,l1]"（YOLO を測るときは [day0] も）。
+依存: pip install -e "edge/detector[dev,l1]"（YOLO を測るときは [day0] か [run] も）。
+`--no-l1` は L1（local-jev・typesafe-sdk）も dataset も使わない（edge-run）。
 """
 
 from __future__ import annotations

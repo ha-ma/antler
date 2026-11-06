@@ -18,6 +18,8 @@ tier: 1
 
 # 仕様: edge-l0（L0: YOLO を Neural Engine に、トラッカー・距離・横速度・TTC、即時ルール）
 
+**edge-run（2026-11-06）での変更**: config.example.toml の `infer.model_path` に、実行の候補 `models/yolo26n-deer-20261105-480.mlpackage`（相対パスは設定ファイルのディレクトリから）のコメントを足した。値の既定は空のまま。起動の入口は解決したパスを `load_coreml_detector` に渡し、`--check` と `bench --no-l1` で L0 だけを確かめられる（`docs/specs/edge-run/functional.md`）。L0 の挙動は変わらない。
+
 **CoreML のクラスの列の埋め（2026-11-06）での変更**: 実モデル（yolo26n-deer-20261105、1 クラス）を ultralytics 8.4.202 で NMS 付きの `.mlpackage` に書き出すと、`confidence` が N×80 になり、L0 が「形が違う」と拒否した。ultralytics は MLProgram の NMS の不具合（ultralytics issue #22309）を避けるため、クラスの列を 80 の倍数まで 0 で埋める（メタデータ `names` は 1 クラスのまま）。R2 に「埋めた列は無視する」を足した（CU-2f）。開発用の Mac（M2）で確かめた事実で、Mac mini の実機の確認（下の Deferred）はまだ。
 
 ## 概要

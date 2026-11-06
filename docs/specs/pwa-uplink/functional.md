@@ -32,6 +32,8 @@ tier: 2
 
 # 仕様: pwa-uplink（スマホ PWA の速度・ゾーン・光を edge の L1 に返す）
 
+**edge-run（2026-11-06）での変更**: target_paths の config.example.toml の `[infer]` にコメントを足しただけ（`docs/specs/edge-run/functional.md`）。この feature の挙動は変わらない。
+
 ## 概要
 
 edge の L1 は JudgeRequest の `state`（`speedKmh`・`zone`・`light`・`headlight`）を固定値（60 km/h・inside・night・low）で送っている（edge-l1 R2。実値は Deferred だった）。

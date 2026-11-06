@@ -14,6 +14,10 @@ dependencies = ["numpy>=1.26", "pydantic>=2.7", "websockets>=14"]
 [project.optional-dependencies]
 camera = ["opencv-python>=4.9"]
 coreml = ["ultralytics>=8.2", "coremltools>=7.2"]
+# 実行（edge-run: python -m detector）に要るものだけ。CoreML の読み込み（coremltools）、推論の入力の
+# 変換（Pillow）、カメラと JPEG（opencv）。ultralytics（torch を引く）は書き出しにだけ使うので入れない。
+# coremltools の版は day0 と同じ（macOS arm64・Python 3.11〜3.13 の wheel を 2026-11-04 に確認）
+run = ["coremltools==9.0", "Pillow>=10", "opencv-python>=4.9"]
 # L1（edge-l1）: local-jev（github.com/amithgc/local-jev @ 64a0b31、MIT）を呼ぶ公式 SDK（MIT）。
 # local-jev 自体は別プロセスのサーバーなので依存に入れない（Mac mini で別に入れる。torch と重みを引く）。
 # 無くても L0 は動く（起動時に l1_unavailable: sdk_missing）。

@@ -173,10 +173,10 @@ export const PLAN_TEXT = {
     ko: '예산 (1인)',
   },
   submit: {
-    ja: 'この旅を守りに行く →',
-    en: 'Go protect this trip →',
-    zh: '去守護這趟旅程 →',
-    ko: '이 여행을 지키러 가기 →',
+    ja: 'しおりを作って鹿ゾーンを確かめる →',
+    en: 'Make my plan & check deer zones →',
+    zh: '製作手冊並確認鹿區 →',
+    ko: '일정표 만들고 사슴 구역 확인하기 →',
   },
   submitting: {
     ja: 'しおりを仕上げています…',

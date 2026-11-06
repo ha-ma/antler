@@ -25,6 +25,8 @@ tier: 2
 
 # 仕様: edge-l1（L1: local-jev への 4 問、校正後 0.9 以上のときだけ降格する fusion）
 
+**edge-run（2026-11-06）での変更**: 起動の入口 `python -m detector` が `start_l1(config, hub, observer=capture.on_l1_answer)` を呼んで pump の background に渡す。`--no-l1` で `l1.enabled = false` に上書きできる。pyproject に実行用の extra `run` を足し、config.example.toml の `[infer]` にコメントを足した（`docs/specs/edge-run/functional.md`）。L1 の挙動は変わらない。
+
 ## 概要
 
 B の判断を 3 層にする変更指示の Step 3。L1 は Mac mini 上の jev 互換サーバー（local-jev ＋ Qwen2.5-1.5B）に、L0 が決定的に出した状態を文字で渡し、
