@@ -12,7 +12,7 @@ target_paths:
   - edge/detector/tests/test_l0_tracker.py
   - edge/detector/tests/test_l0_stage.py
   - edge/detector/tests/test_l0_config.py
-spec_confirmed_at: f91683b
+spec_confirmed_at: dbfa111
 tier: 1
 ---
 
