@@ -2,7 +2,7 @@
 feature: drive-3d
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 056dadd
+spec_confirmed_at: 38693f1
 tier: 1
 ---
 
@@ -39,6 +39,8 @@ A の運転画面（A-3）と、鹿ゾーン内・検知アラート（A-5）を
 | A-4 観光スポット、A-6 喪失画面、A-7 記録画面                                                                          | stop-events・loss・record                           | 衝突・完走は終了の帯（「同じシードでもう一度」だけ）で止める                   |
 | A-2 の当日の条件の生成・アラート ON/OFF トグル                                                                        | brief-map                                           | 見本の旅程の値と URL の `?alert=off` で受ける                                  |
 | HUD の文言の 4 言語化（AlertState とバナーは 4 言語）                                                                 | i18n（Day 5。2026-11-06 済み）                      | HUD は旅の言語（読み込み前はブラウザの言語）。docs/specs/i18n/functional.md R5 |
+
+> 2026-11-06 performance（`docs/specs/performance/functional.md`）が対象のファイルを変えた: 3D のチャンクを読む口を `scene/load-drive-canvas.ts` に 1 つにし、DPR を DriveCanvas の state で持って遅い状態が続けば 1.5 → 1.25 → 1 に下げる（R12 の「dpr 1〜1.5」の範囲の中。performance R4）。エンジンは落ちたフレーム・数えたフレームも数え（UC-9c の要約に足す。performance R1）、`/drive?fps=1` で開発用の表示を出す。この仕様の振る舞い（シーン・カメラ・HUD）は変えていない。
 
 ## Example Map
 

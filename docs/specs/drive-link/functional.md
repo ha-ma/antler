@@ -2,7 +2,7 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 056dadd
+spec_confirmed_at: 38693f1
 tier: 1
 ---
 
@@ -29,6 +29,8 @@ A-2（`/trip/:id/brief`、brief-map）の「エンジンをかける」は `/dri
 **Tier 1**: 認可（API は ID を知る人が読める。brief-map の threat.md のまま）・永続化・外部への副作用・並行性に触れない。API は読むだけ。
 
 **範囲外**: A-4 の立ち寄り（stop-events。この feature はその日の移動の区切りの道のりを場面に残すだけ）、A-6 喪失・A-7 記録の画面（loss・record。この feature は走行の結果の形を渡すだけ）、`/drive` のチャンクの先読み（brief-map の Deferred。暫定のまま）、1 日の移動が長いときの時間の圧縮（16× のまま）。
+
+> 2026-11-06 performance（`docs/specs/performance/functional.md`）が `app/routes.tsx`（A-1 のほかの画面をルートの `lazy` で読む、A-2 で運転のチャンクを先読み）、`app/DriveRoute.tsx`（drive を静的に読む）、走行の結果の `frames`（`dropped`・`counted` を足した）を変えた。画面の行き来と走行の結果の渡し方は変えていない。
 
 ## Example Map
 

@@ -29,11 +29,25 @@ export const DriveEncounterSchema = z.strictObject({
 })
 export type DriveEncounter = z.infer<typeof DriveEncounterSchema>
 
-export const FrameSummarySchema = z.strictObject({
-  fpsMedian: z.number().min(0).max(1000),
-  fpsP5: z.number().min(0).max(1000),
-  frames: z.number().int().min(0),
-})
+export const FrameSummarySchema = z
+  .strictObject({
+    fpsMedian: z.number().min(0).max(1000),
+    fpsP5: z.number().min(0).max(1000),
+    frames: z.number().int().min(0),
+    /**
+     * 落ちたフレーム（40 ms を超えた rAF の間隔）の数と、数えたフレームの数（performance R1）。どちらも走行の全体
+     * （frames は中央値・5 パーセンタイルの窓の数）。足す前に保存した run には無いので省略を許す
+     */
+    dropped: z.number().int().min(0).max(10_000_000).optional(),
+    counted: z.number().int().min(0).max(10_000_000).optional(),
+  })
+  .refine(
+    (f) =>
+      (f.dropped === undefined) === (f.counted === undefined) &&
+      (f.dropped ?? 0) <= (f.counted ?? 0),
+    // 利用者に出ない検証の文（API の 400 の詳細）。両方あるか両方無いか、dropped は counted 以下
+    { message: 'dropped and counted must both be present or both absent, with dropped <= counted' },
+  )
 
 export const DriveRunInputSchema = z.strictObject({
   /** 端末が作る UUID（crypto.randomUUID）。同じ runId の再送は 1 件として扱う */

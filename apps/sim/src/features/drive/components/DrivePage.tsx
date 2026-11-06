@@ -24,6 +24,8 @@ import { StageBanner } from './hud/StageBanner'
 import { TouchControls } from './hud/TouchControls'
 import { RotateGuide } from './RotateGuide'
 import { ZoneStatusPanel } from './hud/ZoneStatusPanel'
+import { loadDriveCanvas } from '../scene/load-drive-canvas'
+import { FrameMeter } from './FrameMeter'
 import { PhoneScreen } from './PhoneScreen'
 import { StartOverlay } from './StartOverlay'
 import '@antler/alert-ui/tokens.css'
@@ -34,17 +36,17 @@ import './drive.css'
 // - Server state: その日の行程（GET /api/trips/:id/day/:n）は DriveScreen が TanStack Query で読み、場面にして渡す
 // - Shared state: シミュレーション（DriveEngine。HUD とスマホは useSyncExternalStore で購読、3D は毎フレーム読む）
 // - Local UI state: エンジン（作るのは 1 回）・出発したか・音トグル（3 個）
-// - Form / URL state: URL の ?trip・?day・?alert=off（DriveScreen が読み、場面を作るときに 1 回使う）
+// - Form / URL state: URL の ?trip・?day・?alert=off（DriveScreen が読み、場面を作るときに 1 回使う）、
+//   ?fps=1（開発用の fps の表示。FrameMeter が描くときに 1 回読む。performance R2）
 // - useEffect: キー入力・タブの表示・音のコントローラの片づけ（外部の購読。hooks/ に隔離）
 // - 運転の音と車内の会話（drive-audio-chat）: useDriveSoundAndChat が音・音量の設定・会話の表示を持ち、
 //   会話の束（POST /api/trips/:id/day/:n/chat、TanStack Query）を取る
 // - ゾーンの前のおすすめ（drive-tourism）: RecommendCard が自分で RecommendTracker を持ち、エンジンを購読する
 
-// 3D（three・R3F、gzip 約 300 KB）だけを遅れて読む。出発の案内・HUD・エンジンは three なしで先に出す
+// 3D（three・R3F、gzip 約 250 KB。scripts/perf/bundle-budget.mjs の「3d」）だけを遅れて読む。出発の案内・HUD・エンジンは three なしで先に出す
 // （performance-analyzer W-2。出発を押すまでに届けばよい）
-const Scene = memo(
-  lazy(() => import('../scene/DriveCanvas').then((m) => ({ default: m.DriveCanvas }))),
-)
+// A-2 の間に先読みしておく（performance R5。scene/load-drive-canvas.ts の同じ import）
+const Scene = memo(lazy(() => loadDriveCanvas().then((m) => ({ default: m.DriveCanvas }))))
 
 type Props = {
   /** テストで差し替える（既定は固定の場面） */
@@ -205,6 +207,8 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
         )}
       </div>
       {mobile.portrait && <RotateGuide lang={snapshot.lang} />}
+      {/* 開発用の fps の表示（?fps=1 のときだけ。performance R2） */}
+      <FrameMeter engine={engine} />
     </main>
   )
 }

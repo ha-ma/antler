@@ -58,4 +58,25 @@ describe('DriveRunInputSchema', () => {
     const noZone = { ...VALID_RUN, encounters: [{ ...encounter, at: '2027-02-15T16:31:08' }] }
     expect(DriveRunInputSchema.safeParse(noZone).success).toBe(false)
   })
+
+  it('performance UC-1e: frames.dropped・counted は 0 以上の整数。足す前の run（どちらも無し）も通る', () => {
+    const frames = { fpsMedian: 60, fpsP5: 48.5, frames: 3600 }
+    const withTotals = { ...VALID_RUN, frames: { ...frames, dropped: 12, counted: 9000 } }
+    expect(DriveRunInputSchema.safeParse(withTotals).success).toBe(true)
+    expect(DriveRunInputSchema.safeParse(VALID_RUN).success).toBe(true)
+    for (const bad of [
+      { dropped: -1, counted: 10 },
+      { dropped: 1.5, counted: 10 },
+      { dropped: 0, counted: -1 },
+      { dropped: 0, counted: 2.5 },
+      // 片方だけ・dropped が counted を超える・上限を超える
+      { dropped: 1 },
+      { counted: 10 },
+      { dropped: 11, counted: 10 },
+      { dropped: 0, counted: 10_000_001 },
+    ]) {
+      const run = { ...VALID_RUN, frames: { ...frames, ...bad } }
+      expect(DriveRunInputSchema.safeParse(run).success).toBe(false)
+    }
+  })
 })

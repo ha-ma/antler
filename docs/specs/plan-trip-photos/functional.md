@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: a138fb0
+spec_confirmed_at: 7435a29
 tier: 1
 ---
 
@@ -37,6 +37,8 @@ main の取り込み（2026-11-06、og-font・YOLO の素材）で共有の CRED
 **Tier 1 の理由**: 挙動の変更（しおりの組み立て・画面）はあるが、認可・永続化スキーマ（TripPlan の型は凍結のまま）・実行時の外部副作用（写真は開発時に 1 回だけ取って同梱し、画面は同じ origin から読む）・並行性に触れない。
 
 **範囲外**: drive（`apps/sim/src/features/drive/`）、stop-events と loss の画面に残る「重さ」の表示（follow-up。下の Deferred）、写真の差し替え UI、写真の 4 言語の説明文、夜・早朝の楽しみを夜に置くこと（いまも 8:00〜18:00 の枠に入る。plan-trip からの既存の挙動）。
+
+> 2026-11-06 performance（`docs/specs/performance/functional.md`）が `app/routes.tsx`（画面ごとの遅延読込）を変えた。写真の出し方は変えていない。`packages/trip` は記録の形（`frames`）だけを変えた。
 
 ## Example Map
 
