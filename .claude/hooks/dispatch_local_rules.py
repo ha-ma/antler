@@ -118,6 +118,11 @@ def _project_root() -> Path:
     return Path(env).resolve() if env else Path(__file__).resolve().parents[2]
 
 
+def _regex_keyword_before(tail: str) -> bool:
+    """`=> /x/`・`return /x/` のように、記号でなく語の後ろで正規表現リテラルが始まるか。"""
+    return tail.endswith("=>") or re.search(r"(?<![.\w])(?:return|typeof|case)$", tail) is not None
+
+
 def strip_comments(src: str) -> str:
     """// と /* */ のコメントを除く（文字列・テンプレート・正規表現リテラルの中は残す）。"""
     out: list[str] = []
@@ -150,7 +155,7 @@ def strip_comments(src: str) -> str:
             j = src.find("*/", i + 2)
             i = n if j < 0 else j + 2
             continue
-        if c == "/" and prev in _REGEX_BEFORE:
+        if c == "/" and (prev in _REGEX_BEFORE or _regex_keyword_before("".join(out[-16:]).rstrip())):
             # 正規表現リテラル: 閉じの / まで（文字クラスの中の / と、エスケープは飛ばす）
             j, in_class = i + 1, False
             while j < n and src[j] != "\n":
@@ -225,6 +230,25 @@ def _new_text(tool_input: dict) -> str:
     return "\n".join(parts)
 
 
+def _edited_file(tool_input: dict, relative: str) -> str | None:
+    """編集を当てたあとのファイル全体（Write はその中身）。読めない・当てられないときは None（断片で見る）。"""
+    content = tool_input.get("content")
+    if isinstance(content, str):
+        return content
+    try:
+        text = (_project_root() / relative).read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for edit in tool_input.get("edits") or [tool_input]:
+        if not isinstance(edit, dict):
+            return None
+        old, new = edit.get("old_string"), edit.get("new_string")
+        if not isinstance(old, str) or not isinstance(new, str) or old not in text:
+            return None
+        text = text.replace(old, new) if edit.get("replace_all") else text.replace(old, new, 1)
+    return text
+
+
 def _first(pattern: re.Pattern[str], text: str) -> str | None:
     match = pattern.search(text)
     return match.group(0) if match else None
@@ -268,7 +292,9 @@ def local_violations(tool_input: dict, relative: str, stack: str) -> list[str]:
         if emoji:
             out.append(f"絵文字 `{emoji}` を使っています。アイコンはインライン SVG（stroke）にする（ch8 規約 7）。")
 
-    i18n = i18n_violation(relative, text)
+    # 規則 5 は「ファイルに仮名・漢字・ハングルが残るか」を見るので、断片でなく編集後のファイル全体で見る
+    # （断片だと、コメントの途中の書き換えが外側の /* を失って文字列に見える）
+    i18n = i18n_violation(relative, _edited_file(tool_input, relative) or text)
     if i18n:
         out.append(i18n)
 

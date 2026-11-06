@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { AudioControls } from '../audio/AudioControls'
-import { ChatFeed } from '../chat/ChatFeed'
+import { ChatFeed, htmlLang } from '../chat/ChatFeed'
 import { useDriveSoundAndChat } from '../chat/use-drive-sound-and-chat'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
@@ -121,7 +121,7 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
 
   if (!supported) {
     return (
-      <main className="drive" data-theme="night">
+      <main className="drive" data-theme="night" lang={htmlLang(snapshot.lang)}>
         <p className="drive-start" role="alert">
           {hudText(snapshot.lang).noWebgl}
         </p>
@@ -130,7 +130,7 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
   }
 
   return (
-    <main className="drive" data-theme="night">
+    <main className="drive" data-theme="night" lang={htmlLang(snapshot.lang)}>
       <div className="drive__scene">
         {canvas ? (
           canvas({ world, phone, onFrame })

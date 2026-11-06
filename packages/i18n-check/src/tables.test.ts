@@ -57,6 +57,34 @@ describe('I18N-2: 表の形', () => {
     expect(entries.map((e) => e.path).sort()).toEqual(['TABLE.nested.a', 'TABLE.title'])
   })
 
+  it('表の中の関数は unsampled で返す（見本を出して例外にする）。一番上の export の関数は道具なので数えない', () => {
+    const mod = {
+      helper: () => 'x',
+      LINES: [(n: string) => ({ ja: n, en: n, zh: n, ko: n })],
+      T: {
+        ja: { say: () => 'あ' },
+        en: { say: () => 'A' },
+        zh: { say: () => '甲' },
+        ko: { say: () => '가' },
+      },
+    }
+    const result = checkTables({ 'chat-text.ts': mod })
+    expect(result.problems.map((p) => `${p.path}:${p.rule}`)).toEqual([
+      'LINES.0:unsampled',
+      'T.say:unsampled',
+    ])
+    const allowed = checkTables(
+      { 'chat-text.ts': mod },
+      {
+        allow: [
+          { path: 'chat-text.ts:LINES.0', rule: 'unsampled', reason: '見本を出した' },
+          { path: 'chat-text.ts:T.say', rule: 'unsampled', reason: '見本を出した' },
+        ],
+      },
+    )
+    expect(allowed.problems).toEqual([])
+  })
+
   it('配列の中の組と、組の横に並ぶキーも辿る', () => {
     const entries = collectEntries({
       list: [{ id: 'a', name: ok, extra: { ja: 'あ', en: 'A', zh: '甲', ko: '가' } }],
@@ -149,6 +177,10 @@ describe('I18N-4: zh の簡体字と日本の新字体', () => {
     expect(rules({ ...ok, zh: '出発' })).toContain('japanese-form:zh')
     expect(rules({ ...ok, zh: '園内' })).toContain('japanese-form:zh')
     expect(rules({ ...ok, zh: '園內' })).toEqual([])
+    // この製品の語（国道・観光・関・画面）の字（code-reviewer W1）
+    expect(rules({ ...ok, zh: '国道 240 號' })).toContain('simplified:zh')
+    expect(rules({ ...ok, zh: '観光' })).toContain('japanese-form:zh')
+    expect(rules({ ...ok, zh: '國道 240 號・觀光' })).toEqual([])
   })
 
   it('出力の規則（mode: output）は新字体を見ず、en の漢字の地名を許す。en の仮名は落とす', () => {

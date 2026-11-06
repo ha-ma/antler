@@ -108,6 +108,37 @@ check("INV-2: 例外の表（理由つき）のファイルは通す", not i18n(
 check("INV-2: 例外の表のファイルは全部実在し、理由がある",
       all((ROOT / path).is_file() and reason.strip() for path, reason in rules.I18N_EXEMPT.items()))
 check("INV-2: テストは対象外", not i18n("apps/sim/src/features/drive/components/Thing.test.tsx", "'出発'"))
+check("INV-2: => や return の後ろの正規表現の中の ' で文字列を取り違えない",
+      not i18n(UI, "const f = (s) => /'/.test(s)\n// 説明\nfunction g() { return /\"/ }\n// 説明\n"))
+
+
+def _edit_in_tmp(original: str, edit: dict) -> bool:
+    """CLAUDE_PROJECT_DIR を一時フォルダにして、実在するファイルへの Edit を規則 5 に通す。"""
+    import os
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / UI
+        target.parent.mkdir(parents=True)
+        target.write_text(original, encoding="utf-8")
+        before = os.environ.get("CLAUDE_PROJECT_DIR")
+        os.environ["CLAUDE_PROJECT_DIR"] = tmp
+        try:
+            return any(m.startswith("i18n:") for m in rules.local_violations(edit, UI, "sim"))
+        finally:
+            if before is None:
+                os.environ.pop("CLAUDE_PROJECT_DIR", None)
+            else:
+                os.environ["CLAUDE_PROJECT_DIR"] = before
+
+
+DOC = "/**\n * 出発の案内。\n * 旅の言語で出す\n */\nexport const T = () => <p>{t.go}</p>\n"
+check("INV-2: 実在するファイルの JSDoc の途中の Edit は、編集後の全体で見て通す（code-reviewer C2）",
+      not _edit_in_tmp(DOC, {"old_string": "旅の言語で出す", "new_string": "旅の言語（4 言語）で出す"}))
+check("INV-2: 実在するファイルへの Edit で地の文を足せば止める",
+      _edit_in_tmp(DOC, {"old_string": "<p>{t.go}</p>", "new_string": "<p>出発</p>"}))
+check("INV-2: MultiEdit も編集後の全体で見る",
+      not _edit_in_tmp(DOC, {"edits": [{"old_string": "出発の案内。", "new_string": "出発の案内（HUD）。"}]}))
 check("INV-2: UI の源の外（api の domain・scripts）は対象外",
       not i18n("apps/api/src/domain/trips/x.ts", "'出発'") and not i18n("packages/trip/scripts/x.ts", "'出発'"))
 

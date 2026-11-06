@@ -42,6 +42,7 @@ Story: 台湾から 4 人で来た運転手が、旅をつくってから記録�
 - R2 共通の検査（推奨で決定）: 新しい dev 用のパッケージ `@antler/i18n-check`（`packages/i18n-check`）に、規則を 1 つだけ置く。各 workspace は `src/i18n-tables.test.ts` を 1 つ持ち、表を `import.meta.glob` で**ファイル名から自動で集めて**検査に渡す（登録を忘れられない）。名前の規則に合わない表は、そのテストに明示して足す
   - 4 言語の組: キーに `ja`・`en`・`zh`・`ko` のうち **2 つ以上**を持つオブジェクト（足りない言語は `missing`。spec-adversary H1）。表の中を辿って全部の組を見る。`Record<Lang, {…}>` の形（言語が外側）の表は、4 言語の道筋の和集合で組をつくり、ある言語に無い道筋を `missing` にする（配列の長さ違いも当たる）
   - 組の外にある、仮名・漢字・ハングルを含む文は `untranslated`（1 言語だけの表を見つける。HUD がこれだった）
+  - 表の中の関数（文を作る関数。モジュールの一番上の export の関数は道具なので数えない）は `unsampled`。値を読めないので、テストで呼び出しの見本を足して検査し、その道筋を理由つきの例外にする（code-reviewer C1: 会話の楽しみの文の関数が一度も検査されていなかった）
   - 関数の葉は辿らない。表は `Record<Lang, …>` の定数で export し、言語での取り出し（`hudText(lang)`）は添字で引くだけにする。差し込みは関数でなく `{name}` のテンプレートにする。関数で作る文（`@antler/trip` の `draftTitles`・`riskReasons`、AlertState の読み上げ）は、その表のテストで見本を出して組にして渡す
   - JSON の表（`packages/trip/data/pleasures.json`・`places.json`、`packages/zones/data/zones.geojson` の名前）は trip のテストが明示して読む
 - R3 規則（1 つの組ごと。外れたら道筋と規則の名前を出して落とす）:
@@ -129,7 +130,7 @@ Story: 台湾から 4 人で来た運転手が、旅をつくってから記録�
 ## Test List（Canon TDD Step 1）
 
 - [x] I18N-1: 4 言語の組で、言語が無い・空・空白・見えない文字だけを `missing`・`empty` で返す。2 言語だけの組（`{ja,en}`）も `missing` で落ちる
-- [x] I18N-2: `Record<Lang, {…}>`（言語が外側）の表も、道筋の和集合で組にする（ある言語に無い道筋・配列の長さ違いは `missing`）。関数の葉は辿らない。循環しても止まる
+- [x] I18N-2: `Record<Lang, {…}>`（言語が外側）の表も、道筋の和集合で組にする（ある言語に無い道筋・配列の長さ違いは `missing`）。表の中の関数は `unsampled`（見本を出して例外にする）。循環しても止まる
 - [x] I18N-3: 文字種（`script`）: ja に仮名か漢字・en に CJK なし・zh に仮名とハングルなし・ko にハングル。数字・記号だけの文と中立の文は当てない。ko の漢字語・zh と ja で同じ短い漢字の語は許す
 - [x] I18N-3b: ja・zh・ko の略語・単位（`ON`・`4WD`・`{km} km`）は許し、英語の語は落とす。4 言語に同じ英文を写した組は中立にならない。組の外の 1 言語だけの文は `untranslated`
 - [x] I18N-4: zh の簡体字（`simplified`）と日本の新字体（`japanese-form`）。2 つの一覧に同じ字が無い。出力の規則（`mode: 'output'`）は新字体を見ず、en の漢字を許す
@@ -137,7 +138,7 @@ Story: 台湾から 4 人で来た運転手が、旅をつくってから記録�
 - [x] I18N-6: 差し込みの名前（`placeholder`）が 4 言語でそろわない
 - [x] I18N-7: 例外は道筋・規則・理由つきでだけ許し、使われない例外は落とす
 - [x] INV-1: sim・pwa・trip・alert-ui の `i18n-tables.test.ts` が名前の規則の表を全部集め（件数の下限つき）、明示の表（関数の見本・JSON・zones の名前）も足して、全部の組が規則を通る
-- [x] INV-2: 規則 5（hook と `ci_arch_check.py`）が、コメントを除いて仮名・漢字・ハングルが残るのに、名前の規則・import の登録・理由つきの例外のどれでもないファイルを落とす（`scripts/tests/test_antler_hooks.py` で、折り返し・外側が言語の表・JSX の地の文・属性・コメントだけのファイルを確かめ、`--self-test` の probe で CI の経路が生きていることを確かめる）
+- [x] INV-2: 規則 5（hook と `ci_arch_check.py`。hook は Edit を当てたあとのファイル全体で見る）が、コメントを除いて仮名・漢字・ハングルが残るのに、名前の規則・import の登録・理由つきの例外のどれでもないファイルを落とす（`scripts/tests/test_antler_hooks.py` で、折り返し・外側が言語の表・JSX の地の文・属性・コメントだけのファイルを確かめ、`--self-test` の probe で CI の経路が生きていることを確かめる）
 - [x] INV-3: alert-ui のテストが `npm test` で回る（`test` の script）
 - [x] HUD-1: `hudText(lang)` が 4 言語の HUD の文を返し、zh の旅の出発の案内と HUD に ja の文が残らない
 - [x] HUD-2: 旅を読み込む前・見つからないときはブラウザの言語で出す

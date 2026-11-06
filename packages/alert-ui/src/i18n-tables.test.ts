@@ -24,7 +24,11 @@ const ANNOUNCE = {
   safeNoDistance: each((l) => ALERT_TEXT[l].announceZone('safe', undefined)),
 }
 
-const ALLOW: TableAllowance[] = []
+const ALLOW: TableAllowance[] = ['announceDanger', 'announceZone'].map((fn) => ({
+  path: `./i18n/i18n.ts:ALERT_TEXT.${fn}`,
+  rule: 'unsampled' as const,
+  reason: '読み上げの関数。ANNOUNCE で左右・距離の有無の全部の分岐の見本を出して検査する',
+}))
 
 describe('INV-1 alert-ui の文言の表（4 言語）', () => {
   const result = checkTables(

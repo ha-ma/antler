@@ -5,7 +5,8 @@ import { LANGS, hasCjk, hasEnglishWord, scriptProblems, type ScriptRule } from '
 // 表（モジュールの export の値）を辿り、キーに ja / en / zh / ko のうち 2 つ以上を持つオブジェクトを「4 言語の組」として見る。
 // 言語が外側の表（Record<Lang, { … }>）は、4 言語の道筋の和集合で組をつくる（無い道筋は missing）。関数の葉は辿らない。
 
-export type TableRule = 'missing' | 'empty' | 'copy' | 'placeholder' | 'untranslated' | ScriptRule
+export type TableRule =
+  'missing' | 'empty' | 'copy' | 'placeholder' | 'untranslated' | 'unsampled' | ScriptRule
 
 /** 1 つの組の 4 言語の文（無い言語は undefined） */
 export type LangEntry = { path: string; texts: Partial<Record<Lang, string>> }
@@ -35,19 +36,29 @@ function join(path: string, key: string | number): string {
   return path === '' ? String(key) : `${path}.${String(key)}`
 }
 
-/** 言語の中身を道筋 → 文に平らにする（関数・数・真偽は飛ばす） */
-function flatten(value: unknown, path: string, out: Map<string, string>, depth: number): void {
+/** 言語の中身を道筋 → 文に平らにする（数・真偽は飛ばす。関数は fns に道筋を残す） */
+function flatten(
+  value: unknown,
+  path: string,
+  out: Map<string, string>,
+  fns: Set<string>,
+  depth: number,
+): void {
   if (depth > MAX_DEPTH) return
   if (typeof value === 'string') {
     out.set(path, value)
     return
   }
+  if (typeof value === 'function') {
+    fns.add(path)
+    return
+  }
   if (Array.isArray(value)) {
-    value.forEach((v, i) => flatten(v, join(path, i), out, depth + 1))
+    value.forEach((v, i) => flatten(v, join(path, i), out, fns, depth + 1))
     return
   }
   if (isPlainObject(value)) {
-    for (const [k, v] of Object.entries(value)) flatten(v, join(path, k), out, depth + 1)
+    for (const [k, v] of Object.entries(value)) flatten(v, join(path, k), out, fns, depth + 1)
   }
 }
 
@@ -63,13 +74,30 @@ export function collectLoose(value: unknown, path = ''): LooseText[] {
 
 export type LooseText = { path: string; text: string }
 
-function collect(value: unknown, path: string): { entries: LangEntry[]; loose: LooseText[] } {
+/**
+ * 表の中の関数（文を作る関数。モジュールの一番上の export の関数は道具なので数えない）の道筋。
+ * 検査は値しか読めないので、関数の文は呼び出しの見本を表に足して検査する。見本を出したら、その道筋を
+ * 理由つきの例外（`unsampled`）にする。黙って飛ばすと、関数の中の文が一度も検査されない
+ */
+export function collectFunctions(value: unknown, path = ''): string[] {
+  return collect(value, path).functions
+}
+
+function collect(
+  value: unknown,
+  path: string,
+): { entries: LangEntry[]; loose: LooseText[]; functions: string[] } {
   const entries: LangEntry[] = []
   const loose: LooseText[] = []
+  const functions: string[] = []
   const seen = new WeakSet<object>()
   const walk = (v: unknown, p: string, depth: number): void => {
     if (typeof v === 'string') {
       if (hasCjk(v)) loose.push({ path: p, text: v })
+      return
+    }
+    if (typeof v === 'function') {
+      if (depth >= 2) functions.push(p)
       return
     }
     if (depth > MAX_DEPTH || typeof v !== 'object' || v === null) return
@@ -77,11 +105,13 @@ function collect(value: unknown, path: string): { entries: LangEntry[]; loose: L
     seen.add(v)
     if (isLangRecord(v)) {
       const byLang = new Map<Lang, Map<string, string>>()
+      const fns = new Set<string>()
       for (const lang of LANGS) {
         const flat = new Map<string, string>()
-        flatten(v[lang], '', flat, depth + 1)
+        flatten(v[lang], '', flat, fns, depth + 1)
         byLang.set(lang, flat)
       }
+      for (const leaf of fns) functions.push(leaf === '' ? p : join(p, leaf))
       const leaves = new Set(LANGS.flatMap((lang) => [...(byLang.get(lang)?.keys() ?? [])]))
       for (const leaf of leaves) {
         const texts: Partial<Record<Lang, string>> = {}
@@ -101,7 +131,7 @@ function collect(value: unknown, path: string): { entries: LangEntry[]; loose: L
     for (const [k, child] of children) walk(child, join(p, k), depth + 1)
   }
   walk(value, path, 0)
-  return { entries, loose }
+  return { entries, loose, functions }
 }
 
 function placeholders(text: string): string {
@@ -171,12 +201,13 @@ export function checkTables(
     else problems.push({ file, path, ...p })
   }
   for (const [file, mod] of Object.entries(tables)) {
-    const { entries, loose } = collect(mod, '')
+    const { entries, loose, functions } = collect(mod, '')
     count += entries.length
     for (const entry of entries) {
       for (const p of checkEntry(entry)) report(file, entry.path, p)
     }
     for (const l of loose) report(file, l.path, { rule: 'untranslated' })
+    for (const f of functions) report(file, f, { rule: 'unsampled' })
   }
   return { entries: count, problems, unusedAllowances: allow.filter((a) => !used.has(a)) }
 }

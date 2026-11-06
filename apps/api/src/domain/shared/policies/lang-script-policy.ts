@@ -18,7 +18,7 @@ const PLACEHOLDER = /\{\w+\}/g
 
 /** zh に出たら簡体字とみなす字（@antler/i18n-check の SIMPLIFIED_CHARS と同じ。テストが一致を確かめる） */
 export const SIMPLIFIED_CHARS =
-  '们这车开说话没还现边过时会对见么风乐东发门问间关动鱼鸟马个为进远语请让认识题页显选择线级统计记设资费买卖电飞机场专业华号难与广达运输转务实热点习乡书闭雾绿湿冻积结驾驶预览顶岛纪录历钟钱银铁阳阴观经续总应该'
+  '们这车开说话没还现边过时会对见么风乐东发门问间关动鱼鸟马个为进远语请让认识题页显选择线级统计记设资费买卖电飞机场专业华号难与广达运输转务实热点习乡书闭雾绿湿冻积结驾驶预览顶岛纪录历钟钱银铁阳阴观经续总应该国画图园馆长陆'
 const SIMPLIFIED = new RegExp(`[${SIMPLIFIED_CHARS}]`, 'u')
 
 const SCRIPT_OK: Record<TripLang, (text: string) => boolean> = {
