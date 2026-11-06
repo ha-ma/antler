@@ -1,11 +1,11 @@
 import { toInstant, type RoutePlan } from '@antler/zones'
 import type { DriveScenario } from '../types'
 
-// 走る区間「ステージ」（drive-tune R1）。鹿ゾーンの区間ごとに、入口の 5 km 手前から出口まで。
+// 走る区間「ステージ」（drive-tune R1）。鹿ゾーンの区間ごとに、入口の 1 km 手前から出口まで。
 // 運転は最初のステージの始まりから始め、出口を越えたらクリアして次のステージへ移る。最後のクリアでその日の旅程をクリア。
 
-/** 入口の何 m 手前から走るか */
-export const STAGE_LEAD_M = 5000
+/** 入口の何 m 手前から走るか（drive-crash-spot R1 で 5 km から 1 km に。手前を長く走らせない） */
+export const STAGE_LEAD_M = 1000
 
 export type Stage = {
   /** 走り始める道のり（m） */
@@ -34,7 +34,7 @@ export function capIntervals(plan: RoutePlan, maxM = MAX_ZONE_M): RoutePlan {
   }
 }
 
-/** 区間ごとに [入口 − 5 km, 出口]。始点より前にはしない。重なる・続くものはまとめる（UC-1a） */
+/** 区間ごとに [入口 − 1 km, 出口]。始点より前にはしない。重なる・続くものはまとめる（UC-1a） */
 export function buildStages(plan: RoutePlan): Stage[] {
   const stages: Stage[] = []
   plan.intervals.forEach((v, i) => {

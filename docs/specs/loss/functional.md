@@ -52,6 +52,7 @@ spec-adversary の指摘（`docs/reports/2026-11-04-spec-adversary-loss.md`）�
     - URL の `speed`・`light`・`side`・`t`・`stops` は任意。無ければ null。事実の 1 文は 3 つがそろわなければ短い形（「鹿と衝突しました。」）、`replay` は経過が無ければ付けない（その日の最初から）
     - `stops` の欄が無い（null）ときは「予定どおり」: 衝突した移動までに出発した町（`legs[0..leg].from`）の楽しみは済んだとみなす（R2 の前の日の扱い・R7 の規則と同じ）。`stops=`（空）は何も済ませていない
     - app 層の `DriveRoute`（`/drive`）が `DriveScreen` の `onFinish` を受け、衝突なら `lossHref(lossReportFromDrive(result))` に移る。完走（A-7）には移さない（record の担当）
+    - （2026-11-06 drive-crash-spot R3・R4: A-6 へ移るのは衝突の演出が終わった `onCrashEnd` のとき（run の保存は `onFinish` のまま）。`CollisionReport` に省略できる `spotting`（URL の `spot=found.early.appeared`）を足し、画面に鹿の発見の 1 行を出す。`spot` の形が違ってもほかの欄は読む）
 - R2 しおりの取り消し線（A6-1、LossCard）: 保存したしおり（`plan.days`）を全日並べ、衝突した日の該当位置に ✕ の行を挿入する
   - 衝突より前の日は**予定どおり済んだとみなす**（A-2 の `?day=n` で途中の日から走れるので、走ったかどうかは見ない。推奨で決定）
   - 衝突より前の日: 達成（✓）。衝突した日: `achievedStops` の楽しみは ✓、その後に ✕「D{day} {時刻} {from} → {to} で衝突」（`alert-danger`）、残りの楽しみと宿は取り消し線。衝突より後の日: すべて取り消し線

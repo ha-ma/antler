@@ -1,35 +1,30 @@
 import { useFrame } from '@react-three/fiber'
-import { useMemo, useRef, type ReactNode } from 'react'
+import { useMemo, useRef } from 'react'
 import { Color, type Group, MeshBasicMaterial, MeshLambertMaterial, type Mesh } from 'three'
 import { CABIN, SKY } from './palette'
 import {
   NAV_CENTER,
-  PHONE_CENTER,
-  PHONE_TILT_RAD,
-  PHONE_YAW_RAD,
   WHEEL_CENTER,
   WHEEL_TILT_RAD,
   buildCabinShell,
   buildNavScreen,
-  buildPhoneBody,
   buildWheel,
 } from './cabin-models'
 import { Dashboard } from './Dashboard'
-import { PhoneScreenHtml } from './PhoneScreenHtml'
 import { RearMirror } from './RearMirror'
 import { PRIORITY, useSceneFrame } from './frame-state'
 
 // 右ハンドルの車内（R10・A3-1）。車に付いて動き、視線（DriverCamera）だけが中で回る。
 // ハンドルは A/D で回る。メーター（Dashboard）は速度・回転・ギア・時計・気温・ABS・ナビを canvas の文字盤に出し
 // （drive-tune R5。drive-3d の「3D に文字を置かない」を改めた）、ルームミラー（RearMirror）は後ろの映像を映す。
+// 車内のスマホは 3D に置かない（drive-crash-spot R2）。drei の Html transform は数十 km の世界の座標を CSS の
+// 3D 行列に載せるので、合成の単精度で揺れて 3D の板からずれて浮いて見えた。いまは HUD の層に固定（DrivePage）。
 
 /** ハンドルの最大の切れ角（rad）と、追いつく時定数（s） */
 const WHEEL_MAX_RAD = 1.1
 const WHEEL_EASE_S = 0.12
 
-type Props = { phone: ReactNode }
-
-export function Cabin({ phone }: Props) {
+export function Cabin() {
   const scene = useSceneFrame()
   const root = useRef<Group>(null)
   const wheel = useRef<Mesh>(null)
@@ -39,7 +34,6 @@ export function Cabin({ phone }: Props) {
       shell: buildCabinShell(),
       wheel: buildWheel(),
       nav: buildNavScreen(),
-      phone: buildPhoneBody(),
     }),
     [],
   )
@@ -63,7 +57,7 @@ export function Cabin({ phone }: Props) {
     const { car, world } = scene.current
     g.position.set(car.x, 0, car.z)
     g.rotation.set(0, car.yaw, 0)
-    // drei の Html（スマホの画面）が同じフレームの行列を読めるように、ここで行列まで更新する
+    // ルームミラー（PRIORITY.mirror）が同じフレームの行列を読めるように、ここで行列まで更新する
     g.updateMatrixWorld(true)
 
     materials.interior.emissiveIntensity = SKY[world.light].cabinGlow
@@ -87,14 +81,6 @@ export function Cabin({ phone }: Props) {
         position={[...NAV_CENTER]}
         rotation={[-0.2, 0.2, 0]}
       />
-      <group
-        position={[...PHONE_CENTER]}
-        rotation={[PHONE_TILT_RAD, PHONE_YAW_RAD, 0]}
-        rotation-order="YXZ"
-      >
-        <mesh geometry={parts.phone} material={materials.interior} />
-        {phone === null || phone === undefined ? null : <PhoneScreenHtml>{phone}</PhoneScreenHtml>}
-      </group>
     </group>
   )
 }

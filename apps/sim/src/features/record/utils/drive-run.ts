@@ -2,6 +2,7 @@ import {
   DeerPatternSchema,
   MAX_ENCOUNTERS_PER_RUN,
   MAX_ZONE_PASSES,
+  SpottingSchema,
   type DriveRunInput,
 } from '@antler/trip'
 
@@ -22,6 +23,8 @@ export type FinishedDrive = {
     closestM: number
     outcome: 'avoided' | 'collided' | 'pending'
   }[]
+  /** 鹿の発見（drive-crash-spot R4）。範囲外・形の違う値は送らない（run の保存を失敗させない） */
+  spotting?: { appeared: number; found: number; early: number }
   frames: DriveRunInput['frames']
 }
 
@@ -55,6 +58,12 @@ export function toDriveRun(
     outcome: result.outcome,
     zonePasses: Math.min(MAX_ZONE_PASSES, Math.max(0, Math.round(result.zonePasses))),
     encounters: encounters.slice(0, MAX_ENCOUNTERS_PER_RUN),
+    ...spottingOf(result.spotting),
     frames: result.frames,
   }
+}
+
+function spottingOf(spotting: FinishedDrive['spotting']): Pick<DriveRunInput, 'spotting'> {
+  const parsed = SpottingSchema.safeParse(spotting)
+  return parsed.success ? { spotting: parsed.data } : {}
 }

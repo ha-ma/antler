@@ -23,6 +23,8 @@ ch10-plan.md の Day 5「学習スクリプト（A キャプチャ＋実写→�
 3. `export` — NMS 付きの CoreML（`.mlpackage`）に書き出し、L0 自身の読み込み（`load_coreml_detector`）で出力の形を確かめる
 4. `evaluate` — 評価側の画像と val に、L0 と同じ入力（640×480 に縮め、モデルの入力へ引き伸ばす）で検出を通し、位置の一致（IoU 0.5）で TP / FN / FP を数えて JSON に書く
 
+> 2026-11-07 dataset-footage（`docs/specs/dataset-footage/functional.md`）で `dataset/README.md` に自分で撮った映像の行（置き場所・取得方法・分け方）を足した。`train_l0.py` の挙動は変わらない（`self` の YOLO の素材はまだ受けない。登録はこの feature の更新で行う）。
+
 **いまの素材で回る 1 周は Commons（CC0 / CC BY）の 29 枚だけ**（Capture は 0 枚: A の「見つけた」はまだ無く、edge の Capture の箱は必ず `by: model` で、vehicle の Capture はユーザーの判断待ち）。Capture を読む仕組みは作って偽の Capture で確かめ、実物が来たら一覧に足すだけで入る。
 
 要件: ch10-plan.md Day 5、ch4-edge.md B2-1・B2-2（YOLO・`deer` クラス）・B2-5（同意のある Capture だけ）、ch5-common.md（データ同意）、ch6-nfr.md（ライセンス: CC0 / CC-BY / 自作のみ。写真は許諾のあるもの）、ch7-data.md（Capture）。

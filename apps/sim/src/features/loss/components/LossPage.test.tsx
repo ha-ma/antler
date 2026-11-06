@@ -392,6 +392,24 @@ describe('LossPage（A-6）', () => {
     )
   })
 
+  it('UC-4h（drive-crash-spot）: spot があれば鹿の発見を 1 行出し、喪失文の api には送らない。無ければ行が無い', async () => {
+    const calls = stubApi(() => okDay())
+    renderLoss(lossHref({ ...collision, spotting: { appeared: 4, found: 2, early: 1 } }))
+    await heading()
+    expect(screen.getByTestId('loss-spotting')).toHaveTextContent(
+      '自分で見つけた鹿 2 / 4 頭（60 m より前で 1 頭）',
+    )
+    await waitFor(() => expect(calls.losses).toHaveLength(1))
+    expect(calls.losses[0]?.body).not.toHaveProperty('spotting')
+  })
+
+  it('UC-4h（drive-crash-spot）: spot の無い URL は鹿の発見の行を出さない', async () => {
+    stubApi(() => okDay())
+    renderLoss(lossHref(collision))
+    await heading()
+    expect(screen.queryByTestId('loss-spotting')).toBeNull()
+  })
+
   it('R10: 画面の文言は plan.lang（en）で、Claude の文も en', async () => {
     stubApi(() => okDay('en'))
     renderLoss(lossHref(collision))

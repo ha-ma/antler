@@ -12,6 +12,7 @@ import {
   type DriveSnapshot,
   type DriveTelemetry,
 } from '../domain/engine'
+import { CRASH_MS } from '../domain/crash'
 import { demoScenario } from '../domain/scenario'
 import { ZONES } from '../domain/zones-data'
 import type { Encounter } from '../types'
@@ -95,6 +96,7 @@ function snapshot(over: Partial<DriveSnapshot> & { km: number; inZone?: boolean 
     stage: { index: 1, count: 1 },
     stageClearedAt: null,
     destination: { km: 40, etaMs: 0 },
+    spotting: { appeared: 0, found: 0, early: 0 },
     ...rest,
   }
 }
@@ -313,6 +315,70 @@ describe('AC-2: 見本の場面でゾーンの外を走る（観光の行とお�
       expect(cards[i]).not.toBe(cards[i - 1])
     }
     offTracker()
+    unlink()
+    audio.dispose()
+  })
+})
+
+describe('SND-4c: 衝突音と衝突の演出（drive-crash-spot R3）の始まり', () => {
+  it('SND-4c: 当たったフレームで、演出が読む outcome: collided の知らせの直後に衝突音を鳴らす（同じ engine.frame の中）。演出 3.5 秒は衝突音より長い', async () => {
+    const engine = new DriveEngine({ ...demoScenario(ZONES), weather: 'clear' }, ZONES)
+    const graph = new FakeAudioGraph()
+    const audio = new DriveAudio({
+      createGraph: () => graph,
+      settings: new AudioSettingsStore(null),
+      seed: 1,
+    })
+    await audio.start()
+    const unlink = linkDriveSoundAndChat(engine, audio, new ChatFeedStore(), () =>
+      buildChatTrack(DECK, { legStartsM: [0], totalM: 40_000, partySize: 4, seed: 1 }),
+    )
+    // 演出（DrivePage の CrashOverlay）は outcome: collided の知らせで描き始める。そのときの衝突音の数を記録する
+    const crashesAtCollidedPublish: number[] = []
+    engine.subscribe(() => {
+      if (engine.getSnapshot().outcome === 'collided') {
+        crashesAtCollidedPublish.push(graph.crashes.length)
+      }
+    })
+    // ゾーンの中を 60 km/h で走り、4 m 先に立つ鹿（drive-crash-spot のテストと同じ置き方）
+    const w = engine.world
+    const s = (w.plan.intervals[0]?.entryKm ?? 0) * 1000 + 500
+    w.vehicle = { ...w.vehicle, s, d: -1.75, speed: 60 / 3.6 }
+    w.playback = { rate: 1, paused: false, locked: true }
+    w.candidates = []
+    w.deer = [
+      {
+        id: 'hit',
+        candidateId: 'hit',
+        pattern: 'frozen',
+        motion: 'frozen',
+        seed: 1,
+        phase: 'stand',
+        index: 0,
+        s: s + 4,
+        d: -1.75,
+        heading: Math.PI / 2,
+        pose: 'look',
+        occluded: false,
+        startedAt: 0,
+        gone: false,
+      },
+    ]
+    let collidedFrame = -1
+    for (let i = 0; i < 120 && collidedFrame < 0; i += 1) {
+      engine.frame(1000 / 60)
+      if (engine.getSnapshot().outcome === 'collided') collidedFrame = i
+    }
+    expect(collidedFrame).toBeGreaterThanOrEqual(0)
+    // 知らせ（演出の始まり）の時点では 0、同じフレームを返したときには 1（合図は知らせの後に届く）
+    expect(crashesAtCollidedPublish[0]).toBe(0)
+    expect(graph.crashes).toHaveLength(1)
+    expect(graph.crashes[0]).toBeGreaterThan(0)
+    // 衝突音（録音 0.58 秒＋ドスン 0.45 秒）は演出（CRASH_MS）より短く、A-6 に移る前に鳴り終わる
+    expect(CRASH_MS).toBeGreaterThan(1000)
+    // その後のフレームでは鳴らさない
+    for (let i = 0; i < 30; i += 1) engine.frame(1000 / 60)
+    expect(graph.crashes).toHaveLength(1)
     unlink()
     audio.dispose()
   })

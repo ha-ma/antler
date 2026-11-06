@@ -15,7 +15,7 @@ export type DriveCanvasProps = DriveSceneProps
 /** 最初の DPR の範囲（端末の DPR を 1〜1.5 に収める） */
 const DPR_RANGE: [number, number] = [1, 1.5]
 
-export function DriveCanvas({ world, phone, onFrame }: DriveCanvasProps) {
+export function DriveCanvas({ world, onFrame, onSpot }: DriveCanvasProps) {
   const [dpr, setDpr] = useState<number | [number, number]>(DPR_RANGE)
   return (
     <Canvas
@@ -34,7 +34,7 @@ export function DriveCanvas({ world, phone, onFrame }: DriveCanvasProps) {
       }}
       style={{ position: 'absolute', inset: 0 }}
     >
-      <DriveScene world={world} phone={phone} onFrame={onFrame} />
+      <DriveScene world={world} onFrame={onFrame} onSpot={onSpot} />
       {/* 遅い状態が続いたら DPR を 1.5 → 1.25 → 1 に下げる（performance R4） */}
       <AdaptiveDpr onDpr={setDpr} />
     </Canvas>

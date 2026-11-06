@@ -1,5 +1,5 @@
 import { useFrame, useThree } from '@react-three/fiber'
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState } from 'react'
 import type { DriveScenario, World } from '../types'
 import { createRoadFrame, poseAt, type RoadFrame } from '../domain/road'
 import { sceneLookOf, type SceneLook } from '../domain/season'
@@ -7,6 +7,7 @@ import { Precipitation } from './Precipitation'
 import { Atmosphere } from './Atmosphere'
 import { Cabin } from './Cabin'
 import { DeerHerd } from './DeerHerd'
+import { DeerPicker } from './DeerPicker'
 import { DriverCamera } from './DriverCamera'
 import { Forest } from './Forest'
 import { Ground } from './Ground'
@@ -17,14 +18,17 @@ import { PRIORITY, SceneFrameContext, type SceneFrame } from './frame-state'
 export type DriveSceneProps = {
   /** 毎フレーム最新の World を返す（メインの engine） */
   world: () => World
-  /** 車内のスマホの画面に載せる中身（AlertState compact）。アラート OFF では null */
-  phone: ReactNode
   /** 毎フレームの先頭で呼ぶ（実時間 ms）。ここでシミュレーションを進める */
   onFrame: (realDtMs: number) => void
+  /**
+   * 鹿をクリック / タップした（drive-crash-spot R4）。車内のスマホは 3D に置かず HUD に固定した
+   * （drive-crash-spot R2）ので、ここではスマホの中身を受けない
+   */
+  onSpot: (deerId: string) => void
 }
 
 /** Canvas の中身（テストはこれを @react-three/test-renderer で組み立てる） */
-export function DriveScene({ world, phone, onFrame }: DriveSceneProps) {
+export function DriveScene({ world, onFrame, onSpot }: DriveSceneProps) {
   const [road, setRoad] = useState<RoadFrame>(() => createRoadFrame(world().scenario.route))
   const [initial] = useState<SceneFrame>(() => {
     const w = world()
@@ -75,8 +79,9 @@ export function DriveScene({ world, phone, onFrame }: DriveSceneProps) {
       <Precipitation kind={precipitation} seed={scenario.trip.seed} />
       <Headlights />
       <DeerHerd />
-      <Cabin phone={phone} />
+      <Cabin />
       <DriverCamera />
+      <DeerPicker onSpot={onSpot} />
     </SceneFrameContext.Provider>
   )
 }

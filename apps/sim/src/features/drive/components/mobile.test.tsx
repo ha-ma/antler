@@ -5,7 +5,6 @@ import userEvent from '@testing-library/user-event'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '@/test/render'
 import { DriveEngine } from '../domain/engine'
@@ -62,11 +61,9 @@ function setMedia(next: Partial<Media>) {
   })
 }
 
-type SceneProps = { phone: ReactNode; onFrame: (dt: number) => void }
-
 function setup() {
   const engine = new DriveEngine(demoScenario(ZONES, ''), ZONES)
-  const canvas = ({ phone }: SceneProps) => <div data-testid="phone">{phone}</div>
+  const canvas = () => <div data-testid="scene" />
   vi.spyOn(AlertSoundController.prototype, 'unlock').mockResolvedValue(true)
   renderWithProviders(<DrivePage createEngine={() => engine} canvas={canvas} webgl2={() => true} />)
   return { engine }

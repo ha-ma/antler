@@ -8,6 +8,7 @@ import { assessLoss } from '../domain/assess-loss'
 import { strikeItinerary } from '../domain/strike'
 import { useCollision } from '../hooks/useCollision'
 import { LossTripDayError, useLossTripDay } from '../hooks/useLossTripDay'
+import { spotLine } from '../spot-text'
 import { fillText, LOSS_TEXT } from '../text'
 import type { LossBaseline, ResolvedCollision, TripDay } from '../types'
 import { checkAgainstDay, resolveCollision } from '../utils/collision-url'
@@ -102,6 +103,7 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
   const leg = day.legs[collision.leg]
   const rows = strikeItinerary(plan, day, collision)
   const loss = assessLoss(plan, collision, BASELINE)
+  const spotText = spotLine(collision.spotting, lang)
   const eyebrow = fillText(t.eyebrow[lang], {
     n: collision.day,
     time: clockOf(collision.at),
@@ -123,6 +125,12 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
               {t.heading[lang]}
             </h1>
             <p className="loss-fact">{factSentence(collision, lang)}</p>
+            {/* 鹿の発見の 1 行（drive-crash-spot R4。並べ方は result-screens に任せる） */}
+            {spotText && (
+              <p className="loss-fact" data-testid="loss-spotting">
+                {spotText}
+              </p>
+            )}
           </div>
           <StoryPanel collision={collision} lang={lang} drop={drop()} />
           <section aria-labelledby="loss-metrics-heading">

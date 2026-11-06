@@ -9,6 +9,7 @@ import type {
   Encounter,
   Playback,
   PlaybackRate,
+  Spotting,
   Surface,
   Weather,
   World,
@@ -16,6 +17,7 @@ import type {
 } from '../types'
 import { etaMs, sunsetOf } from './clock'
 import { isDroppedFrame, summarizeFrames, type FrameSummary, type FrameTotals } from './frame-stats'
+import { spotDeer } from './spot'
 import { scheduledClockAt } from './stages'
 import {
   advance,
@@ -56,6 +58,8 @@ export type DriveSnapshot = {
   weather: Weather
   surface: Surface
   encounters: readonly Encounter[]
+  /** 鹿の発見（見えた頭数・見つけた頭数・事前に見つけた頭数。drive-crash-spot R4） */
+  spotting: Spotting
   /** いまのステージ（1 始まり）と全部の数。ゾーンの無い日は 0 / 0（drive-tune R1） */
   stage: { index: number; count: number }
   /** 最後にステージをクリアした時刻（t）。HUD の「クリア」の帯に使う */
@@ -155,6 +159,16 @@ export class DriveEngine {
     setInput(this.current, input)
   }
 
+  /**
+   * 利用者が 3D の鹿をクリック / タップした（drive-crash-spot R4）。数えたら 'early' か 'late'、数えなければ null。
+   * 見えているか・何回目か・一時停止かの判定は domain/spot.ts が持つ
+   */
+  spot(deerId: string): 'early' | 'late' | null {
+    const counted = spotDeer(this.current, deerId)
+    if (counted) this.publish()
+    return counted
+  }
+
   /** 再生速度を選ぶ。ゾーン内で速くしようとしたら 'in-zone' を返す */
   setRate(rate: PlaybackRate): 'in-zone' | null {
     const rejected = setRate(this.current, rate)
@@ -222,6 +236,7 @@ export class DriveEngine {
       weather: w.scenario.weather,
       surface: w.scenario.surface,
       encounters: w.encounters.map((e) => ({ ...e })),
+      spotting: { ...w.spotting },
       stage: {
         index: Math.min(w.internal.stageIndex + 1, w.internal.stages.length),
         count: w.internal.stages.length,

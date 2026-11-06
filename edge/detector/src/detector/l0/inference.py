@@ -7,14 +7,20 @@ from __future__ import annotations
 
 import logging
 import math
+from time import monotonic
 from typing import TYPE_CHECKING
 
 from detector.ports import Detection, Detector
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
 
 logger = logging.getLogger("detector.inference")
+l0_logger = logging.getLogger("detector.l0")  # 後処理の失敗（l0.fp_filter_failed）
+
+FAIL_LOG_INTERVAL_S = 1.0
 
 __all__ = ["DeerDetector", "Detection", "Detector", "ScriptedDetector"]
 
@@ -29,11 +35,24 @@ def _valid(d: Detection) -> bool:
 
 
 class DeerDetector:
-    """下の Detector を包み、deer だけを確信度の高い順に返す。不正な検出は捨てて警告する。"""
+    """下の Detector を包み、deer だけを確信度の高い順に返す。不正な検出は捨てて警告する。
 
-    def __init__(self, inner: Detector) -> None:
+    box_filter（l0-fp-filter の後処理）を渡すと、選別の後に当てる。後処理が例外を出したら
+    元の検出をそのまま返す（除かない側。赤を落とさない）。`l0.fp_filter_failed` は 1 秒に 1 回まで。
+    clock はこの警告の間引きだけに使う（後処理の「続き」の時計は BoxFilter が別に持つ）。
+    """
+
+    def __init__(
+        self,
+        inner: Detector,
+        box_filter: Callable[[list[Detection]], list[Detection]] | None = None,
+        clock: Callable[[], float] = monotonic,
+    ) -> None:
         self._inner = inner
-        self.last_invalid = 0  # 直近の detect で捨てた不正な検出の数
+        self._filter = box_filter
+        self._clock = clock
+        self._last_fail_log: float | None = None
+        self.last_invalid = 0  # 直近の detect で捨てた不正な検出の数（後処理で除いた枠は数えない）
 
     def detect(self, image: np.ndarray) -> list[Detection]:
         kept = []
@@ -46,7 +65,18 @@ class DeerDetector:
                 logger.warning("detection.invalid", extra={"conf": str(d.conf)})
                 continue
             kept.append(d)
+        if self._filter is not None and kept:
+            try:
+                return sorted(self._filter(kept), key=lambda d: d.conf, reverse=True)
+            except Exception as exc:  # noqa: BLE001  後処理の失敗で赤を落とさない
+                self._filter_failed(exc)
         return sorted(kept, key=lambda d: d.conf, reverse=True)
+
+    def _filter_failed(self, exc: Exception) -> None:
+        now = self._clock()
+        if self._last_fail_log is None or now - self._last_fail_log >= FAIL_LOG_INTERVAL_S:
+            self._last_fail_log = now
+            l0_logger.warning("l0.fp_filter_failed", extra={"error_type": type(exc).__name__})
 
 
 class ScriptedDetector:

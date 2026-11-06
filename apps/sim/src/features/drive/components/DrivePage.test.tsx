@@ -1,7 +1,6 @@
 import { AlertSoundController } from '@antler/alert-ui'
 import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
@@ -10,16 +9,16 @@ import { renderWithProviders } from '@/test/render'
 import { DriveAudio } from '../audio/drive-audio'
 import { DrivePage } from './DrivePage'
 
-// 3D（DriveCanvas）は jsdom で描けないので、スマホの中身とフレームの呼び出しだけを受ける偽物に差し替える。
-// HUD（会話・おすすめのカード・音量の操作）は本物を描く。
-type SceneProps = { phone: ReactNode; onFrame: (dt: number) => void }
+// 3D（DriveCanvas）は jsdom で描けないので、フレームの呼び出しだけを受ける偽物に差し替える。
+// HUD（車内のスマホ・会話・おすすめのカード・音量の操作）は本物を描く。
+type SceneProps = { onFrame: (dt: number) => void }
 
 function setup(search = '') {
   const engine = new DriveEngine(demoScenario(ZONES, search), ZONES)
   const frames: { onFrame: (dt: number) => void } = { onFrame: () => undefined }
-  const canvas = ({ phone, onFrame }: SceneProps) => {
+  const canvas = ({ onFrame }: SceneProps) => {
     frames.onFrame = onFrame
-    return <div data-testid="phone">{phone}</div>
+    return <div data-testid="scene" />
   }
   const unlock = vi.spyOn(AlertSoundController.prototype, 'unlock').mockResolvedValue(true)
   renderWithProviders(<DrivePage createEngine={() => engine} canvas={canvas} webgl2={() => true} />)
@@ -69,7 +68,7 @@ describe('観光の楽しみ（drive-tourism）', () => {
   it('AC-2・UC-4e: ゾーンの手前でおすすめのカードが右の列の音量の操作の上に出て、ゾーンに入ると消え、同じステージでは出し直さない', async () => {
     const { engine, frames } = setup()
     await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
-    // ステージはゾーンの 5 km 手前から始まる。帯が無いので走り出すとすぐ出る
+    // ステージはゾーンの 1 km 手前から始まる（drive-crash-spot R1）。帯が無いので走り出すとすぐ出る
     const card = screen.getByTestId('recommend-card')
     expect(card).toHaveAccessibleName('この先のおすすめ')
     // 見本の場面（2 月の釧路 → 阿寒湖、立ち寄りなし）は到着地の楽しみ
