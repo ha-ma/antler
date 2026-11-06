@@ -34,6 +34,8 @@ tier: 2
 
 **l0-fp-filter（2026-11-06）での変更**: `edge/detector/src/detector/config.py` に `[l0_filter]` のセクションを足した。この feature の設定（`[l1] vehicle_state`・`vehicle_max_age_s`）と挙動は変わらない。
 
+**edge-run（2026-11-06）での変更**: target_paths の config.example.toml の `[infer]` にコメントを足しただけ（`docs/specs/edge-run/functional.md`）。この feature の挙動は変わらない。
+
 ## 概要
 
 edge の L1 は JudgeRequest の `state`（`speedKmh`・`zone`・`light`・`headlight`）を固定値（60 km/h・inside・night・low）で送っている（edge-l1 R2。実値は Deferred だった）。

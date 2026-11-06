@@ -13,6 +13,8 @@ tier: 2
 
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で api のしおりの文の検証を共通の文字種の規則（`apps/api/src/domain/shared/policies/lang-script-policy.ts`）に寄せ、zh の簡体字も落とすようにした（外れたら今までどおり 1 回だけ作り直す）。`packages/trip` に文言の表の検査（`src/i18n-tables.test.ts`）を足した。この仕様のルールは変えていない。
 
+> 2026-11-06 result-screens（`docs/specs/result-screens/functional.md` R1）で、送信ボタンの文言を「この旅を守りに行く →」から「しおりを作って鹿ゾーンを確かめる →」（4 言語）に変えた（ユーザーの 3 回目の指摘「守りに行くはよくわからない」）。押したときの振る舞い（R5・R8）は変えていない。下の R5・AC-2 の文言も合わせた。
+
 > 2026-11-06 drive-tourism で api の会話（`apps/api/src` の chats）と plan-trip の barrel（`photoOf`・`photoSrc` の export）を変えた（`docs/specs/drive-tourism/functional.md`）。api のその日の行程のテストの時間の上限は main（drive-season）の 20 秒に揃えた。この仕様のルールは変えていない。
 
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
@@ -22,7 +24,7 @@ tier: 2
 **drive-season（2026-11-06）での変更**: `packages/trip` の当日の条件 v2（天候に `rain`）と、api の trip-day のテストの時間切れ・会話の素材の天候の union の 1 行。旅の作り方は変えていない（`docs/specs/drive-season/functional.md`）。
 
 A-1 の画面で、人数・日程・出発地・楽しみを選ぶと、その場で「旅のしおり」と「この旅が失われるリスク」が組み上がる（端末の中で決定的に計算）。
-「この旅を守りに行く」で `POST /api/trips` を呼ぶと、api が同じ計算をやり直し、Claude にタイトルと各日の 1 行説明を 4 言語で書かせて、TripPlan と一緒に保存する。
+「しおりを作って鹿ゾーンを確かめる」で `POST /api/trips` を呼ぶと、api が同じ計算をやり直し、Claude にタイトルと各日の 1 行説明を 4 言語で書かせて、TripPlan と一緒に保存する。
 
 要件: ch3 A1-1〜A1-6、ch7 TripPlan と `POST /api/trips`、ch6（レート制限 10/分/IP、記録 URL は推測困難な 8 文字、削除リンク）、付録 A #1（Claude が生成・4 言語・Skills で知識を分ける）、#4（ペルソナ）、#9（登録なし・4 言語が欠けない）。
 画面: UI キャンバス v2 の A1_Plan（`/plan`）。読み取り結果は `docs/reports/2026-11-03-design-a1-plan.md`。
@@ -66,7 +68,7 @@ Questions は 2026-11-03 のラウンドで 18 問すべて推奨で決定（ユ
   - 区分: 0.6 以上「高い」、0.4 以上「注意」、それ未満「低め」。デザインどおり語と帯で見せる
   - 根拠文は寄与の大きい順に 3 つ。統計の数字は stats.json（`packages/trip` に移す）と zones の係数から読む
   - 端末と api の値は、小数 2 桁に丸めて一致すれば同じとみなす
-- R5 決定と Claude の文（#1）: 「この旅を守りに行く →」で `POST /api/trips`。api が R3・R4 を作り直し、Claude にタイトルと各日の 1 行説明を 4 言語で書かせ、TripPlan と TripDetails を保存して返す
+- R5 決定と Claude の文（#1）: 「しおりを作って鹿ゾーンを確かめる →」（2026-11-06 result-screens で変更。前は「この旅を守りに行く →」）で `POST /api/trips`。api が R3・R4 を作り直し、Claude にタイトルと各日の 1 行説明を 4 言語で書かせ、TripPlan と TripDetails を保存して返す
   - Claude に渡すのは選択肢由来の値だけ（自由入力の文字列は無い）
   - 出力の検証: 4 言語がそろい空でない、日ごとの説明の数が日数と同じ、タイトル 200 字以下、絵文字なし、3 桁以上の数・「%」・「件」・「円」を含まない（統計を書かせない）。外れたら 1 回だけ再試行し、それでも外れたら失敗
   - モデルは `claude-sonnet-5-5`、決まった形の JSON で返させる。出力の上限 4,000 トークン、時間切れ 30 秒（目標 20 秒）
@@ -166,7 +168,7 @@ R1〜R10 のとおり。しおりの組み立て（R3）とリスク（R4）は 
 外側ループ（受け入れ）:
 
 - [x] AC-1: ペルソナの入力で `POST /api/trips`（Claude はフェイク）→ 201。plan は TripPlanSchema を通り、days は 5 日、riskScore は端末の計算と小数 2 桁で一致、details の 4 言語がそろう。保存した旅を repository から読める
-- [x] AC-2: A-1 の画面をペルソナの初期値で開くと、右パネルに D1〜D5 と「高い」が出て、楽しみを 1 つ外すとその場でしおりが変わる。「この旅を守りに行く」で api を呼び、成功で `/trip/:id/brief` に移る
+- [x] AC-2: A-1 の画面をペルソナの初期値で開くと、右パネルに D1〜D5 と「高い」が出て、楽しみを 1 つ外すとその場でしおりが変わる。「しおりを作って鹿ゾーンを確かめる」で api を呼び、成功で `/trip/:id/brief` に移る
 
 UC-1 入力:
 

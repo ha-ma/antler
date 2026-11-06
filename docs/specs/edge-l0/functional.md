@@ -20,6 +20,8 @@ tier: 1
 
 **l0-fp-filter（2026-11-06）での変更**: `DeerDetector` に任意の後処理 `box_filter` を足し、`load_coreml_detector` が `[l0_filter]` から作って渡す（既定でオン）。トラッカーと即時ルールは、画面の大部分を覆う枠（2 m より近い鹿にしか当たらない大きさ。直前 3 秒の枠から続く枠は除かない）と、設定した無視する領域で弱めた枠の後の検出を見る。後処理なしで作った `DeerDetector` と、この仕様の判定・トラッカーの規則は変わらない（`docs/specs/l0-fp-filter/functional.md`）。
 
+**edge-run（2026-11-06）での変更**: config.example.toml の `infer.model_path` に、実行の候補 `models/yolo26n-deer-20261105-480.mlpackage`（相対パスは設定ファイルのディレクトリから）のコメントを足した。値の既定は空のまま。起動の入口は解決したパスを `load_coreml_detector` に渡し、`--check` と `bench --no-l1` で L0 だけを確かめられる（`docs/specs/edge-run/functional.md`）。L0 の挙動は変わらない。
+
 **CoreML のクラスの列の埋め（2026-11-06）での変更**: 実モデル（yolo26n-deer-20261105、1 クラス）を ultralytics 8.4.202 で NMS 付きの `.mlpackage` に書き出すと、`confidence` が N×80 になり、L0 が「形が違う」と拒否した。ultralytics は MLProgram の NMS の不具合（ultralytics issue #22309）を避けるため、クラスの列を 80 の倍数まで 0 で埋める（メタデータ `names` は 1 クラスのまま）。R2 に「埋めた列は無視する」を足した（CU-2f）。開発用の Mac（M2）で確かめた事実で、Mac mini の実機の確認（下の Deferred）はまだ。
 
 ## 概要

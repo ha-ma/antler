@@ -1,5 +1,10 @@
 # 手順書: Mac mini の Day 0（変更指示 §4 Step 0）
 
+> **2026-11-06 から: 検知の起動と YOLO 単独の計測は `docs/runbooks/2026-11-06-mac-mini-edge-run.md`。**
+> L0 のモデルは YOLO-World ではなく、dev Mac から運ぶ `yolo26n-deer-20261105-480.mlpackage` が候補（運び方は同じ手順書の 3.）。
+> L1 なしで動かすなら、この手順書は 1〜3・5 だけでよい。6（local-jev）・8（L1 との併走の計測）は L1 を足すとき、7（YOLO-World の書き出し）は YOLO-World を比べるときに使う。
+> YOLO だけを測るときは `python scripts/bench_l1.py --no-l1 --model <.mlpackage>`（local-jev が無くても動く）。
+
 Mac mini（M1 / 16 GB / macOS 27）の前で、上から順に打つ。**開発用の Mac ではなく、車載の Mac mini** で行う。
 終わったら、最後の「9. 貼るもの」をメインセッションに貼る。全体で 60〜90 分（ほとんどはダウンロードの待ち）。
 

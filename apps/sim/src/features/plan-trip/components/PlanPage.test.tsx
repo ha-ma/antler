@@ -82,7 +82,7 @@ function daysText(): string[] {
   return screen.getAllByTestId('plan-day').map((li) => li.textContent ?? '')
 }
 
-const SUBMIT = { name: 'この旅を守りに行く →' }
+const SUBMIT = { name: 'しおりを作って鹿ゾーンを確かめる →' }
 
 describe('PlanPage（A-1 旅をつくる）', () => {
   beforeEach(() => {
@@ -288,10 +288,12 @@ describe('PlanPage（A-1 旅をつくる）', () => {
     usePlanTripStore.getState().resetPlanTrip(['zh-TW', 'en-US'])
     renderPlan()
     expect(screen.getByLabelText('語言')).toHaveValue('zh')
-    expect(screen.getByRole('button', { name: '去守護這趟旅程 →' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '製作手冊並確認鹿區 →' })).toBeInTheDocument()
 
     await user.selectOptions(screen.getByLabelText('語言'), 'ko')
-    expect(screen.getByRole('button', { name: '이 여행을 지키러 가기 →' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: '일정표 만들고 사슴 구역 확인하기 →' }),
+    ).toBeInTheDocument()
     expect(screen.getByTestId('plan-risk-level')).toHaveTextContent('높음')
   })
 

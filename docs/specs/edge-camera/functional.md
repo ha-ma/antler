@@ -8,6 +8,8 @@ tier: 1
 
 # 仕様: edge-camera（フレーム取り込み・間引き・鹿の一次推論）
 
+**edge-run（2026-11-06）での変更**: `CameraSource.close()` / `VideoFileSource.close()` を足した（2 回呼んでも、読めなくなって解放したあとでも、解放は 1 回）。起動の入口 `app.py`・`__main__.py` と YOLO 単独の計測（`bench.py --no-l1`）を足した（`docs/specs/edge-run/functional.md`）。取り込み・間引き・推論の挙動は変わらない。
+
 ## 概要
 
 B の検知パイプラインの入口。カメラ（または動画ファイル）からフレームを受け、640×480 に揃え、5〜10 fps に間引き、

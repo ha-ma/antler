@@ -1,9 +1,17 @@
 import type { Lang } from '@antler/schema'
 import type { ItineraryRow } from '../domain/strike'
 import { fillText, LOSS_TEXT } from '../text'
+import { dropClass, type DropStyle } from '../utils/drop'
 import { clockOf, placeName, pleasureName } from '../utils/format'
 
-type Props = { lang: Lang; title: string; dayCount: number; rows: ItineraryRow[] }
+type Props = {
+  lang: Lang
+  title: string
+  dayCount: number
+  rows: ItineraryRow[]
+  /** 落ちて積み重なる並びの番号と傾き（result-screens R2。しおりは −1.5°） */
+  drop?: DropStyle
+}
 
 function rowText(row: ItineraryRow, lang: Lang): string {
   const t = LOSS_TEXT
@@ -46,10 +54,15 @@ function CrossMark() {
  * LossCard（A6-1、functional.md R2）: しおりに取り消し線、衝突の位置に ✕（alert-danger）、−1.5° 回転、trip の紙の面。
  * 取り消し線は <s> で書き、読み上げ用に「取り消し」を添える。✓ / ✕ はインライン SVG（stroke）。
  */
-export function LossCard({ lang, title, dayCount, rows }: Props) {
+export function LossCard({ lang, title, dayCount, rows, drop }: Props) {
   const t = LOSS_TEXT
   return (
-    <section className="loss-card" data-theme="trip" aria-labelledby="loss-card-heading">
+    <section
+      className={dropClass('loss-card', drop)}
+      style={drop}
+      data-theme="trip"
+      aria-labelledby="loss-card-heading"
+    >
       <div className="loss-card__head">
         <h2 id="loss-card-heading" className="loss-card__eyebrow">
           {t.cardHeading[lang]}
