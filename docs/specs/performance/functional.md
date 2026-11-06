@@ -14,7 +14,7 @@ target_paths:
   - apps/sim/src/app/DriveRoute.tsx
   - packages/trip/src/record/run.ts
   - scripts/perf/
-spec_confirmed_at: fb09c09
+spec_confirmed_at: 7435a29
 tier: 1
 ---
 
@@ -30,7 +30,7 @@ tier: 1
 
 **範囲外**: CSS・HUD の配置・タッチとジャイロの入力（mobile-landscape のセッション）、文言の表（i18n のセッション）、A-7 の画面に fps を出すこと（文言が増えるので i18n の後。記録には残る）、B（apps/pwa・edge）、`vite.config.ts` の `test` の節。
 
-> 2026-11-06 main（mobile-landscape #49・i18n #50）を取り込んだ。`DrivePage.tsx` は両方を残した（`.drive__content`・縦の案内・指の入力・旅の言語は main のまま、末尾に開発用の fps の表示）。実測（R3・R5）は取り込みの前の本番ビルドで測った。取り込み後もバンドルの上限（R6）を測り直して通した。
+> 2026-11-06 main（mobile-landscape #49・i18n #50）を取り込んだ。`DrivePage.tsx` は両方を残した（`.drive__content`・縦の案内・指の入力・旅の言語は main のまま、末尾に開発用の fps の表示）。実測（R3・R5）は取り込みの前の本番ビルドで測った。取り込み後もバンドルの上限（R6）を測り直して通した。記録の検証の文（`FrameSummarySchema` の refine）は利用者に出ないので英語にした（i18n R4 の検査）。
 
 ## Example Map
 
