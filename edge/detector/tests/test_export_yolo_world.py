@@ -1,5 +1,6 @@
 """edge-day0: YOLO-World → CoreML の書き出し。ultralytics・coremltools は偽物で確かめる。"""
 
+import argparse
 import importlib.util
 import json
 from pathlib import Path
@@ -122,10 +123,11 @@ def test_export_sets_classes_exports_with_nms_and_moves(tmp_path: Path) -> None:
     assert world.export_kwargs == {
         "format": "coreml",
         "nms": True,
-        "imgsz": 640,
+        "imgsz": [480, 640],
         "conf": 0.25,
         "iou": 0.7,
     }
+    assert report["imgsz"] == [480, 640]
     target = tmp_path / "models" / "yolov8s-worldv2-deer.mlpackage"
     assert (target / "Manifest.json").exists()
     assert not (tmp_path / "yolov8s-worldv2.mlpackage").exists()
@@ -161,7 +163,7 @@ def test_main_ok_prints_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, ca
     code = ex.main(["--out-dir", str(tmp_path / "m"), "--imgsz", "320"])
     assert code == 0
     report = json.loads(capsys.readouterr().out)
-    assert report["imgsz"] == 320
+    assert report["imgsz"] == [320, 320]
     assert report["names_patched"] is True
 
 
@@ -189,6 +191,41 @@ def test_main_rejects_inputs(argv: list[str]) -> None:
 def test_imgsz_must_be_multiple_of_32() -> None:
     with pytest.raises(SystemExit):
         ex.main(["--imgsz", "100"])
+
+
+# EXP-1g
+def test_exp1g_imgszは高さ_幅で既定は480_640() -> None:
+    assert ex._imgsz("480,640") == [480, 640]
+    assert ex._imgsz("640") == 640
+    assert ex._parser().parse_args([]).imgsz == [480, 640]
+    for bad in ["480,641", "400", "a,b", "480,640,3"]:
+        with pytest.raises(argparse.ArgumentTypeError):
+            ex._imgsz(bad)
+
+
+# EXP-1g（code-reviewer W1: 書き出したモデルの実際の入力と照合）
+def test_exp1g_モデルの入力が頼んだ大きさと違えば失敗(tmp_path: Path) -> None:
+    world = FakeWorld(tmp_path)
+
+    def square(path: Path, classes: object) -> dict[str, object]:
+        return {"names": ["deer"], "input": {"name": "image", "size": [640, 640]}}
+
+    with pytest.raises(ex.ExportError, match="入力"):
+        ex.export(
+            out_dir=tmp_path / "models",
+            model_factory=lambda weights: world,
+            verifier=square,
+            name_fixer=lambda path, classes: False,
+        )
+    assert (tmp_path / "models" / "yolov8s-worldv2-deer.failed.mlpackage").exists()
+    report = ex.export(
+        out_dir=tmp_path / "m2",
+        imgsz=640,
+        model_factory=lambda weights: FakeWorld(tmp_path),
+        verifier=square,
+        name_fixer=lambda path, classes: False,
+    )
+    assert report["imgsz"] == [640, 640]
 
 
 class FakeMLModel:

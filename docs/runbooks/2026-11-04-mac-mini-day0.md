@@ -132,6 +132,7 @@ python edge/detector/scripts/export_yolo_world.py --check-image ~/work/deer.jpg
 
 - 重み `yolov8s-worldv2.pt` と CLIP の重み（数百 MB）を取り、CoreML に書き出す。結果は `edge/detector/models/yolov8s-worldv2-deer.mlpackage`（`.gitignore` 済み）
 - v1 の `yolov8s-world.pt` は CoreML に出せない。スクリプトは v2 を使う
+- 入力の大きさは既定で 640×480（`--imgsz 480,640`。L0 のフレームと同じ）。正方形（`--imgsz 640`）で書き出すと、L0 が引き伸ばすので精度が落ちる（`docs/reports/2026-11-06-dataset-train-run.md`）。YOLO-World を 640×480 で書き出せるかは、この Mac mini での実行が初めての確認になる。失敗したら、エラーの全文を貼る
 
 確かめる: 最後に JSON が出て、次のようになっている。
 

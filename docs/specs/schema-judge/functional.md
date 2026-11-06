@@ -7,11 +7,13 @@ target_paths:
   - edge/detector/tests/test_judge_request_model.py
   - edge/detector/tests/test_schema_contract.py
   - edge/detector/pyproject.toml
-spec_confirmed_at: 9fecde3
+spec_confirmed_at: 5ab439a
 tier: 2
 ---
 
 # 仕様: schema-judge（L1 判断の契約 JudgeRequest と、AlertFlag.l1・Capture.l1Probs）
+
+**edge-day0 の 640×480 の書き出し（2026-11-06）での変更**: target_paths の `edge/detector/scripts/` にある `export_yolo_world.py`（edge-day0 の道具）の `--imgsz` の既定を変えた。schema と JudgeRequest には触れていない。この feature の挙動は変わらない。
 
 ## 概要
 
