@@ -5,11 +5,13 @@ target_paths:
   - apps/sim/src/features/loss/
   - apps/sim/src/features/record/
   - packages/trip/src/record/
-spec_confirmed_at: 0aa0bc1
+spec_confirmed_at: d986329
 tier: 1
 ---
 
 # 仕様: drive-crash-spot（1 km 手前から・スマホの固定・衝突の演出・鹿の発見）
+
+> 2026-11-07 main（result-screens #52・edge-run #53・sdata-materials #54）を取り込んだ。result-screens が A-6・A-7 の画面（落ちて積み重なるカード・クリア）を変えたが、発見の 1 行は導入の中のまま残した（R4 は変えていない）。
 
 ユーザーがローカルで運転を試した 3 回目の指摘（2026-11-06。変更記録 `docs/changes/2026-11-06-a-local-feedback-3-crash-spot.md`）のうち、運転（`apps/sim/src/features/drive/`）の 4 つを直す。
 要件: ch3 A3-1（スマホマウントはナビ上）・A3-2（HUD はスクリーン座標に固定）・A3-3（左クリック＝鹿を指す。スマホはタップで鹿）・A5-5（鹿をクリック / タップすると「自分でも見つけた」ポイント）・A5-6（衝突で A-6）、ch5 アクセシビリティ（`prefers-reduced-motion`）。
