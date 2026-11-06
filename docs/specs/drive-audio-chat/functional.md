@@ -29,9 +29,10 @@ A-3 の運転画面に、運転の音（エンジン・ブレーキ・車内の�
 
 **Tier 2 の理由**: 外部副作用（Claude API。費用と遅延）、永続化（会話の束の表 `trip_chats`。表の版が 2 → 3）、認可（ownerToken を会話の生成の権利に使う）、並行性（同じ日の会話の同時生成）。
 
+**組み込み（2026-11-06、drive-tune（PR #38）が main に入った後）**: 運転画面（`DrivePage`）で `useDriveSoundAndChat` を呼び、「出発」「もう一度」の操作の中で運転の音を鳴らし始める。HUD の右の列（drive-tune が空けた `--drive-chat-w`）に会話と音量の操作を置く。音の合図は drive-tune の `DriveEngine.telemetry()`（回転数・段・ブレーキの強さ・ABS・アクセル）から取る。音量のスライダーにフォーカスがあるときは、矢印キーで運転しない（`use-keyboard-drive.ts`）
+
 **範囲外**:
 
-- 運転画面（`DriveScreen`・`StartOverlay`・HUD）への組み込み。drive-3d のセッション（ブランチ drive-tune）が運転の中身を直していて、音の合図（回転数・ブレーキの強さ・ABS）と HUD の右側の空きを用意する。drive-tune が main に入った後、この feature の 2 本目の PR で組み込む（plan.md の PR 2。Questions の Deferred）
 - 会話の読み上げ（A3-8 の「音声」）。文字と通知音だけ（Questions の Deferred）
 - A-2 の画面で会話を先に作っておくこと（運転の画面を開いたときに取りに行く。Deferred）
 - 鹿の警告の音（`@antler/alert-ui` が持つ。凍結済み。この feature は触らない）
@@ -47,15 +48,15 @@ Questions は 2026-11-06 に推奨で決定（CLAUDE.md の方針「推奨案の
 - R1 鳴らすかの決まり: 本番は鳴らす。開発中（`import.meta.env.DEV`）は `VITE_GAME_AUDIO=on` のときだけ鳴らす（`VITE_ALERT_SOUND` と同じ形。推奨で決定）。鳴らさないときは AudioContext を作らない。AudioContext は「出発」のボタンの操作の中で 1 つだけ作り、「もう一度」では resume だけをする（ブラウザの自動再生の決まりと、AudioContext の数の上限）。画面を離れたら close する。alert-ui の音とは別の context
 - R2 音源: すべて Web Audio でプログラム的に作る自作の音（音声ファイルを使わない。推奨で決定）。`CREDITS.md` に「自作（Web Audio の合成）」と書く。実在の製品・サービスの音（LINE の通知音など）をまねない
 - R3 エンジン音: 回転数で音の高さ、アクセルと回転数で大きさを変える
-  - 回転数: 合図に回転数（`rpm`）があればそれを使う。無ければ速さから仮のギア（5 段の自動。0〜20・20〜40・40〜60・60〜80・80 km/h〜）を選び、そのギアの中の速さの割合で 900〜3,600 rpm、アクセルで +400 rpm（上限 6,000）（推奨で決定）
-  - 音の高さ: 4 気筒の爆発の周波数（rpm ÷ 60 × 2 Hz）を基音にする（900 rpm で 30 Hz、3,600 rpm で 120 Hz）
-  - 大きさ（0〜1 の相対値）: 止まっていてアクセルを踏んでいない（アイドリング）は 0.25、それ以外は 0.25 + 回転数の割合 × 0.35 + アクセル × 0.3（上限 0.9）
+  - 回転数: drive-tune の `telemetry().rpm`（オートマ 6 段、750〜3,000 rpm）を使う。無いとき（テスト）だけ速さから仮のギア（5 段。0〜20・20〜40・40〜60・60〜80・80 km/h〜）を選び、そのギアの中の速さの割合で 750〜2,700 rpm、アクセルで +300 rpm（上限 6,000）
+  - 音の高さ: 4 気筒の爆発の周波数（rpm ÷ 60 × 2 Hz）を基音にする（750 rpm で 25 Hz、3,000 rpm で 100 Hz）
+  - 大きさ（0〜1 の相対値）: 止まっていてアクセルを踏んでいない（アイドリング）は 0.25、それ以外は 0.25 + 回転数の割合（750 rpm で 0、3,000 rpm で 1）× 0.35 + アクセル × 0.3（上限 0.9）
   - 一時停止・走行の終わり（衝突・完走）は 0
 - R4 ブレーキ音: ブレーキの強さ（0〜1）と速さで鳴らす
   - 3 km/h 未満では鳴らさない。ノイズの大きさ = 強さ × min(1, 速さ ÷ 60 km/h) × 0.6
   - 強さ 0.6 以上かつ 20 km/h 以上で、高い音（鳴き）を少し足す（大きさ 0.15 × 強さ）
   - ABS が効いているときは、ノイズを 1 秒に 14 回の断続にする（ABS の手応え）
-  - 合図にブレーキの強さが無ければ、Space または S（前進中）を押していれば 1、離していれば 0（推奨で決定）。ABS の合図が無ければ効いていない
+  - ブレーキの強さと ABS は drive-tune の `telemetry().brake`（0〜1、踏んでから 0.15 秒で立ち上がる。S は 0.6 まで）・`abs`（滑りやすい路面で 10 km/h 以上のブレーキ中）
 - R5 BGM（車内のラジオ）: シード（`DriveScenario.seed`）で決まる 8 小節の自作の曲（和音の進行と分散和音。84 BPM）を、ラジオのような帯域（300〜3,000 Hz）と小さなノイズで、低い音量でくり返す（推奨で決定）。同じシードは同じ曲
 - R6 音量の混ぜ方（音量のつまみと自動の下げ）
   - 利用者の設定: 全体の音量（0〜100、10 きざみ。既定 60）、消音（既定 OFF）、BGM の ON/OFF（既定 ON）。端末に残す（localStorage `antler.drive.audio`。読めなければ既定値）
@@ -94,6 +95,7 @@ Questions は 2026-11-06 に推奨で決定（CLAUDE.md の方針「推奨案の
   - 反応の行: ゾーンの外 → 中で zone-enter、中 → 外で zone-exit（どちらも区間の番号ごとに 1 回だけ。境界を行き来しても繰り返さない）、avoided の遭遇が 1 つ増えるごとに avoided。zone-enter は入ってから 2.5 秒後に出す（琥珀のチャイムと重ねない）。2.5 秒の前に出たら、その区間は zone-enter も zone-exit も出さない（短い出入りでは何も言わない。zone-exit は zone-enter を出した区間だけ。code-reviewer W8。推奨で決定）
   - アラート OFF の走行では zone-enter・zone-exit を出さない（R6a）。avoided は出す
   - 赤（`danger`）の間に出る予定になった行は、出さずに待たせる。赤が終わって 1.5 秒後にまとめて出す（その間にまた赤が来たら、終わってから 1.5 秒を数え直す）。待たせるのは新しい順に 3 行まで（古いものは捨てる）。出すフレームでさらに越えた行は、待たせた行と一緒にそのまま出す（code-reviewer W9）
+  - 走り始めと、ステージを移って道のりが飛んだとき（drive-tune R1。運転は鹿ゾーンの区間ごとのステージだけで、ステージの間は先へ移る）は、飛ばした区間の行をまとめて出さず、最後の 1 行だけを出す（移動の間に交わした話として。ほかは出したことにする。推奨で決定）
   - 一度に出た行（まとめて出た・16× で越えた）に鳴らす通知音は 1 回（R8）
   - 一時停止の間は出さない（再開したら出す）。走行の終わりの後は出さない。「もう一度」（restart）は最初から（出した行・数えた回数・待ち行列を消す）
   - 束が途中で替わったら（見本の会話 → api の会話）、替わった時点の道のりより先の行だけを新しい束から出し、待ち行列は捨てる（同じ話を 2 回出さない。数えた回数は引き継ぐ）
@@ -195,7 +197,6 @@ R1〜R19 のとおり。音の値（R3〜R6・R8）は `apps/sim/src/features/dr
 
 ## Questions（Deferred のみ残存可）
 
-- [Deferred: 担当=このセッション（drive-audio-chat）/ 期日=drive-tune が main に入った後（2026-11-07 目安）/ 暫定挙動=部品（音・会話・音量の操作・api）は main にあるが運転画面に組み込まない。運転は今までどおり無音・会話なし] 運転画面への組み込み（`StartOverlay` の出発で音を作る、`DriveScreen` で合図を渡し、HUD の右側に `ChatFeed`、下部に `AudioControls`）。drive-tune の回転数・ブレーキの強さ・ABS の合図に合わせて、合図の写し（`signalsFromSnapshot`）を差し替える
 - [Deferred: 担当=ユーザー（好み）/ 期日=2026-11-08（Day 6）/ 暫定挙動=R3〜R6・R8 の数値] 音の大きさ・高さの釣り合い（実機で聞いて決める）
 - [Deferred: 担当=次の feature / 期日=Day 5 / 暫定挙動=文字と通知音だけ] 会話の読み上げ（A3-8 の「テキスト＋音声」）
 - [Deferred: 担当=ユーザー / 期日=2026-11-08 / 暫定挙動=消さない（旅の削除で消える）] 会話の束の保持期間（TripPlan と一緒に決める）
@@ -205,90 +206,93 @@ R1〜R19 のとおり。音の値（R3〜R6・R8）は `apps/sim/src/features/dr
 
 外側ループ（受け入れ）:
 
-- [ ] AC-41: ペルソナの旅の D1 で会話の POST（Claude はフェイク）→ 201。各移動に depart、話の行は鹿ゾーンの外、話し手は p1〜p3、text は 4 言語。2 回目は 200 で Claude を呼ばない
-- [ ] AC-42: 会話の束のフィクスチャと運転のスナップショットの列（出発 → 16× で 3 行を越える → ゾーンに入る → 赤 → 赤が終わる）を部品に流すと、ChatFeed に行が順に出て、通知音は緑のときだけ 1 回ずつ鳴り、エンジン・BGM の大きさが赤で下がる（フェイクの音の差し込み口で確かめる）
+- [x] AC-41: ペルソナの旅の D1 で会話の POST（Claude はフェイク）→ 201。各移動に depart、話の行は鹿ゾーンの外、話し手は p1〜p3、text は 4 言語。2 回目は 200 で Claude を呼ばない
+- [x] AC-42: 会話の束のフィクスチャと運転のスナップショットの列（出発 → 16× で 3 行を越える → ゾーンに入る → 赤 → 赤が終わる）を部品に流すと、ChatFeed に行が順に出て、通知音は緑のときだけ 1 回ずつ鳴り、エンジン・BGM の大きさが赤で下がる（フェイクの音の差し込み口で確かめる）
 
 UC-1 束の組み立て（api）:
 
-- [ ] PLAN-1a: 各移動の 0.2 km に depart、話の行は min(3, floor(距離 ÷ 15)) 行の候補、[1 km, 距離 − 1 km] に収める。15 km 未満の移動は depart だけ
-- [ ] PLAN-1b: 鹿ゾーンの中に落ちた候補は入口の 1 km 手前に動き、また別のゾーンなら繰り返す。1 km 未満・他の行と 1 km 以内になった候補は作らない
-- [ ] PLAN-1c: 話の行は 1 日 10 行まで（後ろの移動から減らす）
-- [ ] PLAN-1d: 話題は同じものが続かず、楽しみが残っていない日は pleasure を選ばない。light には通過時刻の光が付く
-- [ ] PLAN-1e: 話し手は人数 − 1 人（最大 3）、1 人旅は radio。2 人以上なら同じ人が続かない
-- [ ] PLAN-1f: 移動の無い日は空の束。depart の 0.2 km がゾーンの中なら出口の 0.2 km 先（出口が終わりの 1 km 手前より先なら作らない）
-- [ ] PLAN-1g: 同じ旅・同じ日 → 同じ束。別の seed → 話の行の位置か話題か話し手が変わる。id は l01 から順
+- [x] PLAN-1a: 各移動の 0.2 km に depart、話の行は min(3, floor(距離 ÷ 15)) 行の候補、[1 km, 距離 − 1 km] に収める。15 km 未満の移動は depart だけ
+- [x] PLAN-1b: 鹿ゾーンの中に落ちた候補は入口の 1 km 手前に動き、また別のゾーンなら繰り返す。1 km 未満・他の行と 1 km 以内になった候補は作らない
+- [x] PLAN-1c: 話の行は 1 日 10 行まで（後ろの移動から減らす）
+- [x] PLAN-1d: 話題は同じものが続かず、楽しみが残っていない日は pleasure を選ばない。light には通過時刻の光が付く
+- [x] PLAN-1e: 話し手は人数 − 1 人（最大 3）、1 人旅は radio。2 人以上なら同じ人が続かない
+- [x] PLAN-1f: 移動の無い日は空の束。depart の 0.2 km がゾーンの中なら出口の 0.2 km 先（出口が終わりの 1 km 手前より先なら作らない）
+- [x] PLAN-1g: 同じ旅・同じ日 → 同じ束。別の seed → 話の行の位置か話題か話し手が変わる。id は l01 から順
 
 UC-2 Claude の文（api）:
 
-- [ ] WRITE-2a: 正常な文 → 検証を通る（4 言語・id・数・順）。「路面の条件がいい」「一緒に」「十分」も通る
-- [ ] WRITE-2b: 行の id・数・順が違う、1 言語が空、上限（ja・zh 50 / ko 60 / en 100 文字）を超える → 外れ
-- [ ] WRITE-2c: 数字（半角・全角）・漢数字の連なり・英語の数詞・韓国語の数詞・% ¥ $・絵文字を含む → 外れ。言語ごとの文字種が違う・zh に簡体字 → 外れ
-- [ ] WRITE-2d: Claude に渡す材料は、話題・席・人数・経験・月・天気・路面・光・マスターの名前だけ（自由入力・時刻・金額・統計の数字が無い）
-- [ ] WRITE-2e: gateway は max_tokens・refusal・形の違う JSON を rejected で返し、時間切れ・認証の失敗を ChatWriterError にする
-- [ ] WRITE-2f: 1 回目が外れ → 理由のコードだけを渡して作り直し → 通れば保存して 201。2 回目も外れ → 502、保存しない
-- [ ] WRITE-2g: 鹿の語（鹿・シカ・deer・사슴）・「前方に鹿」「DEER AHEAD」を含む → 外れ
+- [x] WRITE-2a: 正常な文 → 検証を通る（4 言語・id・数・順）。「路面の条件がいい」「一緒に」「十分」も通る
+- [x] WRITE-2b: 行の id・数・順が違う、1 言語が空、上限（ja・zh 50 / ko 60 / en 100 文字）を超える → 外れ
+- [x] WRITE-2c: 数字（半角・全角）・漢数字の連なり・英語の数詞・韓国語の数詞・% ¥ $・絵文字を含む → 外れ。言語ごとの文字種が違う・zh に簡体字 → 外れ
+- [x] WRITE-2d: Claude に渡す材料は、話題・席・人数・経験・月・天気・路面・光・マスターの名前だけ（自由入力・時刻・金額・統計の数字が無い）
+- [x] WRITE-2e: gateway は max_tokens・refusal・形の違う JSON を rejected で返し、時間切れ・認証の失敗を ChatWriterError にする
+- [x] WRITE-2f: 1 回目が外れ → 理由のコードだけを渡して作り直し → 通れば保存して 201。2 回目も外れ → 502、保存しない
+- [x] WRITE-2g: 鹿の語（鹿・シカ・deer・사슴）・「前方に鹿」「DEER AHEAD」を含む → 外れ
 
 UC-2 保存と生成（api）:
 
-- [ ] SAVE-2a: 同じ鍵の行があれば 200 で返し、Claude を呼ばない（数えない）。data の版が変われば作り直す
-- [ ] SAVE-2b: 移動の無い日は空の束を保存して返し、Claude を呼ばない
-- [ ] SAVE-2c: 応答は欄を明示して組み立てる（鍵のハッシュを返さない）
+- [x] SAVE-2a: 同じ鍵の行があれば 200 で返し、Claude を呼ばない（数えない）。data の版が変われば作り直す
+- [x] SAVE-2b: 移動の無い日は空の束を保存して返し、Claude を呼ばない
+- [x] SAVE-2c: 応答は欄を明示して組み立てる（鍵のハッシュを返さない）
 
 UC-3 運転の音（sim）:
 
-- [ ] AUD-3a: 鳴らすかの決まり: 本番は鳴らす。開発は VITE_GAME_AUDIO=on のときだけ。鳴らさないときは音の差し込み口を作らない
-- [ ] AUD-3b: 仮のギアと回転数（速さ・アクセル）。合図の rpm があればそれを使う。周波数は rpm ÷ 30
-- [ ] AUD-3c: エンジンの大きさ（アイドリング 0.25、上限 0.9、一時停止・終わりは 0）
-- [ ] AUD-3d: ブレーキ音（3 km/h 未満は 0、強さ × 速さ、鳴きは 0.6 以上・20 km/h 以上、ABS は 14 Hz）。合図が無ければ入力から強さ 0 / 1
-- [ ] AUD-3e: 混ぜ方: 音量 × 係数、消音は 0、BGM OFF、赤で BGM 0・エンジンとブレーキ半分・通知音なし、琥珀で BGM 0.6 倍、走行の終わりは BGM 0。アラート OFF ではゾーンで BGM を下げない
-- [ ] AUD-3f: BGM の曲はシードで決まる（同じシード → 同じ音の列。8 小節・84 BPM・音の高さは範囲の中）
-- [ ] AUD-3g: 通知音は 2 音（C6 → F6）。2 秒（実時間）以内の 2 回目は鳴らさない。鳴るのは緑のとき（アラート OFF はゾーンでも鳴る）
-- [ ] AUD-3h: 音のコントローラは差し込み口に値を渡すだけで、同じ値なら変えない。AudioContext は 1 つを使い回す。BGM は 1 小節先まで予約。タブを隠したら止め、戻したら再開。dispose で閉じる
-- [ ] AUD-3i: 設定は localStorage に残り、壊れた値・読めないときは既定値（60・消音 OFF・BGM ON）
+- [x] AUD-3a: 鳴らすかの決まり: 本番は鳴らす。開発は VITE_GAME_AUDIO=on のときだけ。鳴らさないときは音の差し込み口を作らない
+- [x] AUD-3b: 仮のギアと回転数（速さ・アクセル）。合図の rpm があればそれを使う。周波数は rpm ÷ 30
+- [x] AUD-3c: エンジンの大きさ（アイドリング 0.25、上限 0.9、一時停止・終わりは 0）
+- [x] AUD-3d: ブレーキ音（3 km/h 未満は 0、強さ × 速さ、鳴きは 0.6 以上・20 km/h 以上、ABS は 14 Hz）。合図が無ければ入力から強さ 0 / 1
+- [x] AUD-3e: 混ぜ方: 音量 × 係数、消音は 0、BGM OFF、赤で BGM 0・エンジンとブレーキ半分・通知音なし、琥珀で BGM 0.6 倍、走行の終わりは BGM 0。アラート OFF ではゾーンで BGM を下げない
+- [x] AUD-3f: BGM の曲はシードで決まる（同じシード → 同じ音の列。8 小節・84 BPM・音の高さは範囲の中）
+- [x] AUD-3g: 通知音は 2 音（C6 → F6）。2 秒（実時間）以内の 2 回目は鳴らさない。鳴るのは緑のとき（アラート OFF はゾーンでも鳴る）
+- [x] AUD-3h: 音のコントローラは差し込み口に値を渡すだけで、同じ値なら変えない。AudioContext は 1 つを使い回す。BGM は 1 小節先まで予約。タブを隠したら止め、戻したら再開。dispose で閉じる
+- [x] AUD-3i: 設定は localStorage に残り、壊れた値・読めないときは既定値（60・消音 OFF・BGM ON）
 
 UC-4 会話を出す（sim）:
 
-- [ ] CHAT-4a: 話の行は道のりを越えたら出る。一度に越えた複数の行は道のりの順に出る。後退して戻っても同じ行は 1 回だけ
-- [ ] CHAT-4b: 反応: ゾーンに入って 2.5 秒後に zone-enter、出たら zone-exit（区間ごとに 1 回）、avoided が増えたら avoided。n 回目は添字 (n − 1) mod 2 の行
-- [ ] CHAT-4c: 赤の間の行は待たせ、赤が終わって 1.5 秒後にまとめて出る（新しい 3 行まで）。間にまた赤が来たら数え直す
-- [ ] CHAT-4d: 一時停止の間・走行の終わりの後は出さない。restart で最初から
-- [ ] CHAT-4e: 束が替わったら、替わった時点より先の行だけを新しい束から出し、待ち行列は捨てる
-- [ ] CHAT-4f: 見本の会話は人数で話し手が決まり、各移動に depart と 20 km ごとの行（ゾーンの外）。反応の表は 6 行。文に数字・絵文字・鹿の語が無く、4 言語そろう
-- [ ] CHAT-4g: useChatDeck はトークンがあれば Authorization: Bearer つきで POST し、応答の形・日・版・移動の数を確かめる。トークンが無い・見本の運転では取りに行かない。やり直しは通信の失敗だけ
-- [ ] CHAT-4h: ChatFeed は新しい 4 行まで、新しいものを下に、話し手の名前と旅の言語の一言。role=log・aria-label、見えない aria-live にいちばん新しい行だけ。赤の間は減光のクラス
-- [ ] CHAT-4i: AudioControls は消音（aria-pressed）・音量のスライダー（0〜100、10 きざみ）・BGM（aria-pressed）を出し、押すと設定が変わる。4 言語のラベル
-- [ ] CHAT-4j: 道のりは次の移動の始まり − 1 km で抑える（api の km と道の長さがずれても次の移動に食い込まない）
-- [ ] CHAT-4k: アラート OFF の走行では zone-enter・zone-exit を出さない（avoided は出す）
+- [x] CHAT-4a: 話の行は道のりを越えたら出る。一度に越えた複数の行は道のりの順に出る。後退して戻っても同じ行は 1 回だけ
+- [x] CHAT-4b: 反応: ゾーンに入って 2.5 秒後に zone-enter、出たら zone-exit（区間ごとに 1 回）、avoided が増えたら avoided。n 回目は添字 (n − 1) mod 2 の行
+- [x] CHAT-4c: 赤の間の行は待たせ、赤が終わって 1.5 秒後にまとめて出る（新しい 3 行まで）。間にまた赤が来たら数え直す
+- [x] CHAT-4d: 一時停止の間・走行の終わりの後は出さない。restart で最初から
+- [x] CHAT-4e: 束が替わったら、替わった時点より先の行だけを新しい束から出し、待ち行列は捨てる
+- [x] CHAT-4f: 見本の会話は人数で話し手が決まり、各移動に depart と 20 km ごとの行（ゾーンの外）。反応の表は 6 行。文に数字・絵文字・鹿の語が無く、4 言語そろう
+- [x] CHAT-4g: useChatDeck はトークンがあれば Authorization: Bearer つきで POST し、応答の形・日・版・移動の数を確かめる。トークンが無い・見本の運転では取りに行かない。やり直しは通信の失敗だけ
+- [x] CHAT-4h: ChatFeed は新しい 4 行まで、新しいものを下に、話し手の名前と旅の言語の一言。role=log・aria-label、見えない aria-live にいちばん新しい行だけ。赤の間は減光のクラス
+- [x] CHAT-4i: AudioControls は消音（aria-pressed）・音量のスライダー（0〜100、10 きざみ）・BGM（aria-pressed）を出し、押すと設定が変わる。4 言語のラベル
+- [x] CHAT-4j: 道のりは次の移動の始まり − 1 km で抑える（api の km と道の長さがずれても次の移動に食い込まない）
+- [x] CHAT-4k: アラート OFF の走行では zone-enter・zone-exit を出さない（avoided は出す）
+- [x] CHAT-4l: 走り始めが途中の道のり・ステージを移って道のりが飛んだときは、飛ばした区間の行は最後の 1 行だけ
+- [x] CHAT-4m: 運転画面で「出発」「もう一度」が運転の音を鳴らし始め、HUD の右の列に会話と音量の操作が出る。音量のスライダーにフォーカスがあるとき矢印キーで運転しない
 
 認可（threat.md）:
 
-- [ ] AUTH-41: 会話の POST にトークンが無い → 403 OWNER_REQUIRED、Claude を呼ばない
-- [ ] AUTH-42: 会話の POST に別の旅のトークン → 403
-- [ ] AUTH-43: 会話の POST が 1 分に 11 件目 → 429 RATE_LIMITED
-- [ ] AUTH-44: 1 日の上限に達したあと会話の POST → 429 DAILY_LIMIT、Claude を呼ばない
-- [ ] AUTH-45: 1 つの旅の会話の束が 30 に達したあと、新しい鍵の POST → 409 CHAT_LIMIT
+- [x] AUTH-41: 会話の POST にトークンが無い → 403 OWNER_REQUIRED、Claude を呼ばない
+- [x] AUTH-42: 会話の POST に別の旅のトークン → 403
+- [x] AUTH-43: 会話の POST が 1 分に 11 件目 → 429 RATE_LIMITED
+- [x] AUTH-44: 1 日の上限に達したあと会話の POST → 429 DAILY_LIMIT、Claude を呼ばない
+- [x] AUTH-45: 1 つの旅の会話の束が 30 に達したあと、新しい鍵の POST → 409 CHAT_LIMIT
 
 ## Rule → ドメイン語彙対応
 
-| Rule                       | 語彙                                        | 置き場所                                 | 証明           |
-| -------------------------- | ------------------------------------------- | ---------------------------------------- | -------------- |
-| R1: 鳴らすか               | `gameAudioEnabled`                          | apps/sim/src/features/drive/audio/       | AUD-3a         |
-| R3・R4: エンジン・ブレーキ | `engineVoice` / `brakeVoice`                | apps/sim/src/features/drive/audio/       | AUD-3b〜d      |
-| R5: BGM                    | `radioScore`                                | apps/sim/src/features/drive/audio/       | AUD-3f         |
-| R6: 混ぜ方                 | `mixLevels`                                 | apps/sim/src/features/drive/audio/       | AUD-3e         |
-| R7〜R9: 鳴らし方           | `DriveAudio` / `AudioGraphPort`             | apps/sim/src/features/drive/audio/       | AUD-3g〜i      |
-| R11: 束の組み立て          | `buildChatPlan`                             | apps/api/src/domain/chats/policies/      | PLAN-*         |
-| R12: 出すタイミング        | `advanceChat`                               | apps/sim/src/features/drive/chat/        | CHAT-4a〜e     |
-| R13: 会話の表示            | `ChatFeed`                                  | apps/sim/src/features/drive/chat/        | CHAT-4h        |
-| R14: 音量の操作            | `AudioControls`                             | apps/sim/src/features/drive/audio/       | CHAT-4i        |
-| R15: 生成の API            | `PrepareChatUseCase`                        | apps/api/src/application/usecases/chats/ | SAVE-_・AUTH-_ |
-| R17: 文の検証              | `ChatWriterGateway` / `validateChatWriting` | apps/api/src/domain/chats/policies/      | WRITE-*        |
-| R18・R19: 端末の取り方     | `useChatDeck` / `fallbackChatDeck`          | apps/sim/src/features/drive/chat/        | CHAT-4f〜g     |
+| Rule                       | 語彙                                             | 置き場所                                 | 証明           |
+| -------------------------- | ------------------------------------------------ | ---------------------------------------- | -------------- |
+| R1: 鳴らすか               | `gameAudioEnabled`                               | apps/sim/src/features/drive/audio/       | AUD-3a         |
+| R3・R4: エンジン・ブレーキ | `engineVoice` / `brakeVoice`                     | apps/sim/src/features/drive/audio/       | AUD-3b〜d      |
+| R5: BGM                    | `radioScore`                                     | apps/sim/src/features/drive/audio/       | AUD-3f         |
+| R6: 混ぜ方                 | `mixLevels`                                      | apps/sim/src/features/drive/audio/       | AUD-3e         |
+| R7〜R9: 鳴らし方           | `DriveAudio` / `AudioGraphPort`                  | apps/sim/src/features/drive/audio/       | AUD-3g〜i      |
+| R11: 束の組み立て          | `buildChatPlan`                                  | apps/api/src/domain/chats/policies/      | PLAN-*         |
+| R12: 出すタイミング        | `advanceChat`                                    | apps/sim/src/features/drive/chat/        | CHAT-4a〜e     |
+| R13: 会話の表示            | `ChatFeed`                                       | apps/sim/src/features/drive/chat/        | CHAT-4h        |
+| R14: 音量の操作            | `AudioControls`                                  | apps/sim/src/features/drive/audio/       | CHAT-4i        |
+| R15: 生成の API            | `PrepareChatUseCase`                             | apps/api/src/application/usecases/chats/ | SAVE-_・AUTH-_ |
+| R17: 文の検証              | `ChatWriterGateway` / `validateChatWriting`      | apps/api/src/domain/chats/policies/      | WRITE-*        |
+| R18・R19: 端末の取り方     | `useChatDeck` / `fallbackChatDeck`               | apps/sim/src/features/drive/chat/        | CHAT-4f〜g     |
+| 組み込み                   | `useDriveSoundAndChat` / `linkDriveSoundAndChat` | apps/sim/src/features/drive/chat/        | CHAT-4m・AC-42 |
 
 ## 受け入れ基準
 
-- [ ] 受け入れテスト AC-41・AC-42 が Green
-- [ ] 全 UC / 全エラーパターンのテストが Green
-- [ ] Test List の全項目にチェック
-- [ ] 静的解析ゲート通過（lint / format / 型 / 依存方向）
-- [ ] component-guard・accessibility-checker・performance-analyzer・code-reviewer・security-auditor・layer-guard の Critical 0
+- [x] 受け入れテスト AC-41・AC-42 が Green
+- [x] 全 UC / 全エラーパターンのテストが Green
+- [x] Test List の全項目にチェック
+- [x] 静的解析ゲート通過（lint / format / 型 / 依存方向）
+- [x] component-guard・accessibility-checker・performance-analyzer・code-reviewer・security-auditor・layer-guard の Critical 0

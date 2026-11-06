@@ -1,10 +1,10 @@
 import type { AlertStateName } from '@antler/alert-ui'
-import type { DriveSnapshot } from '../domain/engine'
-import type { DriveInput, DriveOutcome } from '../types'
+import type { DriveSnapshot, DriveTelemetry } from '../domain/engine'
+import type { DriveOutcome } from '../types'
 
 // 運転の音が受け取る合図（docs/specs/drive-audio-chat/functional.md R3・R4・R6）。
-// drive-tune（運転の中身）が回転数・ブレーキの強さ・ABS を出したら、signalsFromSnapshot をそれに合わせる（PR 2）。
-// それまでは、スナップショットと入力から作る（回転数は仮のギア、ブレーキは押しているかの 0 / 1、ABS は効いていない）。
+// 回転数・ブレーキの強さ・ABS・アクセルは drive-tune の DriveEngine.telemetry()（R6）から、
+// 鹿の警告の状態・一時停止・走行の終わりはスナップショットから取る。
 
 export type DriveAudioSignals = {
   /** 速さの絶対値（km/h） */
@@ -38,18 +38,16 @@ export const IDLE_SIGNALS: DriveAudioSignals = {
   outcome: 'driving',
 }
 
-/** スナップショットと入力から合図を作る（R4: Space か、前進中の S を押していればブレーキ 1） */
-export function signalsFromSnapshot(
-  snapshot: Pick<DriveSnapshot, 'speedKmh' | 'alert' | 'alertEnabled' | 'playback' | 'outcome'>,
-  input: Pick<DriveInput, 'throttle' | 'brake' | 'back'>,
+export function driveAudioSignals(
+  telemetry: DriveTelemetry,
+  snapshot: Pick<DriveSnapshot, 'alert' | 'alertEnabled' | 'playback' | 'outcome'>,
 ): DriveAudioSignals {
-  const braking = input.brake || (input.back && snapshot.speedKmh > 0.5)
   return {
-    speedKmh: Math.abs(snapshot.speedKmh),
-    throttle: input.throttle ? 1 : 0,
-    brake: braking ? 1 : 0,
-    abs: false,
-    rpm: null,
+    speedKmh: Math.abs(telemetry.speedKmh),
+    throttle: telemetry.throttle ? 1 : 0,
+    brake: Math.min(1, Math.max(0, telemetry.brake)),
+    abs: telemetry.abs,
+    rpm: telemetry.rpm,
     alert: snapshot.alert.state,
     alertEnabled: snapshot.alertEnabled,
     paused: snapshot.playback.paused,

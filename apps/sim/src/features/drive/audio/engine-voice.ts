@@ -1,18 +1,20 @@
 import type { DriveAudioSignals } from './signals'
 
 // エンジン音の値（docs/specs/drive-audio-chat/functional.md R3）。純粋関数。
-// 回転数で音の高さ、回転数とアクセルで大きさを決める。合図に回転数が無ければ速さから仮のギアで作る。
+// 回転数で音の高さ、回転数とアクセルで大きさを決める。回転数はふつう drive-tune の DriveEngine.telemetry()
+// （オートマ 6 段、750〜3,000 rpm）から来る。無いとき（テスト・見本）だけ速さから仮のギアで作る。
 
 /** 仮のギアの幅（km/h）。0〜20・20〜40・40〜60・60〜80・80 km/h〜 の 5 段 */
 const GEAR_SPAN_KMH = 20
 const TOP_GEAR = 5
-export const IDLE_RPM = 900
-/** ギアの中で上がる回転数（900 → 3,600 rpm） */
-const GEAR_RPM_RANGE = 2700
-const THROTTLE_RPM = 400
+/** アイドリング（drive-tune の powertrain と同じ 750 rpm） */
+export const IDLE_RPM = 750
+/** 仮のギアの中で上がる回転数（750 → 2,700 rpm） */
+const GEAR_RPM_RANGE = 1950
+const THROTTLE_RPM = 300
 export const MAX_RPM = 6000
-/** 大きさの割合を 1 にする回転数（900 rpm で 0、4,000 rpm で 1） */
-const LOUD_RPM = 4000
+/** 大きさの割合を 1 にする回転数（750 rpm で 0、drive-tune の上限 3,000 rpm で 1） */
+const LOUD_RPM = 3000
 const IDLE_GAIN = 0.25
 const RPM_GAIN = 0.35
 const THROTTLE_GAIN = 0.3

@@ -3,9 +3,9 @@ import type { AudioGraphPort, ScheduledNote } from '../audio/audio-graph'
 import { AudioSettingsStore } from '../audio/audio-settings'
 import { DriveAudio } from '../audio/drive-audio'
 import { DEFAULT_AUDIO_SETTINGS, mixLevels, type AudioLevels } from '../audio/mix'
-import { signalsFromSnapshot } from '../audio/signals'
-import type { DriveSnapshot } from '../domain/engine'
-import { NO_INPUT, type DriveInput, type Encounter } from '../types'
+import { driveAudioSignals } from '../audio/signals'
+import type { DriveSnapshot, DriveTelemetry } from '../domain/engine'
+import type { Encounter } from '../types'
 import { ChatFeedStore } from './chat-feed-store'
 import { REACTION_TEXT } from './chat-text'
 import { buildChatTrack } from './chat-track'
@@ -93,14 +93,28 @@ function snapshot(over: Partial<DriveSnapshot> & { km: number; inZone?: boolean 
     weather: 'snow',
     surface: 'packed-snow',
     encounters: [],
+    stage: { index: 1, count: 1 },
+    stageClearedAt: null,
+    destination: { km: 40, etaMs: 0 },
     ...rest,
-  } as DriveSnapshot
+  }
+}
+
+const TELEMETRY: DriveTelemetry = {
+  rpm: 1800,
+  gear: 4,
+  throttle: false,
+  brake: 0,
+  speedKmh: 60,
+  abs: false,
 }
 
 class FakeEngine implements DriveSource {
   private current: DriveSnapshot = snapshot({ km: 0, speedKmh: 0 })
   private readonly listeners = new Set<() => void>()
-  world: { input: DriveInput } = { input: { ...NO_INPUT } }
+  /** drive-tune の DriveEngine.telemetry() の代わり */
+  tele: DriveTelemetry = { ...TELEMETRY }
+  telemetry = () => this.tele
   subscribe = (l: () => void) => {
     this.listeners.add(l)
     return () => this.listeners.delete(l)
@@ -135,7 +149,7 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
     }
 
     // 出発 → depart（通知音 1 回）
-    engine.world.input = { ...NO_INPUT, throttle: true }
+    engine.tele = { ...TELEMETRY, throttle: true, rpm: 2400 }
     step(snapshot({ t: 1000, km: 0.3 }))
     expect(screen.getByText('出発だね')).toBeInTheDocument()
     expect(graph.notifies).toBe(1)
@@ -167,7 +181,7 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
       closestM: 12,
       outcome: 'avoided',
     }
-    engine.world.input = { ...NO_INPUT, brake: true }
+    engine.tele = { ...TELEMETRY, brake: 1, abs: true }
     const dangerSnapshot = snapshot({
       t: 64_000,
       km: 19.1,
@@ -178,9 +192,11 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
     const danger = graph.levels.at(-1)
     // 同じ合図の琥珀と比べて、エンジンとブレーキは半分、BGM は 0
     const same = mixLevels(
-      { ...signalsFromSnapshot(dangerSnapshot, engine.world.input), alert: 'zone' },
+      { ...driveAudioSignals(engine.tele, dangerSnapshot), alert: 'zone' },
       DEFAULT_AUDIO_SETTINGS,
     )
+    // ABS の断続が telemetry から届く
+    expect(danger?.absHz).toBe(14)
     expect(danger?.music).toBe(0)
     expect(danger?.engine).toBeCloseTo(same.engine / 2)
     expect(danger?.brakeNoise).toBeCloseTo(same.brakeNoise / 2)
@@ -188,7 +204,7 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
 
     // 避けた（赤が終わってから遭遇が avoided になる）→ 赤の後 1.5 秒は待たされ、その後に出る。
     // 琥珀の中なので通知音は鳴らない
-    engine.world.input = { ...NO_INPUT }
+    engine.tele = { ...TELEMETRY }
     step(snapshot({ t: 66_000, km: 19.12, inZone: true, encounters: [avoided] }))
     expect(screen.queryByText(REACTION_TEXT.avoided[0].ja)).not.toBeInTheDocument()
     step(snapshot({ t: 67_600, km: 19.2, inZone: true, encounters: [avoided] }))

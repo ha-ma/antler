@@ -1,6 +1,6 @@
 # 計画: drive-audio-chat（A-3 運転中の音・車内の会話）
 
-ブランチ `feat/drive-audio-chat`。PR は 2 本に分ける。
+ブランチ `feat/drive-audio-chat`。最初は PR を 2 本に分ける計画だったが、レビューの途中で drive-tune（PR #38、3e35bb3）が main に入ったので、main を取り込んで組み込み（下の #5）まで 1 本の PR に入れた（2026-11-06）。
 
 - **PR 1（この cycle）**: 部品だけ。api の会話の生成、sim の `features/drive/audio/` と `features/drive/chat/`。drive の既存ファイルは編集しない（運転は今までどおり）
 - **PR 2（drive-tune が main に入った後）**: 組み込み。main を取り込み、drive-tune の合図（回転数・ブレーキの強さ・ABS）に `signalsFromSnapshot` を合わせ、`StartOverlay` の出発・もう一度で `driveAudio.start()`、`DriveScreen` に `ChatFeed` と `AudioControls` を置く
@@ -28,7 +28,9 @@ drive の運転の中身は別のセッション（drive-3d、ブランチ drive
           └── #3 chat ───┴────────┘
 ```
 
-### PR 2 でやること（PR 1 のレビューから）
+### 組み込み（#5）でやったこと・残したこと（PR 1 のレビューから）
+
+組み込みでやった: 矢印キーとスライダー（下の 1 つ目）、`useDriveSoundAndChat`（hook に包む）、`RouteInfo` は `World.plan` から、ステージで道のりが飛ぶときの会話（R12）。残した: 下の実機の確かめ
 
 - **矢印キーとスライダー**（accessibility-checker C1、`docs/reports/2026-11-06-accessibility-checker-drive-audio-chat.md`）: `hooks/use-keyboard-drive.ts` が矢印キーを運転の入力にして `preventDefault()` するので、キーボードで音量のスライダーを動かせない。入力欄（`input`・`select`・`textarea`）にフォーカスがあるときは素通しにする
 - `useDriveAudio` と会話の store は場面ごとに作る（`key={scenario.seed}`。component-guard W3・code-reviewer W4）

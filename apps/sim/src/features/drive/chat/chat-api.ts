@@ -5,8 +5,8 @@ import type { ChatDeck } from './chat-types'
 // 会話の束の POST（docs/specs/drive-audio-chat/functional.md R15・R18）。応答の形を zod で確かめ、
 // さらに日・版・移動の数がいまの場面と合うときだけ使う（合わなければ見本の会話）。
 
-/** 生成（Claude を含む）は最悪 30 秒 × 2 回 */
-const TIMEOUT_MS = 60_000
+/** 生成（Claude を含む）は最悪 30 秒 × 2 回。その上に保存の分を足す（code-reviewer api W1） */
+const TIMEOUT_MS = 70_000
 
 const Text = z.object({
   ja: z.string().min(1),

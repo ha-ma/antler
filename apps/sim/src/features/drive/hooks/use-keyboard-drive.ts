@@ -17,6 +17,14 @@ const KEYS: Record<string, keyof DriveInput> = {
   Space: 'brake',
 }
 
+function isFormField(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLSelectElement ||
+    target instanceof HTMLTextAreaElement
+  )
+}
+
 /** キーの押下をエンジンの入力にする。enabled が false の間は入力を空にする */
 export function useKeyboardDrive(engine: DriveEngine, enabled: boolean): void {
   // eslint-disable-next-line no-restricted-syntax -- window のキーイベントの購読（外部イベント）
@@ -28,6 +36,9 @@ export function useKeyboardDrive(engine: DriveEngine, enabled: boolean): void {
       if (!key) return
       // ボタンにフォーカスがあるときの Space は、ボタンの操作に任せる
       if (code === 'Space' && e.target instanceof HTMLButtonElement) return
+      // 入力欄（音量のスライダーなど）にフォーカスがあるときは、押したキーをその欄に任せる
+      // （矢印キーで音量を動かせるように。drive-audio-chat、accessibility-checker C1）。離したキーはいつもどおり離す
+      if (pressed && isFormField(e.target)) return
       e.preventDefault()
       if (input[key] === pressed) return
       input[key] = pressed

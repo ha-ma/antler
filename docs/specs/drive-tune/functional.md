@@ -10,6 +10,8 @@ tier: 1
 
 ## 概要
 
+**drive-audio-chat（2026-11-06）での利用**: `DriveEngine.telemetry()`（R6）を運転の音の合図に、HUD の右の列（`--drive-chat-w`）を車内の会話と音量の操作に使った（仕様は `docs/specs/drive-audio-chat/`）。会話はステージを移って道のりが飛ぶとき、飛ばした区間の行を最後の 1 行だけ出す（drive-audio-chat R12）。drive-tune の振る舞いは変えていない（`use-keyboard-drive.ts` に入力欄の扱いを足しただけ）。
+
 ユーザーがローカルで運転を試した指摘（`docs/changes/2026-11-06-a-local-feedback.md`）を、運転（`apps/sim/src/features/drive/`）に入れる。
 要件: ch3 A3-1（運転席・メーター）・A3-4（車両力学。制動距離の数値はこの指摘で置き換える）・A3-5（HUD）・A3-6（タイムラプス）・A5-2（鹿の出現）・A5-6（完走）、ch6「A 性能」。
 前の feature: docs/specs/drive-3d/functional.md（R1〜R13）、docs/specs/drive-link/functional.md（R1〜R8）。ここで変わるルールはそれぞれの仕様にも書き直す。

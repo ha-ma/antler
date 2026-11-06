@@ -28,19 +28,19 @@ describe('エンジン音（R3）', () => {
     expect(virtualGear(140)).toBe(5)
   })
 
-  it('AUD-3b: 回転数はギアの中の割合で 900〜3,600 rpm、アクセルで +400。合図の rpm があればそれを使う', () => {
-    expect(engineRpm(sig({ speedKmh: 0 }))).toBe(900)
-    expect(engineRpm(sig({ speedKmh: 10 }))).toBe(2250)
-    expect(engineRpm(sig({ speedKmh: 10, throttle: 1 }))).toBe(2650)
-    expect(engineRpm(sig({ speedKmh: 40 }))).toBe(900)
-    expect(engineRpm(sig({ speedKmh: 100, throttle: 1 }))).toBe(4000)
-    expect(engineRpm(sig({ speedKmh: 30, rpm: 5200 }))).toBe(5200)
+  it('AUD-3b: 合図の rpm（drive-tune の telemetry）を使う。無ければ仮のギアの中の割合で 750〜2,700 rpm、アクセルで +300', () => {
+    expect(engineRpm(sig({ speedKmh: 30, rpm: 2100 }))).toBe(2100)
+    expect(engineRpm(sig({ speedKmh: 0 }))).toBe(750)
+    expect(engineRpm(sig({ speedKmh: 10 }))).toBe(1725)
+    expect(engineRpm(sig({ speedKmh: 10, throttle: 1 }))).toBe(2025)
+    expect(engineRpm(sig({ speedKmh: 40 }))).toBe(750)
+    expect(engineRpm(sig({ speedKmh: 100, throttle: 1 }))).toBe(3000)
     // 上限 6,000
     expect(engineRpm(sig({ speedKmh: 30, rpm: 9000 }))).toBe(6000)
   })
 
   it('AUD-3b: 音の高さは 4 気筒の爆発の周波数（rpm ÷ 30 Hz）', () => {
-    expect(engineVoice(sig({ speedKmh: 0 })).freqHz).toBe(30)
+    expect(engineVoice(sig({ speedKmh: 0 })).freqHz).toBe(25)
     expect(engineVoice(sig({ speedKmh: 0, rpm: 3600 })).freqHz).toBe(120)
   })
 

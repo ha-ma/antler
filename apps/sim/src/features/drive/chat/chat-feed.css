@@ -1,11 +1,33 @@
 /* 車内の会話（docs/specs/drive-audio-chat/functional.md R13）。色・文字・余白は tokens.json の CSS 変数だけ。
    HUD の右側（組み込みは PR 2。位置は置く側が決める）。ポインタを通す（視線の操作をじゃましない）。 */
 
+/* HUD の右の列（drive-tune が drive.css の --drive-chat-w で空けた場所）。会話を下からためて、
+   いちばん下に運転の音の操作。ほかの HUD はこの列に置かない（drive.css の決まり）。ポインタは通す */
+.drive-chat-column {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  bottom: var(--space-5);
+  width: var(--drive-chat-w);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch;
+  gap: var(--space-3);
+  pointer-events: none;
+}
+
+.drive-chat-column .drive-audio {
+  align-self: flex-end;
+}
+
 .drive-chat {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  width: min(320px, 32vw);
+  /* 幅は置く側（drive.css の .drive-hud__right）が決める */
+  width: 100%;
+  min-height: 0;
   pointer-events: none;
   /* 行が増えても外の HUD を組み直させない */
   contain: layout style;

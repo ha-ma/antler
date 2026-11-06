@@ -34,8 +34,12 @@ const frame = (over: Partial<ChatFrame>): ChatFrame => ({
   paused: false,
   outcome: 'driving',
   avoidedCount: 0,
+  stage: 1,
   ...over,
 })
+
+/** 話の行の無い束（反応だけを確かめる） */
+const QUIET = buildChatTrack({ ...DECK, lines: [] }, CTX)
 
 /** フレームの列を流して、出た行の文（ja）を返す */
 function run(track: ChatTrack, frames: Partial<ChatFrame>[]) {
@@ -104,7 +108,7 @@ describe('出すタイミング（R12）', () => {
   it('CHAT-4b: ゾーンに入って 2.5 秒後に zone-enter、出たら zone-exit。区間ごとに 1 回。n 回目は (n − 1) mod 2', () => {
     const enter = REACTION_TEXT['zone-enter']
     const exit = REACTION_TEXT['zone-exit']
-    const { out } = run(track, [
+    const { out } = run(QUIET, [
       { t: 0, positionKm: 1 },
       { t: 1000, positionKm: 1.1, zoneInterval: 0 },
       { t: 3400, positionKm: 1.2, zoneInterval: 0 },
@@ -134,7 +138,7 @@ describe('出すタイミング（R12）', () => {
 
   it('CHAT-4b: avoided の遭遇が増えるごとに avoided の行', () => {
     const avoided = REACTION_TEXT.avoided
-    const { out } = run(track, [
+    const { out } = run(QUIET, [
       { t: 0, positionKm: 1 },
       { t: 100, positionKm: 1, avoidedCount: 1 },
       { t: 200, positionKm: 1, avoidedCount: 3 },
@@ -143,7 +147,7 @@ describe('出すタイミング（R12）', () => {
   })
 
   it('CHAT-4k: アラート OFF の走行では zone-enter・zone-exit を出さず、avoided は出す', () => {
-    const { out } = run(track, [
+    const { out } = run(QUIET, [
       { t: 0, positionKm: 1, alertEnabled: false },
       { t: 100, positionKm: 1.1, zoneInterval: 0, alertEnabled: false },
       { t: 3000, positionKm: 1.2, zoneInterval: 0, alertEnabled: false },
@@ -341,8 +345,7 @@ describe('出すタイミングの端（レビューの指摘）', () => {
   })
 
   it('CHAT-4b: 2.5 秒の前にゾーンを出たら、入った行も出た行も出さない', () => {
-    const track = buildChatTrack(DECK, CTX)
-    const { out } = run(track, [
+    const { out } = run(QUIET, [
       { t: 0, positionKm: 1 },
       { t: 100, positionKm: 1.1, zoneInterval: 0 },
       { t: 2000, positionKm: 1.2, zoneInterval: null },
@@ -369,5 +372,28 @@ describe('出すタイミングの端（レビューの指摘）', () => {
     expect(first.reset).toBe(false)
     const again = advanceChat(first.state, track, frame({ t: 0, positionKm: 0 }))
     expect(again.reset).toBe(true)
+  })
+})
+
+describe('ステージ（drive-tune R1。道のりが飛ぶ）', () => {
+  const track = buildChatTrack(DECK, CTX)
+
+  it('CHAT-4l: 走り始めが途中の道のりなら、それまでの行は最後の 1 行だけを出す', () => {
+    const { out } = run(track, [
+      { t: 0, positionKm: 5.5 },
+      { t: 100, positionKm: 6.5 },
+    ])
+    expect(out).toEqual([['l02'], ['l03']])
+  })
+
+  it('CHAT-4l: ステージを移って道のりが飛んだら、飛ばした区間の行は最後の 1 行だけ。その先はいつもどおり', () => {
+    const { out } = run(track, [
+      { t: 0, positionKm: 0, stage: 1 },
+      { t: 100, positionKm: 0.3, stage: 1 },
+      { t: 200, positionKm: 6.5, stage: 2 },
+      { t: 300, positionKm: 7.2, stage: 2 },
+      { t: 400, positionKm: 21, stage: 3 },
+    ])
+    expect(out).toEqual([[], ['l01'], ['l03'], ['l04'], ['l05']])
   })
 })

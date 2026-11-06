@@ -25,6 +25,8 @@ export type ChatFrame = {
   outcome: DriveOutcome
   /** avoided になった遭遇の数 */
   avoidedCount: number
+  /** いまのステージ（drive-tune R1。ステージを移ると道のりが先へ飛ぶ） */
+  stage: number
 }
 
 export type EmittedLine = { key: string; speaker: Speaker; text: LocalizedLine }
@@ -34,6 +36,8 @@ export type ChatState = {
   /** これより手前（m）の話の行は出さない（束の差し替え） */
   minM: number
   prevM: number | null
+  /** 前のフレームのステージ（初めは null） */
+  stage: number | null
   lastT: number
   shown: ReadonlySet<string>
   zoneInterval: number | null
@@ -60,6 +64,7 @@ export function initialChatState(): ChatState {
     trackKey: null,
     minM: -Infinity,
     prevM: null,
+    stage: null,
     lastT: 0,
     shown: new Set(),
     zoneInterval: null,
@@ -79,7 +84,7 @@ export function initialChatState(): ChatState {
 export function chatFrameFromSnapshot(
   s: Pick<
     DriveSnapshot,
-    't' | 'zone' | 'alert' | 'alertEnabled' | 'playback' | 'outcome' | 'encounters'
+    't' | 'zone' | 'alert' | 'alertEnabled' | 'playback' | 'outcome' | 'encounters' | 'stage'
   >,
 ): ChatFrame {
   return {
@@ -91,6 +96,7 @@ export function chatFrameFromSnapshot(
     paused: s.playback.paused,
     outcome: s.outcome,
     avoidedCount: s.encounters.filter((e) => e.outcome === 'avoided').length,
+    stage: s.stage.index,
   }
 }
 
@@ -124,16 +130,13 @@ export function advanceChat(
 
   // 話の行
   // 集合と数は、変わるときだけ作り直す（約 10 Hz で呼ばれるので割り当てを減らす）
-  const newlyShown: string[] = []
-  if (state.prevM !== null) {
-    const from = Math.max(state.prevM, state.minM)
-    for (const r of track.road) {
-      if (r.atM > from && r.atM <= posM && !state.shown.has(r.id)) {
-        newlyShown.push(r.id)
-        due.push(make(r.speaker, r.text))
-      }
-    }
-  }
+  // 走り始めと、ステージを移って道のりが飛んだとき（drive-tune R1）は、飛ばした区間の行をまとめて出さず、
+  // 最後の 1 行だけを出す（移動の間に交わした話として）。ほかの行は出したことにする
+  const jumped = state.prevM === null || (state.stage !== null && f.stage !== state.stage)
+  const from = Math.max(state.prevM ?? -Infinity, state.minM)
+  const crossed = track.road.filter((r) => r.atM > from && r.atM <= posM && !state.shown.has(r.id))
+  const newlyShown = crossed.map((r) => r.id)
+  for (const r of jumped ? crossed.slice(-1) : crossed) due.push(make(r.speaker, r.text))
   const shown = newlyShown.length > 0 ? new Set([...state.shown, ...newlyShown]) : state.shown
 
   // 反応
@@ -197,6 +200,7 @@ export function advanceChat(
     state: {
       ...state,
       prevM: posM,
+      stage: f.stage,
       lastT: f.t,
       shown,
       zoneInterval: f.zoneInterval,
