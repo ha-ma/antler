@@ -1,4 +1,6 @@
+import { existsSync } from 'node:fs'
 import { renderAsync } from '@resvg/resvg-js'
+import { bundledOgFontFiles } from './og-fonts.js'
 
 // しおりの SVG → PNG（docs/specs/record/functional.md R6、resilience.md）。
 // 描画は libuv のスレッドで行う（renderAsync）。同時に描くのは maxConcurrent 枚まで、超えたら OgImageBusyError（503）。
@@ -16,8 +18,12 @@ export class OgImageBusyError extends Error {
 export type Png = Uint8Array<ArrayBuffer>
 
 export type OgImageRendererOptions = {
-  /** フォントのファイル。空ならシステムのフォント */
+  /** フォントのファイル（OG_FONT_FILES）。空なら同梱のフォント */
   fontFiles: readonly string[]
+  /** 同梱のフォントの場所の取り方（テストで差し替える） */
+  bundledFonts?: () => string[]
+  /** 使えるフォントが無く、システムのフォントに戻ったとき（四角になりうる）。起動のときに 1 回 */
+  onFontsMissing?: () => void
   maxConcurrent?: number
   cacheSize?: number
   /** 描画（テストで差し替える） */
@@ -42,10 +48,14 @@ export class OgImageRenderer implements OgImages {
   constructor(options: OgImageRendererOptions) {
     this.maxConcurrent = options.maxConcurrent ?? 2
     this.cacheSize = options.cacheSize ?? 100
+    // 指定（OG_FONT_FILES）があればそれ、無ければ同梱の Noto Sans JP / TC / KR（og-fonts.ts）。
+    // どちらも無い（同梱のファイルが欠けている）ときだけシステムのフォント
+    // 指定のファイルが 1 つも無いときも同梱に戻す（文字の無い画像を返さない）
+    const given = options.fontFiles.filter((f) => existsSync(f))
+    const files = given.length > 0 ? given : (options.bundledFonts ?? bundledOgFontFiles)()
+    if (files.length === 0) options.onFontsMissing?.()
     const font =
-      options.fontFiles.length > 0
-        ? { loadSystemFonts: false, fontFiles: [...options.fontFiles] }
-        : { loadSystemFonts: true }
+      files.length > 0 ? { loadSystemFonts: false, fontFiles: files } : { loadSystemFonts: true }
     this.render =
       options.render ??
       (async (svg) => {

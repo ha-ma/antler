@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { build } from 'vite'
 import { openDatabase } from '../../src/infrastructure/db/connection.js'
@@ -45,6 +45,12 @@ describe('Vercel の関数の bundle（deploy-a AC-1）', () => {
     expect(handler).toMatch(/from\s+["']@libsql\/client\/http["']/)
     expect(handler).toMatch(/import\(["']\.\/local-platform-[^"']+\.mjs["']\)/)
     expect(handler).toMatch(/from\s+["']@resvg\/resvg-js["']/)
+    // OG 画像のフォント（og-font）は handler.mjs と同じ場所に写され、handler がその相対 URL で読む（Vercel の追跡が辿る形）
+    for (const name of ['NotoSansJP-Bold.otf', 'NotoSansTC-Bold.otf', 'NotoSansKR-Bold.otf']) {
+      expect(statSync(join(outDir, name)).size).toBeGreaterThan(1_000_000)
+      expect(handler).toContain(`new URL("./${name}", import.meta.url)`)
+    }
+    expect(statSync(join(outDir, 'OFL.txt')).size).toBeGreaterThan(1000)
     // build の env も、テストの秘密も焼き込まれていない
     expect(all).not.toContain(MARKER)
     expect(all).not.toContain(VERCEL_SOURCE['ANTHROPIC_API_KEY'])

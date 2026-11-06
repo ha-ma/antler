@@ -48,7 +48,7 @@ const baseEnvSchema = z.object({
   PUBLIC_API_URL: publicOrigin('http://localhost:8787'),
   SIM_PUBLIC_URL: publicOrigin('http://localhost:5173'),
   PWA_PUBLIC_URL: publicOrigin('http://localhost:5174'),
-  // OG 画像のフォント（カンマ区切りのファイルのパス）。空ならシステムのフォント（Linux は fonts-noto-cjk を入れる）
+  // OG 画像のフォント（カンマ区切りのファイルのパス）。空なら同梱の Noto Sans JP / TC / KR（og-font）
   OG_FONT_FILES: z
     .string()
     .default('')
