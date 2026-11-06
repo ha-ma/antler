@@ -1,8 +1,10 @@
 """L0 の YOLO（CoreML）アダプタ（B1-3・B2-2）。compute units は設定（既定 cpu_and_ne）で選ぶ。
 
 モデルは Ultralytics の NMS 付きエクスポートを前提にする: 入力は画像 1 つ、出力は
-`confidence`（N×クラス数）と `coordinates`（N×4、正規化 xywh）、クラス名はメタデータ `names`。
-実モデルでの出力の形と ANE の fps は Mac mini の実機で確かめる（Step 0。Deferred）。
+`confidence`（N×クラス数。MLProgram では 80 の倍数まで埋まる）と `coordinates`（N×4、正規化 xywh）、
+クラス名はメタデータ `names`。
+出力の形は開発用の Mac で実モデルを書き出して確かめた（2026-11-06）。ANE の fps は Mac mini の実機で
+確かめる（Step 0。Deferred）。
 """
 
 from __future__ import annotations
@@ -39,6 +41,9 @@ COMPUTE_UNIT_NAMES = {
     "all": "ALL",
 }
 MAX_NAMES_CHARS = 10_000
+# ultralytics は MLProgram の NMS の不具合（issue #22309）を避けるため、クラスの列を
+# 80 の倍数まで 0 で埋める（names は元のクラス数のまま）。埋めた列は読まない
+CLASS_PAD = 80
 
 
 class CoreMLOutputError(ValueError):
@@ -120,10 +125,11 @@ class CoreMLDetector:
             raise CoreMLOutputError(msg) from exc
         if conf.size == 0 and coords.size == 0:
             return []
+        n = len(self._names)
         if (
             conf.ndim != 2
             or coords.ndim != 2
-            or conf.shape[1] != len(self._names)
+            or conf.shape[1] not in {n, -(-n // CLASS_PAD) * CLASS_PAD}
             or coords.shape[1] != 4
             or conf.shape[0] != coords.shape[0]
         ):
@@ -132,7 +138,7 @@ class CoreMLDetector:
         # 誤差で 0〜1 をわずかに外れた座標は切り詰める（NaN は残し、DeerDetector が捨てる）
         coords = np.clip(coords, 0.0, 1.0)
         detections = []
-        for row, box in zip(conf, coords, strict=True):
+        for row, box in zip(conf[:, :n], coords, strict=True):
             k = int(np.argmax(row))
             xywh = (float(box[0]), float(box[1]), float(box[2]), float(box[3]))
             detections.append(Detection(self._names[k], float(row[k]), xywh))

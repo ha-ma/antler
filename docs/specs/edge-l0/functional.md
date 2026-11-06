@@ -12,11 +12,13 @@ target_paths:
   - edge/detector/tests/test_l0_tracker.py
   - edge/detector/tests/test_l0_stage.py
   - edge/detector/tests/test_l0_config.py
-spec_confirmed_at: f91683b
+spec_confirmed_at: d0c7eea
 tier: 1
 ---
 
 # 仕様: edge-l0（L0: YOLO を Neural Engine に、トラッカー・距離・横速度・TTC、即時ルール）
+
+**CoreML のクラスの列の埋め（2026-11-06）での変更**: 実モデル（yolo26n-deer-20261105、1 クラス）を ultralytics 8.4.202 で NMS 付きの `.mlpackage` に書き出すと、`confidence` が N×80 になり、L0 が「形が違う」と拒否した。ultralytics は MLProgram の NMS の不具合（ultralytics issue #22309）を避けるため、クラスの列を 80 の倍数まで 0 で埋める（メタデータ `names` は 1 クラスのまま）。R2 に「埋めた列は無視する」を足した（CU-2f）。開発用の Mac（M2）で確かめた事実で、Mac mini の実機の確認（下の Deferred）はまだ。
 
 ## 概要
 
@@ -46,6 +48,7 @@ Story: B の検知システムとして、L1 や回線の有無に関係なく�
   - `DeerDetector`・`ScriptedDetector` と CoreML のアダプタは `detector.l0` に置く。`detector.inference` は同じ名前を出し直すだけの互換の入口として残し、既存の import とテストを変えない
   - 置き場所は `edge/detector/src/detector/l0/`（指示書の `edge/detector/l0/` は、パッケージが `src/detector/` にあるため。推奨で決定）
   - CoreML の出力は Ultralytics の NMS 付きエクスポートの形（`confidence` N×クラス数、`coordinates` N×4 の正規化 xywh）を読み、クラス名はモデルのメタデータ `names` から取る（小文字にそろえる）。読めない・形が違う → その推論は例外（パイプラインが `infer.failed` にする。既存の失敗の扱い）
+  - `confidence` の列は「クラス数」か「クラス数を 80 の倍数に切り上げた数」（ultralytics が MLProgram で 0 を埋めた形）だけを受ける。埋めた列は値に関係なく無視し、先頭のクラス数の列だけから各行の最大のクラスを選ぶ。それ以外の列数は従来どおり形の違いとして例外（推奨で決定。「クラス数以上なら受ける」までは緩めない）
   - **`names` に `deer` が無いモデルは読み込み時に拒否する**（COCO には deer が無い。黙って全部捨てて永久に見逃さない。spec-adversary C2）
   - 座標の浮動小数の誤差（0〜1 をわずかに外れる値）は 0〜1 に切り詰める（画面端の鹿を「不正」で捨てない。NaN はそのまま渡し、`DeerDetector` が不正として捨てる）
   - 入力: パイプラインの 640×480・BGR の画像を RGB に並べ替え、モデルの入力の大きさに最近傍で引き伸ばして渡す（余白は足さない。引き伸ばしなので正規化座標は元の画面の座標のまま使える）
@@ -92,7 +95,7 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 - **Given**: NMS 付きエクスポートの形の出力（偽のモデル）
 - **When**: `detect`
-- **Then**: クラス名つきの `Detection` が返り、形の違う出力は例外
+- **Then**: クラス名つきの `Detection` が返り、形の違う出力は例外。クラスの列が 80 の倍数まで埋められた出力は、埋めた列を無視して読む
 
 ### UC-3: トラッカー（R3）
 
@@ -130,7 +133,7 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 ## Questions（Deferred のみ残存可）
 
-- [Deferred: 担当=ユーザー（Mac mini 実機、§4 Step 0）/ 期日=2026-11-05（Day 3）/ 暫定挙動=CoreML の読み込みと出力の名前（`confidence`・`coordinates`・メタデータ `names`）は Ultralytics の NMS 付きエクスポートを前提に書き、偽のモデルでだけ確かめた。実モデルでの ANE fps と出力の形は未計測。NMS に焼き込まれた `confidenceThreshold`（Ultralytics の既定 0.25）が `[tracker] min_conf`・`[judge] threshold` 以下であること、引き伸ばし（余白なし）での精度は実機で確かめる。精度が落ちるなら 640×480 の入力でエクスポートし直す] 実機での CoreML の確認
+- [Deferred: 担当=ユーザー（Mac mini 実機、§4 Step 0）/ 期日=2026-11-05（Day 3）/ 暫定挙動=CoreML の読み込みと出力の名前（`confidence`・`coordinates`・メタデータ `names`）は Ultralytics の NMS 付きエクスポートを前提に書き、偽のモデルでだけ確かめた。2026-11-06 に開発用の Mac（M2）で実モデル（yolo26n-deer-20261105、ultralytics 8.4.202・coremltools 9.0）を書き出し、出力の名前と、クラスの列が 80 の倍数まで埋められる形を確かめた（CU-2f）。80 は ultralytics の版に依存するので、ultralytics を上げたら実モデルで書き出し直して形を確かめる。Mac mini（M1）での ANE fps は未計測。NMS に焼き込まれた `confidenceThreshold`（Ultralytics の既定 0.25）が `[tracker] min_conf`・`[judge] threshold` 以下であること、引き伸ばし（余白なし）での精度は実機で確かめる。精度が落ちるなら 640×480 の入力でエクスポートし直す] 実機での CoreML の確認
 - [Deferred: 担当=人 B（edge-l1）/ 期日=2026-11-05（Day 3）/ 暫定挙動=`[l1]`・`[l2]` の設定は無い（書くと `ConfigError`）。L0 単独で動く] L1・L2 の設定。あわせて、指示書 §3.5 の L1 の `base_url` の既定 `127.0.0.1:8765` は WebSocket の既定ポート 8765 とぶつかる。edge-l1 で別ポートを決める
 - [Deferred: 担当=人 B（Day 4 の調査走行）/ 期日=2026-11-06 / 暫定挙動=水平画角 70°・車線の半幅 1.75 m・接近の下限 0.5 m/s は暫定。距離表と同じく実車で測り直す] 画角と横位置の較正
 - [Deferred: 担当=人 B（edge-l1）/ 期日=2026-11-05（Day 3）/ 暫定挙動=TTC と横速度は履歴の最初と最後の 2 点の差で出す（最短 0.2 秒）。ボックスの高さの揺れで、止まっている鹿にも TTC が出ることがある。赤の判定には使わない。L1 に渡す前に、回帰などで平滑にするかを決める] TTC の平滑化（edge-latency-reviewer W2）
@@ -156,6 +159,7 @@ UC-2 CoreML の出力:
 - [x] CU-2c: メタデータの `names`（`{0: 'deer'}` の文字列）を読む。読めないとき → 例外
 - [x] CU-2d: [ADDED adversary] BGR の画像を RGB に並べ替え、モデルの入力の大きさに引き伸ばして渡す
 - [x] CU-2e: [ADDED adversary] `names` に `deer` が無いモデルは読み込みで拒否。`Deer` は `deer` として読む。0〜1 をわずかに外れた座標は切り詰められて鹿として残る
+- [x] CU-2f: [ADDED 実モデル] `names` が 1 クラスで `confidence` が N×80 の出力 → 先頭の列だけで鹿の検出になる（埋めた列に値があっても無視）。N×79・N×81・N×160 → 例外。2 クラスで N×80 も読める。切り上げの端: 80 クラスは N×80 だけ（N×160 は例外）、81 クラスは N×81 と N×160（code-reviewer W2）
 - [x] MV-1: `detector.inference` から `DeerDetector`・`ScriptedDetector`・`Detection` が従来どおり import でき、`detector.l0` のものと同じ
 
 UC-3 トラッカー:
