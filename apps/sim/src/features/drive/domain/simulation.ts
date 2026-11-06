@@ -1,6 +1,6 @@
 import { deriveAlertState } from '@antler/alert-ui'
 import { readAlertFlag, toJst, type ReceivedFlag } from '@antler/schema'
-import { lightPeriod, planRoute, toInstant, type ZoneCollection } from '@antler/zones'
+import { lightPeriod, planRoute, toInstant, zoneRisk, type ZoneCollection } from '@antler/zones'
 import type {
   DriveInput,
   DriveResult,
@@ -11,12 +11,7 @@ import type {
 } from '../types'
 import { NO_INPUT } from '../types'
 import { boxesOverlap, carBox, deerBox } from './collision'
-import {
-  candidatesToDecide,
-  createCandidates,
-  decideAppear,
-  MAX_DEER_PER_INTERVAL,
-} from './deer-spawn'
+import { candidatesToDecide, createCandidates } from './deer-spawn'
 import { spawnDeer, stepDeer } from './deer-motion'
 import {
   CAMERA_FORWARD_M,
@@ -33,7 +28,7 @@ import { INITIAL_POWERTRAIN, stepPowertrain } from './powertrain'
 import { createRng, deriveSeed } from './rng'
 import { createRoadFrame, lonLatAt, poseAt } from './road'
 import { buildSimFlag } from './sim-flag'
-import { buildStages, scheduledClockAt } from './stages'
+import { buildStages, capIntervals, scheduledClockAt } from './stages'
 import { firstEntryBetween, intervalAt, withoutRanges, zoneStatusFromS } from './zone-status'
 import { initialVehicle, LANE_CENTER_D, stepVehicle } from './vehicle'
 
@@ -48,6 +43,10 @@ export const MAX_FRAME_MS = 100
 export const STOPPED_MPS = 0.5 / 3.6
 /** 鹿が車の後ろにこれだけ過ぎたら回避（m） */
 export const PASSED_BEHIND_M = 10
+/** これより遅い車には、鹿が触れても衝突にしない（m/s、5 km/h。drive-deer R5） */
+export const COLLIDE_MIN_MPS = 5 / 3.6
+/** 走行の結果に残す遭遇の上限（@antler/trip の MAX_ENCOUNTERS_PER_RUN と同じ。超えたら衝突した鹿を残す） */
+const MAX_RESULT_ENCOUNTERS = 50
 
 export type SimEvent =
   | { type: 'zone-enter'; interval: number }
@@ -63,7 +62,10 @@ export type SimEvent =
 
 export function createWorld(scenario: DriveScenario, zones: ZoneCollection): World {
   // 直線で引いた概算の移動にはゾーンの区間を作らない（brief-map R1 と同じ。drive-link R5）
-  const plan = withoutRanges(planRoute(scenario.route, zones), scenario.straightRangesM)
+  // 走る鹿ゾーンは 1 つ 8 km まで（drive-deer R2）。区間を使うものはすべて切ったあとの区間を見る
+  const plan = capIntervals(
+    withoutRanges(planRoute(scenario.route, zones), scenario.straightRangesM),
+  )
   const frame = createRoadFrame(scenario.route)
   const startMs = toInstant(scenario.startAt)
   // 最初のステージの始まり（鹿ゾーンの 5 km 手前）から走る。時計はしおりどおりに走った時刻（drive-tune R1・UC-1b）
@@ -84,8 +86,20 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
     playback,
     zone,
     light: lightPeriod(startMs + clockShiftMs, { lon: position[0], lat: position[1] }),
-    // 種は旅のシードと日から（drive-link R4。同じ旅・同じ日なら同じ鹿）
-    candidates: createCandidates(plan, scenario.seed),
+    // 種は旅のシードと日から（drive-link R4。同じ旅・同じ日なら同じ鹿）。
+    // 遭遇の回数は、しおりどおりに入口に着く時刻の危険度から（drive-deer R1）
+    candidates: createCandidates(plan, scenario.seed, (i) => {
+      const v = plan.intervals[i]
+      if (!v) return 0
+      const at = scheduledClockAt(scenario, v.entryKm * 1000)
+      return Math.max(
+        0,
+        ...v.zoneIds.map((id) => {
+          const zone = zones.features.find((z) => z.id === id)
+          return zone ? zoneRisk(zone, at) : 0
+        }),
+      )
+    }),
     decided: new Set(),
     deer: [],
     flag: null,
@@ -117,7 +131,6 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
       stages,
       stageIndex: 0,
       stageClearedAt: null,
-      spawnedHeads: {},
       leftBehind: new Set(),
     },
   }
@@ -146,10 +159,22 @@ export function driveResult(world: World, frames: DriveResult['frames']): DriveR
     legIndex: scenario.legStarts.filter((l) => l.sM <= vehicle.s).length,
     endedAt: toJst(new Date(clockMs(world)).toISOString()),
     collidedDeerId: internal.collidedDeerId,
-    encounters: world.encounters.map((e) => ({ ...e })),
+    encounters: resultEncounters(world.encounters),
     inputs: internal.inputLog.map((l) => ({ t: l.t, input: { ...l.input } })),
     frames,
   }
+}
+
+/**
+ * 結果に残す遭遇（drive-deer・spec-adversary M1）。記録は 50 件で切られる（record の drive-run.ts）ので、
+ * 超えるときは衝突した鹿を残し、残りを古い順に詰める
+ */
+function resultEncounters(encounters: readonly Encounter[]): Encounter[] {
+  const copy = encounters.map((e) => ({ ...e }))
+  if (copy.length <= MAX_RESULT_ENCOUNTERS) return copy
+  const hit = copy.find((e) => e.outcome === 'collided')
+  if (!hit) return copy.slice(0, MAX_RESULT_ENCOUNTERS)
+  return [...copy.filter((e) => e !== hit).slice(0, MAX_RESULT_ENCOUNTERS - 1), hit]
 }
 
 /** 利用者の操作（再生速度・一時停止・キー入力） */
@@ -171,8 +196,11 @@ export function setInput(world: World, input: DriveInput): void {
   if (changed) world.internal.inputLog.push({ t: world.t, input: { ...input } })
 }
 
-/** 1 フレーム進める（UC-4a・UC-4b・UC-4e）。realDtMs は実時間の経過 */
-export function advance(world: World, realDtMs: number, zones: ZoneCollection): SimEvent[] {
+/**
+ * 1 フレーム進める（UC-4a・UC-4b・UC-4e）。realDtMs は実時間の経過。
+ * _zones: 鹿の候補はすべて出る（drive-deer R1）ので、走る間はゾーンの危険度を引かない（呼ぶ側の形は保つ）
+ */
+export function advance(world: World, realDtMs: number, _zones: ZoneCollection): SimEvent[] {
   const events: SimEvent[] = []
   if (world.outcome !== 'driving') return events
   // 鹿ゾーンの無い日は、走り出した最初のフレームでその日の旅程をクリア（drive-tune UC-1e）
@@ -194,7 +222,7 @@ export function advance(world: World, realDtMs: number, zones: ZoneCollection): 
     for (let k = 0; k < steps; k++) {
       const fast = world.playback.rate > 1
       const stageBefore = world.internal.stageIndex
-      const entered = stepOnce(world, zones, events, fast)
+      const entered = stepOnce(world, events, fast)
       if (world.outcome !== 'driving') return events
       // 倍速で入口を越えたら、残りのステップを打ち切る（ゾーンの中を早送りしない）。
       // ステージを移ったときも打ち切る（次のステージは 1× で始める。code-reviewer W-2）
@@ -205,7 +233,7 @@ export function advance(world: World, realDtMs: number, zones: ZoneCollection): 
 }
 
 /** 固定ステップ 1 つ。入口を越えたら true */
-function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast: boolean): boolean {
+function stepOnce(world: World, events: SimEvent[], fast: boolean): boolean {
   const { internal } = world
   world.t += STEP_MS
   const t = world.t
@@ -237,7 +265,7 @@ function stepOnce(world: World, zones: ZoneCollection, events: SimEvent[], fast:
   }
 
   trackBrake(world)
-  spawnAndMoveDeer(world, zones, events)
+  spawnAndMoveDeer(world, events)
   if (checkCollision(world, events)) return entered
   if (t >= internal.nextTickAt) {
     internal.nextTickAt += DETECT_TICK_MS
@@ -281,7 +309,11 @@ function clearStage(world: World, events: SimEvent[]): void {
   world.deer = []
   world.flag = null
   world.flagAt = null
-  internal.detector = { ...INITIAL_DETECTOR, captured: internal.detector.captured }
+  internal.detector = {
+    ...INITIAL_DETECTOR,
+    captured: internal.detector.captured,
+    bands: internal.detector.bands,
+  }
   internal.stageIndex += 1
   const next = internal.stages[internal.stageIndex]
   if (next) {
@@ -343,19 +375,14 @@ function setBrake(e: Encounter, at: number): void {
   e.alertToBrakeMs = e.alertAt === null ? null : Math.max(0, Math.round(at - e.alertAt))
 }
 
-function spawnAndMoveDeer(world: World, zones: ZoneCollection, events: SimEvent[]): void {
+function spawnAndMoveDeer(world: World, events: SimEvent[]): void {
   const { vehicle, internal } = world
+  // 候補はすべて出る（区間ごとに 3〜8 回。drive-deer R1）
   for (const c of candidatesToDecide(world.candidates, world.decided, vehicle.s)) {
     world.decided.add(c.id)
-    // 区間ごとに 100 頭まで（drive-tune R2・UC-2b）。必ず出る候補（u < 0）は危険度に関わらず出る
-    const heads = internal.spawnedHeads[c.interval] ?? 0
-    if (heads + c.herdSize > MAX_DEER_PER_INTERVAL) continue
-    if (decideAppear(c, world.plan, zones, clockMs(world))) {
-      internal.spawnedHeads[c.interval] = heads + c.herdSize
-      const herd = spawnDeer(c, world.t)
-      world.deer.push(...herd)
-      events.push({ type: 'deer-appear', deerIds: herd.map((d) => d.id) })
-    }
+    const herd = spawnDeer(c, world.t)
+    world.deer.push(...herd)
+    events.push({ type: 'deer-appear', deerIds: herd.map((d) => d.id) })
   }
   if (world.deer.length === 0) return
   const ctx = {
@@ -372,6 +399,8 @@ function spawnAndMoveDeer(world: World, zones: ZoneCollection, events: SimEvent[
 }
 
 function checkCollision(world: World, events: SimEvent[]): boolean {
+  // 止まりかけの車（5 km/h 未満）に鹿の方から触れても事故にしない（鹿がよける。drive-deer R5・spec-adversary C3）
+  if (Math.abs(world.vehicle.speed) < COLLIDE_MIN_MPS) return false
   const car = carBox(world.vehicle.s, world.vehicle.d)
   const hit = world.deer.find((d) => boxesOverlap(car, deerBox(d.s, d.d, d.heading)))
   if (!hit) return false
@@ -406,11 +435,13 @@ function tick(world: World, events: SimEvent[]): void {
   for (const d of world.deer) {
     const p = poseAt(internal.frame, d.s, d.d)
     const distanceM = Math.hypot(p.x - car.x, p.z - car.z)
-    // 120 m 以内に来た鹿は記録する（見逃しも含む）
-    if (distanceM <= DETECT_RANGE_M) {
+    // 120 m 以内に来た鹿は記録する（見逃しも含む）。目の反射だけの鹿は道に出ないので記録しない
+    // （A-7 の回避を水増ししない。drive-deer R1・spec-adversary M1）
+    const recorded = d.motion !== 'eyeshine'
+    if (recorded && distanceM <= DETECT_RANGE_M) {
       const e = encounterFor(world, d.id, d.pattern)
       e.closestM = Math.min(e.closestM, distanceM)
-    } else {
+    } else if (recorded) {
       const e = world.encounters.find((x) => x.deerId === d.id)
       if (e) e.closestM = Math.min(e.closestM, distanceM)
     }

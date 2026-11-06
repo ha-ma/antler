@@ -27,7 +27,9 @@ describe('カメラの検知条件（R6）', () => {
   it('UC-6a: 120 m は対象、121 m は対象外。画角の外・後ろ・林縁（遮蔽）は対象外', () => {
     expect(cameraSees(camera, deerAt(0, -120))).not.toBeNull()
     expect(cameraSees(camera, deerAt(0, -121))).toBeNull()
-    expect(cameraSees(camera, deerAt(50, -50))).toBeNull() // 45° は ±35° の外
+    // 画角は左右 50°（drive-deer R6。35° から広げた）
+    expect(cameraSees(camera, deerAt(65, -50))).toBeNull() // 約 52° は ±50° の外
+    expect(cameraSees(camera, deerAt(50, -50))).not.toBeNull() // 45° は内
     expect(cameraSees(camera, deerAt(20, -50))).not.toBeNull() // 約 22°
     expect(cameraSees(camera, deerAt(0, 30))).toBeNull() // 後ろ
     expect(cameraSees(camera, deerAt(0, -50, true))).toBeNull() // 遮蔽

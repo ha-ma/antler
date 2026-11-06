@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { personaDay, personaTrip } from '@/test/trip-day'
 import { NO_INPUT, type Deer, type Encounter, type World } from '../types'
 import { navHint, outsideTempC } from './dashboard'
-import { createCandidates, MAX_DEER_PER_INTERVAL, MIN_DEER_PER_INTERVAL } from './deer-spawn'
+import { createCandidates, MAX_ENCOUNTERS, MIN_ENCOUNTERS } from './deer-spawn'
 import { attentiveDriver } from './drive-harness'
 import { DriveEngine } from './engine'
 import { IDLE_RPM, INITIAL_POWERTRAIN, MAX_RPM, SHIFT_UP_RPM, stepPowertrain } from './powertrain'
@@ -32,9 +32,17 @@ function driveToEnd(w: World, maxFrames = 400_000): SimEvent[] {
   return events
 }
 
-/** 区間ごとに出た鹿の頭数（deer-appear の出来事から） */
-function headsPerInterval(w: World): Record<number, number> {
-  return w.internal.spawnedHeads
+/** 区間ごとに出た遭遇の回数（deer-appear の出来事から。目の反射だけの鹿は数えない。drive-deer R1） */
+function encountersPerInterval(w: World, events: readonly SimEvent[]): Record<number, number> {
+  const byId = new Map(w.candidates.map((c) => [c.id, c]))
+  const out: Record<number, number> = {}
+  for (const e of events) {
+    if (e.type !== 'deer-appear') continue
+    const c = byId.get(e.deerIds[0]?.split('-').slice(0, 2).join('-') ?? '')
+    if (!c || c.motion === 'eyeshine') continue
+    out[c.interval] = (out[c.interval] ?? 0) + 1
+  }
+  return out
 }
 
 function plan(intervals: [number, number][]): RoutePlan {
@@ -65,9 +73,9 @@ describe('drive-tune 受け入れ', () => {
       { type: 'stage-clear', stage: 2, of: 2 },
     ])
     expect(events.at(-1)).toEqual({ type: 'completed' })
-    const heads = headsPerInterval(w)
-    expect(heads[0]).toBeGreaterThanOrEqual(3)
-    expect(heads[1]).toBeGreaterThanOrEqual(3)
+    const met = encountersPerInterval(w, events)
+    expect(met[0]).toBeGreaterThanOrEqual(MIN_ENCOUNTERS)
+    expect(met[1]).toBeGreaterThanOrEqual(MIN_ENCOUNTERS)
     expect(second).toBeDefined()
   }, 120_000)
 
@@ -172,6 +180,9 @@ describe('ステージ（R1）', () => {
       id,
       candidateId: id,
       pattern: 'crossing',
+      motion: 'cross',
+      seed: 1,
+      phase: 'wait',
       index: 0,
       s,
       d: 3,
@@ -236,51 +247,34 @@ describe('ステージ（R1）', () => {
 describe('鹿（R2）', () => {
   const routePlan = planRoute(demoScenario(ZONES).route, ZONES)
 
-  it('UC-2a: 区間ごとに先頭から合わせて 3 頭に届くまでの候補が必ず出る（林縁の目の反射だけは除く）。危険度が 0 でも 3 頭以上', () => {
+  // drive-tune R2（3〜100 頭）は drive-deer R1（遭遇 3〜8 回、すべて出る）で置き換えた
+  it('UC-2a: 区間ごとの遭遇は 3〜8 回で、危険度が 0 に近くても走れば 3 回以上出る（drive-deer R1）', () => {
     for (let seed = 0; seed < 50; seed++) {
       const candidates = createCandidates(routePlan, seed)
       for (let i = 0; i < routePlan.intervals.length; i++) {
-        const inInterval = candidates.filter((c) => c.interval === i)
-        const guaranteed = inInterval.filter((c) => c.guaranteed)
-        const heads = guaranteed.reduce((sum, c) => sum + c.herdSize, 0)
-        expect(heads).toBeGreaterThanOrEqual(MIN_DEER_PER_INTERVAL)
-        // 必ず出る候補は先頭から続いている
-        expect(inInterval.slice(0, guaranteed.length).every((c) => c.guaranteed)).toBe(true)
-        expect(guaranteed.every((c) => c.pattern !== 'eyeshine')).toBe(true)
+        const meet = candidates.filter((c) => c.interval === i && c.motion !== 'eyeshine')
+        expect(meet.length).toBeGreaterThanOrEqual(MIN_ENCOUNTERS)
+        expect(meet.length).toBeLessThanOrEqual(MAX_ENCOUNTERS)
       }
     }
-    // 7 月の昼（危険度がいちばん低い頃）でも、走れば 3 頭以上出る
+    // 7 月の昼（危険度がいちばん低い頃）でも、走れば 3 回以上出る
     const july = { ...demoScenario(ZONES), startAt: '2026-07-15T11:00+09:00' }
     const w = createWorld(
       { ...july, legPace: [{ sM: 0, departAt: july.startAt, mps: 50 / 3.6 }] },
       ZONES,
     )
-    driveToEnd(w)
-    expect(headsPerInterval(w)[0]).toBeGreaterThanOrEqual(3)
-    expect(headsPerInterval(w)[1]).toBeGreaterThanOrEqual(3)
+    const met = encountersPerInterval(w, driveToEnd(w))
+    expect(met[0]).toBeGreaterThanOrEqual(MIN_ENCOUNTERS)
+    expect(met[1]).toBeGreaterThanOrEqual(MIN_ENCOUNTERS)
   }, 120_000)
 
-  it('UC-2b: 区間で出した頭数が 100 頭を越えない（候補を詰めた区間でも）', () => {
-    const w = createWorld(demoScenario(ZONES), ZONES)
-    // 区間 0 に候補を 300 個（必ず出る・群れ 5 頭）詰める
-    const base = w.candidates.find((c) => c.interval === 0)
-    if (!base) throw new Error('候補がない')
-    w.candidates = Array.from({ length: 300 }, (_, k) => ({
-      ...base,
-      id: `x${String(k)}`,
-      s: base.s + k * 5,
-      pattern: 'herd' as const,
-      herdSize: 5,
-      guaranteed: true,
-    }))
-    w.vehicle = { ...w.vehicle, s: base.s - 310, speed: 0 }
-    for (let k = 0; k < 300; k++) {
-      w.vehicle = { ...w.vehicle, s: base.s + k * 5 - 100 }
-      advance(w, FRAME_MS, ZONES)
-      w.deer = [] // ぶつからないように消す（数だけ見る）
+  it('UC-2b: 区間の遭遇は 8 回を越えない（drive-deer R1。100 頭の上限は廃止）', () => {
+    for (let seed = 0; seed < 50; seed++) {
+      const meet = createCandidates(plan([[10, 18]]), seed, () => 1).filter(
+        (c) => c.motion !== 'eyeshine',
+      )
+      expect(meet.length).toBeLessThanOrEqual(MAX_ENCOUNTERS)
     }
-    expect(headsPerInterval(w)[0]).toBeLessThanOrEqual(MAX_DEER_PER_INTERVAL)
-    expect(headsPerInterval(w)[0]).toBeGreaterThan(90)
   })
 
   it('UC-2c: 短い区間（1.0 km）でも候補が 3 つ以上ある', () => {

@@ -11,8 +11,13 @@ import { between, type Rng } from './rng'
 export const DETECT_TICK_MS = 100
 /** 検知できる距離（m） */
 export const DETECT_RANGE_M = 120
-/** 画角（左右、度） */
-export const DETECT_HALF_FOV_DEG = 35
+/**
+ * 画角（左右、度）。車は左車線にいるので、右の林から至近で出た鹿は左より大きな角度に来る
+ * （15 m 先の d = +9 で 35.6°）。35° では右だけが外れたので 50° にした（drive-deer R6。推奨で決定）
+ */
+export const DETECT_HALF_FOV_DEG = 50
+/** 捉えるかの抽選を引き直す距離の帯の境（m。drive-deer R6）。近い帯ほど捉えやすい */
+export const DETECT_BANDS_M = [60, 30] as const
 /** 模擬の検知遅延（ms） */
 export const DELAY_MIN_MS = 150
 export const DELAY_MAX_MS = 400
@@ -70,10 +75,25 @@ export function detectProbability(
   return LIGHT_FACTOR[light] * WEATHER_FACTOR[weather] * WINDOW_FOG_FACTOR[windowFog]
 }
 
+/** 距離の帯（0: 60 m 以上、1: 30〜60 m、2: 30 m 未満） */
+export function detectBand(distanceM: number): number {
+  return DETECT_BANDS_M.filter((edge) => distanceM < edge).length
+}
+
+/** 帯ごとの捉える確率。近い帯ほど大きく写るので、遠い帯の抽選を帯の番号 + 1 回重ねたのと同じにする */
+export function bandProbability(probability: number, band: number): number {
+  return 1 - (1 - probability) ** (band + 1)
+}
+
 /** フラグを作る側の状態（場面全体で 1 つ） */
 export type DetectorState = {
-  /** 鹿ごとの「カメラが捉えるか」（初めて条件を満たしたときに 1 回だけ引く） */
+  /**
+   * 鹿ごとの「カメラが捉えるか」。初めて条件を満たしたときに引き、見逃した鹿は近い帯に入るたびに
+   * 引き直す（drive-deer R6）。一度捉えた鹿はそのまま
+   */
   captured: Record<string, boolean>
+  /** 鹿ごとに最後に抽選した帯 */
+  bands: Record<string, number>
   /** 最初の検知の時刻（赤を出す前、模擬遅延の待ち） */
   pendingSince: number | null
   delayMs: number
@@ -87,6 +107,7 @@ export type DetectorState = {
 
 export const INITIAL_DETECTOR: DetectorState = {
   captured: {},
+  bands: {},
   pendingSince: null,
   delayMs: 0,
   showing: false,
@@ -116,11 +137,17 @@ export function stepDetector(
   probability: number,
   rng: Rng,
 ): { state: DetectorState; out: DetectorOutput } {
-  // 初めて条件を満たした鹿だけ、捉えるかを引く（見逃しを作る。引く順は sightings の順で決まる）
+  // 初めて条件を満たした鹿と、見逃したまま近い帯に入った鹿だけ、捉えるかを引く
+  // （見逃しを作る。引く順は sightings の順で決まる。drive-deer R6）
   let captured = state.captured
+  let bands = state.bands
   for (const s of sightings) {
-    if (captured[s.deerId] === undefined)
-      captured = { ...captured, [s.deerId]: rng() < probability }
+    if (captured[s.deerId] === true) continue
+    const band = detectBand(s.distanceM)
+    const last = bands[s.deerId]
+    if (last !== undefined && band <= last) continue
+    captured = { ...captured, [s.deerId]: rng() < bandProbability(probability, band) }
+    bands = { ...bands, [s.deerId]: band }
   }
   const hits = sightings.filter((s) => captured[s.deerId] === true)
   const nearest = hits.reduce<Sighting | null>(
@@ -128,7 +155,7 @@ export function stepDetector(
     null,
   )
   const detected = hits.map((s) => s.deerId)
-  let next: DetectorState = { ...state, captured }
+  let next: DetectorState = { ...state, captured, bands }
   if (nearest) next = { ...next, lastDetectAt: t, last: nearest }
   const lapsed = next.lastDetectAt === null || t - next.lastDetectAt >= RELEASE_MS
   const none: DetectorOutput = { kind: 'none', sighting: null, started: false, detected }
@@ -136,7 +163,7 @@ export function stepDetector(
   if (next.showing) {
     if (lapsed) {
       return {
-        state: { ...INITIAL_DETECTOR, captured },
+        state: { ...INITIAL_DETECTOR, captured, bands },
         out: { ...none, kind: 'release' },
       }
     }
@@ -147,7 +174,7 @@ export function stepDetector(
     if (!nearest) return { state: next, out: none }
     next = { ...next, pendingSince: t, delayMs: between(rng, DELAY_MIN_MS, DELAY_MAX_MS) }
   }
-  if (lapsed) return { state: { ...INITIAL_DETECTOR, captured }, out: none }
+  if (lapsed) return { state: { ...INITIAL_DETECTOR, captured, bands }, out: none }
   if (t - (next.pendingSince ?? t) >= next.delayMs && next.last) {
     return {
       state: { ...next, showing: true, pendingSince: null },
