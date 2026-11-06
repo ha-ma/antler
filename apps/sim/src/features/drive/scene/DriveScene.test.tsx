@@ -65,9 +65,14 @@ describe('DriveScene（R12、smoke）', () => {
 
     // 鹿が 3 頭（群れ）出て、1 頭は去った
     world.deer = [
-      deer('d0-1-0', 2080, -5.5, { pattern: 'herd', pose: 'walk', heading: Math.PI / 2 }),
-      deer('d0-1-1', 2080, -7.6, { pattern: 'herd', index: 1 }),
-      deer('d0-1-2', 2080, -9.7, { pattern: 'herd', index: 2, occluded: true }),
+      deer('d0-1-0', 2080, -5.5, {
+        pattern: 'herd',
+        motion: 'herd',
+        pose: 'walk',
+        heading: Math.PI / 2,
+      }),
+      deer('d0-1-1', 2080, -7.6, { pattern: 'herd', motion: 'herd', index: 1 }),
+      deer('d0-1-2', 2080, -9.7, { pattern: 'herd', motion: 'herd', index: 2, occluded: true }),
       deer('d0-2-0', 2300, 6, { gone: true }),
     ]
     await frames(renderer, 2)

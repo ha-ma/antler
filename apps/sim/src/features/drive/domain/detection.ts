@@ -13,7 +13,9 @@ export const DETECT_TICK_MS = 100
 export const DETECT_RANGE_M = 120
 /**
  * 画角（左右、度）。車は左車線にいるので、右の林から至近で出た鹿は左より大きな角度に来る
- * （15 m 先の d = +9 で 35.6°）。35° では右だけが外れたので 50° にした（drive-deer R6。推奨で決定）
+ * （15 m 先の d = +9 で 35.6°）。35° では右だけが外れたので 50° にした（drive-deer R6。推奨で決定）。
+ * B の暫定値は edge/detector の `hfov_deg = 70`（左右 35°、調査走行で実測して直す）。実測が出たら
+ * A もそれに合わせる（drive-deer の Deferred）
  */
 export const DETECT_HALF_FOV_DEG = 50
 /** 捉えるかの抽選を引き直す距離の帯の境（m。drive-deer R6）。近い帯ほど捉えやすい */

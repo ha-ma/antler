@@ -176,8 +176,8 @@ export type Deer = {
   /** 林の中で車のカメラから隠れているか（R6 の遮蔽） */
   occluded: boolean
   /**
-   * いまの段階（pose）が始まった時刻（World.t、ms）。まだ動き出していなければ null。
-   * 群れの 2 頭目以降は、渡り始める予定の未来の時刻を入れて look で待つ（deer-motion.ts）
+   * いまの局面（phase）が始まった時刻（World.t、ms）。まだ動き出していなければ null。
+   * go に入るときは動き出す予定の時刻（群れの 2 頭目以降・遅れて動く鹿は未来）を入れて look で待つ（deer-motion.ts）
    */
   startedAt: number | null
   /** 去った（シーンから消してよい） */
@@ -241,7 +241,7 @@ export type World = {
   zone: ZoneStatus
   light: LightPeriod
   candidates: DeerCandidate[]
-  /** 出るか決めた候補の id */
+  /** 鹿を置いた候補の id（車が 300 m 手前に来たとき。drive-deer R1 ですべての候補が出る） */
   decided: Set<string>
   deer: Deer[]
   /** 最後に作ったフラグとその時刻（A がシミュレーターとして作る ReceivedFlag） */

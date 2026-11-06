@@ -1,5 +1,6 @@
 import { deriveAlertState } from '@antler/alert-ui'
 import { readAlertFlag, toJst, type ReceivedFlag } from '@antler/schema'
+import { MAX_ENCOUNTERS_PER_RUN } from '@antler/trip'
 import { lightPeriod, planRoute, toInstant, zoneRisk, type ZoneCollection } from '@antler/zones'
 import type {
   DriveInput,
@@ -45,8 +46,8 @@ export const STOPPED_MPS = 0.5 / 3.6
 export const PASSED_BEHIND_M = 10
 /** これより遅い車には、鹿が触れても衝突にしない（m/s、5 km/h。drive-deer R5） */
 export const COLLIDE_MIN_MPS = 5 / 3.6
-/** 走行の結果に残す遭遇の上限（@antler/trip の MAX_ENCOUNTERS_PER_RUN と同じ。超えたら衝突した鹿を残す） */
-const MAX_RESULT_ENCOUNTERS = 50
+/** 走行の結果に残す遭遇の上限（記録の上限と同じ。超えたら衝突した鹿を残す） */
+const MAX_RESULT_ENCOUNTERS = MAX_ENCOUNTERS_PER_RUN
 
 export type SimEvent =
   | { type: 'zone-enter'; interval: number }
@@ -461,7 +462,7 @@ function tick(world: World, events: SimEvent[]): void {
       // 赤の間に検知している鹿は、自分のアラートの時刻を持つ（群れの 2 頭目以降も）
       for (const id of out.detected) {
         const deer = world.deer.find((d) => d.id === id)
-        if (!deer) continue
+        if (!deer || deer.motion === 'eyeshine') continue
         const e = encounterFor(world, id, deer.pattern)
         if (e.alertAt === null) {
           e.alertAt = t
