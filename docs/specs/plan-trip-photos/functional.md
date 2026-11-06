@@ -8,7 +8,7 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: 3d2243b
+spec_confirmed_at: 095fe9a
 tier: 1
 ---
 
@@ -23,7 +23,7 @@ tier: 1
 
 要件: ch3 A1-2・A1-3・A1-4 からの変更（`docs/changes/2026-11-06-a-local-feedback.md`）、ch6 ライセンス（CC0 / CC-BY / 自作のみ）、ch8 規約（色・文字は tokens.json、絵文字なし）。
 元の仕様: `docs/specs/plan-trip/functional.md`（R1〜R3 をこの仕様に合わせて直した）。
-敵対レビュー: `docs/reports/2026-11-06-spec-adversary-plan-trip-photos.md`（指摘は下の「決着済み」に織り込んだ）。写真の調査: `docs/reports/2026-11-06-photo-research.md`。
+敵対レビュー: `docs/reports/2026-11-06-spec-adversary-plan-trip-photos.md`（指摘は下の「決着済み」に織り込んだ）。実装のレビュー 4 種は Critical 0。直したものと次に回す Warning は `docs/reports/2026-11-06-plan-trip-photos-review-followups.md`。写真の調査: `docs/reports/2026-11-06-photo-research.md`。
 
 **Tier 1 の理由**: 挙動の変更（しおりの組み立て・画面）はあるが、認可・永続化スキーマ（TripPlan の型は凍結のまま）・実行時の外部副作用（写真は開発時に 1 回だけ取って同梱し、画面は同じ origin から読む）・並行性に触れない。
 
@@ -59,8 +59,8 @@ Story: 台湾から初めて北海道をレンタカーで旅する 4 人のグ�
 - R4 画面: 楽しみのカードに重さの操作が無い。選択は名前とチェックだけ（store の選択は id だけ）。カードに「約 n 時間」。しおりパネルの配分バーは時間で
 - R5 写真の選び方: CC0・パブリックドメイン・CC BY（1.0〜4.0、地域版を含む）だけ。BY-SA・NC・ND・GFDL のみは不可。人物の顔が判別できるもの・商標が大きく写るもの・鹿の写真は使わない
 - R6 写真の記録: 写真ごとに、楽しみの id・ファイル・作品名・撮影者（平文）・ライセンス名・ライセンスのコード・ライセンスの URL（パブリックドメインは null）・出典ページの URL・取得日・原本の SHA-1（Commons の値。出所の識別子）・保存したファイルの SHA-256（改ざんの確認）・幅・高さ・改変の内容・写っているものの確認を持つ。画面はこの記録を zod で検証して読む（形が違う・使えないライセンス・名前が id と合わないなら例外）
-- R7 引用の表示: 写真のあるカードは、カードの下に「写真: {撮影者} / {ライセンス}」（ラベルは 4 言語。撮影者とライセンス名は訳さない）を出し、撮影者は出典ページへ、ライセンス名は本文へリンクする（新しいタブ、`rel="noopener noreferrer"`）。12px・`ink-faint`（surface の上で 4.5:1）、リンクは `ink-muted` で下線
-- R8 取得のスクリプトの安全: 通信先は `commons.wikimedia.org`（API）と `upload.wikimedia.org`・`thumb.wikimedia.org`（画像）の https だけ（ホストの完全一致・ポートとユーザー情報なし）。リダイレクトは失敗にする。API は 1 回の要求でまとめて引き、429 は Retry-After（無ければ 10・20・40 秒）だけ待って取り直す。ライセンスは API で取り直して R5 の規則で確かめ、外れたら保存しない。2 MB を受信の途中で超えたら止める。中身は先頭のバイトで JPEG・PNG かを確かめ（Content-Type を信じない）、幅・高さは実物から読み、幅 800px を超えたら保存しない。保存の名前は楽しみの id から作る（リモートの名前を使わない）。User-Agent はプロジェクト名（個人の連絡先を入れない）
+- R7 引用の表示: 写真のあるカードは、カードの下に「写真: {撮影者} / {ライセンス}」（ラベルは 4 言語。撮影者とライセンス名は訳さない）を出し、撮影者は出典ページへ、ライセンス名は本文へリンクする（新しいタブ、`rel="noopener noreferrer"`）。12px・`ink-faint`（surface の上で 4.5:1）、リンクは `ink-muted` で下線。押せる面は高さ 24px 以上、タッチの端末（`pointer: coarse`）では 44px（ch8）
+- R8 取得のスクリプトの安全: 通信先は `commons.wikimedia.org`（API）と `upload.wikimedia.org`・`thumb.wikimedia.org`（画像）の https だけ（ホストの完全一致・ポートとユーザー情報なし）。リダイレクトは失敗にする。API は 1 回の要求でまとめて引き、429 は Retry-After（無ければ 10・20・40 秒）だけ待って取り直す。ライセンスは API で取り直して R5 の規則で確かめ、外れたら保存しない。2 MB を受信の途中で超えたら止める。中身は先頭のバイトで JPEG・PNG かを確かめ（Content-Type を信じない）、幅・高さは実物から読み、幅 800px・高さ 1600px を超えたら保存しない。1 件でも失敗したら画像も記録も書き換えない（画像と記録を 1 対 1 に保つ。レビューの指摘）。存在しないファイル名はその 1 件だけを失敗にする。保存の名前は楽しみの id から作る（リモートの名前を使わない）。User-Agent はプロジェクト名（個人の連絡先を入れない）
 - R9 CREDITS.md: 写真ごとに 1 行（楽しみ・作品名・撮影者・ライセンス（本文へのリンク）・出典 URL・取得日・改変）
 
 ## ユースケース
