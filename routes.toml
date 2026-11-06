@@ -113,3 +113,9 @@ label = "antler: Capture に精密位置"
 path = "packages/schema/src/__arch_probe__/capture.ts"
 content = "export type Capture = { lat: number }\n"
 expect = "roadSegment"
+
+[[ci_arch.probe]]
+label = "antler: 4 言語の表の外に画面の文を直書き（i18n R4）"
+path = "apps/sim/src/features/__arch_probe__/Label.tsx"
+content = "export const Label = () => <p>出発</p>\n"
+expect = "i18n:"

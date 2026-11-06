@@ -1,3 +1,4 @@
+import { langScriptProblems } from '../../shared/policies/lang-script-policy.js'
 import { TRIP_LANGS, type TripLang } from '../../trips/models/trip-writing.js'
 import type { ChatPlan, ChatWriting } from '../models/chat-deck.js'
 import { CHAT_TEXT_MAX_LENGTH } from '../rules/chat-rules.js'
@@ -27,7 +28,6 @@ const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0F}/u
 const DIGIT = /\p{N}/u
 /** 見えない文字（制御文字・ゼロ幅） */
 const INVISIBLE = /[\p{Cc}​-‏⁠﻿]/u
-const HAN = /\p{Script=Han}/u
 /** 統計・金額の記号。「件」「円」は数字と数詞の禁止で足りるので入れない（「条件」「円滑」を通す） */
 const FORBIDDEN_SYMBOLS = /[%％¥￥$＄]/
 /**
@@ -43,19 +43,6 @@ const ENGLISH_NUMBER =
 const KOREAN_NUMBER = /[일삼사오육칠팔구][십백천만억]|이[십백천억]|[십백][만억]|천억/u
 /** 鹿を見つけた・いると言うのは赤の警告の役割（文字の偽警報を出さない）。助詞の「しか」は入れない */
 const DEER_WORD = /鹿|シカ|deer|사슴/iu
-/** zh でよく出る簡体字（繁体字で書かせる。R17） */
-const SIMPLIFIED = /[们这车开说话没还现边过时会对见么风乐]/u
-
-const HANGUL = /\p{Script=Hangul}/u
-const KANA_OR_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u
-const KANA_OR_HANGUL = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u
-const ASCII_LETTER = /[A-Za-z]/
-const SCRIPT_OK: Record<TripLang, (text: string) => boolean> = {
-  ko: (text) => HANGUL.test(text),
-  ja: (text) => KANA_OR_KANJI.test(text),
-  zh: (text) => HAN.test(text) && !KANA_OR_HANGUL.test(text),
-  en: (text) => ASCII_LETTER.test(text),
-}
 
 function checkText(text: string, lang: TripLang, path: string): ChatWritingProblem[] {
   if (text.trim().length === 0) return [{ code: 'empty', path }]
@@ -72,8 +59,8 @@ function checkText(text: string, lang: TripLang, path: string): ChatWritingProbl
   if (INVISIBLE.test(text)) found('invisible')
   if (EMOJI.test(text)) found('emoji')
   if (DEER_WORD.test(norm)) found('deer-word')
-  if (!SCRIPT_OK[lang](text)) found('script')
-  if (lang === 'zh' && SIMPLIFIED.test(text)) found('simplified')
+  // 言語ごとの文字種と zh の簡体字（4 つの口で共通。R17・i18n R8）
+  for (const code of langScriptProblems(lang, text)) found(code)
   return problems
 }
 

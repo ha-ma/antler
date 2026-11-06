@@ -1,6 +1,9 @@
+import type { Lang } from '@antler/schema'
 import { useMemo, type ComponentProps } from 'react'
 import { Link } from 'react-router'
+import { browserLang, browserLangs } from '@/shared/utils/browser-lang'
 import { TripDayError } from '../api/trip-day'
+import { htmlLang } from '../chat/ChatFeed'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
 import { scenarioFromDay } from '../domain/trip-scenario'
@@ -8,7 +11,7 @@ import { ZONES } from '../domain/zones-data'
 import { briefHref, useDriveParams, type DriveParams } from '../hooks/use-drive-params'
 import { useTripDay } from '../hooks/use-trip-day'
 import { DrivePage } from './DrivePage'
-import { HUD_TEXT } from './hud/hud-text'
+import { hudText } from './hud/hud-text'
 import '@antler/alert-ui/tokens.css'
 import './drive.css'
 
@@ -31,13 +34,15 @@ export function DriveScreen({ onFinish, canvas, webgl2 }: Props) {
     const search = params.search
     return (
       <DrivePage
-        createEngine={() => new DriveEngine(demoScenario(ZONES, search), ZONES)}
+        createEngine={() => new DriveEngine(demoScenario(ZONES, search, browserLangs()), ZONES)}
         {...page}
       />
     )
   }
   if (params.kind === 'bad-trip') {
-    return <TripMessage text={HUD_TEXT.trip.notFound} links={[['/plan', HUD_TEXT.trip.toPlan]]} />
+    const lang = browserLang()
+    const t = hudText(lang).trip
+    return <TripMessage lang={lang} text={t.notFound} links={[['/plan', t.toPlan]]} />
   }
   // 旅・日・アラートが変わったら作り直す（エンジンは最初の 1 回だけ作るので）
   return (
@@ -61,51 +66,61 @@ function TripDrive({
     () => (query.data ? scenarioFromDay(query.data, params.search) : undefined),
     [query.data, params.search],
   )
-  const t = HUD_TEXT.trip
+  // 旅を読めるまではブラウザの言語、読めたら旅の言語（i18n R5）
+  const lang = query.data?.plan.lang ?? browserLang()
+  const t = hudText(lang).trip
   const brief = briefHref(params.id, params.day, params.alertOn)
 
-  if (query.isPending) return <TripMessage text={t.loading} busy />
+  if (query.isPending) return <TripMessage lang={lang} text={t.loading} busy />
   if (query.isError) {
     const error = query.error
     const code = error instanceof TripDayError ? error.code : null
     if (code === 'TRIP_NOT_FOUND')
-      return <TripMessage text={t.notFound} links={[['/plan', t.toPlan]]} />
+      return <TripMessage lang={lang} text={t.notFound} links={[['/plan', t.toPlan]]} />
     if (code === 'DAY_NOT_FOUND') {
       return (
         <TripMessage
+          lang={lang}
           text={t.dayNotFound}
           links={[[briefHref(params.id, 1, params.alertOn), t.toFirstDay]]}
         />
       )
     }
     if (code === 'ITINERARY_CHANGED') {
-      return <TripMessage text={t.changed} links={[['/plan', t.toPlan]]} />
+      return <TripMessage lang={lang} text={t.changed} links={[['/plan', t.toPlan]]} />
     }
     const text = code === 'RATE_LIMITED' ? t.rateLimited : t.failed
     return (
-      <TripMessage text={text} onRetry={() => void query.refetch()} links={[[brief, t.toBrief]]} />
+      <TripMessage
+        lang={lang}
+        text={text}
+        onRetry={() => void query.refetch()}
+        links={[[brief, t.toBrief]]}
+      />
     )
   }
   if (!scenario) {
-    return <TripMessage text={t.noMove} links={[[brief, t.toBrief]]} />
+    return <TripMessage lang={lang} text={t.noMove} links={[[brief, t.toBrief]]} />
   }
   return <DrivePage createEngine={() => new DriveEngine(scenario, ZONES)} {...page} />
 }
 
 /** 読み込み中・失敗の案内（R2） */
 function TripMessage({
+  lang,
   text,
   links = [],
   onRetry,
   busy = false,
 }: {
+  lang: Lang
   text: string
   links?: [href: string, label: string][]
   onRetry?: () => void
   busy?: boolean
 }) {
   return (
-    <main className="drive" data-theme="night">
+    <main className="drive" data-theme="night" lang={htmlLang(lang)}>
       <section className="drive-start" aria-busy={busy}>
         <p role={busy ? 'status' : 'alert'} data-testid="drive-message">
           {text}
@@ -113,7 +128,7 @@ function TripMessage({
         <div className="drive-start__actions">
           {onRetry && (
             <button type="button" className="drive-hud__primary" onClick={onRetry}>
-              {HUD_TEXT.trip.retry}
+              {hudText(lang).trip.retry}
             </button>
           )}
           {links.map(([href, label]) => (

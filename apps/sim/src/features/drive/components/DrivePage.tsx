@@ -15,7 +15,7 @@ import type { DriveResult, World } from '../types'
 import { BottomBar } from './hud/BottomBar'
 import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
-import { HUD_TEXT } from './hud/hud-text'
+import { hudText } from './hud/hud-text'
 import { TopBar } from './hud/TopBar'
 import { RecommendCard } from './hud/RecommendCard'
 import { RoutePanel } from './hud/RoutePanel'
@@ -123,7 +123,7 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
     return (
       <main className="drive" data-theme="night">
         <p className="drive-start" role="alert">
-          {HUD_TEXT.noWebgl}
+          {hudText(snapshot.lang).noWebgl}
         </p>
       </main>
     )
@@ -155,7 +155,12 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
           {snapshot.alertEnabled && snapshot.outcome === 'driving' && (
             <DangerOverlay alert={snapshot.alert} lang={snapshot.lang} />
           )}
-          <BottomBar speedKmh={snapshot.speedKmh} soundOn={soundOn} onSound={setSoundOn} />
+          <BottomBar
+            speedKmh={snapshot.speedKmh}
+            soundOn={soundOn}
+            onSound={setSoundOn}
+            lang={snapshot.lang}
+          />
           {/* 右の列（drive-tune が --drive-chat-w を空けた）: 右上に車内の会話、右下にゾーンの前のおすすめと
               運転の音の操作（drive-tourism T8・T14） */}
           <div className="drive-chat-column">
@@ -167,7 +172,12 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
             <RecommendCard engine={engine} lang={snapshot.lang} />
             <AudioControls settings={drive.settings} lang={snapshot.lang} />
           </div>
-          <EndBanner outcome={snapshot.outcome} onRetry={retry} briefHref={backToBrief} />
+          <EndBanner
+            outcome={snapshot.outcome}
+            onRetry={retry}
+            briefHref={backToBrief}
+            lang={snapshot.lang}
+          />
         </div>
       )}
       {!started && (

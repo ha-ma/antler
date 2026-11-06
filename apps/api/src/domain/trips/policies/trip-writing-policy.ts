@@ -4,6 +4,7 @@ import {
   type TripLang,
   type TripWriting,
 } from '../models/trip-writing.js'
+import { langScriptProblems } from '../../shared/policies/lang-script-policy.js'
 import { NOTE_MAX_LENGTH, TITLE_MAX_LENGTH } from '../rules/trip-rules.js'
 
 // Claude の出力の検証（docs/specs/plan-trip/functional.md R5・UC-5）。
@@ -20,6 +21,7 @@ export type TripWritingProblemCode =
   | 'number'
   | 'forbidden-symbol'
   | 'script'
+  | 'simplified'
 
 export type TripWritingProblem = { code: TripWritingProblemCode; path: string }
 
@@ -27,22 +29,6 @@ const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0F}/u
 /** 3 桁以上の数（全角も）。桁区切りのある数も、区切りの後ろの 3 桁で当たる */
 const THREE_DIGITS = /[0-9０-９]{3,}/
 const FORBIDDEN_SYMBOLS = /[%％件円]/
-
-const HANGUL = /\p{Script=Hangul}/u
-const KANA_OR_KANJI = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Han}]/u
-const KANA_OR_HANGUL = /[\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u
-const ASCII_LETTER = /[A-Za-z]/
-
-/**
- * 言語ごとの文字種の簡易チェック（契約レビュー W-2）。
- * ko はハングルを含む / ja はかなか漢字を含む / zh はかなとハングルを含まない / en は ASCII の英字を含む
- */
-const SCRIPT_OK: Record<TripLang, (text: string) => boolean> = {
-  ko: (text) => HANGUL.test(text),
-  ja: (text) => KANA_OR_KANJI.test(text),
-  zh: (text) => !KANA_OR_HANGUL.test(text),
-  en: (text) => ASCII_LETTER.test(text),
-}
 
 function checkText(text: string, lang: TripLang, path: string, max: number): TripWritingProblem[] {
   const problems: TripWritingProblem[] = []
@@ -52,7 +38,8 @@ function checkText(text: string, lang: TripLang, path: string, max: number): Tri
   if (EMOJI.test(text)) problems.push({ code: 'emoji', path })
   if (THREE_DIGITS.test(text)) problems.push({ code: 'number', path })
   if (FORBIDDEN_SYMBOLS.test(text)) problems.push({ code: 'forbidden-symbol', path })
-  if (!SCRIPT_OK[lang](text)) problems.push({ code: 'script', path })
+  // 言語ごとの文字種（訳し忘れ・言語の取り違え・zh の簡体字。4 つの口で共通。i18n R8）
+  for (const code of langScriptProblems(lang, text)) problems.push({ code, path })
   return problems
 }
 

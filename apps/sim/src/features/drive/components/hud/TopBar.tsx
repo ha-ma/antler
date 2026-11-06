@@ -2,7 +2,7 @@ import { formatDuration, formatJstDate, formatJstTime } from '../../domain/clock
 import type { DriveSnapshot } from '../../domain/engine'
 import { PLAYBACK_RATES } from '../../domain/playback'
 import type { PlaybackRate } from '../../types'
-import { HUD_TEXT, SURFACE_TEXT, WEATHER_TEXT } from './hud-text'
+import { hudText, SURFACE_TEXT, WEATHER_TEXT } from './hud-text'
 import { releaseFocusAfterPointer } from './pointer-focus'
 
 type Props = {
@@ -13,15 +13,16 @@ type Props = {
 
 /** 上部: 日付・時刻・日没、再生速度、天候・路面・運転時間のチップ（R11、UC-7f） */
 export function TopBar({ snapshot, onRate, onPause }: Props) {
-  const { playback } = snapshot
-  const p = HUD_TEXT.playback
+  const { playback, lang } = snapshot
+  const hud = hudText(lang)
+  const p = hud.playback
   return (
     <div className="drive-hud__top">
       <div className="drive-hud__clock" data-testid="clock">
         <span>{formatJstDate(snapshot.clockMs)}</span>
         <span className="drive-hud__num">{formatJstTime(snapshot.clockMs)}</span>
         <span>
-          {HUD_TEXT.time.sunset}{' '}
+          {hud.time.sunset}{' '}
           <span className="drive-hud__num">
             {snapshot.sunsetMs === null ? '--:--' : formatJstTime(snapshot.sunsetMs)}
           </span>
@@ -61,12 +62,11 @@ export function TopBar({ snapshot, onRate, onPause }: Props) {
           </span>
         )}
       </div>
-      <ul className="drive-hud__chips" aria-label="条件">
-        <li>{WEATHER_TEXT[snapshot.weather]}</li>
-        <li>{SURFACE_TEXT[snapshot.surface]}</li>
+      <ul className="drive-hud__chips" aria-label={hud.conditions}>
+        <li>{WEATHER_TEXT[lang][snapshot.weather]}</li>
+        <li>{SURFACE_TEXT[lang][snapshot.surface]}</li>
         <li>
-          {HUD_TEXT.time.driving}{' '}
-          <span className="drive-hud__num">{formatDuration(snapshot.t)}</span>
+          {hud.time.driving} <span className="drive-hud__num">{formatDuration(snapshot.t)}</span>
         </li>
       </ul>
     </div>

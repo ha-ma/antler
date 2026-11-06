@@ -2,6 +2,7 @@ import type { Lang } from '@antler/schema'
 import { formatBudget } from '@antler/trip'
 import { Link } from 'react-router'
 import { recordHref } from '@/features/record'
+import { browserLang } from '@/shared/utils/browser-lang'
 import baseline from '../data/loss-baseline.json'
 import { assessLoss } from '../domain/assess-loss'
 import { strikeItinerary } from '../domain/strike'
@@ -35,22 +36,23 @@ export function LossPage() {
   const collision = useCollision()
   const query = useLossTripDay(collision?.tripId ?? '', collision?.day ?? 0, collision !== null)
 
-  if (collision === null) return <LossStatus kind="unreadable" lang="ja" />
+  // 旅が読めるまでは言語が分からない。A-1 と同じくブラウザの言語で出す（i18n R5・S-1）
+  const fallback = browserLang()
+  if (collision === null) return <LossStatus kind="unreadable" lang={fallback} />
   if (query.isPending) {
     return (
-      <main className="loss loss--status" data-theme="night">
-        <title>{`${LOSS_TEXT.loadingTrip.ja} | ${LOSS_TEXT.brand.ja}`}</title>
-        <p role="status">{LOSS_TEXT.loadingTrip.ja}</p>
+      <main className="loss loss--status" data-theme="night" lang={htmlLang(fallback)}>
+        <title>{`${LOSS_TEXT.loadingTrip[fallback]} | ${LOSS_TEXT.brand[fallback]}`}</title>
+        <p role="status">{LOSS_TEXT.loadingTrip[fallback]}</p>
       </main>
     )
   }
   if (query.isError) {
     const e = query.error instanceof LossTripDayError ? query.error : null
-    // 旅が読めないので言語が分からない。A-1 の既定の ja で出す
-    if (e?.code === 'DAY_NOT_FOUND') return <LossStatus kind="unreadable" lang="ja" />
-    if (e?.status === 404) return <LossStatus kind="notFound" lang="ja" />
-    if (e?.status === 409) return <LossStatus kind="outdated" lang="ja" />
-    return <LossStatus kind="tripFailed" lang="ja" onRetry={() => void query.refetch()} />
+    if (e?.code === 'DAY_NOT_FOUND') return <LossStatus kind="unreadable" lang={fallback} />
+    if (e?.status === 404) return <LossStatus kind="notFound" lang={fallback} />
+    if (e?.status === 409) return <LossStatus kind="outdated" lang={fallback} />
+    return <LossStatus kind="tripFailed" lang={fallback} onRetry={() => void query.refetch()} />
   }
   const { plan, day } = query.data
   // 済ませた楽しみが URL に無い（DriveResult から来た）ときは、しおりから「予定どおり」を決める

@@ -1,5 +1,5 @@
 import type { DriveSnapshot } from '../../domain/engine'
-import { HUD_TEXT } from './hud-text'
+import { fillHud, hudText } from './hud-text'
 
 /** ステージをクリアしたあと 2 秒（シミュレーションの時計）出す帯（drive-tune R1）。その間も走れる */
 export const STAGE_BANNER_MS = 2000
@@ -11,7 +11,7 @@ export function StageBanner({ snapshot }: { snapshot: DriveSnapshot }) {
   }
   return (
     <p className="drive-hud__stage" role="status" data-testid="stage-banner">
-      {HUD_TEXT.stage.cleared(stage.index - 1, stage.count)}
+      {fillHud(hudText(snapshot.lang).stage.cleared, { n: stage.index - 1, of: stage.count })}
     </p>
   )
 }
