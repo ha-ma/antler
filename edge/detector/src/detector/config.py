@@ -21,6 +21,7 @@ __all__ = [
     "CoremlConfig",
     "InferConfig",
     "JudgeConfig",
+    "L0FilterConfig",
     "L1Config",
     "L2Config",
     "PipelineConfig",
@@ -100,6 +101,24 @@ class TrackerConfig:
 
 
 @dataclass(frozen=True)
+class L0FilterConfig:
+    """L0 の誤検出の後処理（docs/specs/l0-fp-filter）。即時ルールの手前で枠を除く・弱める。
+
+    既定は「本物の鹿ならカメラから 2 m より近い」枠だけに当たる（水平画角 70° の暫定値で見積もり）。
+    直前 1 秒に通した枠から続く枠は除かない（近づいた鹿・止まった車の前の鹿）。
+    無視する領域は車載カメラの取り付けで決まるので、既定は空（測ってから車ごとの設定に書く）。
+    """
+
+    enabled: bool = True
+    max_area: float = 0.7  # 面積（w×h）がこれ以上の枠を除く
+    max_width: float = 0.85  # 幅がこれ以上で、
+    min_height_at_max_width: float = 0.5  # 高さもこれ以上の枠を除く（遠くの横長の群れは残す）
+    ignore_regions: tuple[tuple[float, float, float, float], ...] = ()  # [x1, y1, x2, y2] の列
+    region_min_inside: float = 0.8  # 枠の面積のうち領域に入る割合がこれ以上なら
+    region_conf_scale: float = 0.5  # 確信度にこれを掛ける（0 なら除く）
+
+
+@dataclass(frozen=True)
 class L1Config:
     """L1（local-jev への 4 問、B2-4〜B2-8）。降格だけに使う。赤は L0 が鳴らす（edge-l1）。
 
@@ -168,6 +187,7 @@ class Config:
     server: ServerConfig = field(default_factory=ServerConfig)
     coreml: CoremlConfig = field(default_factory=CoremlConfig)
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
+    l0_filter: L0FilterConfig = field(default_factory=L0FilterConfig)
     l1: L1Config = field(default_factory=L1Config)
     l2: L2Config = field(default_factory=L2Config)
     capture: CaptureConfig = field(default_factory=CaptureConfig)
@@ -211,7 +231,19 @@ _RANGES = {
     "queue_size": (1, 64),
     "l1_attach_window_s": (0.5, 10.0),
     "retention_hours": (1, 168),
+    # l0_filter（下限は 2 m 以遠の鹿の枠（面積 0.64・幅 0.68 まで）を除かないため。l0-fp-filter R6）
+    "max_area": (0.65, 1.0),
+    "max_width": (0.7, 1.0),
+    "min_height_at_max_width": (0.4, 1.0),
+    "region_min_inside": (0.8, 1.0),
+    "region_conf_scale": (0.0, 0.95),
 }
+
+# 無視する領域の制約（l0-fp-filter R2）。車線の見張りの帯は 3 m 以遠の車線上の鹿が写る範囲
+MAX_IGNORE_REGIONS = 8
+MAX_REGION_AREA = 0.25
+MAX_REGIONS_TOTAL_AREA = 0.4
+LANE_WATCH_BAND = (0.25, 0.3, 0.75, 0.8)  # x1, y1, x2, y2
 
 # オリジン（スキームとホスト、任意のポート）。パス・ワイルドカード・空は許さない
 _ORIGIN_RE = re.compile(r"https?://[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::\d{1,5})?")
@@ -252,6 +284,41 @@ def _route_conf(value: object, where: str) -> tuple[float, float]:
         msg = f"{where} は 0 ≤ 下 < 上 ≤ 1 にする: {value}"
         raise ConfigError(msg)
     return (lo, hi)
+
+
+def _region(row: object, where: str) -> tuple[float, float, float, float]:
+    """1 つの領域。画面の辺に接し、車線の見張りの帯と交わらず（接するだけは可）、面積 0.25 以下。"""
+    if not (isinstance(row, list) and len(row) == 4 and all(_number(v) for v in row)):
+        msg = f"{where} の各行は [x1, y1, x2, y2] の数値にする"
+        raise ConfigError(msg)
+    x1, y1, x2, y2 = (float(v) for v in row)
+    if not (0.0 <= x1 < x2 <= 1.0 and 0.0 <= y1 < y2 <= 1.0):
+        msg = f"{where} は 0 ≤ x1 < x2 ≤ 1、0 ≤ y1 < y2 ≤ 1 にする: {row}"
+        raise ConfigError(msg)
+    if not (x1 == 0.0 or y1 == 0.0 or x2 == 1.0 or y2 == 1.0):
+        msg = f"{where} の領域は画面の辺のどれかに接するようにする（車の部品は端に写る）: {row}"
+        raise ConfigError(msg)
+    bx1, by1, bx2, by2 = LANE_WATCH_BAND
+    if x1 < bx2 and bx1 < x2 and y1 < by2 and by1 < y2:
+        msg = f"{where} は車線の見張りの帯 {list(LANE_WATCH_BAND)} と交われない: {row}"
+        raise ConfigError(msg)
+    if (x2 - x1) * (y2 - y1) > MAX_REGION_AREA + 1e-9:  # 0.25 ちょうどを誤差で拒まない
+        msg = f"{where} の 1 つの領域は面積 {MAX_REGION_AREA} 以下にする: {row}"
+        raise ConfigError(msg)
+    return (x1, y1, x2, y2)
+
+
+def _regions(value: object, where: str) -> tuple[tuple[float, float, float, float], ...]:
+    """無視する領域 [[x1, y1, x2, y2], ...]。8 個まで、面積の和 0.4 以下（l0-fp-filter R2）。"""
+    if not isinstance(value, list) or len(value) > MAX_IGNORE_REGIONS:
+        msg = f"{where} は [[x1, y1, x2, y2], ...] の {MAX_IGNORE_REGIONS} 個までにする"
+        raise ConfigError(msg)
+    regions = tuple(_region(row, where) for row in value)
+    total = sum((x2 - x1) * (y2 - y1) for x1, y1, x2, y2 in regions)
+    if total > MAX_REGIONS_TOTAL_AREA + 1e-9:
+        msg = f"{where} の面積の和は {MAX_REGIONS_TOTAL_AREA} 以下にする"
+        raise ConfigError(msg)
+    return regions
 
 
 def _origins(value: object, where: str) -> tuple[str, ...]:
@@ -299,6 +366,8 @@ def _check(name: str, key: str, default: object, value: object) -> object:
         return _route_conf(value, f"{name}.{key}")
     if key == "allowed_origins":
         return _origins(value, f"{name}.{key}")
+    if key == "ignore_regions":
+        return _regions(value, f"{name}.{key}")
     if isinstance(default, bool):
         ok = isinstance(value, bool)
     elif isinstance(default, float):
@@ -351,6 +420,7 @@ def load_config(path: str | Path) -> Config:
         "server": ServerConfig,
         "coreml": CoremlConfig,
         "tracker": TrackerConfig,
+        "l0_filter": L0FilterConfig,
         "l1": L1Config,
         "l2": L2Config,
         "capture": CaptureConfig,
