@@ -19,7 +19,7 @@ target_paths:
   - edge/detector/tests/test_fusion.py
   - edge/detector/tests/test_l1_hub.py
   - edge/detector/tests/test_l1_authz.py
-spec_confirmed_at: ef4ced1
+spec_confirmed_at: fdbc87c
 tier: 2
 ---
 

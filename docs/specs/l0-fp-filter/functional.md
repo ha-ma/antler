@@ -9,7 +9,7 @@ target_paths:
   - edge/detector/tests/test_l0_fp_filter.py
   - edge/detector/tests/test_l0_fp_acceptance.py
   - edge/detector/tests/fp_geometry.py
-spec_confirmed_at: ef4ced1
+spec_confirmed_at: fdbc87c
 tier: 1
 ---
 
