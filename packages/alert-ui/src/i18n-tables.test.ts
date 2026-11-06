@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+// ↑ import.meta.glob の型（packages の tsconfig は vite/client を読まないので、このテストだけで読む）
 import { checkTables, formatProblems, type TableAllowance } from '@antler/i18n-check'
 import { describe, expect, it } from 'vitest'
 import { ALERT_TEXT, LANGS, type Lang } from './i18n/i18n'
