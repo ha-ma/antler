@@ -5,11 +5,13 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 764720a
+spec_confirmed_at: a138fb0
 tier: 2
 ---
 
 # 仕様: plan-trip（A-1 旅をつくる・Claude がしおりを仕上げる）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で api のしおりの文の検証を共通の文字種の規則（`apps/api/src/domain/shared/policies/lang-script-policy.ts`）に寄せ、zh の簡体字も落とすようにした（外れたら今までどおり 1 回だけ作り直す）。`packages/trip` に文言の表の検査（`src/i18n-tables.test.ts`）を足した。この仕様のルールは変えていない。
 
 > 2026-11-06 drive-tourism で api の会話（`apps/api/src` の chats）と plan-trip の barrel（`photoOf`・`photoSrc` の export）を変えた（`docs/specs/drive-tourism/functional.md`）。api のその日の行程のテストの時間の上限は main（drive-season）の 20 秒に揃えた。この仕様のルールは変えていない。
 

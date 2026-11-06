@@ -2,11 +2,13 @@
 feature: drive-tune
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 4e4b8b6
+spec_confirmed_at: a138fb0
 tier: 1
 ---
 
 # 仕様: drive-tune（運転のステージ・必ず出る鹿・実測に合わせたブレーキ・区間の案内・ミラーとダッシュボード）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で ステージの帯・終わりの帯・HUD の文言を 4 言語にした（`hudText(lang)`。`HUD_TEXT.xxx` の直参照は無くなった）。終わりの帯の注記の ja は「このあと喪失の画面（A-6）／旅の記録（A-7）に移ります」に直した（いまの遷移に合わせた）。この仕様のルールは変えていない。
 
 > 2026-11-06 drive-tourism が右の列（`--drive-chat-w`）に、ゾーンの前のおすすめのカードを会話と音量の操作の間に置いた。カードはステージ（`stage`・`stageClearedAt`）と `STAGE_BANNER_MS` を読む（`docs/specs/drive-tourism/functional.md` T11・T14）。この仕様のルールは変えていない。
 

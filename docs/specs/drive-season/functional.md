@@ -9,11 +9,13 @@ target_paths:
   - apps/sim/src/features/drive/components/season-text.ts
   - packages/trip/src/day/conditions.ts
   - packages/trip/src/day/schema.ts
-spec_confirmed_at: c712268
+spec_confirmed_at: a138fb0
 tier: 1
 ---
 
 # 仕様: drive-season（季節と天気で路面・景色・ブレーキを変える）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 季節の切り替え・天候・路面の文言を 4 言語にし、出発の案内の言語（場面の言語）で出す。季節の選択肢と係数は変えていない。この仕様のルールは変えていない。
 
 ## 概要
 

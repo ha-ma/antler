@@ -10,11 +10,13 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-loss.repository.ts
   - apps/api/src/infrastructure/http/routes/loss.routes.ts
   - apps/api/src/infrastructure/http/schemas/loss.schema.ts
-spec_confirmed_at: 5939fc8
+spec_confirmed_at: a138fb0
 tier: 2
 ---
 
 # 仕様: loss（A-6 喪失・Claude が「失ったもの」を書く）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で A-6 のしおりを読む前・読めない・失敗の画面の言語を、`ja` 固定からブラウザの言語（`initialLang`）にした。しおりを読んだあとは今までどおり `plan.lang`。この仕様のルールは変えていない。
 
 ## 概要
 

@@ -23,11 +23,13 @@ target_paths:
   - apps/api/src/infrastructure/http/unavailable.ts
   - apps/api/src/domain/captures/policies/capture-claim-policy.ts
   - apps/api/tests/vercel/
-spec_confirmed_at: 764720a
+spec_confirmed_at: a138fb0
 tier: 2
 ---
 
 # 仕様: deploy-a（A の sim と api を Vercel に置く準備。DB は Turso、Capture の画像は Vercel Blob）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 各 workspace の `package.json` に devDependency `@antler/i18n-check` を足した（テストだけで使う。ビルドの中身は変わらない）。この仕様のルールは変えていない。
 
 > 2026-11-06 drive-tourism で `routes/trip-day.routes.test.ts` に遅いテストの時間の上限を付けたが、main（drive-season）の 20 秒（テストごと）に揃えて外した（テストだけ。ルートは変えていない）。この仕様のルールは変えていない。
 

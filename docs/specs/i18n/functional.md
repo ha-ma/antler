@@ -15,7 +15,7 @@ target_paths:
   - apps/api/src/domain/shared/policies/lang-script-policy.ts
   - .claude/hooks/dispatch_local_rules.py
   - scripts/tests/test_antler_hooks.py
-spec_confirmed_at:
+spec_confirmed_at: a138fb0
 tier: 1
 ---
 

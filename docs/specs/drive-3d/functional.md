@@ -2,11 +2,13 @@
 feature: drive-3d
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 4e4b8b6
+spec_confirmed_at: a138fb0
 tier: 1
 ---
 
 # 仕様: drive-3d（運転中 3D と鹿ゾーン・検知アラート）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で HUD の文言を 4 言語にし（`hudText(lang)`）、上の「範囲外」の表の「HUD の文言の 4 言語化」の行と Deferred を閉じた。運転の画面の `<main>` に旅の言語の `lang` を付け、zh の `lang` を `zh-Hant` にそろえた（会話・音量の操作も）。HUD の文の中身・並び・振る舞いは変えていない。
 
 > 2026-11-06 drive-tourism で HUD の右の列に会話の写真とゾーンの前のおすすめのカードを足した（`docs/specs/drive-tourism/functional.md` T8・T11〜T14）。この仕様のルール（3D・ゾーン・アラート）は変えていない。
 
