@@ -5,12 +5,17 @@
 //   node apps/pwa/scripts/fake-edge.mjs --scenario deer --port 8765
 //   → PWA は http://localhost:5174/?edge=localhost:8765 で開く（開発ビルドだけ ?edge= が効く）
 //
+//   node apps/pwa/scripts/fake-edge.mjs --tls-cert tls/server.crt --tls-key tls/server.key
+//   → wss で待ち受ける（docs/specs/pwa-https R6。証明書は edge/detector/scripts/make_tls.py で作る）
+//
 // シナリオ: calm（ゾーン外）/ zone（ゾーン内）/ deer（ゾーン内 → 鹿 6 秒 L→R → 解除）/
 //           drop（10 秒ごとに全接続を切る）/ silent（5 秒後から何も送らず、接続は閉じない）
 // 仕様: docs/specs/pwa-connect/functional.md R11。ack は標準出力に 1 行の JSON で出す。
 
 import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { createServer } from 'node:http'
+import { createServer as createTlsServer } from 'node:https'
 import { pathToFileURL } from 'node:url'
 
 const GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -93,7 +98,9 @@ function readFrame(buffer) {
 /**
  * 偽 edge を起動する。戻り値の close() で止める。
  * @param {{ scenario?: string, port?: number, host?: string, heartbeatMs?: number, pollMs?: number,
- *           log?: (line: string) => void, dropEveryMs?: number, silentAfterMs?: number }} options
+ *           log?: (line: string) => void, dropEveryMs?: number, silentAfterMs?: number,
+ *           tls?: { cert: string | Buffer, key: string | Buffer } }} options
+ *   tls を渡すと wss（https のサーバー）で待ち受ける。
  */
 export function startFakeEdge(options = {}) {
   const {
@@ -119,9 +126,15 @@ export function startFakeEdge(options = {}) {
   let deerOnsetFrame = null
   let silent = false
 
-  const server = createServer((_req, res) => {
+  const notFound = (_req, res) => {
     res.writeHead(404).end()
-  })
+  }
+  const tls = options.tls
+  const server = tls
+    ? createTlsServer({ cert: tls.cert, key: tls.key, minVersion: 'TLSv1.2' }, notFound)
+    : createServer(notFound)
+  // TLS の握手に失敗した接続（CA を信頼していない端末など）でサーバーを落とさない
+  server.on('tlsClientError', (_error, socket) => socket.destroy())
 
   server.on('upgrade', (req, socket) => {
     socket.on('error', () => socket.destroy())
@@ -257,11 +270,13 @@ export function startFakeEdge(options = {}) {
           scenario: String(scenario),
           host,
           port: typeof address === 'object' && address ? address.port : port,
+          tls: Boolean(tls),
         }),
       )
       resolve({
         port: typeof address === 'object' && address ? address.port : port,
         host,
+        tls: Boolean(tls),
         close: () =>
           new Promise((done) => {
             clearInterval(timer)
@@ -273,22 +288,38 @@ export function startFakeEdge(options = {}) {
   })
 }
 
-function parseArgs(argv) {
+/**
+ * コマンドラインの引数を startFakeEdge のオプションにする。--tls-cert と --tls-key は両方か、どちらも無しか。
+ * @param {string[]} argv
+ * @param {(path: string) => Buffer | string} [readFile]
+ */
+export function parseArgs(argv, readFile = readFileSync) {
   const out = {}
+  let tlsCert
+  let tlsKey
   for (let i = 0; i < argv.length; i += 2) {
     const flag = argv[i]
     const value = argv[i + 1]
+    if (value === undefined) throw new Error(`値がありません: ${flag}`)
     if (flag === '--scenario') out.scenario = value
     else if (flag === '--port') out.port = Number(value)
     else if (flag === '--host') out.host = value
+    else if (flag === '--tls-cert') tlsCert = value
+    else if (flag === '--tls-key') tlsKey = value
     else throw new Error(`知らない引数です: ${flag}`)
   }
+  if ((tlsCert === undefined) !== (tlsKey === undefined))
+    throw new Error('--tls-cert と --tls-key は両方を渡してください')
+  if (tlsCert !== undefined && tlsKey !== undefined)
+    out.tls = { cert: readFile(tlsCert), key: readFile(tlsKey) }
   return out
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startFakeEdge(parseArgs(process.argv.slice(2))).catch((error) => {
-    process.stderr.write(`${error.message}\n`)
-    process.exit(1)
-  })
+  Promise.resolve()
+    .then(() => startFakeEdge(parseArgs(process.argv.slice(2))))
+    .catch((error) => {
+      process.stderr.write(`${error.message}\n`)
+      process.exit(1)
+    })
 }
