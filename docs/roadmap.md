@@ -60,6 +60,8 @@ ch10-plan.md の 1 週間の計画に、付録 A（ch11-appendix-a.md）の改�
 - **stop-events（record から）**: `DELETE /api/trips/:id`（record）は trips・trip_runs・trip_requests を 1 つのトランザクションで消す。出来事の表を足したら、`DrizzleRecordRepository.deleteTrip` に足す（`record-usecases.test.ts` の UC-5a が `trip_id` の列を持つ表の一覧を固定しているので、表を足すと落ちる。そこで削除にも足す）
 - **deploy（record から）**: 本番の api は `PUBLIC_API_URL`・`SIM_PUBLIC_URL`・`PWA_PUBLIC_URL` を公開の URL にする（既定は開発の localhost）。Linux では OG 画像の日本語・中国語・韓国語のために `fonts-noto-cjk` を入れるか `OG_FONT_FILES` を書く
 - **テスト（record から）**: `packages/*` のテストは npm test で回っていなかった。record で `packages/trip` に test の script を足した。`packages/schema`・`zones`・`alert-ui` も足すかは各担当で
+- **S データ（sdata-materials から、2026-11-06 の引継ぎメモの 0 節）**: 順に dataset-footage（ユーザーが撮った映像の匿名化・撮影日単位の分割）→ dataset-synth（Blender で 3D の鹿 M01〜M04 を自分で撮った背景に合成し、見えているマスクから YOLO の枠を作る。最初に .blend の動作が再生できるかを確かめる）→ dataset-train の更新（「実写のみ」と「実写＋S データ」の比較。評価は実写の鹿だけ。Mapillary の画像を「鹿のいない画像」の `kind`・`use = "eval"` で `train_sources.toml` に登録し、「S データは一覧に書かない」Deferred を解消する）。Mapillary（CC BY-SA）は合成の背景に使わない
+- **edge-l0 の誤検出（提案、sdata-materials の R16 から）**: Mapillary の鹿のいない道東の画像 1,500 枚で、いまの重みは 87 枚（5.8%）に候補を出し、本物の鹿は 0。多いのはサイドミラー 22・ぶれた草木（画面全体）22・ガラスに付いた機器 7・風景全体 6。L0 で (1) 画面の大部分を覆う枠を除く、(2) 画面の端の車の部品の位置（ミラー・ガラスの機器）の枠を除くか弱める。B の車載カメラは位置が固定なので車ごとのマスクにできる見込み。閾値は B の実走の誤報率で決める（`docs/reports/2026-11-06-sdata-research.md`）
 
 ## B の判断の 3 層化（2026-11-03 の変更指示）
 
