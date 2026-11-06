@@ -20,8 +20,11 @@ export const MIN_GAP_KM = 1
 /** km を丸める桁（0.1 km。配置の時点で丸め、間隔・ゾーンの判定は丸めた値でする） */
 export const KM_DIGITS = 1
 
-/** 一言の長さ（各言語。コードポイントで数える） */
-export const CHAT_TEXT_MAX_LENGTH = 60
+/**
+ * 一言の長さ（コードポイントで数える）。英語は同じ内容でも長くなるので言語ごとに分ける
+ * （2026-11-06 に本物の Claude で確かめたら、一律 60 では英語が毎回外れて 502 になった）
+ */
+export const CHAT_TEXT_MAX_LENGTH = { ja: 50, zh: 50, ko: 60, en: 100 } as const
 /** 1 つの旅に保存できる会話の束（旅程を作り直して鍵を変え続けられないように） */
 export const MAX_CHATS_PER_TRIP = 30
 /** Claude の出力が外れたときの作り直し（最初の 1 回 + 1 回） */

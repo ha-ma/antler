@@ -17,6 +17,8 @@
 | GET /api/trips/:id/day/:n （同じ routes にある brief-map の読み出し。この feature では変えない）                                                                                                                                         | ✅ (公開) brief-map の threat.md が正（ID を知る人が読める。会話の束は返さない）  | N/A: 認証の仕組みが無い                | ✅ 同じ（読み出しに ownerToken を求めない）                                                                                | N/A: 組織の概念が無い | N/A: 単一テナント                           | N/A: 管理者の役割が無い | N/A: ジョブはこの操作を呼ばない |
 | POST /api/trips/:id/events ・ POST /api/trips/:id/runs ・ GET /api/trips/:id/record ・ GET /t/:id ・ GET /t/:id/og.png ・ POST /api/captures （同じ routes/ にある stop-events・record・edge-capture の操作。この feature では変えない） | N/A: 各 feature の threat.md が正                                                 | N/A: 認証の仕組みが無い                | N/A: 各 feature の threat.md が正                                                                                          | N/A: 組織の概念が無い | N/A: 単一テナント                           | N/A: 管理者の役割が無い | N/A: ジョブはこの操作を呼ばない |
 
+**残るリスク（security-auditor、`docs/reports/2026-11-06-security-auditor-drive-audio-chat.md`）**: (1) 失敗の記憶（10 分）・single-flight・同時の枠はプロセスの中だけなので、Vercel の複数インスタンスでは効かない。外れ続ける鍵を再送されると、1 要求あたり最大 2 回 Claude を呼ぶ（上限は IP あたり 1 分 10 件と共有の 1 日の上限）。(2) Claude の呼び出し中に旅が削除されると、`trip_chats` に孤児の行が残りうる（中身は旅程から決まる短い文。次の旅の削除の機会には消えない。濫用ではないので許す）。(3) 保存の鍵は旅・日・データの版で決まるので、1 つの旅に 30 束に届くのはデータの版が何度も変わったときだけ（上限は保険）。
+
 **残るリスク**: 1 日の上限は plan-trip・stop-deck・loss と丸ごと共有で、会話専用の下位の枠が無い。所有者が旅を作り直して会話の束を 30 まで作ると、その分だけ当日の他の生成の枠を使う（費用は上限で頭打ち。旅の作成自体が IP あたり 1 分 10 件・1 日の上限で抑えられている）。濫用が見えたら会話に全体の一部までの別の数え上げを置く。
 
 ## IDOR / Mass Assignment チェック

@@ -18,11 +18,16 @@ export type ChatWritingProblemCode =
   | 'deer-word'
   | 'script'
   | 'simplified'
+  | 'invisible'
 
 export type ChatWritingProblem = { code: ChatWritingProblemCode; path: string }
 
 const EMOJI = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\u{FE0F}/u
-const DIGIT = /[0-9０-９]/
+/** 数字（丸数字・上付き・全角を含む。NFKC で正規化した後の文字にも当てる。security-auditor W3） */
+const DIGIT = /\p{N}/u
+/** 見えない文字（制御文字・ゼロ幅） */
+const INVISIBLE = /[\p{Cc}​-‏⁠﻿]/u
+const HAN = /\p{Script=Han}/u
 /** 統計・金額の記号。「件」「円」は数字と数詞の禁止で足りるので入れない（「条件」「円滑」を通す） */
 const FORBIDDEN_SYMBOLS = /[%％¥￥$＄]/
 /**
@@ -48,7 +53,7 @@ const ASCII_LETTER = /[A-Za-z]/
 const SCRIPT_OK: Record<TripLang, (text: string) => boolean> = {
   ko: (text) => HANGUL.test(text),
   ja: (text) => KANA_OR_KANJI.test(text),
-  zh: (text) => !KANA_OR_HANGUL.test(text),
+  zh: (text) => HAN.test(text) && !KANA_OR_HANGUL.test(text),
   en: (text) => ASCII_LETTER.test(text),
 }
 
@@ -56,14 +61,17 @@ function checkText(text: string, lang: TripLang, path: string): ChatWritingProbl
   if (text.trim().length === 0) return [{ code: 'empty', path }]
   const problems: ChatWritingProblem[] = []
   const found = (code: ChatWritingProblemCode) => problems.push({ code, path })
-  if (Array.from(text).length > CHAT_TEXT_MAX_LENGTH) found('too-long')
-  if (DIGIT.test(text)) found('digit')
-  if (KANJI_NUMBER.test(text) || ENGLISH_NUMBER.test(text) || KOREAN_NUMBER.test(text)) {
+  if (Array.from(text).length > CHAT_TEXT_MAX_LENGTH[lang]) found('too-long')
+  // 全角の英字・半角カナ・丸数字で禁止の語をすり抜けないよう、NFKC で揃えてから見る
+  const norm = text.normalize('NFKC')
+  if (DIGIT.test(norm)) found('digit')
+  if (KANJI_NUMBER.test(norm) || ENGLISH_NUMBER.test(norm) || KOREAN_NUMBER.test(norm)) {
     found('number-word')
   }
-  if (FORBIDDEN_SYMBOLS.test(text)) found('forbidden-symbol')
+  if (FORBIDDEN_SYMBOLS.test(norm)) found('forbidden-symbol')
+  if (INVISIBLE.test(text)) found('invisible')
   if (EMOJI.test(text)) found('emoji')
-  if (DEER_WORD.test(text)) found('deer-word')
+  if (DEER_WORD.test(norm)) found('deer-word')
   if (!SCRIPT_OK[lang](text)) found('script')
   if (lang === 'zh' && SIMPLIFIED.test(text)) found('simplified')
   return problems

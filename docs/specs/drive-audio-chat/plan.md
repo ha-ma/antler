@@ -34,6 +34,7 @@ drive の運転の中身は別のセッション（drive-3d、ブランチ drive
 - `useDriveAudio` と会話の store は場面ごとに作る（`key={scenario.seed}`。component-guard W3・code-reviewer W4）
 - `useChatTrack` に渡す `RouteInfo` は `World.plan` から作る（totalKm・intervals）。依存は値だけにしてある
 - `linkDriveSoundAndChat` は `useDriveSoundAndChat` のような hook に包み、DriveScreen に effect を直に書かない（component-guard I2）
+- 赤の間の減光で話し手の名前のコントラストが割れないか（文字色は保って背景で減光する案）、琥珀の間の会話の読み上げを控えるか（alert-contract-guard W-1・W-2）
 - 組み込んだ後に、200% 拡大での会話の欄の高さ、3D の景色の上のコントラスト、スマホでの `scheduleNotes` の山（performance-analyzer W1。2 ms を超えたら先読み窓）を実機で測る
 
 ## このフェーズで実装すること（In Scope）

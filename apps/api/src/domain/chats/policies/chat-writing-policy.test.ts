@@ -47,14 +47,21 @@ describe('validateChatWriting', () => {
     ).toEqual(['line-order@lines.0', 'line-order@lines.1'])
   })
 
-  it('WRITE-2b: 1 言語が空・欠けている、61 文字 → 外れ（60 文字は通る）', () => {
+  it('WRITE-2b: 1 言語が空・欠けている、上限を超える（ja・zh 50 / ko 60 / en 100 文字）→ 外れ', () => {
     expect(codes(writing({ ko: '  ' }))).toEqual(['empty@lines.1.ko'])
     const missing = writing()
     const line = missing.lines[1]
     if (line) line.text = { ja: OK.ja, en: OK.en, zh: OK.zh } as LocalizedText
     expect(codes(missing)).toEqual(['empty@lines.1.ko'])
-    expect(codes(writing({ ja: 'あ'.repeat(60) }))).toEqual([])
-    expect(codes(writing({ ja: 'あ'.repeat(61) }))).toEqual(['too-long@lines.1.ja'])
+    expect(codes(writing({ ja: 'あ'.repeat(50) }))).toEqual([])
+    expect(codes(writing({ ja: 'あ'.repeat(51) }))).toEqual(['too-long@lines.1.ja'])
+    expect(codes(writing({ zh: '好'.repeat(51) }))).toEqual(['too-long@lines.1.zh'])
+    expect(codes(writing({ ko: '좋'.repeat(60) }))).toEqual([])
+    expect(codes(writing({ ko: '좋'.repeat(61) }))).toEqual(['too-long@lines.1.ko'])
+    // 英語は同じ内容でも長くなる（本物の Claude の 70〜90 文字の一言を通す）
+    const en = 'The snow on the fields looks like a soft white blanket today, so pretty.'
+    expect(codes(writing({ en }))).toEqual([])
+    expect(codes(writing({ en: 'a'.repeat(101) }))).toEqual(['too-long@lines.1.en'])
   })
 
   it('WRITE-2c: 数字（半角・全角）・漢数字の連なり・英語の数詞・韓国語の数詞 → 外れ', () => {
@@ -97,5 +104,13 @@ describe('validateChatWriting', () => {
     expect(codes(writing({ zh: '小心有鹿' }))).toEqual(['deer-word@lines.1.zh'])
     expect(codes(writing({ ko: '사슴이 보여' }))).toEqual(['deer-word@lines.1.ko'])
     expect(codes(writing({ ja: '今日しか見られない景色だね' }))).toEqual([])
+  })
+
+  it('WRITE-2c・WRITE-2g: 全角・半角カナ・丸数字・見えない文字ですり抜けない。zh は漢字が要る（security-auditor W3）', () => {
+    expect(codes(writing({ en: 'ｄｅｅｒ crossing' }))).toEqual(['deer-word@lines.1.en'])
+    expect(codes(writing({ ja: 'ｼｶの森だね' }))).toEqual(['deer-word@lines.1.ja'])
+    expect(codes(writing({ ja: '休憩は②回目だね' }))).toEqual(['digit@lines.1.ja'])
+    expect(codes(writing({ ja: 'いい​景色だね' }))).toEqual(['invisible@lines.1.ja'])
+    expect(codes(writing({ zh: 'What a nice view' }))).toEqual(['script@lines.1.zh'])
   })
 })
