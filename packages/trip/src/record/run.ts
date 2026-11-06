@@ -45,7 +45,8 @@ export const FrameSummarySchema = z
     (f) =>
       (f.dropped === undefined) === (f.counted === undefined) &&
       (f.dropped ?? 0) <= (f.counted ?? 0),
-    { message: 'dropped と counted は両方あるか両方無い。dropped は counted 以下' },
+    // 利用者に出ない検証の文（API の 400 の詳細）。両方あるか両方無いか、dropped は counted 以下
+    { message: 'dropped and counted must both be present or both absent, with dropped <= counted' },
   )
 
 export const DriveRunInputSchema = z.strictObject({
