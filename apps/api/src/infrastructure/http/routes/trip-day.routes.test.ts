@@ -108,7 +108,8 @@ describe('GET /api/trips/:id/day/:n', () => {
       expect(again.day).toEqual(body.day)
     }
     expect(passages).toBeGreaterThan(0)
-  })
+    // 全日の行程を 2 回ずつ組むので単体でも約 4 秒かかる。並行セッションで負荷が高いと既定の 5 秒を越える
+  }, 20_000)
 
   it('AUTH-2: 応答のどこにも ownerTokenHash とその値が無い', async () => {
     const { get } = await setup()
