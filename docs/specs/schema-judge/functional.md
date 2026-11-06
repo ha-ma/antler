@@ -13,6 +13,8 @@ tier: 2
 
 # 仕様: schema-judge（L1 判断の契約 JudgeRequest と、AlertFlag.l1・Capture.l1Probs）
 
+**edge-day0 の 640×480 の書き出し（2026-11-06）での変更**: target_paths の `edge/detector/scripts/` にある `export_yolo_world.py`（edge-day0 の道具）の `--imgsz` の既定を変えた。schema と JudgeRequest には触れていない。この feature の挙動は変わらない。
+
 ## 概要
 
 B の判断を 3 層にする変更（`docs/changes/2026-11-03-b-l1-local-jev.md`）の Step 1。L0（YOLO）が決定的に計算した状態を、
