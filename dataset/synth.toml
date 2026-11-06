@@ -1,0 +1,105 @@
+# synth.toml — 3D の鹿を自分で撮った背景に合成する設定（docs/specs/dataset-synth）。
+# 背景は dataset/private/self-footage/ の uses に synth_background があるフレームだけ（train の走行の鹿なしの区間）。
+# モデルは dataset/external/deer3d/<id>/（CC0。SHA-256 は deer3d の manifest.json と照合する）。
+# synth.py run が dataset/private/self-synth/<run>/ に画像・YOLO のラベル・manifest.json を書く。
+# 値を変えたら新しい run 名で作り直す（前の run は上書きしない）。
+
+[render]
+samples = 16  # EEVEE のサンプル数（決定的）
+
+# 背景に使うクリップ。ユーザーが鹿なしと言った 2 本だけ（354 枚）。鹿ありの 2 本の鹿なしの区間は、
+# 人が鹿の有無を見ていない時間があるので、確かめるまで入れない（仕様の Questions・敵対レビュー C4）。
+[background]
+clips = ["20261106_night-1", "20261106_night-2"]
+
+# ドラレコ dashcam-a の推定（2026-11-07）。2026-09-07 の朝のフレーム（val。幾何を測るためだけに見た）の
+# 車線の破線（5 m・5 m の繰り返し）と車線幅から: 焦点距離 約 1,400 px（水平の画角 約 69°）、
+# 高さ 約 1.35 m、地平線 y ≈ 467（下向き 約 3°）。レンズの歪みは無視する。
+# 2026-11-06 の夜の 2 本は取り付けが違い、上を向いている: 明るいフレーム（街灯・対向車のある区間）を
+# 明るくして見ると、道の消失点が y ≈ 880〜940（ボンネットが映らない）。焦点距離が同じなら
+# 上向き 約 13.7〜15.9°。pitch_deg は下向きが正なので負の値。1 枚ごとにこの範囲で乱す。
+[camera]
+size = [1920, 1080]
+focal_px = 1400.0
+height_m = 1.35
+pitch_deg = [-16.0, -13.5]
+
+# ヘッドライト（スポットライト 2 つ）と空。power_w・ambient は 1 枚ごとに範囲から選ぶ。
+# 目の反射は今回描かない（向きに関係なく光らせると後ろ向きの鹿にも光る点が付く。敵対レビュー W4）。
+# 夜の背景の路面の帯（画面の下 1/4 の中央 1/3）の明るさは 4〜36（中央値 10）と 9 倍ばらつくので、
+# power_w は路面の帯が road_ref のときの強さとし、1 枚ごとに (路面 / road_ref)^2.2 倍する（synth.py の exposure）。
+# 試しの run（2026-11-07）で、路面 約 22 の背景に 300〜1200 W で近い鹿 約 30（比 約 1.4）だった。
+[headlight]
+power_w = [400.0, 1200.0]
+road_ref = 20.0
+height_m = 0.7
+spacing_m = 1.4
+forward_m = 1.8
+spot_deg = 60.0
+blend = 0.6
+tilt_deg = 1.5
+ambient = [0.002, 0.02]
+
+# 肩の高さはエゾシカの肩高 約 1 m（雄）・0.85 m（雌）。M03・M04 は写実寄りのテクスチャなので重く選ぶ。
+# 動作は立つ・見回す・食べる・歩く・走るだけ（倒れる・攻撃・跳ぶは使わない）。
+[[model]]
+id = "M01"
+file = "Stag.glb"
+weight = 0.15
+shoulder_m = 1.0
+rest_action = "Idle"
+actions = ["Idle", "Idle_2", "Idle_Headlow", "Eating", "Walk", "Gallop"]
+
+[[model]]
+id = "M02"
+file = "Deer.glb"
+weight = 0.15
+shoulder_m = 0.85
+rest_action = "Idle"
+actions = ["Idle", "Idle_2", "Idle_Headlow", "Eating", "Walk", "Gallop"]
+
+# M03・M04 の材質は Blender Internal の形式で、4.5 ではテクスチャが外れる。UVMap の UV で張り直す。
+[[model]]
+id = "M03"
+file = "deer1.blend"
+weight = 0.35
+shoulder_m = 1.0
+rest_action = "Idle.000"
+actions = ["Idle.000", "Idle.001", "LookAround.000", "LookAround.001", "Eat.001", "Run"]
+textures = { Body = "body", Head = "head", Antlers = "deer-antlers.png" }
+
+[[model]]
+id = "M04"
+file = "doe.blend"
+weight = 0.35
+shoulder_m = 0.85
+rest_action = "Idle.000"
+actions = ["Idle.000", "Idle.001", "LookAround.000", "LookAround.001", "Eat.001", "Run"]
+textures = { body = "doe-body", head = "doe-head" }
+
+# 50 m より遠い鹿はヘッドライトで照らされず見えないので置かない（見えない鹿に箱を付けない）。
+[placement]
+distance_m = [8.0, 50.0]
+lateral_m = [-6.0, 6.0]
+shoulder_jitter = 0.1
+max_deer = 3
+extra_deer_p = 0.25
+min_gap_m = 2.5
+tries = 20
+
+[composite]
+blur_px = [0.4, 1.2]
+noise = [1.0, 4.0]
+floor_percentile = 2.0
+jpeg_quality = 95
+
+# 大きさは L0 の入力（640×480）の画素。合成は 1920×1080 なので横 ×3・縦 ×2.25 に直して比べる。
+# min_contrast はノイズを足す前の合成と背景の差の絶対値の平均（8 bit）。
+# max_bright_ratio: (鹿の明るさの中央値 + 5) / (箱の中の背景の 90 百分位 + 5) の上限。
+[accept]
+l0_size = [640, 480]
+min_box_h = 8.0
+min_visible = 40.0
+min_contrast = 10.0
+max_cut = 0.3
+max_bright_ratio = 3.0
