@@ -1,3 +1,4 @@
+import type { Lang } from '@antler/schema'
 import type { Dashboard, NavHint } from '../domain/dashboard'
 
 // ダッシュボード（drive-tune R5）の表示の文字。dashboardOf の値から純粋に決める（描画と分けてテストする）。
@@ -35,16 +36,35 @@ export function formatKm(km: number): string {
   return v < 10 ? v.toFixed(1) : String(Math.round(v))
 }
 
-export function navText(nav: NavHint): string {
-  const km = formatKm(nav.km)
-  switch (nav.kind) {
-    case 'zone-ahead':
-      return `${km} km 先 鹿ゾーン`
-    case 'in-zone':
-      return `鹿ゾーン 残り ${km} km`
-    case 'destination':
-      return `目的地まで ${km} km`
-  }
+/**
+ * ナビの次の案内の文（4 言語。`{km}` を差し込む。docs/specs/i18n/functional.md R5）。
+ * canvas（Dashboard.tsx）への言語の配線は performance のセッションの範囲（i18n の Deferred）。それまで既定の ja で描く
+ */
+export const NAV_TEXT: Record<Lang, Record<NavHint['kind'], string>> = {
+  ja: {
+    'zone-ahead': '{km} km 先 鹿ゾーン',
+    'in-zone': '鹿ゾーン 残り {km} km',
+    destination: '目的地まで {km} km',
+  },
+  en: {
+    'zone-ahead': 'Deer zone in {km} km',
+    'in-zone': 'Deer zone, {km} km left',
+    destination: '{km} km to destination',
+  },
+  zh: {
+    'zone-ahead': '{km} km 後 鹿出沒區',
+    'in-zone': '鹿出沒區 剩餘 {km} km',
+    destination: '距目的地 {km} km',
+  },
+  ko: {
+    'zone-ahead': '{km} km 앞 사슴 구역',
+    'in-zone': '사슴 구역 남은 거리 {km} km',
+    destination: '목적지까지 {km} km',
+  },
+}
+
+export function navText(nav: NavHint, lang: Lang = 'ja'): string {
+  return NAV_TEXT[lang][nav.kind].replace('{km}', formatKm(nav.km))
 }
 
 export function formatDashboard(d: Dashboard): DashboardText {

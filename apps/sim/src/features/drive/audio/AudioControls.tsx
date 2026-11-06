@@ -75,7 +75,7 @@ export function AudioControls({ settings, lang }: Props) {
       className="drive-audio"
       role="group"
       aria-label={text.group}
-      lang={lang === 'zh' ? 'zh-TW' : lang}
+      lang={lang === 'zh' ? 'zh-Hant' : lang}
     >
       <button
         type="button"

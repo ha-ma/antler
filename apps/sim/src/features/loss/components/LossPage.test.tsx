@@ -12,6 +12,11 @@ import { LossPage } from './LossPage'
 // A-6 の画面（docs/specs/loss/functional.md AC-2・UC-1b・UC-2c・UC-2d・UC-4a・UC-5d・UC-5e・UC-7b、resilience.md の端末の行）。
 // api は fetch のスタブ。ペルソナの旅（5 日・4 人・楽しみ 2 件）の D2 の移動（鶴居 → 知床）で、タンチョウのあとに衝突。
 
+// しおりを読む前の文言はブラウザの言語で出す（i18n R5）。既定は日本語のブラウザ（jsdom の既定は en-US）
+beforeEach(() => {
+  vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ja-JP'])
+})
+
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
@@ -374,5 +379,28 @@ describe('LossPage（A-6）', () => {
     ).toBeInTheDocument()
     expect(await screen.findByText(STORY.en)).toBeInTheDocument()
     expect(document.querySelector('.loss')).toHaveAttribute('lang', 'en')
+  })
+})
+
+describe('LOSS-1: しおりを読む前・失敗はブラウザの言語（i18n R5）', () => {
+  it('LOSS-1: zh-TW のブラウザで読み込み中は zh、lang は zh-Hant', async () => {
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['zh-TW'])
+    stubApi(() => 'hang')
+    renderLoss(lossHref(collision))
+    expect(await screen.findByRole('status')).toHaveTextContent('正在載入行程表')
+    expect(document.querySelector('main')).toHaveAttribute('lang', 'zh-Hant')
+  })
+
+  it('LOSS-1: en のブラウザで読めない URL は en', async () => {
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-US'])
+    stubApi(() => okDay())
+    const href = lossHref({ ...collision, speedKmh: 54 }).replace('speed=54', 'speed=250')
+    renderLoss(href)
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: 'The collision details could not be read.',
+      }),
+    ).toBeInTheDocument()
   })
 })

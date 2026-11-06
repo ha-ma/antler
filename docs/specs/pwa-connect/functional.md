@@ -4,11 +4,13 @@ target_paths:
   - apps/pwa/src/features/connect/
   - apps/pwa/src/app/
   - apps/pwa/scripts/fake-edge.mjs
-spec_confirmed_at: f91683b
+spec_confirmed_at: a138fb0
 tier: 1
 ---
 
 # 仕様: pwa-connect（スマホ PWA が車載の検知につながり、3 状態を出す）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 描画が壊れたときのエラー画面を 4 言語を並べる形にした（先頭はブラウザの言語＝`resolveLang`、各行に `lang`）。この仕様のルールは変えていない。
 
 ## 概要
 

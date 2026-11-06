@@ -22,6 +22,21 @@ describe('AppErrorBoundary', () => {
     error.mockRestore()
   })
 
+  it('ERR-1: 4 言語を並べ、先頭の行はブラウザの言語（それぞれ lang を持つ）', () => {
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ko-KR'])
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    render(
+      <AppErrorBoundary>
+        <Boom />
+      </AppErrorBoundary>,
+    )
+    const lines = [...screen.getByRole('alert').querySelectorAll('p')]
+    expect(lines.map((p) => p.getAttribute('lang'))).toEqual(['ko', 'ja', 'en', 'zh-Hant'])
+    expect(lines[0]).toHaveTextContent('새로 고쳐')
+    error.mockRestore()
+    vi.restoreAllMocks()
+  })
+
   it('例外が無ければ子をそのまま出す', () => {
     render(
       <AppErrorBoundary>

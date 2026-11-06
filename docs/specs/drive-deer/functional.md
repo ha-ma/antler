@@ -10,6 +10,10 @@ tier: 1
 
 # 仕様: drive-deer（鹿の回数・ゾーンの長さ・動き 12 種・至近の飛び出し・当たり判定・左右の検知）
 
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 見本の場面の言語を `?lang=` で選べるようにし（無ければブラウザの言語）、ダッシュボードのナビの文の表を 4 言語にした（canvas への配線は performance のセッション）。鹿の出し方は変えていない。この仕様のルールは変えていない。
+
+> 2026-11-06 mobile-landscape が運転画面にスマホの入力と配置を足した（`docs/specs/mobile-landscape/functional.md`）。鹿の出方・赤の出し方は変えていない（赤のバナーの位置だけ、上の帯の下・左右の列の間に移した）。
+
 ## 概要
 
 ユーザーが 2026-11-06 にローカルで運転を試した 2 回目の指摘のうち、鹿まわりの 6 つ（変更記録 `docs/changes/2026-11-06-a-local-feedback-2-deer.md`）を A-3 の運転（`apps/sim/src/features/drive/`）に入れる。

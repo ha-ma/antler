@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { DriveEngine } from '../domain/engine'
+import type { InputTarget } from '../domain/input-mix'
 import { NO_INPUT, type DriveInput } from '../types'
 
 // キー入力（R3、A3-3）。W/S/A/D と Space。矢印キーも同じに扱う。
@@ -25,8 +25,11 @@ function isFormField(target: EventTarget | null): boolean {
   )
 }
 
-/** キーの押下をエンジンの入力にする。enabled が false の間は入力を空にする */
-export function useKeyboardDrive(engine: DriveEngine, enabled: boolean): void {
+/**
+ * キーの押下をエンジンの入力にする。enabled が false の間は入力を空にする。
+ * 渡す先はエンジンか、指の入力と合わせる口（InputMixer の 'keys'。mobile-landscape R3）
+ */
+export function useKeyboardDrive(engine: InputTarget, enabled: boolean): void {
   // eslint-disable-next-line no-restricted-syntax -- window のキーイベントの購読（外部イベント）
   useEffect(() => {
     if (!enabled) return undefined

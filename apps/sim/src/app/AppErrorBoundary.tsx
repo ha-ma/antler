@@ -1,5 +1,11 @@
+import type { Lang } from '@antler/schema'
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { browserLang } from '@/shared/utils/browser-lang'
 import { logger } from '@/shared/utils/logger'
+import { APP_ERROR_TEXT, errorLangOrder } from './app-text'
+
+/** `lang` 属性（zh は繁体字） */
+const htmlLang = (lang: Lang): string => (lang === 'zh' ? 'zh-Hant' : lang)
 
 type Props = { children: ReactNode }
 type State = { failed: boolean }
@@ -20,7 +26,11 @@ export class AppErrorBoundary extends Component<Props, State> {
     if (this.state.failed) {
       return (
         <div role="alert">
-          <p>表示中に問題が起きました。ページを読み込み直してください。</p>
+          {errorLangOrder(browserLang()).map((lang) => (
+            <p key={lang} lang={htmlLang(lang)}>
+              {APP_ERROR_TEXT[lang]}
+            </p>
+          ))}
         </div>
       )
     }

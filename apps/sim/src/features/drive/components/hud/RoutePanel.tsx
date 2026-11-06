@@ -3,7 +3,7 @@ import { placeById, pleasureById } from '@antler/trip'
 import { formatJstTime } from '../../domain/clock'
 import type { DriveSnapshot } from '../../domain/engine'
 import type { DriveScenario } from '../../types'
-import { HUD_TEXT } from './hud-text'
+import { hudText } from './hud-text'
 
 /**
  * いまの区間の案内（drive-tune R4、UC-4a）。HUD の左（ゾーン状態の下）に、その日の区間・目的地までの km と到着予定・
@@ -16,12 +16,13 @@ export function RoutePanel({
   scenario: DriveScenario
   snapshot: DriveSnapshot
 }) {
-  const t = HUD_TEXT.route
-  const from = placeById(scenario.from)?.name.ja ?? scenario.from
-  const to = placeById(scenario.to)?.name.ja ?? scenario.to
+  const { lang } = snapshot
+  const t = hudText(lang).route
+  const from = placeById(scenario.from)?.name[lang] ?? scenario.from
+  const to = placeById(scenario.to)?.name[lang] ?? scenario.to
   const pleasures = scenario.stops.flatMap((id) => {
     const p = pleasureById(id)
-    return p ? [{ id, name: p.name.ja, note: p.note.ja }] : []
+    return p ? [{ id, name: p.name[lang], note: p.note[lang] }] : []
   })
   const { stage, destination } = snapshot
   return (

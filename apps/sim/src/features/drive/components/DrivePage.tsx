@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { AudioControls } from '../audio/AudioControls'
-import { ChatFeed } from '../chat/ChatFeed'
+import { ChatFeed, htmlLang } from '../chat/ChatFeed'
 import { useDriveSoundAndChat } from '../chat/use-drive-sound-and-chat'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
@@ -9,17 +9,20 @@ import { useAlertSound } from '../hooks/use-alert-sound'
 import { useAutoPause } from '../hooks/use-auto-pause'
 import { useDriveSnapshot } from '../hooks/use-drive-snapshot'
 import { useKeyboardDrive } from '../hooks/use-keyboard-drive'
+import { useMobileDrive } from '../hooks/use-mobile-drive'
 import { briefHref } from '../hooks/use-drive-params'
 import { useWebGL2 } from '../hooks/use-webgl2'
 import type { DriveResult, World } from '../types'
 import { BottomBar } from './hud/BottomBar'
 import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
-import { HUD_TEXT } from './hud/hud-text'
+import { hudText } from './hud/hud-text'
 import { TopBar } from './hud/TopBar'
 import { RecommendCard } from './hud/RecommendCard'
 import { RoutePanel } from './hud/RoutePanel'
 import { StageBanner } from './hud/StageBanner'
+import { TouchControls } from './hud/TouchControls'
+import { RotateGuide } from './RotateGuide'
 import { ZoneStatusPanel } from './hud/ZoneStatusPanel'
 import { loadDriveCanvas } from '../scene/load-drive-canvas'
 import { FrameMeter } from './FrameMeter'
@@ -73,7 +76,10 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
   const snapshot = useDriveSnapshot(engine)
   const supported = useWebGL2(webgl2)
   const driving = started && snapshot.outcome === 'driving'
-  useKeyboardDrive(engine, driving)
+  // スマホの横画面（mobile-landscape）: キーと指の入力を合わせ、ジャイロ・縦の案内を受け持つ
+  const mobile = useMobileDrive(engine, driving)
+  useKeyboardDrive(mobile.keysInput, driving)
+  const touchPads = mobile.touch && driving && !mobile.portrait
   useAutoPause(engine)
 
   const world = useCallback(() => engine.world, [engine])
@@ -99,15 +105,18 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
       ? briefHref(scenario.trip.id, scenario.day, scenario.alertEnabled)
       : undefined
   // 運転の音（エンジン・ブレーキ・ラジオ・会話の通知音）もボタンの操作の中で鳴らし始める（自動再生の決まり）
+  // ジャイロの許可（iOS）も同じ操作の中で聞く。結果は待たない（mobile-landscape R4）
   const begin = () => {
     void sound.start()
     void drive.audio.start()
+    mobile.askGyro()
     setStarted(true)
   }
   const retry = () => {
     engine.restart()
     void sound.start()
     void drive.audio.start()
+    mobile.askGyro()
   }
 
   // 一時停止・終了・音トグル OFF ではビープと読み上げを止める（R7）
@@ -123,58 +132,81 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
 
   if (!supported) {
     return (
-      <main className="drive" data-theme="night">
+      <main className="drive" data-theme="night" lang={htmlLang(snapshot.lang)}>
         <p className="drive-start" role="alert">
-          {HUD_TEXT.noWebgl}
+          {hudText(snapshot.lang).noWebgl}
         </p>
       </main>
     )
   }
 
   return (
-    <main className="drive" data-theme="night">
-      <div className="drive__scene">
-        {canvas ? (
-          canvas({ world, phone, onFrame })
-        ) : (
-          <Suspense fallback={null}>
-            <Scene world={world} phone={phone} onFrame={onFrame} />
-          </Suspense>
+    <main className="drive" data-theme="night" lang={htmlLang(snapshot.lang)}>
+      {/* 縦の案内の間は、下の画面に Tab・読み上げで届かないようにする（inert。a11y C2） */}
+      <div className="drive__content" inert={mobile.portrait}>
+        <div className="drive__scene" {...mobile.sceneLook}>
+          {canvas ? (
+            canvas({ world, phone, onFrame })
+          ) : (
+            <Suspense fallback={null}>
+              <Scene world={world} phone={phone} onFrame={onFrame} />
+            </Suspense>
+          )}
+        </div>
+        {started && (
+          <div className="drive-hud" data-touch={touchPads}>
+            <div className="drive-hud__left">
+              <ZoneStatusPanel snapshot={snapshot} />
+              <RoutePanel scenario={scenario} snapshot={snapshot} />
+            </div>
+            <StageBanner snapshot={snapshot} />
+            <TopBar
+              snapshot={snapshot}
+              onRate={(rate) => engine.setRate(rate)}
+              onPause={(paused) => engine.setPaused(paused)}
+            />
+            {snapshot.alertEnabled && snapshot.outcome === 'driving' && (
+              <DangerOverlay alert={snapshot.alert} lang={snapshot.lang} />
+            )}
+            <BottomBar
+              speedKmh={snapshot.speedKmh}
+              soundOn={soundOn}
+              onSound={setSoundOn}
+              lang={snapshot.lang}
+              keys={!mobile.touchPrimary}
+            />
+            {/* 縦の間は出さない（消えるときに指の入力を離す。回転で pointercancel が来ない端末がある） */}
+            {touchPads && <TouchControls input={mobile.touchInput} lang={snapshot.lang} />}
+            {/* 右の列（drive-tune が --drive-chat-w を空けた）: 右上に車内の会話、右下にゾーンの前のおすすめと
+              運転の音の操作（drive-tourism T8・T14） */}
+            <div className="drive-chat-column">
+              <ChatFeed
+                feed={drive.feed}
+                lang={snapshot.lang}
+                dimmed={snapshot.alert.state === 'danger'}
+              />
+              <RecommendCard engine={engine} lang={snapshot.lang} />
+              <AudioControls settings={drive.settings} lang={snapshot.lang} />
+            </div>
+            <EndBanner
+              outcome={snapshot.outcome}
+              onRetry={retry}
+              briefHref={backToBrief}
+              lang={snapshot.lang}
+            />
+          </div>
+        )}
+        {!started && (
+          <StartOverlay
+            scenario={scenario}
+            noZone={snapshot.stage.count === 0}
+            touch={mobile.touchPrimary}
+            gyro={mobile.touch ? { on: mobile.gyroOn, onToggle: mobile.setGyroOn } : undefined}
+            onStart={begin}
+          />
         )}
       </div>
-      {started && (
-        <div className="drive-hud">
-          <div className="drive-hud__left">
-            <ZoneStatusPanel snapshot={snapshot} />
-            <RoutePanel scenario={scenario} snapshot={snapshot} />
-          </div>
-          <StageBanner snapshot={snapshot} />
-          <TopBar
-            snapshot={snapshot}
-            onRate={(rate) => engine.setRate(rate)}
-            onPause={(paused) => engine.setPaused(paused)}
-          />
-          {snapshot.alertEnabled && snapshot.outcome === 'driving' && (
-            <DangerOverlay alert={snapshot.alert} lang={snapshot.lang} />
-          )}
-          <BottomBar speedKmh={snapshot.speedKmh} soundOn={soundOn} onSound={setSoundOn} />
-          {/* 右の列（drive-tune が --drive-chat-w を空けた）: 右上に車内の会話、右下にゾーンの前のおすすめと
-              運転の音の操作（drive-tourism T8・T14） */}
-          <div className="drive-chat-column">
-            <ChatFeed
-              feed={drive.feed}
-              lang={snapshot.lang}
-              dimmed={snapshot.alert.state === 'danger'}
-            />
-            <RecommendCard engine={engine} lang={snapshot.lang} />
-            <AudioControls settings={drive.settings} lang={snapshot.lang} />
-          </div>
-          <EndBanner outcome={snapshot.outcome} onRetry={retry} briefHref={backToBrief} />
-        </div>
-      )}
-      {!started && (
-        <StartOverlay scenario={scenario} noZone={snapshot.stage.count === 0} onStart={begin} />
-      )}
+      {mobile.portrait && <RotateGuide lang={snapshot.lang} />}
       {/* 開発用の fps の表示（?fps=1 のときだけ。performance R2） */}
       <FrameMeter engine={engine} />
     </main>

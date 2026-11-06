@@ -14,11 +14,13 @@ target_paths:
   - apps/api/src/infrastructure/http/schemas/stop-deck.schema.ts
   - apps/api/src/infrastructure/http/schemas/trip-event.schema.ts
   - apps/sim/src/features/stop-events/
-spec_confirmed_at: 5939fc8
+spec_confirmed_at: a138fb0
 tier: 2
 ---
 
 # 仕様: stop-events（A-4 観光スポット・車を降りる／Claude が出来事の文を書く／イベントログ）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で api の場面の文の検証を共通の文字種の規則（`lang-script-policy`）に寄せ、zh の簡体字も落とすようにした（外れたら今までどおり 1 回だけ作り直す）。この仕様のルールは変えていない。
 
 ## 概要
 

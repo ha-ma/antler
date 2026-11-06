@@ -13,7 +13,8 @@
   },
   "scripts": {
     "build:tokens": "tsx scripts/build-tokens.ts",
-    "build:sounds": "tsx scripts/build-sounds.ts"
+    "build:sounds": "tsx scripts/build-sounds.ts",
+    "test": "vitest run src"
   },
   "dependencies": {
     "@antler/schema": "^0.0.0"
@@ -23,6 +24,7 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@antler/i18n-check": "^0.0.0",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@types/react": "^19.3.0",

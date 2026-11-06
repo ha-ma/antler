@@ -4,11 +4,13 @@ target_paths:
   - packages/schema/
   - packages/alert-ui/
   - edge/detector/tests/test_schema_contract.py
-spec_confirmed_at: 9fecde3
+spec_confirmed_at: a138fb0
 tier: 2
 ---
 
 # 仕様: alert-ui（共通スキーマと 3 状態アラート）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で `package.json` に `test` の script（`vitest run src`）と devDependency `@antler/i18n-check` を足し、文言の表の検査 `src/i18n-tables.test.ts` を足した。公開 API（props・型・`resolveLang`・`ALERT_TEXT`）は変えていない（alert-contract-guard Critical 0）。この仕様のルールは変えていない。
 
 ## 概要
 

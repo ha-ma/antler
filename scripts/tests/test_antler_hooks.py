@@ -72,6 +72,76 @@ check("capture 以外のファイルの lat は対象外", denied("packages/zone
 check("UI に絵文字 → 止める", bool(denied("apps/pwa/src/features/drive/View.tsx", "<span>\U0001F98C</span>", "pwa")))
 check("✓ ✕ は通す", denied("apps/sim/src/features/plan/Strip.tsx", "<span>✓</span><span>✕</span>") == [])
 
+# 規則 5: i18n の直書き（docs/specs/i18n/functional.md R4、INV-2）
+def i18n(rel: str, content: str, key: str = "content") -> bool:
+    return any(m.startswith("i18n:") for m in denied(rel, content, key=key))
+
+
+UI = "apps/sim/src/features/drive/components/Thing.tsx"
+check("INV-2: JSX の地の文 → 止める", i18n(UI, "export const T = () => <p>出発</p>\n"))
+check("INV-2: JSX の属性 → 止める", i18n(UI, "export const T = () => <svg aria-label=\"鹿\" />\n"))
+check("INV-2: throw の文 → 止める", i18n("apps/pwa/src/features/x/y.ts", "throw new Error('壊れた')\n"))
+check("INV-2: ハングルだけでも止める", i18n(UI, "const k = '출발'\n"))
+check("INV-2: Prettier の折り返し（文字列が次の行）→ 止める",
+      i18n(UI, "const msg =\n  cond\n    ? 'Loading'\n    : '読み込み中'\n"))
+check("INV-2: 外側が言語の表でも名前の規則の外なら止める",
+      i18n("apps/sim/src/features/drive/components/labels.ts",
+           "export const L = {\n  ja: { go: '出発' },\n  en: { go: 'Go' },\n}\n"))
+check("INV-2: Edit の new_string も見る", i18n(UI, "<p>出発</p>", key="new_string"))
+check("INV-2: alert-ui・trip・api の SSR も見る",
+      i18n("packages/alert-ui/src/x.tsx", "<p>鹿</p>") and i18n("packages/trip/src/x.ts", "'鹿'")
+      and i18n("apps/api/src/infrastructure/http/views/page.ts", "'鹿'"))
+check("INV-2: コメントだけのファイルは通す",
+      not i18n(UI, "// 出発の案内\n/** 鹿ゾーン */\nexport const T = () => <p>{/* 説明 */}{t.go}</p>\n"))
+check("INV-2: URL の // の後ろの文字列は残す（コメントにしない）",
+      i18n(UI, "const u = 'https://example.com'; const s = '鹿'\n"))
+check("INV-2: 正規表現の中の ' で文字列を取り違えない",
+      not i18n(UI, "const q = s.replace(/'/g, '&#39;')\n// 幅の目安\n"))
+check("INV-2: 中黒・長音・全角記号だけは通す", not i18n(UI, "const sep = '・'; const bar = 'ー'; const p = '（'\n"))
+check("INV-2: 名前の規則の表（*-text.ts・text.ts・i18n.ts）は通す",
+      not i18n("apps/sim/src/features/drive/components/hud/hud-text.ts", "ja: '出発'")
+      and not i18n("apps/sim/src/features/loss/text.ts", "ja: '出発'")
+      and not i18n("packages/alert-ui/src/i18n/i18n.ts", "ja: '出発'"))
+check("INV-2: i18n-tables.test.ts が相対パスで import する表は通す（trip の locale.ts）",
+      not i18n("packages/trip/src/locale.ts", "const ABOUT = { ja: '約' }"))
+check("INV-2: 例外の表（理由つき）のファイルは通す", not i18n("apps/sim/src/main.tsx", "throw new Error('無い')"))
+check("INV-2: 例外の表のファイルは全部実在し、理由がある",
+      all((ROOT / path).is_file() and reason.strip() for path, reason in rules.I18N_EXEMPT.items()))
+check("INV-2: テストは対象外", not i18n("apps/sim/src/features/drive/components/Thing.test.tsx", "'出発'"))
+check("INV-2: => や return の後ろの正規表現の中の ' で文字列を取り違えない",
+      not i18n(UI, "const f = (s) => /'/.test(s)\n// 説明\nfunction g() { return /\"/ }\n// 説明\n"))
+
+
+def _edit_in_tmp(original: str, edit: dict) -> bool:
+    """CLAUDE_PROJECT_DIR を一時フォルダにして、実在するファイルへの Edit を規則 5 に通す。"""
+    import os
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        target = Path(tmp) / UI
+        target.parent.mkdir(parents=True)
+        target.write_text(original, encoding="utf-8")
+        before = os.environ.get("CLAUDE_PROJECT_DIR")
+        os.environ["CLAUDE_PROJECT_DIR"] = tmp
+        try:
+            return any(m.startswith("i18n:") for m in rules.local_violations(edit, UI, "sim"))
+        finally:
+            if before is None:
+                os.environ.pop("CLAUDE_PROJECT_DIR", None)
+            else:
+                os.environ["CLAUDE_PROJECT_DIR"] = before
+
+
+DOC = "/**\n * 出発の案内。\n * 旅の言語で出す\n */\nexport const T = () => <p>{t.go}</p>\n"
+check("INV-2: 実在するファイルの JSDoc の途中の Edit は、編集後の全体で見て通す（code-reviewer C2）",
+      not _edit_in_tmp(DOC, {"old_string": "旅の言語で出す", "new_string": "旅の言語（4 言語）で出す"}))
+check("INV-2: 実在するファイルへの Edit で地の文を足せば止める",
+      _edit_in_tmp(DOC, {"old_string": "<p>{t.go}</p>", "new_string": "<p>出発</p>"}))
+check("INV-2: MultiEdit も編集後の全体で見る",
+      not _edit_in_tmp(DOC, {"edits": [{"old_string": "出発の案内。", "new_string": "出発の案内（HUD）。"}]}))
+check("INV-2: UI の源の外（api の domain・scripts）は対象外",
+      not i18n("apps/api/src/domain/trips/x.ts", "'出発'") and not i18n("packages/trip/scripts/x.ts", "'出発'"))
+
 # ch9-status
 TABLE = """# x
 ### 判断記録
