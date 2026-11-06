@@ -108,14 +108,15 @@ describe('GET /api/trips/:id/day/:n', () => {
       expect(again.day).toEqual(body.day)
     }
     expect(passages).toBeGreaterThan(0)
-  })
+    // 全日の DayPlan を 2 回ずつ作る（単独で約 2 秒）。並行セッションで負荷が高いと 5 秒を超える（既知、2026-11-04 の報告）
+  }, 20_000)
 
   it('AUTH-2: 応答のどこにも ownerTokenHash とその値が無い', async () => {
     const { get } = await setup()
     const text = await (await get(`/api/trips/${ID}/day/1`)).text()
     expect(text).not.toContain('ownerTokenHash')
     expect(text).not.toContain(OWNER_HASH)
-  })
+  }, 20_000)
 
   it('UC-5b: n が 1 以上の整数でない → 400 INVALID_INPUT', async () => {
     const { get } = await setup()
