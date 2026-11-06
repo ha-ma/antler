@@ -32,6 +32,7 @@ const USER_AGENT =
   'antler-ezoroad-photo-fetch/0.1 (Built with Claude Japan 2026 hackathon; one-off fetch of a few thumbnails)'
 const THUMB_WIDTH = 500
 const MAX_WIDTH = 800
+const MAX_HEIGHT = 1600
 const INTERVAL_MS = 3000
 const TIMEOUT_MS = 30_000
 const RETRY_WAIT_MS = [10_000, 20_000, 40_000]
@@ -73,13 +74,16 @@ const ApiResponse = z.object({
               }),
             }),
           )
-          .min(1),
+          // 存在しないファイルには imageinfo が無い（その 1 件だけを失敗にする）
+          .optional(),
       }),
     ),
   }),
 })
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+/** Markdown の表のセルに入れる文字（| を逃がす） */
+const cell = (s: string) => s.replace(/\|/g, '\\|')
 
 async function get(url: string, kind: 'api' | 'image'): Promise<Response> {
   if (!isAllowedSource(url, kind)) throw new Error(`許可していない通信先: ${url}`)
@@ -153,7 +157,7 @@ async function readCapped(res: Response): Promise<Uint8Array> {
 }
 
 async function fetchOne(id: string, page: ImageInfo | undefined, today: string) {
-  const image = page?.imageinfo[0]
+  const image = page?.imageinfo?.[0]
   if (!page || !image) throw new Error('ファイルが無い')
   const meta = image.extmetadata
   const license = { code: meta.License?.value ?? '', name: meta.LicenseShortName?.value ?? '' }
@@ -169,12 +173,11 @@ async function fetchOne(id: string, page: ImageInfo | undefined, today: string) 
   if (!kind) throw new Error('JPEG・PNG ではない')
   const bytes = stripJpegMetadata(raw)
   const size = imageSize(bytes)
-  if (!size || size.width > MAX_WIDTH)
+  if (!size || size.width > MAX_WIDTH || size.height > MAX_HEIGHT)
     throw new Error(`大きさが読めないか大きすぎる: ${JSON.stringify(size)}`)
 
   const name = `${id}.${kind}`
-  writeFileSync(path.join(outDir, name), bytes)
-  return {
+  const entry = {
     id,
     file: `photos/${name}`,
     title: page.title.replace(/^File:/, ''),
@@ -191,6 +194,7 @@ async function fetchOne(id: string, page: ImageInfo | undefined, today: string) 
     modification: MODIFICATION,
     review: REVIEW,
   }
+  return { name, bytes, entry }
 }
 
 async function main() {
@@ -199,7 +203,7 @@ async function main() {
   const today = new Date().toISOString().slice(0, 10)
   const pages = await lookup(picks.flatMap((p) => (p.file ? [p.file] : [])))
   await sleep(INTERVAL_MS)
-  const photos = []
+  const fetched: Awaited<ReturnType<typeof fetchOne>>[] = []
   const failed: string[] = []
   for (const pick of picks) {
     if (!pick.file) {
@@ -207,7 +211,7 @@ async function main() {
       continue
     }
     try {
-      photos.push(await fetchOne(pick.id, pages.get(pick.file), today))
+      fetched.push(await fetchOne(pick.id, pages.get(pick.file), today))
       console.log(`✓ ${pick.id}`)
     } catch (error) {
       failed.push(pick.id)
@@ -215,17 +219,21 @@ async function main() {
     }
     await sleep(INTERVAL_MS)
   }
+  // 1 件でも失敗したら何も書かない（画像と記録を 1 対 1 に保つ。前回の記録を消さない）
+  if (failed.length > 0) {
+    console.error(`\n取れなかった: ${failed.join(', ')}。画像と記録は書き換えていない`)
+    process.exitCode = 1
+    return
+  }
+  for (const f of fetched) writeFileSync(path.join(outDir, f.name), f.bytes)
+  const photos = fetched.map((f) => f.entry)
   writeFileSync(manifestFile, `${JSON.stringify(photos, null, 2)}\n`)
   console.log('\nCREDITS.md の行:')
   for (const p of photos) {
     const license = p.licenseUrl ? `[${p.license}](${p.licenseUrl})` : p.license
     console.log(
-      `| ${p.id} | 「${p.title}」 ${p.author} | ${license} | ${p.sourceUrl} | ${p.retrievedAt}・${p.modification} | apps/sim/public/${p.file} |`,
+      `| ${p.id} | 「${cell(p.title)}」 ${cell(p.author)} | ${license} | ${p.sourceUrl} | ${p.retrievedAt}・${p.modification} | apps/sim/public/${p.file} |`,
     )
-  }
-  if (failed.length > 0) {
-    console.error(`\n取れなかった: ${failed.join(', ')}`)
-    process.exitCode = 1
   }
 }
 

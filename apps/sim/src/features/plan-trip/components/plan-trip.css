@@ -413,6 +413,16 @@
   text-underline-offset: 2px;
 }
 
+/* タッチの端末では押せる面を 44px にする（ch8 の規約） */
+@media (pointer: coarse) {
+  .plan-card__credit a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0;
+  }
+}
+
 .plan-pleasures__photos {
   margin-top: var(--space-3);
 }

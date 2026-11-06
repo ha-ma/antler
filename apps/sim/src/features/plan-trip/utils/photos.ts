@@ -32,7 +32,7 @@ const PhotoSchema = z
     /** 保存したファイルの SHA-256（改ざんの確認はこちら） */
     sha256: z.string().regex(/^[0-9a-f]{64}$/),
     width: z.number().int().positive().max(800),
-    height: z.number().int().positive(),
+    height: z.number().int().positive().max(1600),
     /** 改変の内容（CC BY の表示に使う） */
     modification: z.string().min(1),
     /** 写っているもの（顔・商標・鹿）の確認。機械では確かめられないので、確認したことを記録する */

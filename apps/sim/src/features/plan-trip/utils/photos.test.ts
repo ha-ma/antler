@@ -46,7 +46,10 @@ describe('楽しみの写真の記録（photos.json）', () => {
 
   it('PH-3: CREDITS.md に各写真の出典 URL・撮影者・ライセンスがある', () => {
     for (const p of PHOTOS) {
-      const row = credits.split('\n').find((line) => line.startsWith(`| ${p.id} |`))
+      // prettier が表のセルを空白で揃えるので、最初のセルを取り出して比べる
+      const row = credits
+        .split('\n')
+        .find((line) => line.startsWith('|') && line.split('|')[1]?.trim() === p.id)
       expect(row, p.id).toBeDefined()
       expect(row, p.id).toContain(p.sourceUrl)
       expect(row, p.id).toContain(p.author)
