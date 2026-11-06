@@ -133,7 +133,7 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
 
 ## Questions（Deferred のみ残存可）
 
-- [Deferred: 担当=ユーザー（Mac mini 実機、§4 Step 0）/ 期日=2026-11-05（Day 3）/ 暫定挙動=CoreML の読み込みと出力の名前（`confidence`・`coordinates`・メタデータ `names`）は Ultralytics の NMS 付きエクスポートを前提に書き、偽のモデルでだけ確かめた。2026-11-06 に開発用の Mac（M2）で実モデル（yolo26n-deer-20261105、ultralytics 8.4.202・coremltools 9.0）を書き出し、出力の名前と、クラスの列が 80 の倍数まで埋められる形を確かめた（CU-2f）。Mac mini（M1）での ANE fps は未計測。NMS に焼き込まれた `confidenceThreshold`（Ultralytics の既定 0.25）が `[tracker] min_conf`・`[judge] threshold` 以下であること、引き伸ばし（余白なし）での精度は実機で確かめる。精度が落ちるなら 640×480 の入力でエクスポートし直す] 実機での CoreML の確認
+- [Deferred: 担当=ユーザー（Mac mini 実機、§4 Step 0）/ 期日=2026-11-05（Day 3）/ 暫定挙動=CoreML の読み込みと出力の名前（`confidence`・`coordinates`・メタデータ `names`）は Ultralytics の NMS 付きエクスポートを前提に書き、偽のモデルでだけ確かめた。2026-11-06 に開発用の Mac（M2）で実モデル（yolo26n-deer-20261105、ultralytics 8.4.202・coremltools 9.0）を書き出し、出力の名前と、クラスの列が 80 の倍数まで埋められる形を確かめた（CU-2f）。80 は ultralytics の版に依存するので、ultralytics を上げたら実モデルで書き出し直して形を確かめる。Mac mini（M1）での ANE fps は未計測。NMS に焼き込まれた `confidenceThreshold`（Ultralytics の既定 0.25）が `[tracker] min_conf`・`[judge] threshold` 以下であること、引き伸ばし（余白なし）での精度は実機で確かめる。精度が落ちるなら 640×480 の入力でエクスポートし直す] 実機での CoreML の確認
 - [Deferred: 担当=人 B（edge-l1）/ 期日=2026-11-05（Day 3）/ 暫定挙動=`[l1]`・`[l2]` の設定は無い（書くと `ConfigError`）。L0 単独で動く] L1・L2 の設定。あわせて、指示書 §3.5 の L1 の `base_url` の既定 `127.0.0.1:8765` は WebSocket の既定ポート 8765 とぶつかる。edge-l1 で別ポートを決める
 - [Deferred: 担当=人 B（Day 4 の調査走行）/ 期日=2026-11-06 / 暫定挙動=水平画角 70°・車線の半幅 1.75 m・接近の下限 0.5 m/s は暫定。距離表と同じく実車で測り直す] 画角と横位置の較正
 - [Deferred: 担当=人 B（edge-l1）/ 期日=2026-11-05（Day 3）/ 暫定挙動=TTC と横速度は履歴の最初と最後の 2 点の差で出す（最短 0.2 秒）。ボックスの高さの揺れで、止まっている鹿にも TTC が出ることがある。赤の判定には使わない。L1 に渡す前に、回帰などで平滑にするかを決める] TTC の平滑化（edge-latency-reviewer W2）
@@ -159,7 +159,7 @@ UC-2 CoreML の出力:
 - [x] CU-2c: メタデータの `names`（`{0: 'deer'}` の文字列）を読む。読めないとき → 例外
 - [x] CU-2d: [ADDED adversary] BGR の画像を RGB に並べ替え、モデルの入力の大きさに引き伸ばして渡す
 - [x] CU-2e: [ADDED adversary] `names` に `deer` が無いモデルは読み込みで拒否。`Deer` は `deer` として読む。0〜1 をわずかに外れた座標は切り詰められて鹿として残る
-- [x] CU-2f: [ADDED 実モデル] `names` が 1 クラスで `confidence` が N×80 の出力 → 先頭の列だけで鹿の検出になる（埋めた列に値があっても無視）。N×79・N×81・N×160 → 例外。2 クラスで N×80 も読める
+- [x] CU-2f: [ADDED 実モデル] `names` が 1 クラスで `confidence` が N×80 の出力 → 先頭の列だけで鹿の検出になる（埋めた列に値があっても無視）。N×79・N×81・N×160 → 例外。2 クラスで N×80 も読める。切り上げの端: 80 クラスは N×80 だけ（N×160 は例外）、81 クラスは N×81 と N×160（code-reviewer W2）
 - [x] MV-1: `detector.inference` から `DeerDetector`・`ScriptedDetector`・`Detection` が従来どおり import でき、`detector.l0` のものと同じ
 
 UC-3 トラッカー:

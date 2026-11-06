@@ -215,6 +215,17 @@ def test_cu2f_80の倍数まで埋めたクラスの列は無視して読む():
         bad = {"confidence": padded([[0.6]], width), "coordinates": [[0.5, 0.5, 0.2, 0.2]]}
         with pytest.raises(CoreMLOutputError, match="形が違う"):
             CoreMLDetector(loaded(bad), ("deer",), prepare=lambda a: a).detect(image)
+    # 切り上げの端: 80 クラスは 80 列だけ、81 クラスは 81 列か 160 列
+    for n, ok, ng in ((80, (80,), (160,)), (81, (81, 160), (80, 162))):
+        names = ("deer", *(f"c{i}" for i in range(1, n)))
+        for width in (*ok, *ng):
+            out = {"confidence": padded([[0.6]], width), "coordinates": [[0.5, 0.5, 0.2, 0.2]]}
+            det = CoreMLDetector(loaded(out), names, prepare=lambda a: a)
+            if width in ok:
+                assert [(d.label, d.conf) for d in det.detect(image)] == [("deer", 0.6)]
+            else:
+                with pytest.raises(CoreMLOutputError, match="形が違う"):
+                    det.detect(image)
 
 
 # MV-1
