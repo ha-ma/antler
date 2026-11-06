@@ -3,6 +3,8 @@ import type { ReceivedFlag, TripPlan } from '@antler/schema'
 import type { DayPlan } from '@antler/trip'
 import type { LightPeriod, LonLat, RoutePlan } from '@antler/zones'
 import type { DetectorState } from './domain/detection'
+import type { Powertrain } from './domain/powertrain'
+import type { Stage } from './domain/stages'
 import type { Rng } from './domain/rng'
 import type { RoadFrame } from './domain/road'
 
@@ -39,11 +41,18 @@ export type DriveScenario = {
   to: string
   /** その日の移動の距離の合計（km。A-2 の要約と同じ数） */
   distanceKm: number
+  /** その日の楽しみ（しおりで確定した立ち寄りの楽しみの id。区間の案内に出す。drive-tune R4） */
+  stops: string[]
   /**
    * 2 つ目以降の移動の始まり（道のり m と、しおりの出発時刻）。着いたら時計を departAt まで進める（drive-link R3）。
    * 立ち寄り（A-4、stop-events）もこれを使う
    */
   legStarts: { sM: number; departAt: string }[]
+  /**
+   * すべての移動（1 つ目を含む）の始まりの道のり・出発時刻・平均の速さ（m/s。距離 ÷ 所要）。
+   * ステージの始まりの時計を決める（drive-tune R1）
+   */
+  legPace: { sM: number; departAt: string; mps: number }[]
   /** 直線で引いた概算の移動の道のりの範囲（m）。ここにはゾーンの区間も鹿も作らない（drive-link R5） */
   straightRangesM: [number, number][]
   /** 結果を決めるデータの版（旅の場面だけ。A6-4 の再生で同じ版か確かめる） */
@@ -86,6 +95,10 @@ export type VehicleState = {
   speed: number
   /** 横に動く速さ（m/s） */
   lateralSpeed: number
+  /** ブレーキの強さ（0〜1）。踏んでから 0.15 秒で立ち上がる（drive-tune R3） */
+  brakeLevel: number
+  /** ABS が働いている（湿潤・圧雪・凍結で 10 km/h 以上のブレーキ中。drive-tune R3） */
+  abs: boolean
 }
 
 /** 鹿の出現パターン（R5） */
@@ -107,6 +120,8 @@ export type DeerCandidate = {
   herdSize: number
   /** この候補の動きと検知に使う乱数の種 */
   seed: number
+  /** 危険度に関わらず必ず出る（区間の先頭から合わせて 3 頭まで。drive-tune R2） */
+  guaranteed: boolean
 }
 
 /** 鹿の動きの段階（アニメーションの切り替えに使う） */
@@ -187,6 +202,8 @@ export type World = {
   /** シミュレーションの経過（ms、再生速度を掛けたもの）。時計は startAt + t */
   t: number
   vehicle: VehicleState
+  /** オートマの段と回転数（drive-tune R5。ダッシュボードと音の合図） */
+  powertrain: Powertrain
   input: DriveInput
   playback: Playback
   zone: ZoneStatus
@@ -228,6 +245,15 @@ export type SimInternals = {
   collidedDeerId: string | null
   /** 入った鹿ゾーンの区間の数（ゾーンの中から出発したら 1 から数える） */
   zoneEnters: number
+  /** 走るステージと、いま何番目か（drive-tune R1） */
+  stages: Stage[]
+  stageIndex: number
+  /** 最後にステージをクリアした時刻（World.t。HUD の「クリア」の帯に使う） */
+  stageClearedAt: number | null
+  /** 区間ごとに出した鹿の頭数（100 頭で止める。drive-tune R2） */
+  spawnedHeads: Record<number, number>
+  /** ステージのクリアで、まだ前にいたまま消した鹿（遭遇の記録を pending のまま残す） */
+  leftBehind: Set<string>
 }
 
 /**

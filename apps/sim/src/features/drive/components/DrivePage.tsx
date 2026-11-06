@@ -1,4 +1,7 @@
 import { lazy, memo, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
+import { AudioControls } from '../audio/AudioControls'
+import { ChatFeed } from '../chat/ChatFeed'
+import { useDriveSoundAndChat } from '../chat/use-drive-sound-and-chat'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
 import { ZONES } from '../domain/zones-data'
@@ -14,6 +17,8 @@ import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
 import { HUD_TEXT } from './hud/hud-text'
 import { TopBar } from './hud/TopBar'
+import { RoutePanel } from './hud/RoutePanel'
+import { StageBanner } from './hud/StageBanner'
 import { ZoneStatusPanel } from './hud/ZoneStatusPanel'
 import { PhoneScreen } from './PhoneScreen'
 import { StartOverlay } from './StartOverlay'
@@ -27,6 +32,8 @@ import './drive.css'
 // - Local UI state: エンジン（作るのは 1 回）・出発したか・音トグル（3 個）
 // - Form / URL state: URL の ?trip・?day・?alert=off（DriveScreen が読み、場面を作るときに 1 回使う）
 // - useEffect: キー入力・タブの表示・音のコントローラの片づけ（外部の購読。hooks/ に隔離）
+// - 運転の音と車内の会話（drive-audio-chat）: useDriveSoundAndChat が音・音量の設定・会話の表示を持ち、
+//   会話の束（POST /api/trips/:id/day/:n/chat、TanStack Query）を取る
 
 // 3D（three・R3F、gzip 約 300 KB）だけを遅れて読む。出発の案内・HUD・エンジンは three なしで先に出す
 // （performance-analyzer W-2。出発を押すまでに届けばよい）
@@ -57,6 +64,8 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
   const [started, setStarted] = useState(false)
   const [soundOn, setSoundOn] = useState(true)
   const sound = useAlertSound()
+  const renewSound = sound.renew
+  const drive = useDriveSoundAndChat(engine)
   const snapshot = useDriveSnapshot(engine)
   const supported = useWebGL2(webgl2)
   const driving = started && snapshot.outcome === 'driving'
@@ -68,26 +77,33 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
     (dt: number) => {
       if (!started) return
       const events = engine.frame(dt)
+      // ステージを移ったら音のコントローラを作り直す（次のゾーンでチャイムが鳴るように。drive-tune R1）
+      if (events.some((e) => e.type === 'stage-clear') && engine.world.outcome === 'driving') {
+        void renewSound()
+      }
       // 衝突・完走のフレームで 1 回だけ結果を渡す（途中で離れたときは作らない）
       if (onFinish && events.some((e) => e.type === 'collided' || e.type === 'completed')) {
         const result = engine.result()
         if (result) onFinish(result)
       }
     },
-    [engine, started, onFinish],
+    [engine, started, onFinish, renewSound],
   )
   const scenario = engine.world.scenario
   const backToBrief =
     scenario.source === 'trip'
       ? briefHref(scenario.trip.id, scenario.day, scenario.alertEnabled)
       : undefined
+  // 運転の音（エンジン・ブレーキ・ラジオ・会話の通知音）もボタンの操作の中で鳴らし始める（自動再生の決まり）
   const begin = () => {
     void sound.start()
+    void drive.audio.start()
     setStarted(true)
   }
   const retry = () => {
     engine.restart()
     void sound.start()
+    void drive.audio.start()
   }
 
   // 一時停止・終了・音トグル OFF ではビープと読み上げを止める（R7）
@@ -124,7 +140,11 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
       </div>
       {started && (
         <div className="drive-hud">
-          <ZoneStatusPanel snapshot={snapshot} />
+          <div className="drive-hud__left">
+            <ZoneStatusPanel snapshot={snapshot} />
+            <RoutePanel scenario={scenario} snapshot={snapshot} />
+          </div>
+          <StageBanner snapshot={snapshot} />
           <TopBar
             snapshot={snapshot}
             onRate={(rate) => engine.setRate(rate)}
@@ -134,10 +154,21 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
             <DangerOverlay alert={snapshot.alert} lang={snapshot.lang} />
           )}
           <BottomBar speedKmh={snapshot.speedKmh} soundOn={soundOn} onSound={setSoundOn} />
+          {/* 右の列（drive-tune が --drive-chat-w を空けた）: 車内の会話と、運転の音の操作 */}
+          <div className="drive-chat-column">
+            <ChatFeed
+              feed={drive.feed}
+              lang={snapshot.lang}
+              dimmed={snapshot.alert.state === 'danger'}
+            />
+            <AudioControls settings={drive.settings} lang={snapshot.lang} />
+          </div>
           <EndBanner outcome={snapshot.outcome} onRetry={retry} briefHref={backToBrief} />
         </div>
       )}
-      {!started && <StartOverlay scenario={scenario} onStart={begin} />}
+      {!started && (
+        <StartOverlay scenario={scenario} noZone={snapshot.stage.count === 0} onStart={begin} />
+      )}
     </main>
   )
 }

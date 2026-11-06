@@ -16,6 +16,7 @@ import type {
 } from '../types'
 import { etaMs, sunsetOf } from './clock'
 import { summarizeFrames, type FrameSummary } from './frame-stats'
+import { scheduledClockAt } from './stages'
 import {
   advance,
   clockMs as simClockMs,
@@ -55,13 +56,35 @@ export type DriveSnapshot = {
   weather: Weather
   surface: Surface
   encounters: readonly Encounter[]
+  /** いまのステージ（1 始まり）と全部の数。ゾーンの無い日は 0 / 0（drive-tune R1） */
+  stage: { index: number; count: number }
+  /** 最後にステージをクリアした時刻（t）。HUD の「クリア」の帯に使う */
+  stageClearedAt: number | null
+  /** 目的地（その日のルートの終点）までの km と、しおりの速さで走った到着予定（epoch ms。drive-tune R4） */
+  destination: { km: number; etaMs: number }
 }
+
+/** 音を鳴らす側（drive-audio-chat）が毎フレーム読む値（drive-tune R6） */
+export type DriveTelemetry = {
+  rpm: number
+  gear: number | 'R'
+  /** アクセルを踏んでいるか */
+  throttle: boolean
+  /** ブレーキの強さ（0〜1。踏んでから 0.15 秒で立ち上がる） */
+  brake: number
+  speedKmh: number
+  abs: boolean
+}
+
+/** 合図の受け手（drive-tune R6）。そのフレームで起きた出来事（SimEvent）がまとめて届く */
+export type CueListener = (events: readonly SimEvent[]) => void
 
 export class DriveEngine {
   readonly zones: ZoneCollection
   private current: World
   private snapshot: DriveSnapshot
   private readonly listeners = new Set<() => void>()
+  private readonly cueListeners = new Set<CueListener>()
   private sincePublish = 0
   private readonly frameMs: number[] = []
   private sunsetMs: number | null
@@ -97,7 +120,30 @@ export class DriveEngine {
       paused !== this.current.playback.paused ||
       events.length > 0
     if (changed || this.sincePublish >= PUBLISH_MS) this.publish()
+    if (events.length > 0) for (const listener of this.cueListeners) listener(events)
     return events
+  }
+
+  /**
+   * 合図を購読する（drive-tune R6・UC-5a）。ゾーンの出入り・鹿の出現・赤の始まりと解除・ステージのクリア・
+   * 旅程のクリア・衝突が、起きたフレームでまとめて届く。戻り値で購読をやめる。drive は音を鳴らさない
+   */
+  onCue = (listener: CueListener): (() => void) => {
+    this.cueListeners.add(listener)
+    return () => this.cueListeners.delete(listener)
+  }
+
+  /** 毎フレームの値（drive-tune R6・UC-5b）。音を鳴らす側が requestAnimationFrame の中で読む */
+  telemetry(): DriveTelemetry {
+    const w = this.current
+    return {
+      rpm: w.powertrain.rpm,
+      gear: w.powertrain.gear,
+      throttle: w.input.throttle,
+      brake: w.vehicle.brakeLevel,
+      speedKmh: Math.abs(w.vehicle.speed) * 3.6,
+      abs: w.vehicle.abs,
+    }
   }
 
   setInput(input: DriveInput): void {
@@ -169,6 +215,20 @@ export class DriveEngine {
       weather: w.scenario.weather,
       surface: w.scenario.surface,
       encounters: w.encounters.map((e) => ({ ...e })),
+      stage: {
+        index: Math.min(w.internal.stageIndex + 1, w.internal.stages.length),
+        count: w.internal.stages.length,
+      },
+      stageClearedAt: w.internal.stageClearedAt,
+      destination: destinationOf(w, clockMs),
     }
   }
+}
+
+/** 目的地までの km と、いまの位置からしおりの速さで走った到着予定（drive-tune R4） */
+function destinationOf(w: World, clockMs: number): { km: number; etaMs: number } {
+  const endM = w.plan.totalKm * 1000
+  const km = Math.max(0, endM - w.vehicle.s) / 1000
+  const remainingMs = scheduledClockAt(w.scenario, endM) - scheduledClockAt(w.scenario, w.vehicle.s)
+  return { km, etaMs: clockMs + Math.max(0, remainingMs) }
 }

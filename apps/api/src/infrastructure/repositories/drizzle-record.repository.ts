@@ -13,7 +13,7 @@ import * as schema from '../db/schema.js'
 
 type Db = BaseSQLiteDatabase<'async', ResultSet, typeof schema>
 
-const { trips, tripRuns, tripRequests, tripEvents, stopDecks, tripLosses } = schema
+const { trips, tripRuns, tripRequests, tripEvents, stopDecks, tripLosses, tripChats } = schema
 
 type RunRow = typeof tripRuns.$inferSelect
 
@@ -78,6 +78,8 @@ export class DrizzleRecordRepository implements RecordRepository {
     // stop-events の出来事の束とイベントログ（docs/specs/stop-events/functional.md R10）
     await this.db.delete(tripEvents).where(eq(tripEvents.tripId, tripId))
     await this.db.delete(stopDecks).where(eq(stopDecks.tripId, tripId))
+    // 車内の会話の束（docs/specs/drive-audio-chat/threat.md「Authorization Matrix」の DELETE）
+    await this.db.delete(tripChats).where(eq(tripChats.tripId, tripId))
     await this.db.delete(tripRequests).where(eq(tripRequests.tripId, tripId))
     const result = await this.db.delete(trips).where(eq(trips.id, tripId))
     return result.rowsAffected

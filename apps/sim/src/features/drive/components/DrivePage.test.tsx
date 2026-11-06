@@ -1,11 +1,13 @@
 import { AlertSoundController } from '@antler/alert-ui'
-import { act, render, screen } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
 import { ZONES } from '../domain/zones-data'
+import { renderWithProviders } from '@/test/render'
+import { DriveAudio } from '../audio/drive-audio'
 import { DrivePage } from './DrivePage'
 
 // 3D（DriveCanvas）は jsdom で描けないので、スマホの中身とフレームの呼び出しだけを受ける偽物に差し替える。
@@ -19,12 +21,47 @@ function setup(search = '') {
     return <div data-testid="phone">{phone}</div>
   }
   const unlock = vi.spyOn(AlertSoundController.prototype, 'unlock').mockResolvedValue(true)
-  render(<DrivePage createEngine={() => engine} canvas={canvas} webgl2={() => true} />)
+  renderWithProviders(<DrivePage createEngine={() => engine} canvas={canvas} webgl2={() => true} />)
   return { engine, frames, unlock }
 }
 
 afterEach(() => {
   vi.restoreAllMocks()
+})
+
+describe('運転の音と車内の会話の組み込み（drive-audio-chat）', () => {
+  it('CHAT-4m: 「出発」「もう一度」で運転の音を鳴らし始め、HUD の右の列に会話と音量の操作が出る', async () => {
+    const start = vi.spyOn(DriveAudio.prototype, 'start')
+    const { engine, frames } = setup()
+    expect(start).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    expect(start).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('log', { name: '車内の会話' })).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: '運転の音（鹿の警告の音は別）' })).toBeInTheDocument()
+    expect(screen.getByRole('slider', { name: '運転の音の大きさ' })).toBeInTheDocument()
+    // 道のりが会話の行を越えると、見本の会話が出る（見本の運転は api を呼ばない）
+    const { vehicle, plan } = engine.world
+    engine.world.vehicle = { ...vehicle, s: Math.min(plan.totalKm * 1000 - 10, vehicle.s + 25_000) }
+    act(() => frames.onFrame(200))
+    await waitFor(() => {
+      expect(document.querySelectorAll('.drive-chat__line').length).toBeGreaterThan(0)
+    })
+    engine.restart()
+    expect(engine.world.t).toBe(0)
+  })
+
+  it('CHAT-4m: 音量のスライダーにフォーカスがあるとき、矢印キーで運転しない（a11y C1）', async () => {
+    const { engine } = setup()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    const slider = screen.getByRole('slider', { name: '運転の音の大きさ' })
+    slider.focus()
+    await userEvent.keyboard('{ArrowLeft}')
+    expect(engine.world.input.left).toBe(false)
+    slider.blur()
+    await userEvent.keyboard('{ArrowLeft>}')
+    expect(engine.world.input.left).toBe(true)
+    await userEvent.keyboard('{/ArrowLeft}')
+  })
 })
 
 describe('drive の画面（R7・R8・R12）', () => {
@@ -62,16 +99,20 @@ describe('drive の画面（R7・R8・R12）', () => {
   it('UC-7g: 終わりの帯の「同じシードでもう一度」で最初からやり直し、音のコントローラを作り直して unlock() する', async () => {
     const { engine, frames, unlock } = setup()
     await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    // 最後のステージの出口の手前に置く（その出口を抜けると完走。drive-tune R1）
+    const stages = engine.world.internal.stages
+    engine.world.internal.stageIndex = stages.length - 1
     engine.world.vehicle = {
       ...engine.world.vehicle,
-      s: engine.world.internal.frame.lengthM - 1.5,
+      s: (stages[stages.length - 1]?.exitM ?? 0) - 1.5,
       speed: 20,
     }
     act(() => frames.onFrame(100))
     expect(screen.getByRole('heading', { name: '完走しました' })).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '同じシードでもう一度' }))
     expect(unlock).toHaveBeenCalledTimes(2)
-    expect(engine.world.vehicle.s).toBe(0)
+    expect(engine.world.vehicle.s).toBe(engine.world.internal.stages[0]?.startM)
+    expect(engine.world.internal.stageIndex).toBe(0)
     expect(screen.queryByRole('heading', { name: '完走しました' })).toBeNull()
   })
 
@@ -108,8 +149,23 @@ describe('drive の画面（R7・R8・R12）', () => {
     expect(update).toHaveBeenLastCalledWith(expect.objectContaining({ muted: true }))
   })
 
+  it('UC-4f: ステージを移るときに音のコントローラを作り直す（2 つ目のゾーンでもチャイムが鳴る。drive-tune R1）', async () => {
+    const { engine, frames, unlock } = setup()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    expect(unlock).toHaveBeenCalledTimes(1)
+    const first = engine.world.internal.stages[0]
+    if (!first) throw new Error('ステージがない')
+    engine.world.vehicle = { ...engine.world.vehicle, s: first.exitM - 1, speed: 20 }
+    act(() => frames.onFrame(100))
+    expect(engine.world.internal.stageIndex).toBe(1)
+    await waitFor(() => expect(unlock).toHaveBeenCalledTimes(2))
+    expect(screen.getByTestId('stage-banner')).toHaveTextContent('ステージ 1 / 2 クリア')
+  })
+
   it('UC-7h: WebGL2 が使えなければ 3D を出さずに案内を出す', () => {
-    render(<DrivePage webgl2={() => false} canvas={() => <div data-testid="scene" />} />)
+    renderWithProviders(
+      <DrivePage webgl2={() => false} canvas={() => <div data-testid="scene" />} />,
+    )
     expect(screen.getByRole('alert')).toHaveTextContent('WebGL2 が必要です')
     expect(screen.queryByTestId('scene')).toBeNull()
   })

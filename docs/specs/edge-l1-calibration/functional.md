@@ -8,11 +8,13 @@ target_paths:
   - edge/detector/src/detector/l1/calibrate.py
   - edge/detector/tests/test_l1_calibrate.py
   - edge/detector/tests/l1_synth.py
-spec_confirmed_at: c527e94
+spec_confirmed_at: e116c19
 tier: 2
 ---
 
 # 仕様: edge-l1-calibration（L1 の校正: A のシミュレーションのログ → 正解付き JudgeRequest、質問ごとの温度スケーリング）
+
+**dataset-train（2026-11-06）での変更**: `dataset/pyproject.toml` のカバレッジと isort に `train_l0` を足し、`dataset/tests/` に `test_train_l0.py` を足した（`docs/specs/dataset-train/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要
 

@@ -153,12 +153,18 @@ describe('DeleteTripUseCase', () => {
         sql: "INSERT INTO trip_events (trip_id, run_id, seq, day, kind, at, alert_enabled, data, received_at) VALUES (?, 'r', 0, 1, 'collision', '2027-02-14T12:00+09:00', 1, '{}', 0)",
         args: [t.id],
       })
+      // drive-audio-chat の会話の束（threat.md の DELETE。旅の削除で一緒に消す）
+      await h.conn.client.execute({
+        sql: "INSERT INTO trip_chats (key_hash, trip_id, day, deck, created_at) VALUES (?, ?, 1, '{}', 0)",
+        args: [`chat-${t.id}`, t.id],
+      })
     }
     await h.deleteTrip.execute({ tripId: a.id, ownerToken: a.ownerToken })
     const rowsA = await h.rowsOfTrip(a.id)
     // 旅の id を持つ表が増えたら、ここと DrizzleRecordRepository.deleteTrip の両方を直す（足し忘れを止める）
     expect(Object.keys(rowsA).sort()).toEqual([
       'stop_decks',
+      'trip_chats',
       'trip_events',
       'trip_losses',
       'trip_requests',
@@ -174,6 +180,7 @@ describe('DeleteTripUseCase', () => {
       stop_decks: 1,
       trip_events: 1,
       trip_losses: 1,
+      trip_chats: 1,
     })
   })
 

@@ -251,7 +251,14 @@ describe('出発の案内と結果（R7・R8）', () => {
     // 終点の手前に置いて 1 フレーム進める（終点まで走りきるのは domain の受け入れテストで見た）
     const world = frames.world()
     if (!world) throw new Error('World がない')
-    world.vehicle = { ...world.vehicle, s: world.internal.frame.lengthM - 1.5, speed: 20 }
+    // 最後のステージの出口の手前に置く（その出口を抜けると完走。drive-tune R1）
+    const stages = world.internal.stages
+    world.internal.stageIndex = stages.length - 1
+    world.vehicle = {
+      ...world.vehicle,
+      s: (stages[stages.length - 1]?.exitM ?? 0) - 1.5,
+      speed: 20,
+    }
     act(() => frames.onFrame(100))
     expect(results).toHaveLength(1)
     expect(results[0]).toMatchObject({
@@ -266,7 +273,7 @@ describe('出発の案内と結果（R7・R8）', () => {
       `/trip/${TRIP_ID}/brief?day=1`,
     )
     await userEvent.click(screen.getByRole('button', { name: '同じシードでもう一度' }))
-    expect(frames.world()?.vehicle.s).toBe(0)
+    expect(frames.world()?.vehicle.s).toBe(frames.world()?.internal.stages[0]?.startM)
     expect(calls).toHaveLength(1)
   })
 })

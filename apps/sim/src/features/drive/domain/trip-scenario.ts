@@ -48,6 +48,15 @@ export function scenarioFromDay({ plan, day }: TripDayInput, search: string): Dr
 
   const frame = createRoadFrame(route)
   const sAt = (index: number) => frame.cumulativeM[index] ?? 0
+  // すべての移動の始まりと平均の速さ（距離 ÷ 所要。距離か所要が 0 なら 50 km/h の目安）。ステージの時計に使う（drive-tune R1）
+  const legPace = day.legs.map((leg, i) => ({
+    sM: sAt(legStartIndex[i] ?? 0),
+    departAt: leg.departAt,
+    mps:
+      leg.distanceKm > 0 && leg.durationMin > 0
+        ? (leg.distanceKm * 1000) / (leg.durationMin * 60)
+        : 50 / 3.6,
+  }))
   const legStarts = day.legs.slice(1).map((leg, i) => ({
     sM: sAt(legStartIndex[i + 1] ?? 0),
     departAt: leg.departAt,
@@ -72,7 +81,9 @@ export function scenarioFromDay({ plan, day }: TripDayInput, search: string): Dr
     from: first.from,
     to: last.to,
     distanceKm: day.legs.reduce((sum, leg) => sum + leg.distanceKm, 0),
+    stops: day.stops.map((s) => s.id),
     legStarts,
+    legPace,
     straightRangesM,
     data: day.data,
     seed: driveSeed(plan.seed, day.day),

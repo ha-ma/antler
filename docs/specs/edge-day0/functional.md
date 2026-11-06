@@ -10,7 +10,7 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
-spec_confirmed_at: 3d2243b
+spec_confirmed_at: 5ab439a
 tier: 1
 ---
 
@@ -18,7 +18,11 @@ tier: 1
 
 **og-font（2026-11-06）での変更**: CLAUDE.md の MUST と CREDITS.md に、フォントは SIL OFL も可を足した（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
+**dataset-train（2026-11-06）での変更**: CREDITS.md の Ultralytics の行に、学習スクリプトの元の重み（COCO の yolo26n.pt、v8.4.0）を足した。この feature の挙動は変わらない。ただし実データで、正方形の 640×640 で書き出したモデルを L0 が 640×480 から引き伸ばすと精度が大きく落ちた（`docs/reports/2026-11-06-dataset-train-run.md`）。そこで `export_yolo_world.py` の既定の入力も 640×480 にした（EXP-1g。YOLO-World での書き出しは Mac mini での実行が初めての確認）。
+
 **YOLO の素材の取り込み（2026-11-06）での変更**: CREDITS.md に Commons の実写フレーム・Osaki さんの写真・外部の研究の検出器の重み（yolo26n-deer-20261105、AGPL-3.0）の行を足した（`docs/reports/2026-11-06-yolo-materials.md`）。この feature の挙動は変わらない。
+
+**drive-audio-chat（2026-11-06）での変更**: CREDITS.md の素材の表に、運転の音（Web Audio の合成、自作）と車内の会話の固定の文（自作）の 2 行を足した（`docs/specs/drive-audio-chat/`）。この feature の挙動は変わらない。
 
 ## 概要
 
@@ -69,9 +73,9 @@ Questions は全問、推奨で決定（メインセッションの指示。2026
   - 各系で 4 問の正解率（答えた分）・失敗を不正解にした正解率（`accuracy_all`）・回答率（`coverage`）・ECE（10 bin）・p50/p95・失敗（落ちる系ほど難しい例が落ちて正解率が上がる偏りを、回答率で見えるようにする。spec-adversary C）。要求したモデルと別のモデルが答えた系、1 件も答えなかった系は `valid=false`（理由つき、exit 3）。noul は「はい」の確率で、0.5 以上を「はい」とする
   - fmev（macOS 27）は系として未実装（Deferred）
 - R6: YOLO-World → CoreML（推奨で決定）
-  - 重みは `yolov8s-worldv2.pt`（**v2 だけが CoreML に出せる**。Ultralytics 8.4.202 の exporter が v1 を拒否）。`set_classes(["deer"])`（CLIP の取得に git とネットワークが要る）→ `export(format="coreml", nms=True, imgsz=640, conf=0.25, iou=0.7)`
+  - 重みは `yolov8s-worldv2.pt`（**v2 だけが CoreML に出せる**。Ultralytics 8.4.202 の exporter が v1 を拒否）。`set_classes(["deer"])`（CLIP の取得に git とネットワークが要る）→ `export(format="coreml", nms=True, imgsz=[480, 640], conf=0.25, iou=0.7)`。**入力は L0 のフレームと同じ 640×480（高さ 480・幅 640）が既定**（2026-11-06 に 640 の正方形から変更。L0 は余白なしで引き伸ばすので、正方形のモデルでは縦横比が崩れて精度が大きく落ちた。`docs/reports/2026-11-06-dataset-train-run.md`）
   - 出力の名前を **l0 に合わせる（l0 は変えない）**: NMS 付きの書き出しは `confidence` / `coordinates` / メタデータ `names`（`{0: 'deer'}`）になり、l0 の `CoreMLDetector`・`parse_names` の読み方と同じ。書き出した直後に l0 自身の `load_coreml_detector` で黒い 1 枚を推論し、読み方が合うことを確かめる。合わなければ exit 1（出力の名前・形を表示）。黒い画像は検出が 0 件で l0 は形を見ないため、出力の名前は**モデルの宣言**（`get_spec`）で確かめ、形は `--check-image`（鹿の写真）で検出を出して確かめる（`shape_verified`）。`names` が読めないときだけ coremltools で書き足す
-  - `--conf` は `tracker.min_conf`（0.4）以下だけ許す（NMS が 0.4 未満の鹿を消さない。edge-l0 の Deferred）。`--classes` に deer が必須。`--imgsz` は 32 の倍数。同名があれば `--force` まで拒否
+  - `--conf` は `tracker.min_conf`（0.4）以下だけ許す（NMS が 0.4 未満の鹿を消さない。edge-l0 の Deferred）。`--classes` に deer が必須。`--imgsz` は 32 の倍数の 1 つ（正方形）か `高さ,幅`（既定 `480,640`）。同名があれば `--force` まで拒否
   - 置き場所は `edge/detector/models/`（`.gitignore` 済み）。どこから実行しても `models/` を cwd にして書き出す（重み `.pt` がリポジトリ直下に落ちない）。重みはリポジトリに入れない
 - R7: 依存と CREDITS
   - extra `day0` = ultralytics 8.4.202、coremltools 9.0、mlx 0.32.4、numpy<=2.3.5（PyPI の実在と macOS arm64・Python 3.11〜3.13 の wheel を 2026-11-04 に確認）。本体の依存・`dev` に入れない。CI では入れない
@@ -158,6 +162,7 @@ UC-4 書き出し:
 - [x] EXP-1d: deer 無し・names 無し・クラス違い・出力の名前違い・形違いは `ExportError`
 - [x] EXP-1e: `names` が読めないときだけ書き足し、読めるときは触らない。coremltools が無ければ分かる失敗
 - [x] EXP-1f: `--conf` が min_conf を超える・`--classes` に deer が無い → exit 2。`--imgsz` が 32 の倍数でない → 引数エラー
+- [x] EXP-1g: [ADDED dataset-train の実測] `--imgsz` の既定は `[480, 640]`（高さ, 幅）で書き出し器に渡り、報告にも同じ値。`480,640`・`640` の両方の書き方を受け、`480,641`・`400`・`a,b`・`480,640,3` → 引数エラー。報告の `imgsz` はいつも `[高さ, 幅]`（`640` は `[640, 640]`）。書き出したモデルの実際の入力（幅, 高さ）が頼んだ大きさと違う → `ExportError`（`.failed.mlpackage` に残す。code-reviewer W1・W2）
 
 S-3 入力が不正:
 

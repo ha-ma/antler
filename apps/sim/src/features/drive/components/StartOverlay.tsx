@@ -15,9 +15,12 @@ function placeName(slug: string): string {
  */
 export function StartOverlay({
   scenario,
+  noZone = false,
   onStart,
 }: {
   scenario: DriveScenario
+  /** その日のルートに鹿ゾーンが無い（「出発」ですぐにその日の旅程をクリア。drive-tune UC-1e） */
+  noZone?: boolean
   onStart: () => void
 }) {
   const t = HUD_TEXT.start
@@ -35,6 +38,7 @@ export function StartOverlay({
       ) : (
         <p>{t.lead}</p>
       )}
+      {noZone && <p data-testid="no-zone">{HUD_TEXT.stage.noZone}</p>}
       <p>{scenario.alertEnabled ? t.alertOn : t.alertOff}</p>
       <dl className="drive-hud__controls">
         {HUD_TEXT.controls.map(([key, label]) => (

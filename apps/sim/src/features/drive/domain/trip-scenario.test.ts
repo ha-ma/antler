@@ -89,13 +89,25 @@ describe('drive-link 受け入れ（場面）', () => {
         }
       }
     }
-    // 区間ごとに入口の手前から出口の先まで走る（区間の外の 300 km を全部は走らない。テストを軽くする）
-    for (const v of w.plan.intervals) {
-      w.vehicle = { ...w.vehicle, s: v.entryKm * 1000 - 50, speed: 25 }
-      drive(v.exitKm * 1000 + 30)
+    // ステージごとに、入口の手前 50 m まで飛んで出口まで走る（5 km の手前を全部は走らない。テストを軽くする）。
+    // 出口を越えるとステージをクリアして次のステージの始まりへ移り、最後のクリアで completed（drive-tune R1）
+    for (const st of w.internal.stages) {
+      const first = w.plan.intervals[st.intervals[0] ?? 0]
+      w.vehicle = { ...w.vehicle, s: (first?.entryKm ?? 0) * 1000 - 50, speed: 25 }
+      const index = w.internal.stageIndex
+      for (
+        let i = 0;
+        i < 40_000 && w.outcome === 'driving' && w.internal.stageIndex === index;
+        i++
+      ) {
+        advance(w, 100, ZONES)
+        if (w.zone.interval !== null) {
+          entered.add(w.zone.interval)
+          expect(w.alert.state).toBe('zone')
+        }
+      }
       expect(w.alert.state).toBe('safe')
     }
-    w.vehicle = { ...w.vehicle, s: w.internal.frame.lengthM - 30, speed: 25 }
     drive(Infinity)
     expect(w.outcome).toBe('completed')
     expect(entered.size).toBe(w.plan.intervals.length)
@@ -240,6 +252,8 @@ describe('場面（R3・R4）', () => {
     const w = createWorld(scenario, ZONES)
     w.candidates = []
     const legS = scenario.legStarts[0]?.sM ?? 0
+    // しおりより早く着いた（時計を出発の時刻に戻し、ステージの始まりで進めた分を消す）
+    w.internal.clockShiftMs = 0
     w.vehicle = { ...w.vehicle, s: legS - 1, speed: 20 }
     advance(w, 100, ZONES)
     const clock = w.internal.startMs + w.t + w.internal.clockShiftMs
@@ -251,8 +265,9 @@ describe('場面（R3・R4）', () => {
     const w2 = createWorld(late, ZONES)
     w2.candidates = []
     w2.vehicle = { ...w2.vehicle, s: legS - 1, speed: 20 }
+    const shiftBefore = w2.internal.clockShiftMs
     advance(w2, 100, ZONES)
-    expect(w2.internal.clockShiftMs).toBe(0)
+    expect(w2.internal.clockShiftMs).toBe(shiftBefore)
   })
 })
 
