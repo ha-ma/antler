@@ -20,7 +20,8 @@ type Props = {
   dimmed: boolean
 }
 
-export const htmlLang = (lang: Lang): string => (lang === 'zh' ? 'zh-TW' : lang)
+/** `lang` 属性（zh は繁体字の `zh-Hant`。ほかの画面とそろえる。docs/specs/i18n 非機能要件） */
+export const htmlLang = (lang: Lang): string => (lang === 'zh' ? 'zh-Hant' : lang)
 
 export const ChatFeed = memo(function ChatFeed({ feed, lang, dimmed }: Props) {
   const { lines, latest } = useSyncExternalStore(feed.subscribe, feed.getSnapshot)

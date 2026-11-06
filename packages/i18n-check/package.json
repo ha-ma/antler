@@ -1,0 +1,16 @@
+{
+  "name": "@antler/i18n-check",
+  "private": true,
+  "version": "0.0.0",
+  "description": "4 言語（ja / en / zh 繁体字 / ko）の文言の表と Claude の出力の共通の検査（docs/specs/i18n）",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run src"
+  },
+  "dependencies": {
+    "@antler/schema": "^0.0.0"
+  }
+}

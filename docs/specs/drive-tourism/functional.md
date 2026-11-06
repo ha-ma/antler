@@ -10,11 +10,13 @@ target_paths:
   - apps/api/src/application/usecases/chats/
   - apps/api/src/infrastructure/gateways/prompts/chat-writing.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: 7a58bf3
+spec_confirmed_at: 056dadd
 tier: 2
 ---
 
 # 仕様: drive-tourism（A-3 運転中の観光の会話と、鹿ゾーンの前のおすすめ）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で HUD の帯・経路・おすすめのカードの文言を旅の言語で取り出すようにし、api の会話の文の検証を共通の文字種の規則に寄せた。この仕様のルールは変えていない。
 
 > 2026-11-06 mobile-landscape: 高さ 560px 以下では、おすすめのカードの一言を出さず、カードを右の列の 45% までにする（音量の操作を押し出さない。`docs/specs/mobile-landscape/functional.md` R1）。
 

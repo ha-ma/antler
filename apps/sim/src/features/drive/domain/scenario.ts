@@ -1,4 +1,5 @@
-import { TripPlanSchema, type TripPlan } from '@antler/schema'
+import { Lang, TripPlanSchema, type TripPlan } from '@antler/schema'
+import { initialLang } from '@antler/trip'
 import { polylineLengthM, type LonLat, type ZoneCollection } from '@antler/zones'
 import type { DriveScenario } from '../types'
 import { demoSeason } from './demo-season'
@@ -50,12 +51,25 @@ export function driveSeed(tripSeed: number, day: number): number {
  * 固定の場面（2 日目の 16:40）。季節・天候・路面は URL の month・weather から（drive-season R2、demo-season.ts）。
  * 無ければ 2 月・薄暮・圧雪・曇り、4 人なので窓は少し曇る
  */
-export function demoScenario(zones: ZoneCollection, search = ''): DriveScenario {
+/**
+ * 見本の場面の言語（i18n R5）: `?lang=ja|en|zh|ko` があればそれ、無い・知らない値ならブラウザの言語（initialLang）。
+ * 4 言語の画面を撮って確かめるため。旅の場面は旅の言語が正で、`?lang=` を読まない
+ */
+export function demoLang(search: string, languages: readonly string[]): Lang {
+  const parsed = Lang.safeParse(new URLSearchParams(search).get('lang'))
+  return parsed.success ? parsed.data : initialLang(languages)
+}
+
+export function demoScenario(
+  zones: ZoneCollection,
+  search = '',
+  languages: readonly string[] = [],
+): DriveScenario {
   const route = buildDemoRoute(zones)
   const season = demoSeason(search, DEMO_TRIP)
   return {
     source: 'demo',
-    trip: DEMO_TRIP,
+    trip: { ...DEMO_TRIP, lang: demoLang(search, languages) },
     day: 2,
     route,
     startAt: season.startAt,

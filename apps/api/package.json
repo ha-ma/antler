@@ -18,6 +18,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
     "@antler/alert-ui": "^0.0.0",
+    "@antler/i18n-check": "^0.0.0",
     "@antler/schema": "^0.0.0",
     "@antler/trip": "^0.0.0",
     "@antler/zones": "^0.0.0",

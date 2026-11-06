@@ -2,11 +2,13 @@
 feature: drive-tune
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 70bb182
+spec_confirmed_at: 056dadd
 tier: 1
 ---
 
 # 仕様: drive-tune（運転のステージ・必ず出る鹿・実測に合わせたブレーキ・区間の案内・ミラーとダッシュボード）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で ステージの帯・終わりの帯・HUD の文言を 4 言語にした（`hudText(lang)`。`HUD_TEXT.xxx` の直参照は無くなった）。終わりの帯の注記の ja は「このあと喪失の画面（A-6）／旅の記録（A-7）に移ります」に直した（いまの遷移に合わせた）。この仕様のルールは変えていない。
 
 > 2026-11-06 mobile-landscape: 大きい画面の右の列 360px（R4）はそのまま。小さい画面（幅 1100px 以下か高さ 560px 以下）だけ `--drive-chat-w` を `min(260px, 30vw)` にし、ステージの帯は上から 176px・左右の列の間に置く。高さ 560px 以下では区間の案内の楽しみの一覧を出さない（`docs/specs/mobile-landscape/functional.md` R1）。
 

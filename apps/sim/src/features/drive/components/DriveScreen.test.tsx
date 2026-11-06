@@ -4,7 +4,7 @@ import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '@/test/render'
 import { TRIP_ID, tripDayBody } from '@/test/trip-day'
 import { logger } from '@/shared/utils/logger'
@@ -17,6 +17,11 @@ import { DriveScreen } from './DriveScreen'
 // どのテストも本物のエンジンで運転画面を描く（単独で 1 件 1 秒前後、20 件で約 10 秒。sim でいちばん遅いファイル）。
 // 全 workspace を並列で回すと既定の 5 秒を超えることがあるので、このファイルだけ上限を 20 秒にする（2026-11-06）
 vi.setConfig({ testTimeout: 20_000 })
+
+// 旅を読む前の文言はブラウザの言語で出す（i18n R5）。既定は日本語のブラウザ（jsdom の既定は en-US）
+beforeEach(() => {
+  vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ja-JP'])
+})
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -136,6 +141,53 @@ describe('入口（R1）', () => {
     renderDrive('/drive?trip=a!b')
     await expectMessage('旅が見つかりません')
     expect(calls).toEqual([])
+  })
+})
+
+describe('言語（i18n R5）', () => {
+  it('HUD-1: zh の旅は出発の案内と HUD が zh（ja の文が残らない）', async () => {
+    stubApi((day) => ({ status: 200, body: tripDayBody(day, 'zh') }))
+    const frames = renderDrive(`/drive?trip=${TRIP_ID}&day=1`)
+    const go = await screen.findByRole('button', { name: '出發（會播放聲音）' })
+    expect(screen.getByTestId('start-leg')).not.toHaveTextContent(
+      /[\p{Script=Hiragana}\p{Script=Katakana}]/u,
+    )
+    await userEvent.click(go)
+    act(() => frames.onFrame(50))
+    const zone = screen.getByTestId('zone-status')
+    expect(zone).toHaveTextContent('距下一個鹿出沒區')
+    expect(zone).not.toHaveTextContent(/[\p{Script=Hiragana}\p{Script=Katakana}]/u)
+  })
+
+  it('HUD-2: 旅を読み込む前・見つからないときはブラウザの言語', async () => {
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-US'])
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise(() => undefined)),
+    )
+    renderDrive(`/drive?trip=${TRIP_ID}&day=1`)
+    await expectMessage('Loading your trip')
+    expect(document.querySelector('main')).toHaveAttribute('lang', 'en')
+  })
+
+  it('HUD-2: ko のブラウザで trip の形が違えば ko の「見つかりません」', async () => {
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ko-KR'])
+    stubApi(ok)
+    renderDrive('/drive?trip=a!b')
+    await expectMessage('여행을 찾을 수 없습니다')
+  })
+
+  it('HUD-3: 見本の場面は ?lang= の言語（無ければブラウザの言語）', async () => {
+    stubApi(ok)
+    renderDrive('/drive?lang=zh')
+    expect(await screen.findByRole('button', { name: '出發（會播放聲音）' })).toBeInTheDocument()
+  })
+
+  it('HUD-3: ?lang= が無ければブラウザの言語（ko）', async () => {
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ko-KR'])
+    stubApi(ok)
+    renderDrive('/drive')
+    expect(await screen.findByRole('button', { name: '출발 (소리가 납니다)' })).toBeInTheDocument()
   })
 })
 

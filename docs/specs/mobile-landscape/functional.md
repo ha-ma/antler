@@ -2,11 +2,13 @@
 feature: mobile-landscape
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 70bb182
+spec_confirmed_at: 056dadd
 tier: 1
 ---
 
 # 仕様: mobile-landscape（A をスマホの横画面で使う）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）を main に合わせて取り込んだ: 運転の画面の `<main>` に旅の言語の `lang`、`BottomBar`・`EndBanner` に `lang`、出発の案内とキーの説明は `hudText(lang)`、指の端末の説明は `MOBILE_TEXT[lang]`（場面の言語）。横画面の配置・入力のルールは変えていない。
 
 ## 概要
 

@@ -1,13 +1,13 @@
 import { formatKm } from '@antler/alert-ui'
 import { formatJstTime } from '../../domain/clock'
 import type { DriveSnapshot } from '../../domain/engine'
-import { HUD_TEXT } from './hud-text'
+import { hudText } from './hud-text'
 import { StateMark } from './StateMark'
 
 /** 左上のゾーン状態（R11、UC-7d）。アラート OFF でも琥珀は出す（A5-4） */
 export function ZoneStatusPanel({ snapshot }: { snapshot: DriveSnapshot }) {
   const { alert, zone } = snapshot
-  const t = HUD_TEXT.zone
+  const t = hudText(snapshot.lang).zone
   let body: string
   if (alert.state === 'danger') {
     body = t.danger

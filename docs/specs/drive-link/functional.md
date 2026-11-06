@@ -2,11 +2,13 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 70bb182
+spec_confirmed_at: 056dadd
 tier: 1
 ---
 
 # 仕様: drive-link（A-1・A-2 で作った旅を運転 A-3 へ渡す）
+
+> 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 旅を読み込む前（読み込み中・見つからない・失敗）の案内を、ja 固定からブラウザの言語（`initialLang`）にした。読み込んだあとは今までどおり旅の言語。案内の種類・導線・API の呼び方は変えていない。
 
 > 2026-11-06 mobile-landscape が運転画面（`/drive`）にスマホの横画面の配置・縦画面の案内・指とジャイロの入力を足した（`docs/specs/mobile-landscape/functional.md`）。旅の場面の読み込み・結果の受け渡しは変えていない。
 

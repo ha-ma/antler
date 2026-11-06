@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react'
 import { AudioControls } from '../audio/AudioControls'
-import { ChatFeed } from '../chat/ChatFeed'
+import { ChatFeed, htmlLang } from '../chat/ChatFeed'
 import { useDriveSoundAndChat } from '../chat/use-drive-sound-and-chat'
 import { DriveEngine } from '../domain/engine'
 import { demoScenario } from '../domain/scenario'
@@ -16,7 +16,7 @@ import type { DriveResult, World } from '../types'
 import { BottomBar } from './hud/BottomBar'
 import { DangerOverlay } from './hud/DangerOverlay'
 import { EndBanner } from './hud/EndBanner'
-import { HUD_TEXT } from './hud/hud-text'
+import { hudText } from './hud/hud-text'
 import { TopBar } from './hud/TopBar'
 import { RecommendCard } from './hud/RecommendCard'
 import { RoutePanel } from './hud/RoutePanel'
@@ -130,16 +130,16 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
 
   if (!supported) {
     return (
-      <main className="drive" data-theme="night">
+      <main className="drive" data-theme="night" lang={htmlLang(snapshot.lang)}>
         <p className="drive-start" role="alert">
-          {HUD_TEXT.noWebgl}
+          {hudText(snapshot.lang).noWebgl}
         </p>
       </main>
     )
   }
 
   return (
-    <main className="drive" data-theme="night">
+    <main className="drive" data-theme="night" lang={htmlLang(snapshot.lang)}>
       {/* 縦の案内の間は、下の画面に Tab・読み上げで届かないようにする（inert。a11y C2） */}
       <div className="drive__content" inert={mobile.portrait}>
         <div className="drive__scene" {...mobile.sceneLook}>
@@ -170,6 +170,7 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
               speedKmh={snapshot.speedKmh}
               soundOn={soundOn}
               onSound={setSoundOn}
+              lang={snapshot.lang}
               keys={!mobile.touchPrimary}
             />
             {/* 縦の間は出さない（消えるときに指の入力を離す。回転で pointercancel が来ない端末がある） */}
@@ -185,7 +186,12 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
               <RecommendCard engine={engine} lang={snapshot.lang} />
               <AudioControls settings={drive.settings} lang={snapshot.lang} />
             </div>
-            <EndBanner outcome={snapshot.outcome} onRetry={retry} briefHref={backToBrief} />
+            <EndBanner
+              outcome={snapshot.outcome}
+              onRetry={retry}
+              briefHref={backToBrief}
+              lang={snapshot.lang}
+            />
           </div>
         )}
         {!started && (

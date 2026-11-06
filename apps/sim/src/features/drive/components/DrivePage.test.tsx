@@ -212,4 +212,10 @@ describe('drive の画面（R7・R8・R12）', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('WebGL2 が必要です')
     expect(screen.queryByTestId('scene')).toBeNull()
   })
+
+  it('HUD-1: 運転の画面の main は旅の言語の lang を持つ（zh は zh-Hant。a11y C-1）', () => {
+    setup('?lang=zh')
+    expect(document.querySelector('main.drive')).toHaveAttribute('lang', 'zh-Hant')
+    expect(screen.getByRole('button', { name: '出發（會播放聲音）' })).toBeInTheDocument()
+  })
 })

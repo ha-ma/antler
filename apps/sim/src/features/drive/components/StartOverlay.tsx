@@ -1,14 +1,15 @@
+import type { Lang } from '@antler/schema'
 import { placeById } from '@antler/trip'
 import { Link } from 'react-router'
 import { briefHref } from '../hooks/use-drive-params'
 import type { DriveScenario } from '../types'
-import { HUD_TEXT, SURFACE_TEXT, WEATHER_TEXT } from './hud/hud-text'
+import { hudText, SURFACE_TEXT, WEATHER_TEXT } from './hud/hud-text'
 import { MOBILE_TEXT } from './mobile-text'
 import { SeasonSwitch } from './SeasonSwitch'
 
 /** 地点の名前（マスターに無ければ slug のまま） */
-function placeName(slug: string): string {
-  return placeById(slug)?.name.ja ?? slug
+function placeName(slug: string, lang: Lang): string {
+  return placeById(slug)?.name[lang] ?? slug
 }
 
 /**
@@ -31,33 +32,35 @@ export function StartOverlay({
   gyro?: { on: boolean; onToggle: (on: boolean) => void } | undefined
   onStart: () => void
 }) {
-  const t = HUD_TEXT.start
+  const lang = scenario.trip.lang
+  const hud = hudText(lang)
+  const t = hud.start
   const trip = scenario.source === 'trip'
-  const m = MOBILE_TEXT[scenario.trip.lang]
+  const m = MOBILE_TEXT[lang]
   const touchHints = [...m.hints, gyro?.on ? m.lookGyro : m.lookDrag]
   return (
     <section className="drive-start" aria-labelledby="drive-start-title">
       <h1 id="drive-start-title">{trip ? scenario.trip.title : t.title}</h1>
       {trip ? (
         <p data-testid="start-leg">
-          D{scenario.day} {placeName(scenario.from)} → {placeName(scenario.to)}・
-          {HUD_TEXT.trip.distance}{' '}
+          D{scenario.day} {placeName(scenario.from, lang)} → {placeName(scenario.to, lang)}・
+          {hud.trip.distance}{' '}
           <span className="drive-hud__num">{Math.round(scenario.distanceKm)}</span> km・
-          {WEATHER_TEXT[scenario.weather]}・{SURFACE_TEXT[scenario.surface]}
+          {WEATHER_TEXT[lang][scenario.weather]}・{SURFACE_TEXT[lang][scenario.surface]}
         </p>
       ) : (
         <>
           <p>{t.lead}</p>
           <p data-testid="start-conditions">
-            {WEATHER_TEXT[scenario.weather]}・{SURFACE_TEXT[scenario.surface]}
+            {WEATHER_TEXT[lang][scenario.weather]}・{SURFACE_TEXT[lang][scenario.surface]}
           </p>
-          <SeasonSwitch />
+          <SeasonSwitch lang={lang} />
         </>
       )}
-      {noZone && <p data-testid="no-zone">{HUD_TEXT.stage.noZone}</p>}
+      {noZone && <p data-testid="no-zone">{hud.stage.noZone}</p>}
       <p>{scenario.alertEnabled ? t.alertOn : t.alertOff}</p>
       <dl className="drive-hud__controls" data-testid="start-controls">
-        {(touch ? touchHints : HUD_TEXT.controls).map(([key, label]) => (
+        {(touch ? touchHints : hud.controls).map(([key, label]) => (
           <div key={key}>
             <dt>
               <kbd>{key}</kbd>
@@ -86,7 +89,7 @@ export function StartOverlay({
             className="drive-start__link"
             to={briefHref(scenario.trip.id, scenario.day, scenario.alertEnabled)}
           >
-            {HUD_TEXT.trip.toBrief}
+            {hud.trip.toBrief}
           </Link>
         )}
       </div>
