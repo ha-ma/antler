@@ -2,7 +2,8 @@ import { act, render, screen } from '@testing-library/react'
 import type { AudioGraphPort, ScheduledNote } from '../audio/audio-graph'
 import { AudioSettingsStore } from '../audio/audio-settings'
 import { DriveAudio } from '../audio/drive-audio'
-import type { AudioLevels } from '../audio/mix'
+import { DEFAULT_AUDIO_SETTINGS, mixLevels, type AudioLevels } from '../audio/mix'
+import { signalsFromSnapshot } from '../audio/signals'
 import type { DriveSnapshot } from '../domain/engine'
 import { NO_INPUT, type DriveInput, type Encounter } from '../types'
 import { ChatFeedStore } from './chat-feed-store'
@@ -167,29 +168,41 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
       outcome: 'avoided',
     }
     engine.world.input = { ...NO_INPUT, brake: true }
-    step(
-      snapshot({
-        t: 64_000,
-        km: 19.1,
-        inZone: true,
-        alert: { state: 'danger', distance: 30, inZone: true },
-        encounters: [avoided],
-      }),
-    )
+    const dangerSnapshot = snapshot({
+      t: 64_000,
+      km: 19.1,
+      inZone: true,
+      alert: { state: 'danger', distance: 30, inZone: true },
+    })
+    step(dangerSnapshot)
     const danger = graph.levels.at(-1)
+    // 同じ合図の琥珀と比べて、エンジンとブレーキは半分、BGM は 0
+    const same = mixLevels(
+      { ...signalsFromSnapshot(dangerSnapshot, engine.world.input), alert: 'zone' },
+      DEFAULT_AUDIO_SETTINGS,
+    )
     expect(danger?.music).toBe(0)
+    expect(danger?.engine).toBeCloseTo(same.engine / 2)
+    expect(danger?.brakeNoise).toBeCloseTo(same.brakeNoise / 2)
     expect(danger?.brakeNoise).toBeGreaterThan(0)
-    expect(screen.queryByText(REACTION_TEXT.avoided[0].ja)).not.toBeInTheDocument()
 
-    // 赤が終わって 1.5 秒後に出る（琥珀の中なので通知音は鳴らない）
+    // 避けた（赤が終わってから遭遇が avoided になる）→ 赤の後 1.5 秒は待たされ、その後に出る。
+    // 琥珀の中なので通知音は鳴らない
     engine.world.input = { ...NO_INPUT }
     step(snapshot({ t: 66_000, km: 19.12, inZone: true, encounters: [avoided] }))
+    expect(screen.queryByText(REACTION_TEXT.avoided[0].ja)).not.toBeInTheDocument()
     step(snapshot({ t: 67_600, km: 19.2, inZone: true, encounters: [avoided] }))
     expect(screen.getByText(REACTION_TEXT.avoided[0].ja)).toBeInTheDocument()
     expect(graph.notifies).toBe(2)
 
     // 見えるのは新しい 4 行まで
     expect(document.querySelectorAll('.drive-chat__line')).toHaveLength(4)
+
+    // 「もう一度」（t が戻る）→ 表示が消え、最初の行がまた出る
+    step(snapshot({ t: 0, km: 0, speedKmh: 0 }))
+    expect(document.querySelectorAll('.drive-chat__line')).toHaveLength(0)
+    step(snapshot({ t: 1000, km: 0.3 }))
+    expect(screen.getByText('出発だね')).toBeInTheDocument()
     unlink()
     audio.dispose()
   })

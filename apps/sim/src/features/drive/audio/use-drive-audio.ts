@@ -8,6 +8,7 @@ import { DriveAudio } from './drive-audio'
 // 運転の音の持ち手（docs/specs/drive-audio-chat/functional.md R1・R7）。
 // - DriveAudio と設定の store を画面ごとに 1 つ作る。鳴らし始めは「出発」の操作の中の audio.start()（呼ぶのは組み込み側）
 // - タブを隠したら止め、画面を離れたら閉じる（外部資源の寿命なので effect で片づける）
+// - seed と createGraph は最初の描画の値で決まる。場面（seed）が替わるなら、組み込み側で key={scenario.seed} を付けて作り直す
 
 /** 鳴らさない設定（R1）なら音のグラフを作らない */
 export function defaultCreateGraph(): AudioGraphPort | null {

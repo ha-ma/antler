@@ -2,8 +2,8 @@ import { DEFAULT_AUDIO_SETTINGS, type AudioSettings } from './mix'
 
 // ## State設計（運転の音の設定。docs/specs/drive-audio-chat/functional.md R6・R14）
 // - Shared state（この store）: 全体の音量・消音・BGM の ON/OFF。AudioControls（操作）と DriveAudio（鳴らす）が共有する。
-//   React の外（Web Audio のコントローラ）からも読むので、Zustand ではなく subscribe / getSnapshot を持つ小さな store にした
-//   （DriveEngine と同じ形。React からは useSyncExternalStore で読む）。
+//   画面（走行）ごとに作り、テストでは storage を差し替えるので、モジュールに 1 つの Zustand の store ではなく
+//   subscribe / getSnapshot を持つ小さなクラスにした（DriveEngine と同じ形。React からは useSyncExternalStore で読む）。
 // - 永続化: 端末の localStorage（`antler.drive.audio`）。読めない・壊れた値は既定値、書けなければ覚えないだけ。
 // - Server state: なし（サーバーに送らない）。
 

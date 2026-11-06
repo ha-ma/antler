@@ -1,5 +1,5 @@
 import { createRng, deriveSeed } from '../domain/rng'
-import { FALLBACK_TEXT } from './chat-text'
+import { FALLBACK_TEXT, RADIO_FALLBACK_TEXT } from './chat-text'
 import { speakersFor } from './chat-track'
 import type { ChatDeck, ChatLine, RoadTopic, Speaker } from './chat-types'
 
@@ -51,6 +51,15 @@ export function fallbackChatDeck(input: FallbackInput): ChatDeck {
     return lastTopic
   }
   const variant = () => (rng() < 0.5 ? 0 : 1)
+  // 1 人旅はラジオの DJ の文を順に（同乗者の言い方をラジオにさせない）
+  const solo = speakers.length === 1 && speakers[0] === 'radio'
+  let radioIndex = 0
+  const textFor = (topic: Exclude<RoadTopic, 'pleasure'>) => {
+    if (!solo) return FALLBACK_TEXT[topic][variant()]
+    const text = RADIO_FALLBACK_TEXT[radioIndex % RADIO_FALLBACK_TEXT.length]
+    radioIndex += 1
+    return text ?? FALLBACK_TEXT[topic][0]
+  }
 
   const lines: Omit<ChatLine, 'id'>[] = []
   input.legStartsM.forEach((startM, leg) => {
@@ -68,7 +77,7 @@ export function fallbackChatDeck(input: FallbackInput): ChatDeck {
         cue: { kind: 'road', leg, km: round1(departKm) },
         topic: 'depart',
         speaker: nextSpeaker(),
-        text: FALLBACK_TEXT.depart[variant()],
+        text: textFor('depart'),
       })
     }
 
@@ -81,7 +90,7 @@ export function fallbackChatDeck(input: FallbackInput): ChatDeck {
         cue: { kind: 'road', leg, km: round1(moved) },
         topic,
         speaker: nextSpeaker(),
-        text: FALLBACK_TEXT[topic][variant()],
+        text: textFor(topic),
       })
     }
   })

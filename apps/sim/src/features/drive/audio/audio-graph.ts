@@ -37,6 +37,9 @@ const RADIO_LOW_HZ = 300
 const RADIO_HIGH_HZ = 3000
 const HISS_LEVEL = 0.06
 const VOICE_LEVEL: Record<Voice, number> = { bass: 0.5, pad: 0.16, lead: 0.22 }
+/** 音符の終わりから 0 まで下げる時間（秒）。止めるのはその少し後 */
+const RELEASE_S = 0.2
+const STOP_AFTER_S = 0.3
 const VOICE_WAVE: Record<Voice, OscillatorType> = {
   bass: 'triangle',
   pad: 'sine',
@@ -215,18 +218,19 @@ export class WebAudioGraph implements AudioGraphPort {
     return source
   }
 
-  /** 柔らかい立ち上がり（10 ms）と減衰の包絡 */
+  /** 柔らかい立ち上がり（10 ms）と、止める前に 0 まで下がる減衰の包絡（止めるときにぷつっと鳴らない） */
   private envelope(atS: number, durS: number, peak: number): GainNode {
     const env = this.ctx.createGain()
     env.gain.setValueAtTime(0, atS)
     env.gain.linearRampToValueAtTime(peak, atS + 0.01)
-    env.gain.setTargetAtTime(0, atS + Math.max(0.01, durS * 0.6), durS * 0.25)
+    env.gain.setValueAtTime(peak, atS + Math.max(0.01, durS * 0.6))
+    env.gain.linearRampToValueAtTime(0, atS + durS + RELEASE_S)
     return env
   }
 
   private playOnce(osc: OscillatorNode, env: GainNode, atS: number, durS: number): void {
     osc.start(atS)
-    osc.stop(atS + durS + 0.3)
+    osc.stop(atS + durS + STOP_AFTER_S)
     osc.onended = () => {
       osc.disconnect()
       env.disconnect()

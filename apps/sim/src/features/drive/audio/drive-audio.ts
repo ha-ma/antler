@@ -68,8 +68,8 @@ export class DriveAudio {
       if (!this.graph) return false
       await this.graph.resume()
       this.running = true
+      // 値は渡し直す。BGM の予約は続ける（「もう一度」で予約済みの小節と重ねない）
       this.applied = null
-      this.nextBarAtS = null
       this.gate.reset()
       return true
     } catch {
@@ -108,6 +108,8 @@ export class DriveAudio {
     this.unsubscribe = null
     this.graph?.close()
     this.graph = null
+    this.nextBarAtS = null
+    this.nextBar = 0
   }
 
   private apply(): void {
@@ -118,7 +120,9 @@ export class DriveAudio {
       graph.setLevels(levels)
       this.applied = levels
     }
-    this.scheduleMusic(graph)
+    // BGM が聞こえない間（消音・BGM OFF・赤）は音符を作らない。戻ったら今から始める
+    if (levels.music > 0) this.scheduleMusic(graph)
+    else this.nextBarAtS = null
   }
 
   private scheduleMusic(graph: AudioGraphPort): void {

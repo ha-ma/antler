@@ -269,3 +269,35 @@ describe('音のコントローラ（R7〜R9）', () => {
     await expect(disabled.start()).resolves.toBe(false)
   })
 })
+
+describe('音のコントローラの端（レビューの指摘）', () => {
+  it('AUD-3h: 「もう一度」で start を 2 回呼んでも音のグラフは 1 つで、予約済みの BGM と重ねない', async () => {
+    const graph = new FakeGraph()
+    const createGraph = vi.fn(() => graph)
+    const audio = new DriveAudio({ createGraph, settings: new AudioSettingsStore(null), seed: 7 })
+    await audio.start()
+    audio.update(sig({}))
+    const scheduled = graph.notes.length
+    await audio.start()
+    audio.update(sig({}))
+    expect(createGraph).toHaveBeenCalledTimes(1)
+    expect(graph.resume).toHaveBeenCalledTimes(2)
+    expect(graph.notes.length).toBe(scheduled)
+  })
+
+  it('AUD-3h: BGM が聞こえない間（BGM OFF・赤）は音符を作らず、戻ったら今から始める', async () => {
+    const graph = new FakeGraph()
+    const settings = new AudioSettingsStore(null)
+    const audio = new DriveAudio({ createGraph: () => graph, settings, seed: 7 })
+    await audio.start()
+    settings.toggleMusic()
+    audio.update(sig({}))
+    audio.update(sig({ alert: 'danger' }))
+    expect(graph.notes).toHaveLength(0)
+    settings.toggleMusic()
+    graph.time = 30
+    audio.update(sig({}))
+    expect(graph.notes.length).toBeGreaterThan(0)
+    expect(Math.min(...graph.notes.map((n) => n.atS))).toBeGreaterThanOrEqual(30)
+  })
+})

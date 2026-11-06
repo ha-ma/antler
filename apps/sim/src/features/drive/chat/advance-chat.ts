@@ -38,9 +38,11 @@ export type ChatState = {
   shown: ReadonlySet<string>
   zoneInterval: number | null
   entered: ReadonlySet<number>
+  /** zone-enter を出した区間（出した区間だけ zone-exit を出す） */
+  announced: ReadonlySet<number>
   exited: ReadonlySet<number>
-  /** zone-enter を出す時刻（t） */
-  pendingEnterAt: number | null
+  /** zone-enter を出す予定（区間と時刻 t） */
+  pendingEnter: { interval: number; at: number } | null
   counts: Record<ReactionKind, number>
   avoidedSeen: number
   held: EmittedLine[]
@@ -62,8 +64,9 @@ export function initialChatState(): ChatState {
     shown: new Set(),
     zoneInterval: null,
     entered: new Set(),
+    announced: new Set(),
     exited: new Set(),
-    pendingEnterAt: null,
+    pendingEnter: null,
     counts: { 'zone-enter': 0, 'zone-exit': 0, avoided: 0 },
     avoidedSeen: 0,
     held: [],
@@ -95,18 +98,21 @@ export function advanceChat(
   previous: ChatState,
   track: ChatTrack,
   f: ChatFrame,
-): { state: ChatState; emitted: EmittedLine[] } {
-  // restart（同じ場面を最初から）
-  let state = f.t < previous.lastT ? initialChatState() : previous
+): { state: ChatState; emitted: EmittedLine[]; reset: boolean } {
+  // restart（同じ場面を最初から）。呼ぶ側は reset で表示も消す
+  const reset = f.t < previous.lastT
+  let state = reset ? initialChatState() : previous
   if (state.trackKey !== track.key) {
+    // 束が替わった: いまの道のりより手前は出さない（minM）。id は束ごとなので、出した行の記録も替える
     state = {
       ...state,
       trackKey: track.key,
       minM: state.trackKey === null ? -Infinity : (state.prevM ?? -Infinity),
+      shown: new Set(),
       held: [],
     }
   }
-  if (f.paused || f.outcome !== 'driving') return { state, emitted: [] }
+  if (f.paused || f.outcome !== 'driving') return { state, emitted: [], reset }
 
   const posM = f.positionKm * 1000
   let seq = state.seq
@@ -117,42 +123,46 @@ export function advanceChat(
   const due: EmittedLine[] = []
 
   // 話の行
-  const shown = new Set(state.shown)
+  // 集合と数は、変わるときだけ作り直す（約 10 Hz で呼ばれるので割り当てを減らす）
+  const newlyShown: string[] = []
   if (state.prevM !== null) {
     const from = Math.max(state.prevM, state.minM)
     for (const r of track.road) {
-      if (r.atM > from && r.atM <= posM && !shown.has(r.id)) {
-        shown.add(r.id)
+      if (r.atM > from && r.atM <= posM && !state.shown.has(r.id)) {
+        newlyShown.push(r.id)
         due.push(make(r.speaker, r.text))
       }
     }
   }
+  const shown = newlyShown.length > 0 ? new Set([...state.shown, ...newlyShown]) : state.shown
 
   // 反応
-  const counts = { ...state.counts }
+  let counts = state.counts
   const react = (kind: ReactionKind) => {
-    counts[kind] += 1
+    counts = { ...counts, [kind]: counts[kind] + 1 }
     const line = track.reactions[kind][(counts[kind] - 1) % 2]
     if (line) due.push(make(line.speaker, line.text))
   }
-  const entered = new Set(state.entered)
-  const exited = new Set(state.exited)
-  let pendingEnterAt = state.pendingEnterAt
+  let entered = state.entered
+  let announced = state.announced
+  let exited = state.exited
+  let pendingEnter = state.pendingEnter
   if (f.zoneInterval !== state.zoneInterval) {
     const left = state.zoneInterval
-    if (left !== null && !exited.has(left)) {
-      exited.add(left)
-      // 2.5 秒の前に出たら、入った行は出さない
-      pendingEnterAt = null
-      if (f.alertEnabled) react('zone-exit')
+    // 2.5 秒の前に出たら、入った行も出た行も出さない（短い出入りでは何も言わない）
+    if (pendingEnter && pendingEnter.interval === left) pendingEnter = null
+    if (left !== null && announced.has(left) && !exited.has(left)) {
+      exited = new Set(exited).add(left)
+      react('zone-exit')
     }
     if (f.zoneInterval !== null && !entered.has(f.zoneInterval)) {
-      entered.add(f.zoneInterval)
-      pendingEnterAt = f.alertEnabled ? f.t + ZONE_ENTER_DELAY_MS : null
+      entered = new Set(entered).add(f.zoneInterval)
+      if (f.alertEnabled) pendingEnter = { interval: f.zoneInterval, at: f.t + ZONE_ENTER_DELAY_MS }
     }
   }
-  if (pendingEnterAt !== null && f.t >= pendingEnterAt) {
-    pendingEnterAt = null
+  if (pendingEnter && f.t >= pendingEnter.at) {
+    announced = new Set(announced).add(pendingEnter.interval)
+    pendingEnter = null
     react('zone-enter')
   }
   for (let n = state.avoidedSeen; n < f.avoidedCount; n++) react('avoided')
@@ -174,7 +184,8 @@ export function advanceChat(
     if (releaseAt === null) {
       emitted = due
     } else if (f.t >= releaseAt) {
-      emitted = [...held, ...due].slice(-Math.max(MAX_HELD, due.length))
+      // 待たせた行（3 行まで）と、このフレームで来た行をそのまま出す
+      emitted = [...held, ...due]
       held = []
       releaseAt = null
     } else {
@@ -190,8 +201,9 @@ export function advanceChat(
       shown,
       zoneInterval: f.zoneInterval,
       entered,
+      announced,
       exited,
-      pendingEnterAt,
+      pendingEnter,
       counts,
       avoidedSeen: Math.max(state.avoidedSeen, f.avoidedCount),
       held,
@@ -200,5 +212,6 @@ export function advanceChat(
       seq,
     },
     emitted,
+    reset,
   }
 }

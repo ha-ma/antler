@@ -28,6 +28,14 @@ drive の運転の中身は別のセッション（drive-3d、ブランチ drive
           └── #3 chat ───┴────────┘
 ```
 
+### PR 2 でやること（PR 1 のレビューから）
+
+- **矢印キーとスライダー**（accessibility-checker C1、`docs/reports/2026-11-06-accessibility-checker-drive-audio-chat.md`）: `hooks/use-keyboard-drive.ts` が矢印キーを運転の入力にして `preventDefault()` するので、キーボードで音量のスライダーを動かせない。入力欄（`input`・`select`・`textarea`）にフォーカスがあるときは素通しにする
+- `useDriveAudio` と会話の store は場面ごとに作る（`key={scenario.seed}`。component-guard W3・code-reviewer W4）
+- `useChatTrack` に渡す `RouteInfo` は `World.plan` から作る（totalKm・intervals）。依存は値だけにしてある
+- `linkDriveSoundAndChat` は `useDriveSoundAndChat` のような hook に包み、DriveScreen に effect を直に書かない（component-guard I2）
+- 組み込んだ後に、200% 拡大での会話の欄の高さ、3D の景色の上のコントラスト、スマホでの `scheduleNotes` の山（performance-analyzer W1。2 ms を超えたら先読み窓）を実機で測る
+
 ## このフェーズで実装すること（In Scope）
 
 - `apps/api`: `POST /api/trips/:id/day/:n/chat`（所有者の確かめ・束の計画・Claude の一言・保存と再利用・共有の上限と枠）

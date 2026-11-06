@@ -53,8 +53,8 @@ function apiBase(): string {
 
 function errorCode(body: unknown): string | null {
   if (typeof body !== 'object' || body === null || !('error' in body)) return null
-  const error = (body as { error: { code?: unknown } }).error
-  return typeof error.code === 'string' ? error.code : null
+  const error = (body as { error?: { code?: unknown } | null }).error
+  return typeof error?.code === 'string' ? error.code : null
 }
 
 export function parseChatResponse(body: unknown): ChatDeck | null {
@@ -83,7 +83,9 @@ export async function fetchChatDeck(
       headers: { Authorization: `Bearer ${ownerToken}` },
       signal: AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]),
     })
-  } catch {
+  } catch (cause) {
+    // 通信の失敗・時間切れ・中断。見本の会話に落ちる理由をログに残す（本文やトークンは出さない）
+    logger.warn('drive.chat.network', { reason: cause instanceof Error ? cause.name : 'unknown' })
     throw new ChatDeckError(null, null)
   }
   const body: unknown = await res.json().catch(() => null)

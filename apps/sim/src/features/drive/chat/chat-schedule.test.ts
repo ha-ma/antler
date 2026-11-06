@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { advanceChat, initialChatState, type ChatFrame } from './advance-chat'
-import { FALLBACK_TEXT, REACTION_TEXT } from './chat-text'
+import { FALLBACK_TEXT, RADIO_FALLBACK_TEXT, REACTION_TEXT } from './chat-text'
 import { buildChatTrack, speakersFor } from './chat-track'
 import type { ChatDeck, ChatLine, ChatTrack } from './chat-types'
 import { fallbackChatDeck } from './fallback-deck'
@@ -301,5 +301,73 @@ describe('見本の会話（R19）', () => {
       seed: 5,
     })
     expect(again).toEqual(deck)
+  })
+
+  it('CHAT-4f: 1 人旅はラジオの DJ の文（同乗者の言い方をさせない）', () => {
+    const solo = fallbackChatDeck({
+      tripId: 'demo',
+      day: 1,
+      legStartsM: [0],
+      totalM: 70_000,
+      zonesKm: [],
+      partySize: 1,
+      seed: 2,
+    })
+    expect(solo.lines.every((l) => l.speaker === 'radio')).toBe(true)
+    expect(solo.lines.map((l) => l.text)).toEqual(RADIO_FALLBACK_TEXT.slice(0, solo.lines.length))
+    for (const text of RADIO_FALLBACK_TEXT) {
+      for (const value of Object.values(text)) expect(value).not.toMatch(/[0-9０-９]|鹿|deer/i)
+    }
+  })
+})
+
+describe('出すタイミングの端（レビューの指摘）', () => {
+  it('CHAT-4e: 見本と api の束の id が同じでも、替わった時点より先の api の行は出る', () => {
+    const local = buildChatTrack(
+      { ...DECK, data: null, lines: [line('l01', 0, 0.2), line('l02', 0, 3)] },
+      CTX,
+    )
+    const api = buildChatTrack({ ...DECK, lines: [line('l01', 0, 0.2), line('l02', 0, 5)] }, CTX)
+    let state = initialChatState()
+    const step = (t: ChatTrack, f: Partial<ChatFrame>) => {
+      const r = advanceChat(state, t, frame(f))
+      state = r.state
+      return r.emitted.map((e) => e.text.ja)
+    }
+    step(local, { t: 0, positionKm: 0 })
+    expect(step(local, { t: 100, positionKm: 3.5 })).toEqual(['l01', 'l02'])
+    expect(step(api, { t: 200, positionKm: 4 })).toEqual([])
+    expect(step(api, { t: 300, positionKm: 5.5 })).toEqual(['l02'])
+  })
+
+  it('CHAT-4b: 2.5 秒の前にゾーンを出たら、入った行も出た行も出さない', () => {
+    const track = buildChatTrack(DECK, CTX)
+    const { out } = run(track, [
+      { t: 0, positionKm: 1 },
+      { t: 100, positionKm: 1.1, zoneInterval: 0 },
+      { t: 2000, positionKm: 1.2, zoneInterval: null },
+      { t: 5000, positionKm: 1.3, zoneInterval: null },
+    ])
+    expect(out.flat()).toEqual([])
+  })
+
+  it('CHAT-4c: 赤の後の放出のフレームで来た行も、待たせた行と一緒に落とさず出す', () => {
+    const track = buildChatTrack(DECK, CTX)
+    const { out } = run(track, [
+      { t: 0, positionKm: 0 },
+      { t: 100, positionKm: 6.5, alert: 'danger' },
+      { t: 200, positionKm: 6.5 },
+      { t: 1700, positionKm: 7.5 },
+    ])
+    expect(out.at(-1)).toEqual(['l01', 'l02', 'l03', 'l04'])
+    expect(out.slice(0, -1).flat()).toEqual([])
+  })
+
+  it('CHAT-4d: restart は reset を返す', () => {
+    const track = buildChatTrack(DECK, CTX)
+    const first = advanceChat(initialChatState(), track, frame({ t: 5000, positionKm: 1 }))
+    expect(first.reset).toBe(false)
+    const again = advanceChat(first.state, track, frame({ t: 0, positionKm: 0 }))
+    expect(again.reset).toBe(true)
   })
 })

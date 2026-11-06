@@ -3,8 +3,8 @@ import type { FeedLine } from './chat-types'
 
 // ## State設計（車内の会話の表示。docs/specs/drive-audio-chat/functional.md R13）
 // - Shared state（この store）: 画面に出ている会話（新しい 4 行まで）と、読み上げる最後の行。
-//   運転のスナップショット（React の外の DriveEngine.subscribe）から足すので、DriveEngine と同じく
-//   subscribe / getSnapshot を持つ小さな store にした（React からは useSyncExternalStore で読む）。
+//   走行ごとに作り、運転のスナップショット（DriveEngine.subscribe）から足すので、モジュールに 1 つの Zustand の store ではなく
+//   DriveEngine と同じく subscribe / getSnapshot を持つ小さなクラスにした（React からは useSyncExternalStore で読む）。
 // - 派生値・Server state: なし（会話の束は useChatTrack）。
 
 export const VISIBLE_LINES = 4

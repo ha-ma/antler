@@ -7,6 +7,8 @@
   justify-content: flex-end;
   width: min(320px, 32vw);
   pointer-events: none;
+  /* 行が増えても外の HUD を組み直させない */
+  contain: layout style;
   transition: opacity 0.2s ease-out;
 }
 

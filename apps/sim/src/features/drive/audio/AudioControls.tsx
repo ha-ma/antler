@@ -38,7 +38,8 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
   )
 }
 
-function RadioIcon() {
+/** OFF のときは斜線を入れる（押された状態を色だけで伝えない） */
+function RadioIcon({ off }: { off: boolean }) {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
       <rect
@@ -54,6 +55,9 @@ function RadioIcon() {
       <path d="M7 8l10-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <circle cx="15" cy="14" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" />
       <path d="M6 12h4M6 16h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      {off ? (
+        <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      ) : null}
     </svg>
   )
 }
@@ -67,7 +71,12 @@ export function AudioControls({ settings, lang }: Props) {
   const value = useSyncExternalStore(settings.subscribe, settings.getSnapshot)
   const text = AUDIO_TEXT[lang]
   return (
-    <div className="drive-audio" role="group" aria-label={text.group}>
+    <div
+      className="drive-audio"
+      role="group"
+      aria-label={text.group}
+      lang={lang === 'zh' ? 'zh-TW' : lang}
+    >
       <button
         type="button"
         className="drive-audio__button"
@@ -102,7 +111,7 @@ export function AudioControls({ settings, lang }: Props) {
           settings.toggleMusic()
         }}
       >
-        <RadioIcon />
+        <RadioIcon off={!value.music} />
         <span>{text.music}</span>
       </button>
     </div>

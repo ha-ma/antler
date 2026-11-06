@@ -27,11 +27,10 @@ export function linkDriveSoundAndChat(
   const onPublish = () => {
     const snapshot = source.getSnapshot()
     audio.update(signalsFromSnapshot(snapshot, source.world.input))
-    const before = state
     const result = advanceChat(state, track(), chatFrameFromSnapshot(snapshot))
     state = result.state
-    // restart（t が戻った）なら表示も消す
-    if (state.lastT < before.lastT) feed.reset()
+    // restart なら表示も消す
+    if (result.reset) feed.reset()
     if (result.emitted.length > 0) {
       feed.push(result.emitted)
       audio.notify()

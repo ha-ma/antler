@@ -86,16 +86,16 @@ export const FALLBACK_TEXT: Record<
   ],
   weather: [
     {
-      ja: '空気が冷たいね。窓の外が白く光ってる',
-      en: 'The air is crisp. Everything outside is glowing white.',
-      zh: '空氣好冷，窗外白白亮亮的',
-      ko: '공기가 차갑네. 창밖이 하얗게 빛나',
+      ja: '北海道の空気って、なんだか澄んでるね',
+      en: 'The air in Hokkaido feels so clear.',
+      zh: '北海道的空氣感覺好清新',
+      ko: '홋카이도 공기는 왠지 맑은 느낌이야',
     },
     {
-      ja: '雲が流れてきたね。天気が変わるかも',
-      en: 'Clouds are rolling in. The weather might change.',
-      zh: '雲飄過來了，天氣可能會變',
-      ko: '구름이 몰려오네. 날씨가 바뀔지도 몰라',
+      ja: '天気はこのままもつかな。空を見ておくね',
+      en: 'I wonder if the weather will hold. I will keep an eye on the sky.',
+      zh: '不知道天氣會不會一直這樣，我來看看天空',
+      ko: '날씨가 이대로 버텨 줄까. 하늘은 내가 볼게',
     },
   ],
   light: [
@@ -106,18 +106,18 @@ export const FALLBACK_TEXT: Record<
       ko: '하늘 색이 예쁘다. 사진 찍고 싶어',
     },
     {
-      ja: '日が傾いてきたね。早めにライトをつけよう',
-      en: 'The sun is getting low. Lights on soon.',
-      zh: '太陽開始西斜了，早點開燈吧',
-      ko: '해가 기울기 시작했어. 일찍 라이트 켜자',
+      ja: '時間がたつのが早いね。旅ってそういうものか',
+      en: 'Time flies on a road trip, doesn’t it.',
+      zh: '時間過得好快，旅行就是這樣吧',
+      ko: '시간이 참 빨리 가네. 여행이 원래 그렇지',
     },
   ],
   scenery: [
     {
-      ja: '見て、遠くの山まで真っ白だよ',
-      en: 'Look, the mountains are white all the way out.',
-      zh: '你看，遠處的山都是白色的',
-      ko: '봐, 저 멀리 산까지 새하얘',
+      ja: '見て、遠くの山がきれいに見えるよ',
+      en: 'Look, you can see the mountains far away.',
+      zh: '你看，遠處的山看得好清楚',
+      ko: '봐, 저 멀리 산이 잘 보여',
     },
     {
       ja: 'この道、ずっと森の中だね。静かでいい',
@@ -134,10 +134,10 @@ export const FALLBACK_TEXT: Record<
       ko: '간식 있어. 멈추면 먹자',
     },
     {
-      ja: '次に止まったら温かい飲み物がほしいな',
-      en: 'A warm drink at the next stop would be nice.',
-      zh: '下次停車想喝點熱的',
-      ko: '다음에 멈추면 따뜻한 음료 마시고 싶다',
+      ja: '次に止まったら何か飲みたいな',
+      en: 'I could use a drink at the next stop.',
+      zh: '下次停車想喝點東西',
+      ko: '다음에 멈추면 뭐 좀 마시고 싶다',
     },
   ],
   music: [
@@ -155,3 +155,31 @@ export const FALLBACK_TEXT: Record<
     },
   ],
 }
+
+/** 1 人旅（話し手がラジオの DJ だけ）の見本の会話。話題に関係なく順に使う */
+export const RADIO_FALLBACK_TEXT: readonly LocalizedLine[] = [
+  {
+    ja: 'こちら車内ラジオ。今日もいい旅になりますように',
+    en: 'This is your car radio. Wishing you a good trip today.',
+    zh: '這裡是車內電台，祝你今天旅途愉快',
+    ko: '여기는 차 안 라디오. 오늘도 좋은 여행 되세요',
+  },
+  {
+    ja: '次の曲も、ゆったりした気分でどうぞ',
+    en: 'Here is another easy song for the road.',
+    zh: '下一首歌也請輕鬆地聽',
+    ko: '다음 곡도 느긋한 기분으로 들어 보세요',
+  },
+  {
+    ja: '休憩はこまめに。北海道の道は長いですからね',
+    en: 'Take breaks often. Hokkaido roads are long.',
+    zh: '記得常常休息，北海道的路很長喔',
+    ko: '휴식은 자주 하세요. 홋카이도 길은 기니까요',
+  },
+  {
+    ja: '窓の外の景色も、旅の音楽の一部です',
+    en: 'The view outside is part of the music too.',
+    zh: '窗外的風景，也是旅途音樂的一部分',
+    ko: '창밖 풍경도 여행 음악의 일부랍니다',
+  },
+]

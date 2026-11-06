@@ -32,36 +32,35 @@ export function useChatDeck(scenario: Pick<DriveScenario, 'source' | 'trip' | 'd
   })
 }
 
+/**
+ * 会話を道のりに写したもの。依存は値（文字列・数）だけにする。
+ * 呼ぶ側が毎回新しい配列を渡しても作り直さない（約 10 Hz の track() で毎回作らない。component-guard W1）
+ */
 export function useChatTrack(scenario: DriveScenario, route: RouteInfo): ChatTrack {
   const { data } = useChatDeck(scenario)
-  const legStartsM = useMemo(
-    () => [0, ...scenario.legStarts.map((l) => l.sM)],
-    [scenario.legStarts],
-  )
+  const tripId = scenario.trip.id
+  const { day, seed } = scenario
+  const partySize = scenario.trip.party.size
+  const routes = scenario.data?.routes ?? null
+  const zones = scenario.data?.zones ?? null
+  const legKey = scenario.legStarts.map((l) => l.sM).join(',')
+  const zonesKey = route.zonesKm.map(([a, b]) => `${String(a)}:${String(b)}`).join(',')
+  const { totalM } = route
   return useMemo(() => {
+    const legStartsM = [0, ...(legKey ? legKey.split(',').map(Number) : [])]
+    const zonesKm = zonesKey
+      ? zonesKey.split(',').map((z) => z.split(':').map(Number) as [number, number])
+      : []
     const scene = {
-      tripId: scenario.trip.id,
-      day: scenario.day,
-      data: scenario.data ? { routes: scenario.data.routes, zones: scenario.data.zones } : null,
+      tripId,
+      day,
+      data: routes !== null && zones !== null ? { routes, zones } : null,
       legCount: legStartsM.length,
     }
     const deck: ChatDeck =
       data && deckFits(data, scene)
         ? data
-        : fallbackChatDeck({
-            tripId: scenario.trip.id,
-            day: scenario.day,
-            legStartsM,
-            totalM: route.totalM,
-            zonesKm: route.zonesKm,
-            partySize: scenario.trip.party.size,
-            seed: scenario.seed,
-          })
-    return buildChatTrack(deck, {
-      legStartsM,
-      totalM: route.totalM,
-      partySize: scenario.trip.party.size,
-      seed: scenario.seed,
-    })
-  }, [data, scenario, legStartsM, route.totalM, route.zonesKm])
+        : fallbackChatDeck({ tripId, day, legStartsM, totalM, zonesKm, partySize, seed })
+    return buildChatTrack(deck, { legStartsM, totalM, partySize, seed })
+  }, [data, tripId, day, seed, partySize, routes, zones, legKey, zonesKey, totalM])
 }
