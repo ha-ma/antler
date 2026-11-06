@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { vercelPlatform } from '../../src/di/vercel-platform.js'
 import type { Connection } from '../../src/infrastructure/db/connection.js'
-import { ensureSchema } from '../../src/infrastructure/db/migrate.js'
+import { ensureSchema, SCHEMA_VERSION } from '../../src/infrastructure/db/migrate.js'
 import { createLogger } from '../../src/infrastructure/logging/logger.js'
 import { createVercelHandler } from '../../src/vercel.js'
 import { buildCapture, buildForm } from '../factories/captures.js'
@@ -107,7 +107,10 @@ describe('Vercel の関数の入口（deploy-a R3）', () => {
     expect((await handler(req('/api/trips', { method: 'POST' }))).status).toBe(503)
 
     await ensureSchema(conn.client)
-    await conn.client.execute('UPDATE schema_meta SET version = 2 WHERE id = 1')
+    await conn.client.execute({
+      sql: 'UPDATE schema_meta SET version = ? WHERE id = 1',
+      args: [SCHEMA_VERSION],
+    })
     expect((await handler(req('/health'))).status).toBe(200)
     expect((await handler(req('/health/ready'))).status).toBe(200)
     // 成功した組み立てのあとは版を見に行かない（版を下げても /health は 200 のまま）

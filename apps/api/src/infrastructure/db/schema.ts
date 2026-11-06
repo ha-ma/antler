@@ -1,5 +1,6 @@
 import type { Capture, TripDetails, TripPlan } from '@antler/schema'
 import { index, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import type { ChatDeck } from '../../domain/chats/models/chat-deck.js'
 import type { CollisionDescriptor } from '../../domain/losses/models/loss.js'
 import type { StopDeck } from '../../domain/stop-events/models/stop-deck.js'
 import type { StopWriting } from '../../domain/stop-events/models/stop-writing.js'
@@ -40,6 +41,19 @@ export const tripLosses = sqliteTable(
     createdAt: integer('created_at').notNull(),
   },
   (t) => [index('trip_losses_trip_id').on(t.tripId)],
+)
+
+/** 車内の会話の束（drive-audio-chat、docs/specs/drive-audio-chat/plan.md「マイグレーション統合」）。鍵は旅・日・データの版のハッシュ */
+export const tripChats = sqliteTable(
+  'trip_chats',
+  {
+    keyHash: text('key_hash').primaryKey(),
+    tripId: text('trip_id').notNull(),
+    day: integer('day').notNull(),
+    deck: text('deck', { mode: 'json' }).$type<ChatDeck>().notNull(),
+    createdAt: integer('created_at').notNull(),
+  },
+  (t) => [index('trip_chats_trip_id').on(t.tripId)],
 )
 
 /** 出来事の束（stop-events。docs/specs/stop-events/plan.md「マイグレーション統合」）。旅と日で 1 行 */

@@ -10,6 +10,8 @@ tier: 1
 
 ## 概要
 
+**drive-audio-chat（2026-11-06）での追加**: `apps/sim/src/features/drive/audio/`（運転の音）と `drive/chat/`（車内の会話）を足した。仕様は `docs/specs/drive-audio-chat/`。組み込み（同日、drive-tune の後）で `components/DrivePage.tsx`（`useDriveSoundAndChat`、「出発」「もう一度」で運転の音を鳴らし始める、HUD の右の列に会話と音量の操作）と `hooks/use-keyboard-drive.ts`（入力欄にフォーカスがあるときは押したキーを任せる）を変えた。鹿の警告（alert-ui）の音・表示は変えていない。
+
 A の運転画面（A-3）と、鹿ゾーン内・検知アラート（A-5）を `apps/sim/src/features/drive/` に作る。`/drive` を開くと、
 道東の実在の鹿ゾーン（国道 240 号 阿寒）を通る固定のルートを右ハンドルの運転席から運転でき、鹿ゾーンで琥珀とチャイム、
 鹿がカメラ検知条件を満たすと車内スマホが赤になりビープと読み上げが鳴る。

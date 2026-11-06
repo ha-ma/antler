@@ -22,6 +22,8 @@ tier: 1
 
 **YOLO の素材の取り込み（2026-11-06）での変更**: CREDITS.md に Commons の実写フレーム・Osaki さんの写真・外部の研究の検出器の重み（yolo26n-deer-20261105、AGPL-3.0）の行を足した（`docs/reports/2026-11-06-yolo-materials.md`）。この feature の挙動は変わらない。
 
+**drive-audio-chat（2026-11-06）での変更**: CREDITS.md の素材の表に、運転の音（Web Audio の合成、自作）と車内の会話の固定の文（自作）の 2 行を足した（`docs/specs/drive-audio-chat/`）。この feature の挙動は変わらない。
+
 ## 概要
 
 変更指示 `docs/changes/2026-11-03-b-l1-local-jev.md` §4 Step 0（人が Mac mini M1 / 16 GB / macOS 27 で実施）と Step 6 の入口に使う道具を作る。

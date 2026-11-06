@@ -18,6 +18,7 @@ import {
   TripWriterBusyError,
   TripWriterError,
 } from '../../domain/trips/errors/trip-errors.js'
+import { ChatLimitError, ChatWriterError } from '../../domain/chats/errors/chat-errors.js'
 import { LossLimitError, LossWriterError } from '../../domain/losses/errors/loss-errors.js'
 import {
   EventConflictError,
@@ -40,6 +41,13 @@ import { OgImageBusyError } from './views/og-image-renderer.js'
 export type HttpError = { status: ContentfulStatusCode; code: string; message: string }
 
 export function toHttpError(error: unknown): HttpError {
+  // drive-audio-chat（docs/specs/drive-audio-chat/functional.md「エラーパターン」）
+  if (error instanceof ChatLimitError) {
+    return { status: 409, code: 'CHAT_LIMIT', message: error.message }
+  }
+  if (error instanceof ChatWriterError) {
+    return { status: 502, code: 'WRITER_FAILED', message: error.message }
+  }
   // stop-events（docs/specs/stop-events/functional.md「エラーパターン」）
   if (error instanceof OwnerRequiredError) {
     return { status: 403, code: 'OWNER_REQUIRED', message: error.message }

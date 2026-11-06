@@ -1,0 +1,55 @@
+/* 運転の音の操作（docs/specs/drive-audio-chat/functional.md R14）。色・余白は tokens.json の CSS 変数だけ。
+   HUD の下部の操作列に置く（組み込みは PR 2）。ポインタは受ける（.drive-hud は pointer-events: none）。 */
+
+.drive-audio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  pointer-events: auto;
+}
+
+.drive-audio__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  cursor: pointer;
+}
+
+.drive-audio__button[aria-pressed='true'] {
+  background: var(--spruce);
+  color: var(--on-spruce);
+  border-color: var(--spruce);
+}
+
+.drive-audio__button:focus-visible,
+.drive-audio__volume:focus-visible {
+  outline: 2px solid var(--spruce);
+  outline-offset: 2px;
+}
+
+.drive-audio__volume {
+  width: 112px;
+  min-height: 44px;
+  accent-color: var(--spruce);
+  cursor: pointer;
+}
+
+.drive-audio__volume:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

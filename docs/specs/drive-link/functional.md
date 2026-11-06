@@ -10,6 +10,8 @@ tier: 1
 
 ## 概要
 
+**drive-audio-chat（2026-11-06）での追加**: `apps/sim/src/features/drive/audio/`・`drive/chat/` を足した（仕様は `docs/specs/drive-audio-chat/`）。会話は `DriveScenario` の `legStarts`・`data`・`seed` を読むだけで、受け渡しの形は変えていない。 旅の場面で所有者のトークンがあれば、運転の画面を開いたときに `POST /api/trips/:id/day/:n/chat` を呼ぶ（無ければ見本の会話）。
+
 A-2（`/trip/:id/brief`、brief-map）の「エンジンをかける」は `/drive?trip={id}&day={n}(&alert=off)` へ移る（brief-map R8）。
 この feature で `/drive` がその URL を読み、`GET /api/trips/:id/day/:n`（brief-map R5）の `DayPlan` から運転の場面（`DriveScenario`）を作って、その旅のその日のルートを走る。
 同じ旅・同じ日なら、同じ道・同じ当日の条件・同じ鹿になる（A6-4 の再生の前提）。`trip` の無い `/drive` は、drive-3d の見本の場面のまま残す（開発用）。
