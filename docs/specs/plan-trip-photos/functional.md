@@ -4,11 +4,12 @@ target_paths:
   - packages/trip/src/
   - packages/trip/data/pleasures.json
   - apps/sim/src/features/plan-trip/
+  - apps/sim/src/shared/utils/photo-rules.ts
   - apps/sim/scripts/fetch-photos.ts
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: 5b2390a
+spec_confirmed_at: b28f0a3
 tier: 1
 ---
 
@@ -113,15 +114,15 @@ UC-2 写真と引用:
 
 ## Rule → ドメイン語彙対応
 
-| Rule           | 語彙                                   | 置き場所                                             | 証明         |
-| -------------- | -------------------------------------- | ---------------------------------------------------- | ------------ |
-| R1: 標準の所要 | `Pleasure.hours`                       | packages/trip/src/pleasures.ts                       | DUR-1        |
-| R2: 組み立て   | `buildItinerary` / `activityHours`     | packages/trip/src/itinerary.ts                       | DUR-2・DUR-3 |
-| R3: 保存の重さ | `weightForHours` / `buildTripPlan`     | packages/trip/src/plan.ts                            | DUR-4        |
-| R4: 画面       | `PleasureCard` / `AllocationBar`       | apps/sim/src/features/plan-trip/components/          | DUR-7        |
-| R5・R8: 取得   | `isAllowedLicense` / `isAllowedSource` | apps/sim/src/features/plan-trip/utils/photo-rules.ts | PH-6         |
-| R6: 写真の記録 | `photoOf`                              | apps/sim/src/features/plan-trip/utils/photos.ts      | PH-1・PH-2   |
-| R7: 引用の表示 | `PhotoCredit`                          | apps/sim/src/features/plan-trip/components/          | PH-4・PH-5   |
+| Rule           | 語彙                                   | 置き場所                                        | 証明         |
+| -------------- | -------------------------------------- | ----------------------------------------------- | ------------ |
+| R1: 標準の所要 | `Pleasure.hours`                       | packages/trip/src/pleasures.ts                  | DUR-1        |
+| R2: 組み立て   | `buildItinerary` / `activityHours`     | packages/trip/src/itinerary.ts                  | DUR-2・DUR-3 |
+| R3: 保存の重さ | `weightForHours` / `buildTripPlan`     | packages/trip/src/plan.ts                       | DUR-4        |
+| R4: 画面       | `PleasureCard` / `AllocationBar`       | apps/sim/src/features/plan-trip/components/     | DUR-7        |
+| R5・R8: 取得   | `isAllowedLicense` / `isAllowedSource` | apps/sim/src/shared/utils/photo-rules.ts        | PH-6         |
+| R6: 写真の記録 | `photoOf`                              | apps/sim/src/features/plan-trip/utils/photos.ts | PH-1・PH-2   |
+| R7: 引用の表示 | `PhotoCredit`                          | apps/sim/src/features/plan-trip/components/     | PH-4・PH-5   |
 
 ## 受け入れ基準
 
