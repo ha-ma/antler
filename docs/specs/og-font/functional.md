@@ -9,7 +9,7 @@ target_paths:
   - apps/api/src/infrastructure/http/views/shiori-svg.ts
   - apps/api/vite.vercel.config.ts
   - apps/api/tests/vercel/bundle.test.ts
-spec_confirmed_at: 02ea9c4
+spec_confirmed_at: 2421c02
 tier: 1
 ---
 

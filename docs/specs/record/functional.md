@@ -11,11 +11,13 @@ target_paths:
   - apps/api/src/infrastructure/http/views/
   - apps/sim/src/features/record/
   - apps/sim/src/app/DriveRoute.tsx
-spec_confirmed_at: 5939fc8
+spec_confirmed_at: 2421c02
 tier: 2
 ---
 
 # 仕様: record（A-7 旅の記録・走行の記録・記録ページ・削除）
+
+**og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要
 
@@ -72,7 +74,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
   - しおり: 各日の行に ✓（完走）・✕（衝突）・—（未走行）。その日の結果が OFF の run なら「OFF」の印。OFF の挑戦があれば「OFF ✓」「OFF ✕」を添える（`offResult`）
   - 言語は `plan.lang`。文言の表は 4 言語とも空欄なし（#9）
 - R6 しおりの PNG と OG 画像 `GET /t/:id/og.png`: 1200×630 の PNG。タイトル・日程・各日の行と ✓ / ✕ / —・守れた楽しみ `n / N`・ブランド
-  - SVG を組み立て、`@resvg/resvg-js` で PNG にする（追加の依存。MPL-2.0、CREDITS.md）。文字はサーバーのフォント（`OG_FONT_FILES` があればそのファイルだけ、無ければシステムのフォント。Linux では `fonts-noto-cjk` を入れる）
+  - SVG を組み立て、`@resvg/resvg-js` で PNG にする（追加の依存。MPL-2.0、CREDITS.md）。文字は同梱のフォント（Noto Sans JP / TC / KR の Bold。og-font、2026-11-06）。`OG_FONT_FILES` があればそのファイルを使う
   - タイトルは 2 行で切って末尾を「…」、日の行は 7 行までで、それより多ければ「ほか n 日」。制御文字（U+0000〜U+001F・U+007F）は取り除いてから XML エスケープする（spec-adversary [6]）
   - 描いた PNG をプロセスのメモリに 100 枚まで持つ（鍵は旅の id・run の数・最後の seq。run が増えれば鍵が変わり描き直す）。読み出しは毎回 DB を引いてから鍵を作るので、削除のあとは 404 で、持っている画像を返さない。持っている画像を返すときは描画の枠を使わない（spec-adversary [5]）
   - 同時に描くのは 2 枚まで（超えたら 503 `OG_BUSY`）
