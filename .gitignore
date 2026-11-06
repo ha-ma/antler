@@ -43,8 +43,11 @@ edge/**/models/
 *.mlpackage/
 *.mlmodel
 *.pt
+*.onnx
 edge/**/runs/
 dataset/raw/
+# 外部の公開データ（Commons の実写フレームなど）。大きいので入れない。置き場所と取得方法は dataset/README.md
+dataset/external/
 # 配布できない参考写真（評価と 3D の参考だけに使う。学習データにしない。2026-11-04 ユーザー判断、ch9 ③）
 dataset/private/
 

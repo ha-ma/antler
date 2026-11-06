@@ -11,6 +11,8 @@ tier: 2
 
 # 仕様: plan-trip（A-1 旅をつくる・Claude がしおりを仕上げる）
 
+**og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
+
 ## 概要
 
 A-1 の画面で、人数・日程・出発地・楽しみを選ぶと、その場で「旅のしおり」と「この旅が失われるリスク」が組み上がる（端末の中で決定的に計算）。

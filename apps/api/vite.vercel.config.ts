@@ -9,7 +9,11 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   // .env を読まない（build の env が bundle に入らないように）
   envDir: false,
+  // OG 画像のフォント（Noto Sans JP / TC / KR。OFL）を dist/vercel/ に写す。ライセンス本文（OFL.txt）も一緒に入る。
+  // 読むのは src/infrastructure/http/views/og-fonts.ts（handler.mjs と同じ場所のファイル）
+  publicDir: 'assets/fonts',
   build: {
+    copyPublicDir: true,
     ssr: 'src/vercel.ts',
     outDir: 'dist/vercel',
     emptyOutDir: true,
