@@ -33,6 +33,8 @@ A-3 の運転画面に、運転の音（エンジン・ブレーキ・車内の�
 
 **組み込み（2026-11-06、drive-tune（PR #38）が main に入った後）**: 運転画面（`DrivePage`）で `useDriveSoundAndChat` を呼び、「出発」「もう一度」の操作の中で運転の音を鳴らし始める。HUD の右の列（drive-tune が空けた `--drive-chat-w`）に会話と音量の操作を置く。音の合図は drive-tune の `DriveEngine.telemetry()`（回転数・段・ブレーキの強さ・ABS・アクセル）から取る。音量のスライダーにフォーカスがあるときは、矢印キーで運転しない（`use-keyboard-drive.ts`）
 
+**後の変更（2026-11-06、drive-tourism）**: R11 の話題（話の行の 3 分の 2 を楽しみの話に）、R13 の位置と行数（右上から 3 行・写真と出典つき）、R15 の保存の鍵の版（`chat:v2`）、R16 の材料（楽しみの名前・拠点・切り口）、R19 の見本の会話（楽しみの話を入れる）は `docs/specs/drive-tourism/functional.md` の T1〜T10 が正。
+
 **範囲外**:
 
 - 会話の読み上げ（A3-8 の「音声」）。文字と通知音だけ（Questions の Deferred）

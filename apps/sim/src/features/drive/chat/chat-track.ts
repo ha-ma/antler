@@ -31,7 +31,7 @@ export function buildChatTrack(deck: ChatDeck, ctx: TrackContext): ChatTrack {
       const next = ctx.legStartsM[line.cue.leg + 1]
       const limit = next === undefined ? ctx.totalM : Math.max(start, next - MARGIN_M)
       const atM = Math.min(limit, start + line.cue.km * 1000)
-      return { id: line.id, atM, speaker: line.speaker, text: line.text }
+      return { id: line.id, atM, speaker: line.speaker, pleasure: line.pleasure, text: line.text }
     })
     .sort((a, b) => a.atM - b.atM)
 

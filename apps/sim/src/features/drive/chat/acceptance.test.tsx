@@ -43,13 +43,16 @@ const DECK: ChatDeck = {
       cue: { kind: 'road', leg: 0, km: 0.2 },
       topic: 'depart',
       speaker: 'p1',
+      pleasure: null,
       text: L('出発だね'),
     },
     {
+      // 楽しみの話の行（drive-tourism T8）: 写真と出典が添えられる
       id: 'l02',
       cue: { kind: 'road', leg: 0, km: 16 },
-      topic: 'weather',
+      topic: 'pleasure',
       speaker: 'p2',
+      pleasure: 'red-crowned-crane',
       text: L('雪だ'),
     },
     {
@@ -57,6 +60,7 @@ const DECK: ChatDeck = {
       cue: { kind: 'road', leg: 0, km: 17 },
       topic: 'snack',
       speaker: 'p3',
+      pleasure: null,
       text: L('おやつ'),
     },
     {
@@ -64,6 +68,7 @@ const DECK: ChatDeck = {
       cue: { kind: 'road', leg: 0, km: 18 },
       topic: 'music',
       speaker: 'p1',
+      pleasure: null,
       text: L('いい曲'),
     },
   ],
@@ -160,8 +165,20 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
     // 16× で 3 行を一度に越える → 3 行が順に出て、通知音は 1 回
     step(snapshot({ t: 60_000, km: 18.5, playback: { rate: 16, paused: false, locked: false } }))
     const texts = [...document.querySelectorAll('.drive-chat__text')].map((n) => n.textContent)
-    expect(texts).toEqual(['出発だね', '雪だ', 'おやつ', 'いい曲'])
+    // 見えるのは新しい 3 行（drive-tourism T8）
+    expect(texts).toEqual(['雪だ', 'おやつ', 'いい曲'])
     expect(graph.notifies).toBe(2)
+    // 楽しみの行だけに写真（飾り）と出典の平文
+    const photos = document.querySelectorAll('.drive-chat__photo')
+    expect(photos).toHaveLength(1)
+    expect(photos[0]).toHaveAttribute(
+      'src',
+      expect.stringContaining('photos/red-crowned-crane.jpg'),
+    )
+    expect(photos[0]).toHaveAttribute('alt', '')
+    expect(document.querySelector('.drive-chat__credit')?.textContent).toBe(
+      '写真: pakku / CC BY 3.0',
+    )
 
     // ゾーンに入る → 2.5 秒後に zone-enter が出るが、琥珀なので通知音は鳴らない
     step(snapshot({ t: 61_000, km: 19, inZone: true }))
@@ -211,8 +228,8 @@ describe('AC-42: 運転の音と車内の会話（部品の通し）', () => {
     expect(screen.getByText(REACTION_TEXT.avoided[0].ja)).toBeInTheDocument()
     expect(graph.notifies).toBe(2)
 
-    // 見えるのは新しい 4 行まで
-    expect(document.querySelectorAll('.drive-chat__line')).toHaveLength(4)
+    // 見えるのは新しい 3 行まで（drive-tourism T8）
+    expect(document.querySelectorAll('.drive-chat__line')).toHaveLength(3)
 
     // 「もう一度」（t が戻る）→ 表示が消え、最初の行がまた出る
     step(snapshot({ t: 0, km: 0, speedKmh: 0 }))

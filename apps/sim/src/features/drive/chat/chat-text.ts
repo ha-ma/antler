@@ -1,6 +1,6 @@
 import type { LocalizedLine, ReactionKind, RoadTopic, Speaker } from './chat-types'
 
-// 会話の固定の文言（docs/specs/drive-audio-chat/functional.md R10・R13・R19）。人が書いた 4 言語の文。zh は繁体字。
+// 会話の固定の文言（docs/specs/drive-audio-chat/functional.md R10・R13・R19、drive-tourism T8・T9）。人が書いた 4 言語の文。zh は繁体字。
 // - 反応の 6 行（ゾーンに入った・出た・避けた）は、api の会話のときもここから出す（Claude に書かせない）
 // - 見本の会話（旅の無い運転・トークンの無い端末・api の失敗）の話の行
 // 数字・絵文字・鹿の語を書かない（鹿を見つけた・いると言うのは赤の警告の役割）。運転の指図や長い問いかけをしない。
@@ -155,6 +155,52 @@ export const FALLBACK_TEXT: Record<
     },
   ],
 }
+
+/** 写真の出典の前の語（drive-tourism T8。「写真: 撮影者 / ライセンス」） */
+export const PHOTO_LABEL: LocalizedLine = { ja: '写真', en: 'Photo', zh: '照片', ko: '사진' }
+
+type PleasureLine = (name: LocalizedLine) => LocalizedLine
+
+/** 見本の会話の楽しみの行（同乗者。drive-tourism T9）。楽しみの名前を差し込む。順に使う */
+export const FALLBACK_PLEASURE_TEXT: readonly PleasureLine[] = [
+  // 名前は助詞・冠詞に左右されない位置に置く（ko は「〈名前〉,」「〈名前〉에」、en は「〈名前〉:」。spec-adversary M6）
+  (n) => ({
+    ja: `${n.ja}、楽しみだね`,
+    en: `Next up: ${n.en}. Can't wait.`,
+    zh: `好期待${n.zh}喔`,
+    ko: `${n.ko}, 너무 기대된다`,
+  }),
+  // 景色・食事・温泉のどれにも合う言い方にする（code-reviewer W5）
+  (n) => ({
+    ja: `${n.ja}、どんなだろうね`,
+    en: `${n.en}: I wonder what it'll be like.`,
+    zh: `不知道${n.zh}會是什麼樣子`,
+    ko: `${n.ko}, 어떨지 궁금하다`,
+  }),
+  (n) => ({
+    ja: `${n.ja}のこと、ずっと楽しみにしてたんだ`,
+    en: `${n.en}: I've been looking forward to this.`,
+    zh: `我一直很期待${n.zh}`,
+    ko: `${n.ko}, 계속 기대하고 있었어`,
+  }),
+]
+
+/** 1 人旅の見本の会話の楽しみの行（ラジオの DJ。drive-tourism T9） */
+export const RADIO_PLEASURE_TEXT: readonly PleasureLine[] = [
+  (n) => ({
+    ja: `この先の${n.ja}、ゆっくり楽しんでくださいね`,
+    en: `Coming up: ${n.en}. Enjoy it at your own pace.`,
+    zh: `前方的${n.zh}，請慢慢享受`,
+    ko: `앞으로 갈 ${n.ko}, 천천히 즐기세요`,
+  }),
+  (n) => ({
+    // 季節を問わない言い方（夏の旅にも出る）
+    ja: `${n.ja}へ向かう皆さん、よい時間を`,
+    en: `Up ahead: ${n.en}. Have a great time.`,
+    zh: `前往${n.zh}的各位，祝你們玩得開心`,
+    ko: `${n.ko}에 가시는 분들, 즐거운 시간 되세요`,
+  }),
+]
 
 /** 1 人旅（話し手がラジオの DJ だけ）の見本の会話。話題に関係なく順に使う */
 export const RADIO_FALLBACK_TEXT: readonly LocalizedLine[] = [

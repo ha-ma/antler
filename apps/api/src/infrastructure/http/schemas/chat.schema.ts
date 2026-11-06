@@ -28,6 +28,11 @@ export const chatLineSchema = z.strictObject({
   }),
   topic: z.enum(['depart', 'pleasure', 'weather', 'light', 'scenery', 'snack', 'music']),
   speaker: z.enum(['p1', 'p2', 'p3', 'radio']),
+  /** 楽しみの話の行の楽しみの id（drive-tourism T6）。ほかは null */
+  pleasure: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .nullable(),
   text: LocalizedTextSchema,
 })
 

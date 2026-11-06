@@ -29,7 +29,13 @@ export type ChatFrame = {
   stage: number
 }
 
-export type EmittedLine = { key: string; speaker: Speaker; text: LocalizedLine }
+export type EmittedLine = {
+  key: string
+  speaker: Speaker
+  /** 楽しみの話の行の楽しみの id（写真を出す。drive-tourism T8）。反応の行は null */
+  pleasure: string | null
+  text: LocalizedLine
+}
 
 export type ChatState = {
   trackKey: string | null
@@ -122,9 +128,9 @@ export function advanceChat(
 
   const posM = f.positionKm * 1000
   let seq = state.seq
-  const make = (speaker: Speaker, text: LocalizedLine): EmittedLine => {
+  const make = (speaker: Speaker, text: LocalizedLine, pleasure: string | null): EmittedLine => {
     seq += 1
-    return { key: `c${String(seq)}`, speaker, text }
+    return { key: `c${String(seq)}`, speaker, pleasure, text }
   }
   const due: EmittedLine[] = []
 
@@ -136,7 +142,9 @@ export function advanceChat(
   const from = Math.max(state.prevM ?? -Infinity, state.minM)
   const crossed = track.road.filter((r) => r.atM > from && r.atM <= posM && !state.shown.has(r.id))
   const newlyShown = crossed.map((r) => r.id)
-  for (const r of jumped ? crossed.slice(-1) : crossed) due.push(make(r.speaker, r.text))
+  for (const r of jumped ? crossed.slice(-1) : crossed) {
+    due.push(make(r.speaker, r.text, r.pleasure))
+  }
   const shown = newlyShown.length > 0 ? new Set([...state.shown, ...newlyShown]) : state.shown
 
   // 反応
@@ -144,7 +152,7 @@ export function advanceChat(
   const react = (kind: ReactionKind) => {
     counts = { ...counts, [kind]: counts[kind] + 1 }
     const line = track.reactions[kind][(counts[kind] - 1) % 2]
-    if (line) due.push(make(line.speaker, line.text))
+    if (line) due.push(make(line.speaker, line.text, null))
   }
   let entered = state.entered
   let announced = state.announced

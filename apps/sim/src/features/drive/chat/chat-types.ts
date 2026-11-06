@@ -1,6 +1,6 @@
 import type { Lang } from '@antler/schema'
 
-// 車内の会話の型（docs/specs/drive-audio-chat/functional.md R10〜R13・R18・R19）。
+// 車内の会話の型（docs/specs/drive-audio-chat/functional.md R10〜R13・R18・R19、drive-tourism T8〜T10）。
 
 /** 話し手。p1 助手席・p2 後部座席左・p3 後部座席右・radio は 1 人旅のラジオの DJ（氏名は作らない） */
 export type Speaker = 'p1' | 'p2' | 'p3' | 'radio'
@@ -17,6 +17,8 @@ export type ChatLine = {
   cue: { kind: 'road'; leg: number; km: number }
   topic: RoadTopic
   speaker: Speaker
+  /** 楽しみの話の行の楽しみの id（写真を出す。drive-tourism T8・T10）。ほかは null */
+  pleasure: string | null
   text: LocalizedLine
 }
 
@@ -37,10 +39,21 @@ export type ChatTrack = {
   /** 束が替わったかを見分ける鍵 */
   key: string
   /** 道のり（m）の順 */
-  road: { id: string; atM: number; speaker: Speaker; text: LocalizedLine }[]
+  road: {
+    id: string
+    atM: number
+    speaker: Speaker
+    pleasure: string | null
+    text: LocalizedLine
+  }[]
   /** 種類ごとに 2 行（アラート OFF の走行でも avoided は使う） */
   reactions: Record<ReactionKind, readonly [ReactionLine, ReactionLine]>
 }
 
-/** 画面に出す 1 行 */
-export type FeedLine = { key: string; speaker: Speaker; text: LocalizedLine }
+/** 画面に出す 1 行。pleasure があれば楽しみの写真と出典を添える（drive-tourism T8） */
+export type FeedLine = {
+  key: string
+  speaker: Speaker
+  pleasure: string | null
+  text: LocalizedLine
+}

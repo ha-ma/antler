@@ -1,10 +1,16 @@
 import { createRng, deriveSeed } from '../domain/rng'
-import { FALLBACK_TEXT, RADIO_FALLBACK_TEXT } from './chat-text'
+import {
+  FALLBACK_PLEASURE_TEXT,
+  FALLBACK_TEXT,
+  RADIO_FALLBACK_TEXT,
+  RADIO_PLEASURE_TEXT,
+} from './chat-text'
 import { speakersFor } from './chat-track'
-import type { ChatDeck, ChatLine, RoadTopic, Speaker } from './chat-types'
+import type { ChatDeck, ChatLine, LocalizedLine, RoadTopic, Speaker } from './chat-types'
 
-// 見本の会話（docs/specs/drive-audio-chat/functional.md R19）。旅の無い運転・トークンの無い端末・api の失敗のときに使う。
+// 見本の会話（docs/specs/drive-audio-chat/functional.md R19、drive-tourism T9）。旅の無い運転・トークンの無い端末・api の失敗のときに使う。
 // api の束（R11）と同じ形を端末で作る: 各移動の 0.2 km に depart、20 km ごとの話の行（ゾーンの外）。文は固定の表から。
+// 話の行の 3 分の 2 は楽しみの話（その日の楽しみ、無ければ到着地の楽しみ。名前を決まった表に差し込む）。
 
 export type FallbackInput = {
   tripId: string
@@ -16,7 +22,12 @@ export type FallbackInput = {
   zonesKm: readonly (readonly [number, number])[]
   partySize: number
   seed: number
+  /** 話題にする楽しみ（drive-tourism T9。tourismPleasures の順）。無ければ楽しみの話をしない */
+  pleasures?: readonly { id: string; name: LocalizedLine }[]
 }
+
+/** 楽しみの話の周期（api の PLEASURE_CYCLE と同じ。話の行の i mod 3 が 0・1 は楽しみ） */
+const PLEASURE_CYCLE = 3
 
 const DEPART_KM = 0.2
 const EVERY_KM = 20
@@ -61,6 +72,24 @@ export function fallbackChatDeck(input: FallbackInput): ChatDeck {
     return text ?? FALLBACK_TEXT[topic][0]
   }
 
+  // 楽しみの話（T9）: 話の行の通し番号で、i mod 3 が 0・1 の行を楽しみに。楽しみは順に回す
+  const pleasures = input.pleasures ?? []
+  let talkIndex = 0
+  let pleasureIndex = 0
+  const talk = (): Pick<ChatLine, 'topic' | 'pleasure' | 'text'> => {
+    const i = talkIndex
+    talkIndex += 1
+    const p = pleasures[pleasureIndex % Math.max(1, pleasures.length)]
+    if (p && i % PLEASURE_CYCLE !== PLEASURE_CYCLE - 1) {
+      const table = solo ? RADIO_PLEASURE_TEXT : FALLBACK_PLEASURE_TEXT
+      const make = table[pleasureIndex % table.length]
+      pleasureIndex += 1
+      if (make) return { topic: 'pleasure', pleasure: p.id, text: make(p.name) }
+    }
+    const topic = nextTopic()
+    return { topic, pleasure: null, text: textFor(topic) }
+  }
+
   const lines: Omit<ChatLine, 'id'>[] = []
   input.legStartsM.forEach((startM, leg) => {
     const startKm = startM / 1000
@@ -77,6 +106,7 @@ export function fallbackChatDeck(input: FallbackInput): ChatDeck {
         cue: { kind: 'road', leg, km: round1(departKm) },
         topic: 'depart',
         speaker: nextSpeaker(),
+        pleasure: null,
         text: textFor('depart'),
       })
     }
@@ -85,12 +115,10 @@ export function fallbackChatDeck(input: FallbackInput): ChatDeck {
       const moved = outsideZones(startKm + km, input.zonesKm) - startKm
       if (moved < MARGIN_KM || placed.some((p) => Math.abs(p - moved) < MARGIN_KM)) continue
       placed.push(moved)
-      const topic = nextTopic()
       lines.push({
         cue: { kind: 'road', leg, km: round1(moved) },
-        topic,
         speaker: nextSpeaker(),
-        text: textFor(topic),
+        ...talk(),
       })
     }
   })

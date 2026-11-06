@@ -5,11 +5,13 @@ target_paths:
   - packages/schema/src/trip-details.ts
   - apps/api/src/
   - apps/sim/src/features/plan-trip/
-spec_confirmed_at: 2fbd872
+spec_confirmed_at: 764720a
 tier: 2
 ---
 
 # 仕様: plan-trip（A-1 旅をつくる・Claude がしおりを仕上げる）
+
+> 2026-11-06 drive-tourism で api の会話（`apps/api/src` の chats）と plan-trip の barrel（`photoOf`・`photoSrc` の export）を変えた（`docs/specs/drive-tourism/functional.md`）。api のその日の行程のテストの時間の上限は main（drive-season）の 20 秒に揃えた。この仕様のルールは変えていない。
 
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 

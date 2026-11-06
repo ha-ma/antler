@@ -1,5 +1,5 @@
 import { AlertSoundController } from '@antler/alert-ui'
-import { act, screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import { DriveAudio } from '../audio/drive-audio'
 import { DrivePage } from './DrivePage'
 
 // 3D（DriveCanvas）は jsdom で描けないので、スマホの中身とフレームの呼び出しだけを受ける偽物に差し替える。
+// HUD（会話・おすすめのカード・音量の操作）は本物を描く。
 type SceneProps = { phone: ReactNode; onFrame: (dt: number) => void }
 
 function setup(search = '') {
@@ -61,6 +62,48 @@ describe('運転の音と車内の会話の組み込み（drive-audio-chat）', 
     await userEvent.keyboard('{ArrowLeft>}')
     expect(engine.world.input.left).toBe(true)
     await userEvent.keyboard('{/ArrowLeft}')
+  })
+})
+
+describe('観光の楽しみ（drive-tourism）', () => {
+  it('AC-2・UC-4e: ゾーンの手前でおすすめのカードが右の列の音量の操作の上に出て、ゾーンに入ると消え、同じステージでは出し直さない', async () => {
+    const { engine, frames } = setup()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    // ステージはゾーンの 5 km 手前から始まる。帯が無いので走り出すとすぐ出る
+    const card = screen.getByTestId('recommend-card')
+    expect(card).toHaveAccessibleName('この先のおすすめ')
+    // 見本の場面（2 月の釧路 → 阿寒湖、立ち寄りなし）は到着地の楽しみ
+    expect(card).toHaveTextContent('阿寒湖')
+    const column = card.closest('.drive-chat-column')
+    const audio = screen.getByRole('group', { name: '運転の音（鹿の警告の音は別）' })
+    expect(column).not.toBeNull()
+    expect(column?.contains(audio)).toBe(true)
+    // カードは会話の後・音量の操作の前（右下、音量の上）
+    expect(card.compareDocumentPosition(audio) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(card).queryAllByRole('button')).toHaveLength(0)
+    expect(within(card).queryAllByRole('link')).toHaveLength(0)
+
+    const entryM = (engine.world.plan.intervals[0]?.entryKm ?? 0) * 1000
+    engine.world.vehicle = { ...engine.world.vehicle, s: entryM + 50 }
+    act(() => frames.onFrame(150))
+    expect(screen.queryByTestId('recommend-card')).toBeNull()
+    // 同じステージでゾーンの外に戻っても出し直さない
+    engine.world.vehicle = { ...engine.world.vehicle, s: entryM - 500 }
+    act(() => frames.onFrame(150))
+    expect(screen.queryByTestId('recommend-card')).toBeNull()
+  })
+
+  it('AC-2: 見本の会話の楽しみの行が右上の会話に写真と出典つきで出る', async () => {
+    const { engine, frames } = setup()
+    await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
+    const { vehicle, plan } = engine.world
+    engine.world.vehicle = { ...vehicle, s: Math.min(plan.totalKm * 1000 - 10, vehicle.s + 25_000) }
+    act(() => frames.onFrame(200))
+    await waitFor(() => {
+      expect(document.querySelector('.drive-chat__photo')).not.toBeNull()
+    })
+    expect(document.querySelector('.drive-chat__photo')).toHaveAttribute('alt', '')
+    expect(document.querySelector('.drive-chat__credit')?.textContent).toMatch(/^写真: .+ \/ .+$/)
   })
 })
 

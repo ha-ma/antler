@@ -1,6 +1,7 @@
 // プロンプトの部品「車内の会話の書き方」（docs/specs/drive-audio-chat/functional.md R16・R17、付録 A #1）。
 // 運転中の画面の右側に、同乗者（または 1 人旅のラジオの DJ）の一言として出す。前を見て運転する人の気を引きすぎない。
 // 鹿のことは赤の警告（alert-ui）の役割なので、会話では触れさせない（文字の偽警報を出さない）。
+// drive-tourism（docs/specs/drive-tourism/functional.md T5）: 会話の中心を、旅で選んだ楽しみ（観光）の中身にした。
 
 export const CHAT_WRITING = `<guide name="chat-writing">
 目的: レンタカーで北海道を走る運転中に、車内の同乗者が交わす短い一言を書く。旅らしさを感じさせ、運転の邪魔をしない。
@@ -12,7 +13,16 @@ export const CHAT_WRITING = `<guide name="chat-writing">
 
 話題（topic）
 - depart: その移動の出発の一言（行き先 to に触れてよい）。
-- pleasure: これから行く楽しみ（材料の pleasure の名前を使う）への期待。
+- pleasure: 旅で選んだ楽しみ（観光）の話。会話の中心。材料の pleasure の name（その言語の名前）を必ず入れる。
+  pleasure.place は拠点の地名、timeOfDay は行う時間帯（day 昼 / night 夜 / dawn 夜明け）、length は所要の区分（short 短め / half 半日ほど / long 一日がかり）。
+  その楽しみの中身（そこで見られるもの・できること・味わえるもの・季節の様子）を具体的に書く。北海道で広く知られた事実だけを使う。
+  切り口（angle）で書き分ける:
+  - anticipation: これから行く楽しみへの期待（何が楽しみか）。
+  - highlight: そこで見られるもの・できること・味わえるものを一つ具体的に。
+  - tip: 楽しみ方のこつ（服装・防寒・見るときの工夫・寄り道の工夫）。
+  - memory: さっき行った楽しみ（timing が done）の振り返り（「さっきの〜」）。
+  when で今日か後の日かを書き分ける: today はその日の楽しみ。later は旅の後半の別の日の楽しみなので「旅の後半に」「また別の日に」の言い方にし、「もうすぐ」「今日」「今夜」とは書かない。
+  材料に無い施設名・店名・料金・時刻を作らない。
 - weather: その日の天気・路面（conditions）の感想。
 - light: 時間帯と空の様子（light: dawn 夜明け / day 昼 / dusk 夕暮れ / night 夜）。
 - scenery: 窓の外の北海道の景色（材料の地名に触れてよい。材料にない地名・施設名を作らない）。

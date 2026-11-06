@@ -1,8 +1,9 @@
 /* 車内の会話（docs/specs/drive-audio-chat/functional.md R13）。色・文字・余白は tokens.json の CSS 変数だけ。
    HUD の右側（組み込みは PR 2。位置は置く側が決める）。ポインタを通す（視線の操作をじゃましない）。 */
 
-/* HUD の右の列（drive-tune が drive.css の --drive-chat-w で空けた場所）。会話を下からためて、
-   いちばん下に運転の音の操作。ほかの HUD はこの列に置かない（drive.css の決まり）。ポインタは通す */
+/* HUD の右の列（drive-tune が drive.css の --drive-chat-w で空けた場所）。右上に会話を上から積み、
+   右下にゾーンの前のおすすめ（drive-tourism T14）、いちばん下に運転の音の操作。ほかの HUD はこの列に置かない
+   （drive.css の決まり）。ポインタは通す。高さが足りなければ会話の古い行が上に隠れる（会話だけが縮む） */
 .drive-chat-column {
   position: absolute;
   top: var(--space-5);
@@ -11,23 +12,39 @@
   width: var(--drive-chat-w);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: stretch;
   gap: var(--space-3);
   pointer-events: none;
 }
 
+.drive-chat-column .drive-recommend {
+  margin-top: auto;
+  flex: none;
+  /* 文字を拡大してもカードが列の下（音量の操作）を押し出さない（accessibility-checker W2） */
+  max-height: 60%;
+}
+
 .drive-chat-column .drive-audio {
   align-self: flex-end;
+  flex: none;
+}
+
+/* おすすめが出ていないときも、音の操作はいちばん下 */
+.drive-chat-column .drive-chat + .drive-audio {
+  margin-top: auto;
 }
 
 .drive-chat {
   display: flex;
   flex-direction: column;
+  /* 新しい行は下に足す。はみ出したら古い行（上）が隠れるよう、下に揃えて上を切る */
   justify-content: flex-end;
-  /* 幅は置く側（drive.css の .drive-hud__right）が決める */
+  /* 幅は置く側（右の列）が決める */
   width: 100%;
+  flex: 0 1 auto;
   min-height: 0;
+  overflow: hidden;
   pointer-events: none;
   /* 行が増えても外の HUD を組み直させない */
   contain: layout style;
@@ -36,6 +53,12 @@
 
 .drive-chat[data-dimmed='true'] {
   opacity: 0.6;
+}
+
+/* 減光の間も小さい文字（話し手・出典）が 4.5:1 を保つよう ink にする（accessibility-checker W1） */
+.drive-chat[data-dimmed='true'] .drive-chat__speaker,
+.drive-chat[data-dimmed='true'] .drive-chat__credit {
+  color: var(--ink);
 }
 
 .drive-chat__list {
@@ -49,13 +72,38 @@
 
 .drive-chat__line {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  align-items: flex-start;
+  gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-m);
   border: 1px solid var(--line);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   animation: drive-chat-in 0.2s ease-out;
+}
+
+/* 楽しみの写真（drive-tourism T8。飾り） */
+.drive-chat__photo {
+  flex: none;
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--radius-s);
+  background: var(--photo-placeholder);
+}
+
+.drive-chat__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* 写真の出典（平文。長い撮影者名は折り返す） */
+.drive-chat__credit {
+  color: var(--ink-muted);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  overflow-wrap: anywhere;
 }
 
 .drive-chat__speaker {

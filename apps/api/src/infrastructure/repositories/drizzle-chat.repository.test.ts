@@ -21,6 +21,7 @@ const chat = (keyHash: string, tripId = 'K7m2abcd'): StoredChat => ({
         cue: { kind: 'road', leg: 0, km: 0.2 },
         topic: 'depart',
         speaker: 'p1',
+        pleasure: null,
         text: { ja: '出発だね', en: 'Off we go', zh: '出發囉', ko: '출발이다' },
       },
     ],

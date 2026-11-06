@@ -14,6 +14,10 @@ import { DriveScreen } from './DriveScreen'
 // drive-link（docs/specs/drive-link/functional.md）: /drive?trip=…&day=n を API の応答から走らせる。
 // api は fetch のスタブ（応答は api と同じ関数で作った src/test/trip-day.ts）。3D は偽物（jsdom に WebGL が無い）。
 
+// どのテストも本物のエンジンで運転画面を描く（単独で 1 件 1 秒前後、20 件で約 10 秒。sim でいちばん遅いファイル）。
+// 全 workspace を並列で回すと既定の 5 秒を超えることがあるので、このファイルだけ上限を 20 秒にする（2026-11-06）
+vi.setConfig({ testTimeout: 20_000 })
+
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()

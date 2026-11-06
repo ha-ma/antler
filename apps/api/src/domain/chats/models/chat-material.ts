@@ -29,6 +29,10 @@ export type ChatMaterial = {
   zones: ChatMaterialZone[]
   /** その日の楽しみ（しおりの順）。base は拠点の地点 id */
   stops: { id: string; base: string }[]
+  /**
+   * 後の日の楽しみ（しおりの日の順、最大 3 件。drive-tourism T2）。その日の楽しみが残っていない移動の話題に使う
+   */
+  laterStops: { id: string }[]
   data: ChatDataVersion
 }
 
