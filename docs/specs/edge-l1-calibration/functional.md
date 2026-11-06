@@ -8,9 +8,11 @@ target_paths:
   - edge/detector/src/detector/l1/calibrate.py
   - edge/detector/tests/test_l1_calibrate.py
   - edge/detector/tests/l1_synth.py
-spec_confirmed_at: a5e96c2
+spec_confirmed_at: 4eeeab6
 tier: 2
 ---
+
+> 2026-11-07 dataset-synth が `dataset/pyproject.toml` のカバレッジの対象と isort の first-party に `synth` を足し、`dataset/tests/` に `test_synth.py` を足した。L1 の校正の挙動は変えていない。
 
 # 仕様: edge-l1-calibration（L1 の校正: A のシミュレーションのログ → 正解付き JudgeRequest、質問ごとの温度スケーリング）
 
