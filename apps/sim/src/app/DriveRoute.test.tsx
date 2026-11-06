@@ -13,34 +13,46 @@ const TRIP_ID = 'K7m2abcd'
 const TOKEN = 'ab'.repeat(32)
 let next: Partial<DriveResult> = {}
 
+function result(): DriveResult {
+  return {
+    tripId: TRIP_ID,
+    day: 2,
+    seed: 1,
+    source: 'trip',
+    data: null,
+    alertEnabled: true,
+    startAt: '2027-02-15T09:00:00+09:00',
+    zonePasses: 2,
+    outcome: 'completed',
+    endS: 1000,
+    legIndex: 0,
+    endedAt: '2027-02-15T12:00:00+09:00',
+    collidedDeerId: null,
+    encounters: [],
+    spotting: { appeared: 3, found: 2, early: 1 },
+    inputs: [],
+    frames: null,
+    ...next,
+  } as DriveResult
+}
+
+// finish = 衝突・完走のフレーム（onFinish）、crash end = 衝突の演出の終わり（onCrashEnd。drive-crash-spot R3）
 vi.mock('@/features/drive', () => ({
-  DriveScreen: ({ onFinish }: { onFinish?: (r: DriveResult) => void }) => (
-    <button
-      type="button"
-      onClick={() => {
-        onFinish?.({
-          tripId: TRIP_ID,
-          day: 2,
-          seed: 1,
-          source: 'trip',
-          data: null,
-          alertEnabled: true,
-          startAt: '2027-02-15T09:00:00+09:00',
-          zonePasses: 2,
-          outcome: 'completed',
-          endS: 1000,
-          legIndex: 0,
-          endedAt: '2027-02-15T12:00:00+09:00',
-          collidedDeerId: null,
-          encounters: [],
-          inputs: [],
-          frames: null,
-          ...next,
-        } as DriveResult)
-      }}
-    >
-      finish
-    </button>
+  DriveScreen: ({
+    onFinish,
+    onCrashEnd,
+  }: {
+    onFinish?: (r: DriveResult) => void
+    onCrashEnd?: (r: DriveResult) => void
+  }) => (
+    <>
+      <button type="button" onClick={() => onFinish?.(result())}>
+        finish
+      </button>
+      <button type="button" onClick={() => onCrashEnd?.(result())}>
+        crash end
+      </button>
+    </>
   ),
 }))
 
@@ -89,16 +101,22 @@ describe('DriveRoute（運転の終わり → 走行の記録・A-6・A-7）', (
     })
   })
 
-  it('UC-9f / UC-1c: 衝突は run を残し、A-6（/loss/:id?…）へ移る。A-7 には移らない', async () => {
+  it('UC-9f / UC-1c / UC-3d（drive-crash-spot）: 衝突は当たったフレームで run を残し、演出が終わってから A-6（/loss/:id?…）へ移る。A-7 には移らない', async () => {
     localStorage.setItem(`antler.trip-owner.${TRIP_ID}`, TOKEN)
     const fetchMock = stubFetch()
     next = { outcome: 'collided', collidedDeerId: 'd1', alertEnabled: false }
     const router = renderDrive()
     await userEvent.click(await screen.findByRole('button', { name: 'finish' }))
-    expect(await screen.findByText('loss page')).toBeInTheDocument()
+    // 演出の間は移らないが、run はもう送っている（途中で離れても残る。spec-adversary C1）
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledTimes(1)
     })
+    expect(router.state.location.pathname).toBe('/drive')
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toMatchObject({
+      spotting: { appeared: 3, found: 2, early: 1 },
+    })
+    await userEvent.click(screen.getByRole('button', { name: 'crash end' }))
+    expect(await screen.findByText('loss page')).toBeInTheDocument()
     const { pathname, search } = router.state.location
     expect(pathname).toBe(`/loss/${TRIP_ID}`)
     const q = new URLSearchParams(search)
@@ -112,6 +130,7 @@ describe('DriveRoute（運転の終わり → 走行の記録・A-6・A-7）', (
     next = { outcome: 'collided', collidedDeerId: 'd1' }
     const router = renderDrive()
     await userEvent.click(await screen.findByRole('button', { name: 'finish' }))
+    await userEvent.click(screen.getByRole('button', { name: 'crash end' }))
     expect(await screen.findByText('loss page')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe(`/loss/${TRIP_ID}`)
     expect(fetchMock).not.toHaveBeenCalled()
@@ -123,6 +142,7 @@ describe('DriveRoute（運転の終わり → 走行の記録・A-6・A-7）', (
     await userEvent.click(await screen.findByRole('button', { name: 'finish' }))
     next = { source: 'demo', outcome: 'collided', collidedDeerId: 'd1' }
     await userEvent.click(screen.getByRole('button', { name: 'finish' }))
+    await userEvent.click(screen.getByRole('button', { name: 'crash end' }))
     expect(fetchMock).not.toHaveBeenCalled()
     expect(router.state.location.pathname).toBe('/drive')
   })

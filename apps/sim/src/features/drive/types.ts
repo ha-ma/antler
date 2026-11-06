@@ -227,6 +227,12 @@ export type Encounter = {
 
 export type DriveOutcome = 'driving' | 'collided' | 'completed'
 
+/**
+ * 鹿の発見（drive-crash-spot R4・A5-5）。appeared はその走りでシーンに出た鹿の頭数（目の反射だけの鹿も含む）、
+ * found は利用者がクリック / タップで見つけた頭数、early はそのうち車の前 60 m 以上で見つけた頭数
+ */
+export type Spotting = { appeared: number; found: number; early: number }
+
 /** シミュレーションの全状態。domain/simulation.ts が進める */
 export type World = {
   scenario: DriveScenario
@@ -249,6 +255,8 @@ export type World = {
   flagAt: number | null
   alert: DerivedAlert
   encounters: Encounter[]
+  /** 鹿の発見の数（drive-crash-spot R4） */
+  spotting: Spotting
   outcome: DriveOutcome
   /** シミュレーションの内側だけで使う値（3D・HUD は読まない） */
   internal: SimInternals
@@ -284,6 +292,10 @@ export type SimInternals = {
   stageClearedAt: number | null
   /** ステージのクリアで、まだ前にいたまま消した鹿（遭遇の記録を pending のまま残す） */
   leftBehind: Set<string>
+  /** 発見した鹿の id（同じ鹿を 2 回数えない。drive-crash-spot R4） */
+  spotted: Set<string>
+  /** 一度でも見えた鹿の id（発見の「出た数」。drive-crash-spot R4） */
+  seen: Set<string>
 }
 
 /**
@@ -310,6 +322,8 @@ export type DriveResult = {
   endedAt: string
   collidedDeerId: string | null
   encounters: Encounter[]
+  /** 鹿の発見（drive-crash-spot R4。A-6・A-7 に 1 行出す） */
+  spotting: Spotting
   inputs: { t: number; input: DriveInput }[]
   /** rAF の要約（dropped・counted は performance R1 の落ちたフレームと数えたフレームの数。走行の全体） */
   frames: {

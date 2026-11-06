@@ -12,7 +12,7 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-chat.repository.ts
   - apps/api/src/infrastructure/http/routes/chat.routes.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: 056dadd
+spec_confirmed_at: c7cea1f
 tier: 2
 ---
 
@@ -21,6 +21,8 @@ tier: 2
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 会話・音量の操作の `lang` 属性の zh を `zh-TW` から `zh-Hant` にそろえ（ほかの画面と同じ）、api の会話の文の検証を共通の文字種の規則（`lang-script-policy`。zh の簡体字も落とす）に寄せた。会話の楽しみの文の関数は `i18n-tables.test.ts` が見本を出して検査する。この仕様のルールは変えていない。
 
 > 2026-11-06 mobile-landscape: `useKeyboardDrive` はエンジンではなく、指の入力と合わせる口（`InputMixer` の keys）に渡す（入力欄のフォーカスの扱いは同じ）。小さい画面では音量の操作のスライダーが右の列の幅に縮む（`docs/specs/mobile-landscape/functional.md` R1・R3）。
+
+> 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md`）が `DrivePage.tsx`（車内のスマホを HUD に固定・衝突の演出・鹿の発見の件数）と、会話のテストの snapshot（`spotting` の欄）を変えた。会話・音のルールは変えていない。衝突の `collided` の合図は今までどおり当たった `frame()` で出る。ステージが入口の 1 km 手前からになり、ゾーンの前の会話の時間は短い。
 
 ## 概要
 

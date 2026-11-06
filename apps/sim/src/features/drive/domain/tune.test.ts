@@ -55,12 +55,12 @@ function plan(intervals: [number, number][]): RoutePlan {
 }
 
 describe('drive-tune 受け入れ', () => {
-  it('AC-1: 見本の場面は 1 つ目の区間の 5 km 手前から始まり、区間を出たらクリアして 2 つ目の 5 km 手前へ移り、2 つ目を出たら completed。各区間で 3 頭以上', () => {
+  it('AC-1: 見本の場面は 1 つ目の区間の手前（STAGE_LEAD_M。drive-crash-spot で 1 km）から始まり、区間を出たらクリアして 2 つ目の手前へ移り、2 つ目を出たら completed。各区間で 3 頭以上', () => {
     const w = createWorld(demoScenario(ZONES), ZONES)
     const [first, second] = w.plan.intervals
-    // 見本の手前は 5 km（入口は線から 150 m の帯に入る所なので 5 km より少し手前）。始点より前にはしない
+    // 始点より前にはしない
     expect(w.vehicle.s).toBeCloseTo(Math.max(0, (first?.entryKm ?? 0) * 1000 - STAGE_LEAD_M), 0)
-    // 2 つ目のステージは丸めずに 5 km 手前から
+    // 2 つ目のステージは丸めずに手前から
     expect(w.internal.stages[1]?.startM).toBeCloseTo(
       (second?.entryKm ?? 0) * 1000 - STAGE_LEAD_M,
       0,
@@ -98,8 +98,9 @@ describe('drive-tune 受け入れ', () => {
 })
 
 describe('ステージ（R1）', () => {
-  it('UC-1a: 区間ごとに [入口 − 5 km, 出口]。始点より前にはしない。重なる・続くステージはまとめる', () => {
-    expect(buildStages(plan([[3, 6]]))).toEqual([{ startM: 0, exitM: 6000, intervals: [0] }])
+  // 手前の長さは drive-crash-spot R1 で 5 km → 1 km（STAGE_LEAD_M）。数値の表は crash-spot.test.ts UC-1a
+  it('UC-1a: 区間ごとに [入口 − STAGE_LEAD_M, 出口]。始点より前にはしない。重なる・続くステージはまとめる', () => {
+    expect(buildStages(plan([[0.5, 6]]))).toEqual([{ startM: 0, exitM: 6000, intervals: [0] }])
     expect(
       buildStages(
         plan([
@@ -108,18 +109,18 @@ describe('ステージ（R1）', () => {
         ]),
       ),
     ).toEqual([
-      { startM: 5000, exitM: 12000, intervals: [0] },
-      { startM: 15000, exitM: 22000, intervals: [1] },
+      { startM: 10000 - STAGE_LEAD_M, exitM: 12000, intervals: [0] },
+      { startM: 20000 - STAGE_LEAD_M, exitM: 22000, intervals: [1] },
     ])
-    // 2 つ目の 5 km 手前（16 km）が 1 つ目の出口（17 km）より前 → まとめる
+    // 2 つ目の手前（17.5 km）が 1 つ目の出口（17.6 km）より前 → まとめる
     expect(
       buildStages(
         plan([
-          [10, 17],
-          [21, 23],
+          [10, 17.6],
+          [17.5 + STAGE_LEAD_M / 1000, 23],
         ]),
       ),
-    ).toEqual([{ startM: 5000, exitM: 23000, intervals: [0, 1] }])
+    ).toEqual([{ startM: 10000 - STAGE_LEAD_M, exitM: 23000, intervals: [0, 1] }])
   })
 
   it('UC-1b: 運転はステージ 1 の始まりから。時計はその移動の出発時刻 + 平均の速さで始まりまで走った時間', () => {

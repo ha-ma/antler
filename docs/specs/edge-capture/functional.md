@@ -21,11 +21,13 @@ target_paths:
   - apps/pwa/src/app/App.tsx
   - apps/pwa/vite.config.ts
   - apps/pwa/.env.example
-spec_confirmed_at: 16eb795
+spec_confirmed_at: fdbc87c
 tier: 2
 ---
 
 # 仕様: edge-capture（検知フレームの保存 → 走行後の同意 → 同意済みだけアップロード）
+
+**l0-fp-filter（2026-11-06）での変更**: 保存の引き金と記録する枠は、L0 の後処理（`[l0_filter]`）の後の検出になった。画面の大部分を覆う枠（2 m より近い鹿にしか当たらない大きさ）は記録されず、無視する領域で弱めた枠は下げた確信度で記録される（領域の既定は空）。この仕様のコードは変えていない。教師データに後処理の前の確信度を残すかは `docs/specs/l0-fp-filter/functional.md` の Deferred。
 
 **edge-run（2026-11-06）での変更**: 起動の入口 `python -m detector` が `CaptureService` を docstring の順（`from_config` → `wrap` → `start_l1(observer=on_l1_answer)` → `start` → … → `close`）で組み立てる。`--no-capture` で `capture.enabled = false` に上書きできる。config.example.toml は `[infer]` のコメントだけ変えた（`docs/specs/edge-run/functional.md`）。保存・同意・HTTP の挙動は変わらない。
 

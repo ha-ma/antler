@@ -3,10 +3,11 @@ import type { DayPlan } from '@antler/trip'
 import { LIGHT_PERIODS } from '@antler/zones'
 import { z } from 'zod'
 import type { DriveResult } from '@/features/drive'
-import type { CollisionReport, ResolvedCollision } from '../types'
+import type { CollisionReport, LossSpotting, ResolvedCollision } from '../types'
 
 // A-6 の入口（functional.md R1）: 衝突の情報は URL のクエリだけに持つ。
-// `/loss/:tripId?day&leg&at&speed&light&side&stops=a,b&t(&alert=off)`。alert は OFF のときだけ書く。
+// `/loss/:tripId?day&leg&at&speed&light&side&stops=a,b&t(&alert=off)(&spot=found.early.appeared)`。
+// alert は OFF のときだけ書く。spot は見えた鹿があるときだけ（drive-crash-spot R4）。
 
 const MAX_SPEED_KMH = 199
 const MAX_SIM_MS = 86_400_000
@@ -61,7 +62,29 @@ export function lossHref(report: CollisionReport): string {
   if (report.achievedStops !== null) q.set('stops', report.achievedStops.join(','))
   if (report.simMs !== null) q.set('t', String(clampInt(report.simMs, MAX_SIM_MS)))
   if (!report.alertEnabled) q.set('alert', 'off')
+  const spot = report.spotting ? checkSpotting(report.spotting) : undefined
+  if (spot) q.set('spot', `${String(spot.found)}.${String(spot.early)}.${String(spot.appeared)}`)
   return `/loss/${encodeURIComponent(report.tripId)}?${q.toString()}`
+}
+
+/** 鹿の発見の上限（URL の各数。3 桁） */
+const MAX_SPOT = 999
+const SPOT_RE = /^(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})$/
+
+/** 範囲（0〜999 の整数、early ≤ found ≤ appeared、見えた鹿が 1 以上）を満たせばそのまま、満たさなければ undefined */
+function checkSpotting(s: LossSpotting): LossSpotting | undefined {
+  const ints = [s.appeared, s.found, s.early].every(
+    (v) => Number.isInteger(v) && v >= 0 && v <= MAX_SPOT,
+  )
+  if (!ints || s.early > s.found || s.found > s.appeared || s.appeared === 0) return undefined
+  return { appeared: s.appeared, found: s.found, early: s.early }
+}
+
+/** URL の spot（found.early.appeared）を読む（drive-crash-spot R4）。形・範囲が違えば undefined（ほかの欄は読む） */
+function parseSpot(text: string | undefined): LossSpotting | undefined {
+  const m = text === undefined ? null : SPOT_RE.exec(text)
+  if (!m) return undefined
+  return checkSpotting({ found: Number(m[1]), early: Number(m[2]), appeared: Number(m[3]) })
 }
 
 /**
@@ -81,6 +104,7 @@ export function lossReportFromDrive(result: DriveResult): CollisionReport | null
     alertEnabled: result.alertEnabled,
     achievedStops: null,
     simMs: null,
+    spotting: checkSpotting(result.spotting),
   }
 }
 
@@ -107,10 +131,14 @@ export function parseCollision(id: string, search: URLSearchParams): CollisionRe
     if (key in raw) return null
     raw[key] = value
   }
-  const parsed = QuerySchema.safeParse(raw)
+  // 鹿の発見（spot）はほかの欄と別に読む。形が違っても衝突の情報は読む（drive-crash-spot R4）
+  const { spot, ...rest } = raw
+  const parsed = QuerySchema.safeParse(rest)
   if (!parsed.success) return null
   const q = parsed.data
+  const spotting = parseSpot(spot)
   return {
+    ...(spotting ? { spotting } : {}),
     tripId: id,
     day: q.day,
     leg: q.leg,

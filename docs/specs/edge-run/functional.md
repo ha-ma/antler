@@ -15,11 +15,13 @@ target_paths:
   - scripts/bench_l1.py
   - docs/runbooks/2026-11-06-mac-mini-edge-run.md
   - docs/runbooks/2026-11-04-mac-mini-day0.md
-spec_confirmed_at: 0aa0bc1
+spec_confirmed_at: 94f0477
 tier: 1
 ---
 
 # 仕様: edge-run（B の車載検知を Mac mini で 1 つのコマンドで起動する）
+
+**l0-fp-filter（2026-11-06）での変更**: config.example.toml に `[l0_filter]` のセクション（L0 の誤検出の後処理。既定でオン・無視する領域は空）を足した。起動の入口と `bench` は `load_coreml_detector` を通るので、後処理は自動で入る（入口のコードは変えていない。1 フレーム 1 ms 未満。`docs/specs/l0-fp-filter/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要
 

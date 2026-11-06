@@ -54,13 +54,14 @@ function inZoneWith(
 
 describe('時間の進め方（R4）', () => {
   it('UC-4a: ゾーン外で 16× にすると、実時間 1 秒で時計が 16 倍進む。一時停止では進まない', () => {
+    // ステージは入口の 1 km 手前から（drive-crash-spot R1）。16 秒ぶん走っても入口に届かないよう、ルートの始点に置く
     const w = world()
-    w.vehicle = { ...w.vehicle, speed: 15 }
+    w.vehicle = { ...w.vehicle, s: 0, speed: 15 }
     setRate(w, 16)
     run(w, 1000, { ...NO_INPUT, throttle: true })
     expect(w.t).toBeCloseTo(16_000, -2)
     const one = world()
-    one.vehicle = { ...one.vehicle, speed: 15 }
+    one.vehicle = { ...one.vehicle, s: 0, speed: 15 }
     run(one, 1000, { ...NO_INPUT, throttle: true })
     expect(w.vehicle.s).toBeGreaterThan(one.vehicle.s * 12)
     w.playback = { ...w.playback, paused: true }
@@ -121,10 +122,12 @@ describe('終わり（R8）', () => {
     engine.setRate(16)
     engine.setInput({ ...NO_INPUT, throttle: true })
     for (let i = 0; i < 120; i++) engine.frame(FRAME_MS)
-    expect(engine.world.vehicle.s).toBeGreaterThan(0)
+    const startM = engine.world.internal.stages[0]?.startM ?? 0
+    expect(engine.world.vehicle.s).toBeGreaterThan(startM)
     engine.restart()
     expect(engine.world.t).toBe(0)
-    expect(engine.world.vehicle.s).toBe(0)
+    // 最初のステージの始まり（入口の 1 km 手前。drive-crash-spot R1）から
+    expect(engine.world.vehicle.s).toBe(startM)
     expect(engine.world.playback.rate).toBe(1)
     expect(engine.world.candidates).toEqual(candidates)
     expect(engine.getSnapshot().outcome).toBe('driving')

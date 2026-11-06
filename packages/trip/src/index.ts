@@ -55,10 +55,13 @@ export {
   DriveRunInputSchema,
   MAX_ENCOUNTERS_PER_RUN,
   MAX_RUNS_PER_DAY,
+  MAX_SPOTTED_PER_RUN,
   MAX_ZONE_PASSES,
+  SpottingSchema,
   type DeerPattern,
   type DriveEncounter,
   type DriveRunInput,
+  type Spotting,
 } from './record/run'
 export {
   CLOSE_CALL_M,

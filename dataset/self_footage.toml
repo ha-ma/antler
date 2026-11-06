@@ -1,0 +1,88 @@
+# self_footage.toml — 自分で撮った映像の一覧（docs/specs/dataset-footage）。
+# 元の映像は dataset/raw/self/<clip.id>/<clip.file>（Git の対象外。読むだけ）。
+# self_footage.py ingest が、焼き込みを塗りつぶし・人と車をモザイクにした JPEG のフレームと manifest.json を
+# dataset/private/self-footage/ に書く。2 回目は [[drive]] と [[clip]] を足して同じコマンドを回す（済みのクリップは飛ばす）。
+# ここに書かないもの: 緯度経度・速度・焼き込みの時刻・機種。area は約 10 km 単位より粗い地域名だけ。
+# 走行（drive）は撮影日の単位。同じ日に別の走行と分かれば id に -b などを付けて分ける。
+# 走行の split は manifest に入ったら変えない（学習とテストの漏れを防ぐため。self_footage.py が止める）。
+
+[settings]
+deer_every_s = 0.2     # 鹿のいる区間を書き出す間隔（27.5 fps で 6 フレームおき。ラベル付け用）
+no_deer_every_s = 1.0  # 鹿のいない区間（28 フレームおき。合成の背景と誤報の評価）
+margin_s = 5.0         # 鹿の区間の前後で、鹿なしにも数えない余白
+
+# ドライブレコーダー（1920×1080、27.5 fps）。右下に日時・速度・GPS の焼き込みがある。
+# 焼き込みの文字は 5 本とも x 1581〜1894・y 987〜1033（動かない明るい縁を数値で見つけた）。余裕を持たせて右端・下端まで塗る。
+# overlay_min_pixels は陽性対照: 塗る前の矩形の中に、動かない明るい縁がこれ以上見つかるはず（5 本とも約 370〜430）。
+[camera.dashcam-a]
+kind = "dashcam"
+facing = "front"  # ch5: 車内を写す映像は保存しない。前向き以外は self_footage.py が受けない
+size = [1920, 1080]
+overlay_masks = [[1540, 960, 380, 120]]
+overlay_min_pixels = 200
+
+# 2026-11-06 の夜の 4 本。別の走行と分かるまで 1 つの走行として扱う（ドラレコの時計は未確認）。
+# 夜の鹿は L0 が 0 検出の弱点なので学習に回す。
+[[drive]]
+id = "2026-11-06"
+split = "train"
+
+# 2026-09-07 の朝の 1 本（鹿なし）。昼の連続した映像での誤報の評価に使う。
+[[drive]]
+id = "2026-09-07"
+split = "val"
+
+[[clip]]
+id = "20261106_deer-crossing"
+file = "deer-crossing.mp4"
+sha256 = "89fc4df9c708a4a6e37f2cfa71838abe224ff3bd0d745ac5d0b19a1a84d3edff"
+drive = "2026-11-06"
+camera = "dashcam-a"
+time_of_day = "night"
+area = "道東"
+# ユーザーの説明「38 秒あたりから横断」。匿名化した後のフレームを見て、横断（〜49 秒）と
+# 道ばたの群れ（98〜106 秒）の 2 つにした（2026-11-07。30 秒より後のほかの時間は 1.5〜3 秒
+# おきに見て鹿なし。30 秒より前は見ていない）
+deer = [{ start = 38.0, end = 50.0 }, { start = 96.0, end = 108.0 }]
+
+[[clip]]
+id = "20261106_deer-roadside"
+file = "deer-roadside.mp4"
+sha256 = "89b7902b51596646eeba5be7d867699e2d12e83f8c69808c93c68474990c7576"
+drive = "2026-11-06"
+camera = "dashcam-a"
+time_of_day = "night"
+area = "道東"
+# ユーザーの説明「2 分 41 秒あたりから映り込み」。匿名化した後のフレームは暗く、縮小では
+# 鹿の終わりを決められないので映像の終わりまで（仕様の Questions のとおり）
+deer = [{ start = 161.0 }]
+
+[[clip]]
+id = "20261106_night-1"
+file = "night-1.mp4"
+sha256 = "ca2c16a16cc529aec4c5d37a272e9ec0d16e5c31610944ef588d1c3d7913a3e3"
+drive = "2026-11-06"
+camera = "dashcam-a"
+time_of_day = "night"
+area = "道東"
+deer = []
+
+[[clip]]
+id = "20261106_night-2"
+file = "night-2.mp4"
+sha256 = "4226bb0a8e91e4a6a6bc8235fc430112fcf9a05edb6058f416b7a0be7e626f12"
+drive = "2026-11-06"
+camera = "dashcam-a"
+time_of_day = "night"
+area = "道東"
+deer = []
+
+[[clip]]
+id = "20260907_morning"
+file = "morning.mp4"
+sha256 = "fc8f5166726d7339765c19f0e8bfc552a90e84cf75117ded11f971abc32f2ac4"
+drive = "2026-09-07"
+camera = "dashcam-a"
+time_of_day = "day"
+area = "道東"
+deer = []

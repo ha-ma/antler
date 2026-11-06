@@ -29,12 +29,6 @@ export const METER_CENTER: V3 = [0.5, 1.03, -0.3]
 export const METER_SIZE_M: readonly [number, number] = [0.3, 0.11]
 /** ナビの画面の中心（中央のダッシュボード） */
 export const NAV_CENTER: V3 = [0.08, 0.925, -0.24]
-/** スマホ（ナビの上のマウント）の画面の中心と大きさ（m）。縦長 */
-export const PHONE_CENTER: V3 = [0.1, 1.065, -0.3]
-export const PHONE_SIZE_M: readonly [number, number] = [0.075, 0.15]
-/** スマホは運転者の方へ回す（rad） */
-export const PHONE_YAW_RAD = 0.3
-export const PHONE_TILT_RAD = -0.12
 /**
  * ルームミラー（drive-tune R5）の鏡の面の中心・大きさ（m）・向き。実車の大きさ（約 0.22 × 0.06 m）。
  * 面の向きは、運転者の目への向きと真後ろの間（右ハンドルなので右へ、少し下へ）
@@ -88,14 +82,7 @@ export function buildCabinShell(): BufferGeometry {
       CABIN.navFrame,
       -0.2,
     ),
-    // スマホのマウント（ナビの上。吸盤の足と腕）
-    beam(
-      [PHONE_CENTER[0], 0.97, PHONE_CENTER[2] - 0.05],
-      [PHONE_CENTER[0], PHONE_CENTER[1] - 0.04, PHONE_CENTER[2] - 0.02],
-      0.012,
-      CABIN.phoneMount,
-    ),
-    box([0.06, 0.012, 0.06], [PHONE_CENTER[0], 0.976, PHONE_CENTER[2] - 0.05], CABIN.phoneMount),
+    // スマホとマウントは 3D に置かない（HUD に固定した。drive-crash-spot R2）
     // A ピラー・屋根の前端・屋根・ドアの上端
     beam([-0.8, 0.96, -0.74], [-0.67, 1.46, -0.04], 0.05, CABIN.pillar),
     beam([0.8, 0.96, -0.74], [0.67, 1.46, -0.04], 0.05, CABIN.pillar),
@@ -176,18 +163,4 @@ export function buildMirrorFace(): BufferGeometry {
   for (let i = 0; i < uv.count; i++) uv.setX(i, 1 - uv.getX(i))
   uv.needsUpdate = true
   return geo
-}
-
-/** スマホの本体（画面は Html を重ねる。原点は画面の中心、+Z が画面の向き） */
-export function buildPhoneBody(): BufferGeometry {
-  return merge([
-    paint(
-      new BoxGeometry(PHONE_SIZE_M[0] + 0.008, PHONE_SIZE_M[1] + 0.012, 0.009).translate(
-        0,
-        0,
-        -0.005,
-      ),
-      CABIN.phoneBody,
-    ),
-  ])
 }

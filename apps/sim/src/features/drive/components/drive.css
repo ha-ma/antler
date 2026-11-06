@@ -39,7 +39,8 @@
   }
 }
 
-/* z-index で重なりの文脈を作り、車内のスマホ（drei の Html。z-index が大きい）を HUD・案内の下に閉じこめる（ML-1d）。
+/* z-index で重なりの文脈を作り、3D の層を HUD・案内の下に閉じこめる（ML-1d。車内のスマホは drive-crash-spot R2 で
+   HUD の層に移したが、3D の層の上に何かが出ないよう文脈は残す）。
    運転画面の上ではスクロール・拡大・長押しのメニューをしない（指のドラッグは視線。mobile-landscape R3・R4） */
 .drive__scene {
   position: absolute;
@@ -718,4 +719,181 @@
   font: inherit;
   font-weight: var(--heading-weight);
   cursor: pointer;
+}
+
+/* 車内のスマホ（drive-crash-spot R2）。3D に貼らず、ナビの上に当たる所（下の中央より左）に固定する。
+   視線・車の揺れで動かない。中身（AlertState compact）は 180×360 の箱で描いて縮める（3D の頃と同じ見え方）。
+   帯・赤の縁・終わりの帯より下（DOM で先に置く）。ポインタを奪わない（下の鹿をタップできる） */
+.drive {
+  --drive-phone-scale: 0.6;
+  --drive-phone-lift: 64px;
+}
+
+/* 小さい画面は縮める。低い画面（横のスマホ）は下のキーの説明より上、上の帯の天候のチップより下に収める */
+@media (max-width: 1100px), (max-height: 560px) {
+  .drive {
+    --drive-phone-scale: 0.42;
+  }
+}
+
+@media (max-height: 560px) {
+  .drive {
+    --drive-phone-scale: 0.36;
+    --drive-phone-lift: 100px;
+  }
+}
+
+.drive-phone {
+  position: absolute;
+  left: 40%;
+  bottom: calc(var(--drive-edge) + var(--drive-phone-lift));
+  width: calc(180px * var(--drive-phone-scale) + var(--space-2));
+  height: calc(360px * var(--drive-phone-scale) + var(--space-2));
+  transform: translateX(-50%);
+  padding: var(--space-1);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--surface-sunken);
+  box-shadow: var(--shadow-card);
+  pointer-events: none;
+}
+
+.drive-phone__screen {
+  width: 180px;
+  height: 360px;
+  overflow: hidden;
+  border-radius: 14px;
+  transform: scale(var(--drive-phone-scale));
+  transform-origin: top left;
+}
+
+/* 指の操作の間は、左右の円と下の帯の間に収まるよう少し上に置く（mobile-landscape R3） */
+.drive-hud[data-touch='true'] .drive-phone {
+  bottom: calc(var(--drive-edge) + 48px);
+}
+
+/* 鹿の発見の件数（drive-crash-spot R4）。左の列の小さな 1 行 */
+.drive-hud__spot {
+  margin: 0;
+  width: fit-content;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  font-weight: var(--label-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 衝突の演出（drive-crash-spot R3）: 0〜0.3 秒 白く光る（ink）→ 0.3〜3.2 秒 周りから暗くなる（ground）。
+   ぼかしは 1.0〜3.2 秒で 3D の層に。光は 1 回だけ（点滅しない）。reduced-motion では暗くなるだけ */
+.drive-crash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.drive-crash__flash {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  opacity: 0;
+  animation: drive-crash-flash 300ms ease-out forwards;
+}
+
+/* 周りから閉じる輪: 中央が透明の円のグラデーションを transform と opacity だけで動かす（paint しない。
+   performance-analyzer W2）。最後は .drive-crash::after が全面を ground にする */
+.drive-crash__vignette {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 300vmax;
+  height: 300vmax;
+  margin: -150vmax 0 0 -150vmax;
+  background: radial-gradient(
+    circle,
+    transparent 0,
+    transparent 15%,
+    var(--ground) 30%,
+    var(--ground) 100%
+  );
+  opacity: 0;
+  transform: scale(1.4);
+  animation: drive-crash-close 2900ms cubic-bezier(0.55, 0, 0.75, 0.4) 300ms both;
+}
+
+.drive-crash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ground);
+  opacity: 0;
+  animation: drive-crash-black 600ms ease-in 2600ms both;
+}
+
+.drive-crash__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.drive[data-crash] .drive__scene {
+  animation: drive-crash-blur 2200ms ease-in 1000ms forwards;
+}
+
+@keyframes drive-crash-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes drive-crash-close {
+  0% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(0.36);
+  }
+}
+
+@keyframes drive-crash-black {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes drive-crash-blur {
+  0% {
+    filter: blur(0);
+  }
+  100% {
+    filter: blur(6px) brightness(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drive-crash__flash {
+    display: none;
+  }
+
+  .drive[data-crash] .drive__scene {
+    animation: none;
+  }
 }

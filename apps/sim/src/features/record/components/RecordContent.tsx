@@ -55,6 +55,12 @@ export function RecordContent({
             </h1>
             <p className="record-subtitle">{view.title}</p>
             <p className="record-lead">{view.summary}</p>
+            {/* 鹿の発見の 1 行（drive-crash-spot R4。並べ方は result-screens に任せる） */}
+            {view.spotting && (
+              <p className="record-lead" data-testid="record-spotting">
+                {view.spotting}
+              </p>
+            )}
           </div>
           <StatTiles view={view} />
           <KeptList view={view} />

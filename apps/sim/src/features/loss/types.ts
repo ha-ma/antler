@@ -37,7 +37,15 @@ export type CollisionReport = {
   achievedStops: string[] | null
   /** シミュレーションの経過（World.t、ms。巻き戻し用）。分からなければ null（巻き戻しはその日の最初から） */
   simMs: number | null
+  /**
+   * 鹿の発見（drive-crash-spot R4。URL の spot=found.early.appeared）。見えた鹿が 0・欄が無い・形が違えば無し
+   * （画面の 1 行を出さない）
+   */
+  spotting?: LossSpotting | undefined
 }
+
+/** 見えた頭数・見つけた頭数・そのうち 60 m より前で見つけた頭数（early ≤ found ≤ appeared） */
+export type LossSpotting = { appeared: number; found: number; early: number }
 
 /** しおりを読んで achievedStops を決めたあとの衝突の情報（画面・計算・喪失文の要求はこれを使う） */
 export type ResolvedCollision = Omit<CollisionReport, 'achievedStops'> & {

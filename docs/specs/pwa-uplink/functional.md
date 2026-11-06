@@ -26,11 +26,13 @@ target_paths:
   - apps/pwa/src/features/connect/hooks/use-vehicle-uplink.ts
   - apps/pwa/src/features/connect/components/DriveScreen.tsx
   - apps/pwa/scripts/fake-edge.mjs
-spec_confirmed_at: 9b54027
+spec_confirmed_at: fdbc87c
 tier: 2
 ---
 
 # 仕様: pwa-uplink（スマホ PWA の速度・ゾーン・光を edge の L1 に返す）
+
+**l0-fp-filter（2026-11-06）での変更**: `edge/detector/src/detector/config.py` に `[l0_filter]` のセクションを足した。この feature の設定（`[l1] vehicle_state`・`vehicle_max_age_s`）と挙動は変わらない。
 
 **edge-run（2026-11-06）での変更**: target_paths の config.example.toml の `[infer]` にコメントを足しただけ（`docs/specs/edge-run/functional.md`）。この feature の挙動は変わらない。
 

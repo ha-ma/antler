@@ -23,6 +23,12 @@ export const DETECT_BANDS_M = [60, 30] as const
 /** 模擬の検知遅延（ms） */
 export const DELAY_MIN_MS = 150
 export const DELAY_MAX_MS = 400
+/**
+ * 至近の飛び出し（dart・graze-dash）の検知遅延（ms。drive-crash-spot R5、推奨で決定）。林から車線まで約 1 秒しか
+ * ないので、B の L0 経路の実測の幅（推論＋判定の 1 フレーム）に寄せる。ch3 A5-3 の 150〜400 ms とは違う
+ */
+export const NEAR_DELAY_MIN_MS = 80
+export const NEAR_DELAY_MAX_MS = 150
 /** 検知がこれだけ途切れたら deer:false（ms、ch5） */
 export const RELEASE_MS = 1500
 /** カメラは車の中心から前へこれだけ（m。フロントガラスの上） */
@@ -45,12 +51,18 @@ export type Sighting = {
   deerId: string
   distanceM: number
   side: Side
+  /** 至近の飛び出し（dart・graze-dash）の鹿。最初の抽選を近い帯で引き、遅延を短くする（drive-crash-spot R5） */
+  near?: boolean
 }
 
-/** その鹿が検知の条件（距離・画角・遮蔽）を満たすか（UC-6a・UC-6f）。満たさなければ null */
+/**
+ * その鹿が検知の条件（距離・画角・遮蔽）を満たすか（UC-6a・UC-6f）。満たさなければ null。
+ * 林の中（occluded）の鹿は、目が光って見えても検知しない（B のカメラにも体が写らない。drive-crash-spot R5。
+ * 運転者が自分の目で見つける「鹿の発見」の対象にはなる）
+ */
 export function cameraSees(
   camera: CameraPose,
-  deer: { id: string; x: number; z: number; occluded: boolean },
+  deer: { id: string; x: number; z: number; occluded: boolean; near?: boolean },
 ): Sighting | null {
   if (deer.occluded) return null
   const rx = deer.x - camera.x
@@ -61,7 +73,10 @@ export function cameraSees(
   if (ahead <= 0 || distanceM > DETECT_RANGE_M) return null
   const angle = (Math.atan2(Math.abs(lateral), ahead) * 180) / Math.PI
   if (angle > DETECT_HALF_FOV_DEG) return null
-  return { deerId: deer.id, distanceM, side: lateral < 0 ? 'L' : 'R' }
+  const side = lateral < 0 ? 'L' : 'R'
+  return deer.near
+    ? { deerId: deer.id, distanceM, side, near: true }
+    : { deerId: deer.id, distanceM, side }
 }
 
 /** 車内の窓の曇りの係数（drive-link R6。当日の条件の windowFog。推奨で決定） */
@@ -88,6 +103,9 @@ export function detectProbability(
 export function detectBand(distanceM: number): number {
   return DETECT_BANDS_M.filter((edge) => distanceM < edge).length
 }
+
+/** いちばん近い帯（30 m 未満） */
+const NEAREST_BAND = DETECT_BANDS_M.length
 
 /** 帯ごとの捉える確率。近い帯ほど大きく写るので、遠い帯の抽選を帯の番号 + 1 回重ねたのと同じにする */
 export function bandProbability(probability: number, band: number): number {
@@ -147,12 +165,13 @@ export function stepDetector(
   rng: Rng,
 ): { state: DetectorState; out: DetectorOutput } {
   // 初めて条件を満たした鹿と、見逃したまま近い帯に入った鹿だけ、捉えるかを引く
-  // （見逃しを作る。引く順は sightings の順で決まる。drive-deer R6）
+  // （見逃しを作る。引く順は sightings の順で決まる。drive-deer R6）。至近の飛び出しは最初から近い帯で引く
+  // （林から出て車線まで約 1 秒。遠い帯の見逃しを引き直す時間が無い。drive-crash-spot R5）
   let captured = state.captured
   let bands = state.bands
   for (const s of sightings) {
     if (captured[s.deerId] === true) continue
-    const band = detectBand(s.distanceM)
+    const band = s.near ? NEAREST_BAND : detectBand(s.distanceM)
     const last = bands[s.deerId]
     if (last !== undefined && band <= last) continue
     captured = { ...captured, [s.deerId]: rng() < bandProbability(probability, band) }
@@ -181,7 +200,10 @@ export function stepDetector(
   }
   if (next.pendingSince === null) {
     if (!nearest) return { state: next, out: none }
-    next = { ...next, pendingSince: t, delayMs: between(rng, DELAY_MIN_MS, DELAY_MAX_MS) }
+    const delayMs = nearest.near
+      ? between(rng, NEAR_DELAY_MIN_MS, NEAR_DELAY_MAX_MS)
+      : between(rng, DELAY_MIN_MS, DELAY_MAX_MS)
+    next = { ...next, pendingSince: t, delayMs }
   }
   if (lapsed) return { state: { ...INITIAL_DETECTOR, captured, bands }, out: none }
   if (t - (next.pendingSince ?? t) >= next.delayMs && next.last) {
