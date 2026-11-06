@@ -8,6 +8,8 @@ tier: 2
 
 # 仕様: edge-judge（鹿の判定とフラグ配信）
 
+**edge-run（2026-11-06）での変更**: 下の Deferred「起動の入口」を edge-run で回収した。`python -m detector --config ...`（`app.py`）が server・hub・pump を組み立て、走行ログをファイル（`logs/run-*.jsonl`）に書き、Ctrl-C で片付ける（`docs/specs/edge-run/functional.md`）。`sources.py` に `close()` を足した。判定と配信の挙動は変わらない。
+
 ## 概要
 
 edge-camera の推論結果（`FrameResult`）から「前方に鹿がいる」を判定し、`AlertFlag` を WebSocket（`ws://ezoroad.local:8765/alerts`）でスマホ PWA に配信する。

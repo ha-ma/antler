@@ -73,15 +73,22 @@ class VideoFileSource:
         self._fps = fps
         self._start = start or _now()
         self._seq = 0
+        self._released = False
 
     def read(self) -> Frame | None:
         ok, img = self._capture.read()
         if not ok or img is None:
-            self._capture.release()
+            self.close()
             return None
         seq = self._seq
         self._seq += 1
         return Frame(img, self._start + timedelta(seconds=seq / self._fps), seq)
+
+    def close(self) -> None:
+        """動画を閉じる。2 回呼んでも解放は 1 回（edge-run の片付け）。"""
+        if not self._released:
+            self._released = True
+            self._capture.release()
 
 
 class CameraSource:
@@ -91,18 +98,25 @@ class CameraSource:
         self._capture = capture
         self._clock = clock
         self._seq = 0
+        self._released = False
 
     def read(self) -> Frame:
         ok, img = self._capture.read()
         t_frame = self._clock()
         if not ok or img is None:
             logger.error("camera.lost", extra={"seq": self._seq})
-            self._capture.release()
+            self.close()
             msg = "camera: フレームを読めない"
             raise SourceError(msg)
         seq = self._seq
         self._seq += 1
         return Frame(img, t_frame, seq)
+
+    def close(self) -> None:
+        """カメラを解放する。2 回呼んでも解放は 1 回（edge-run の片付け。Ctrl-C でも離す）。"""
+        if not self._released:
+            self._released = True
+            self._capture.release()
 
 
 def _load_cv2() -> object:

@@ -3,10 +3,12 @@ import { buildRecordView, recordText } from '@antler/trip'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { Link } from 'react-router'
+import { useCelebration } from '../hooks/useCelebration'
 import { useIsOwner } from '../hooks/useIsOwner'
 import type { RecordData } from '../types'
 import { challengeOffHref, pwaUrl } from '../utils/links'
 import { BIntro } from './BIntro'
+import { ClearBanner } from './ClearBanner'
 import { DeleteSection } from './DeleteSection'
 import { KeptList } from './KeptList'
 import { RecordHeader } from './RecordHeader'
@@ -33,6 +35,8 @@ export function RecordContent({
 }) {
   const view = useMemo(() => buildRecordView(data.trip, data.record), [data])
   const isOwner = useIsOwner(data.trip.id)
+  // 鹿にぶつからずに走りきった直後だけ「クリア」。衝突のあと（A-6 から）は一切出さない（result-screens R3・R4）
+  const { celebration, onShown } = useCelebration(data.record)
   const { lang } = view
   const t = (key: Parameters<typeof recordText>[0]) => recordText(key, lang)
 
@@ -42,9 +46,11 @@ export function RecordContent({
       <RecordHeader tripId={data.trip.id} lang={lang} />
       <main className="record-main">
         <div className="record-col">
+          {celebration ? <ClearBanner day={celebration.day} lang={lang} onShown={onShown} /> : null}
           <div className="record-intro">
             <span className="record-eyebrow">{view.eyebrow}</span>
-            <h1 ref={focusOnMount} tabIndex={-1}>
+            {/* 祝いを出すときは「クリア」がフォーカスを受ける（両方に付けると後のほうが勝つ） */}
+            <h1 ref={celebration ? undefined : focusOnMount} tabIndex={-1}>
               {view.heading}
             </h1>
             <p className="record-subtitle">{view.title}</p>

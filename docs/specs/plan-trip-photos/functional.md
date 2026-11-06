@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: 7435a29
+spec_confirmed_at: 107d7fe
 tier: 1
 ---
 
@@ -18,6 +18,8 @@ tier: 1
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で `packages/trip/src/i18n-tables.test.ts` が地点・楽しみの JSON の名前を 4 言語の規則で検査する（写真の台帳は変えていない）。この仕様のルールは変えていない。
 
 > 2026-11-06 drive-tourism が plan-trip の barrel から `photoOf`・`photoSrc` を読み、運転中の会話とおすすめのカードに同じ写真と出典（平文）を出す（`docs/specs/drive-tourism/functional.md` T8・T13）。この仕様のルール（写真の選び方・引用）は変えていない。
+
+> 2026-11-06 result-screens（`docs/specs/result-screens/functional.md` R1）で A-1 の送信ボタンの文言を「しおりを作って鹿ゾーンを確かめる →」（4 言語）に変えた（`features/plan-trip/text.ts` とそのテスト・コメント）。この仕様のルール（写真・引用）は変えていない。
 
 ## 概要
 
@@ -39,6 +41,8 @@ main の取り込み（2026-11-06、og-font・YOLO の素材）で共有の CRED
 **範囲外**: drive（`apps/sim/src/features/drive/`）、stop-events と loss の画面に残る「重さ」の表示（follow-up。下の Deferred）、写真の差し替え UI、写真の 4 言語の説明文、夜・早朝の楽しみを夜に置くこと（いまも 8:00〜18:00 の枠に入る。plan-trip からの既存の挙動）。
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `app/routes.tsx`（画面ごとの遅延読込）を変えた。写真の出し方は変えていない。`packages/trip` は記録の形（`frames`）だけを変えた。
+
+> 2026-11-06 sdata-materials が CREDITS.md のデータ・素材の表に Mapillary の画像と 3D の鹿の行を足した。楽しみの写真の表は変えていない。
 
 ## Example Map
 

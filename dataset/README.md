@@ -14,6 +14,8 @@ B の鹿の検出（L0 = YOLO）の学習・評価に使う画像と、L1 の校
 | `private/antler-yolo/eval-by-sa/`               | Commons の実写フレーム 100 枚と YOLO ラベル（V001・V005〜V008。CC BY-SA）                                     | **評価だけ**（ch6 の許可リスト外のため学習に使わない）                                      | 入れない（`dataset/private/`）  |
 | `private/osaki-2026-11/`                        | Kazuhiko Osaki さんのエゾシカの写真 47 枚（EXIF 削除済み、ラベルなし）、`manifest.json`                       | **学習・評価**。公開・二次利用は不可                                                        | 入れない                        |
 | `private/reference-photos/yuki-fujita-2026-11/` | Yuki Fujita さんのエゾシカの写真 8 枚                                                                         | **学習・評価**・3D の参考。公開・二次利用は不可                                             | 入れない                        |
+| `private/mapillary-doto/`                       | Mapillary の道東の画像 1,500 枚（CC BY-SA 4.0、撮影者 39 人、メタデータ削除済み）、`manifest.json`            | **評価だけ**。鹿のいない画像・ラベルなし                                                    | 入れない                        |
+| `external/deer3d/<ID>/`                         | 3D の鹿 M01〜M04（CC0、GLB・.blend・FBX）とライセンスの証拠、`manifest.json`                                  | 合成（S データ）の鹿（ch9 ③ b＋d）                                                          | 入れない（`dataset/external/`） |
 | `private/self-footage/`                         | ユーザーが撮ったドラレコの映像の匿名化したフレーム（焼き込みを塗りつぶし・人と車をモザイク）、`manifest.json` | **学習・評価**（走行単位の分割と用途は manifest）。ぼかしを人が確かめるまで公開・配布しない | 入れない                        |
 | `raw/`                                          | 同意・匿名化の前の生データ                                                                                    | —                                                                                           | 入れない                        |
 | `out/`                                          | `export_l1_labels.py` の出力                                                                                  | —                                                                                           | 入れない                        |
@@ -42,7 +44,7 @@ YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の�
    - `data/yolo/dataset/{images,labels}/{train,val,test}/` のうち、ファイル名が `V002_`・`V003_`・`V009_` のもの → `external/antler-yolo/commons/` の同じ構成
    - 同じく `V001_`・`V005_`〜`V008_` のもの → `private/antler-yolo/eval-by-sa/` の同じ構成
 5. **`V004_` は入れない**（全フレームに GPS 座標・速度・日時が焼き込まれている）
-6. 入れないもの: S データ（合成画像 600 枚）・生成鹿 8 種（ch9 ③「学習データ配布の可否確認」が未）、元動画、研究スクリプト、Commons のメタデータ（撮影地点の座標を含む）、`handoff/`
+6. 入れないもの: S データ（合成画像 600 枚）・生成鹿 8 種（AI 生成で、ch9 ③ の b＋d と配布の可否の対象外）、元動画、研究スクリプト、Commons のメタデータ（撮影地点の座標を含む）、`handoff/`
 7. JPEG に EXIF・XMP・ICC があれば消す（この版のフレームには無い。エンコーダ名のコメントだけある）
 
 コピー後の一覧と SHA-256 は各フォルダの `manifest.json`。元の研究の結果と限界は `docs/reports/2026-11-06-yolo-materials.md`。
@@ -73,12 +75,54 @@ YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の�
 
 `PRIVATE-DATA.md` を参照。
 
+### Mapillary の道東の画像（S データ研究の引継ぎ、2026-11-06 取り込み）
+
+外部の研究の写し `~/work/antler-yolo-mac`（タグ `handoff-to-antler-2026-11-06`）から取り込んだ。研究の写しは読むだけで、Python で読むときは研究のフォルダの外のスクリプトから `python -I` で、パスを引数で渡す。
+
+1. 台帳 `data/mapillary/acquisition.json`（SHA-256 `b8a77c49c9990ce679e8c4866bc69b556b55973e3faf2aca3b717ad2ff88e252`）を照合する
+2. 画像 `data/raw/mapillary/<sequence>/<image_id>.jpg`（1,500 枚、長辺 2048 px）を 1 枚ずつ台帳の `sha256` と照合する
+3. JPEG の APP0（JFIF）と APP14（Adobe）以外の APPn（EXIF・XMP・ICC・IPTC）と COM を落として `private/mapillary-doto/images/<image_id>.jpg` に書く。再圧縮しない（復号した画素が元と同じことを確かめる）。この版では EXIF が 17 枚（`ImageDescription`・`Artist` だけ、GPS は 0）、APP13（IPTC）が全枚にあった。ICC は無かった
+4. 書いた後に、全ファイルで EXIF・XMP・ICC・IPTC が 0 であることを確かめる
+5. `manifest.json` に、台帳の `image_id`・`creator_username`・`attribution`・`source_page_url`・`region`・`area_rough`（約 10 km の区画）・`camera_type`・`sequence`・月と、元と出力の SHA-256 を書く。**正確な緯度経度・撮影時刻・機種・creator_id は書かない**
+6. Mapillary の規約: 顔・ナンバーのぼかしを外さない（§12）、車の自動制御に使わない（§5。運転者への警告は対象外）、画像を見せる場所では撮影者・Mapillary・元のページへのリンクを出す、合成画像などを外に出すときは CC BY-SA 4.0
+7. API のトークン（`~/.config/antler/mapillary_token`）はどこにも写さない。この検索 API は空かエラー 500 を返すので、追加で取るときは公式の公開タイルを読む方式で書き直す
+
+- **評価だけに使う**（CC BY-SA は ch6 の許可リスト外）。**学習用の合成の背景にも使わない**（合成画像も CC BY-SA になる）。合成の試作の見た目の確認には使ってよいが、その合成画像は学習に使わない
+- ラベルは無い（鹿のいない前提の画像）。誤検出の評価に使う。約 4 分の 1 は車から道路を見た画像ではないので、評価の前に選別する。写真の間隔が数秒あくので、連続フレームの警報ルールの評価には使えない
+- `train_sources.toml` にはまだ載せていない（`kind = "yolo"` はラベル付きの素材用）。dataset-train の次の cycle で「鹿のいない画像」の `kind`（例 `negatives`、`use = "eval"`）を足して登録する
+- 撮影時刻は投稿者によってずれていて当てにならない。昼・夜は目で見て分ける
+
+### 3D の鹿 M01〜M04（S データ研究の引継ぎ、2026-11-06 取り込み）
+
+ch9 ③ 鹿モデル = b＋d（2026-11-06 ユーザー判断）による。
+
+1. 台帳 `data/deer3d/acquisition.json`（SHA-256 `36d00d62be97fe5fae858ac2580735bf1c95926bae7c3a51209714aaaf5b1293`）を照合する
+2. 各ファイルを台帳の SHA-256・大きさと照合して `external/deer3d/<ID>/` にコピーする（M04 の FBX は 7z と展開済みの `fbx_extracted/` の両方）
+3. ライセンスの証拠（配布ページの HTML、M04 の `License.txt`）を `external/deer3d/<ID>/evidence/` に置く
+4. `external/deer3d/manifest.json` に、作者・配布元・ライセンス・ファイルごとの SHA-256・骨格と動作を書く
+
+| ID  | モデル                     | 作者・配布元             | 形式        | 動作                                   |
+| --- | -------------------------- | ------------------------ | ----------- | -------------------------------------- |
+| M01 | Stag（角あり）             | Quaternius（Poly Pizza） | GLB         | 歩く・走る・食べる・倒れるなど 13 種   |
+| M02 | Deer（角なし、雌の代わり） | Quaternius（Poly Pizza） | GLB         | M01 と同じ 13 種                       |
+| M03 | Old Deer Male（角あり）    | CDmir（OpenGameArt）     | .blend      | Run・Idle・Stand・Eat・LookAround・Die |
+| M04 | Deer Female                | CDmir（OpenGameArt）     | .blend・FBX | M03 と同じ 6 種                        |
+
+- .blend の骨格と動作はファイルの中の名前を読んで確かめただけ。Blender で開いて再生できるかを dataset-synth の最初に確かめる
+- どれもエゾシカではない一般的な鹿で、写実的ではない。肩高 約 1 m・角の形に合わせ、質感に手を入れる前提
+- 色・斑点・臀の白斑・姿勢の参考に `private/` の Osaki さん・Yuki Fujita さんの写真を使ってよい（`PRIVATE-DATA.md` の範囲で。写真そのものをテクスチャに貼って配らない）
+- Sketchfab の CC BY の写実寄りのモデルは取り込んでいない（ログインが必要）。CC0 の 4 体で見た目が足りなければユーザーに聞く
+- YouTube の素材、前回の S データ 600 枚と生成鹿 8 種（AI 生成）は入れない（ch9 ③）
+
+研究の結果（R16: Mapillary の画像での L0 の誤検出）は `docs/reports/2026-11-06-sdata-research.md`。
+
 ## 学習・評価の分け方
 
 - Commons のフレームは元の研究の分割を引き継ぐ（動画単位: V002・V009 = train、V003 = val）。同じ動画のフレームを学習と評価の両側に入れない
 - BY-SA のフレームは評価専用。V001 は唯一の夜間の鹿（5 物体）
 - Osaki さんの写真は撮影日（`session`）単位で分ける。連写を学習と評価の両側に入れない
 - 自分で撮った映像は走行（撮影日）単位で分ける（`self_footage.toml` の `[[drive]]`、manifest の `files[].group`）。合成の背景（`synth_background`）は train の走行からだけ。2026-11-07 の鹿の走行の少なくとも 1 本は test 専用
+- Mapillary の画像は評価だけ。評価をさらに分けるときは撮影者（`creator_username`）の単位で分ける（上位 3 人が約 150 枚ずつ）
 
 ## 学習スクリプト（`train_l0.py`、docs/specs/dataset-train）
 

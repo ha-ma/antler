@@ -1,6 +1,7 @@
 import type { Lang } from '@antler/schema'
 import { formatBudget, STATS } from '@antler/trip'
 import { fillText, LOSS_TEXT } from '../text'
+import { dropClass, type DropStyle } from '../utils/drop'
 import { count, monthLabel } from '../utils/format'
 
 type Source = { name: string; verified: boolean }
@@ -9,13 +10,17 @@ type Source = { name: string; verified: boolean }
  * 統計カード（A6-3、functional.md R4）: STATS の鹿事故と保険の実数。出典名を必ず書き、
  * verified:false には「出典の再照合中」を添える。stats.json に無い数字（停止距離など）は出さない。
  */
-export function StatsCard({ lang }: { lang: Lang }) {
+export function StatsCard({ lang, drop }: { lang: Lang; drop?: DropStyle }) {
   const t = LOSS_TEXT
   const deer = STATS.deerAccidents
   const ins = STATS.vehicleInsurance
   const sources: Source[] = [deer.source, ins.source]
   return (
-    <section className="loss-stats" aria-labelledby="loss-stats-heading">
+    <section
+      className={dropClass('loss-stats', drop)}
+      style={drop}
+      aria-labelledby="loss-stats-heading"
+    >
       <h2 id="loss-stats-heading" className="loss-stats__heading">
         {fillText(t.statsHeading[lang], { year: deer.year, total: count(deer.total) })}
       </h2>

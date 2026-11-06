@@ -17,7 +17,7 @@ export type SubmitTrip = {
   failure: CreateTripFailure | null
 }
 
-/** 「この旅を守りに行く」の送信・再試行と、成功したら `/trip/:id/brief` に移る（R5・R8）。 */
+/** 「しおりを作って鹿ゾーンを確かめる」の送信・再試行と、成功したら `/trip/:id/brief` に移る（R5・R8）。 */
 export function useSubmitTrip(preview: TripPreview): SubmitTrip {
   const createTrip = useCreateTrip()
   const navigate = useNavigate()
