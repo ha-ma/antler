@@ -9,7 +9,7 @@ target_paths:
   - apps/sim/scripts/photo-picks.json
   - CREDITS.md
   - apps/sim/public/photos/
-spec_confirmed_at: b28f0a3
+spec_confirmed_at: b74b9d1
 tier: 1
 ---
 
@@ -26,6 +26,7 @@ tier: 1
 元の仕様: `docs/specs/plan-trip/functional.md`（R1〜R3 をこの仕様に合わせて直した）。
 敵対レビュー: `docs/reports/2026-11-06-spec-adversary-plan-trip-photos.md`（指摘は下の「決着済み」に織り込んだ）。実装のレビュー 4 種は Critical 0。直したものと次に回す Warning は `docs/reports/2026-11-06-plan-trip-photos-review-followups.md`。写真の調査: `docs/reports/2026-11-06-photo-research.md`。
 main の取り込み（2026-11-06、og-font・YOLO の素材）で共有の CREDITS.md に他の節が増えた。この仕様の写真の節と挙動は変わらない。
+2 回目の main の取り込み（2026-11-06、drive-tune・drive-audio-chat・dataset-train など）でも、CREDITS.md の他の行（音・会話・学習の重み）だけが変わった。写真の節と挙動は変わらない。
 
 **Tier 1 の理由**: 挙動の変更（しおりの組み立て・画面）はあるが、認可・永続化スキーマ（TripPlan の型は凍結のまま）・実行時の外部副作用（写真は開発時に 1 回だけ取って同梱し、画面は同じ origin から読む）・並行性に触れない。
 
