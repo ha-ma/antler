@@ -10,13 +10,15 @@ target_paths:
   - dataset/tests/test_bench_l1_entry.py
   - docs/runbooks/2026-11-04-mac-mini-day0.md
   - CREDITS.md
-spec_confirmed_at: 2421c02
+spec_confirmed_at: cc6cafe
 tier: 1
 ---
 
 # 仕様: edge-day0（Mac mini の実機作業 Step 0 の道具と手順書）
 
 **og-font（2026-11-06）での変更**: CLAUDE.md の MUST と CREDITS.md に、フォントは SIL OFL も可を足した（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
+
+**YOLO の素材の取り込み（2026-11-06）での変更**: CREDITS.md に Commons の実写フレーム・Osaki さんの写真・外部の研究の検出器の重み（yolo26n-deer-20261105、AGPL-3.0）の行を足した（`docs/reports/2026-11-06-yolo-materials.md`）。この feature の挙動は変わらない。
 
 ## 概要
 
