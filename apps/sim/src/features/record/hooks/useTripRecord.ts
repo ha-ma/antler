@@ -43,6 +43,9 @@ export function useTripRecord(id: string) {
   return useQuery({
     queryKey: recordQueryKey(id),
     queryFn: ({ signal }) => fetchRecord(id, signal),
+    // 画面を開くたびに取り直す（キャッシュが新しくても）。A-7 の「クリア」は取り直した記録で決める
+    // （result-screens R4。RecordPage は取り直すまで「読み込み中」を出す）
+    refetchOnMount: 'always',
     retry: (count, error) =>
       count < 1 &&
       error instanceof RecordApiError &&

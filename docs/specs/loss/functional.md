@@ -18,6 +18,8 @@ tier: 2
 
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で A-6 のしおりを読む前・読めない・失敗の画面の言語を、`ja` 固定からブラウザの言語（`initialLang`）にした。しおりを読んだあとは今までどおり `plan.lang`。この仕様のルールは変えていない。
 
+> 2026-11-06 result-screens（`docs/specs/result-screens/functional.md` R2・R4）で、A-6 のカード（文の欄・4 指標・しおり・統計）が DOM の順に上から落ちて積み重なる動きを足した（`utils/drop.ts` の `dropSequence`、`loss.css` の `.loss-drop`。動きを減らす設定では不透明度だけ）。「この旅の記録を見る」のリンクは衝突のあとの合図（location state、record の `RECORD_AFTER_COLLISION`）を付け、A-7 は「クリア」を出さない。R2 のしおりのカードの −1.5° は `--loss-tilt` の既定に移した。この仕様のルール（中身・文言・導線の行き先）は変えていない。
+
 ## 概要
 
 A-3 の運転で鹿と衝突したら、drive は loss の barrel の `lossHref(collision)` で `/loss/:tripId?…` に移る。
@@ -79,7 +81,7 @@ spec-adversary の指摘（`docs/reports/2026-11-04-spec-adversary-loss.md`）�
 - R7 入力の検証（api）: パスの `id` は英数 4〜16 文字（無い・形が違うは同じ 404）。body は strict（知らない欄は 400）: `day` 1〜その旅の日数、`leg` 0〜その日の移動の数 − 1（移動の無い日は衝突できないので 400）、`at` はタイムゾーン付きの ISO 8601 で、JST の暦日がその日の日付と同じ、`alertEnabled` boolean、`achievedStops` はその日の楽しみの部分集合（重複なし）で、拠点（`base`）がその日の `legs[0..leg]` の出発地のどれかに当たるもの（衝突した移動より先の町の楽しみは達成できない。spec-adversary 3、推奨で決定）
   - `at` は暦日だけを確かめ、移動の時刻（departAt〜arriveAt）とは照合しない（運転の速さ・止まった時間でずれるため。推奨で決定）
 - R8 濫用の抑え: `POST /api/trips/:id/losses` は IP あたり 1 分 10 件。Claude の 1 日の上限（`CLAUDE_DAILY_CALL_LIMIT`）と同時呼び出しの枠（`CLAUDE_MAX_CONCURRENT_CALLS`）は plan-trip と**同じ数え上げ・同じ枠**を使う（別に数えると上限が 2 倍になる）。保存済みの文を返すときは数えない
-- R9 A6-4 の導線: 主ボタン（1 つだけ大きく、`spruce`）「鹿アラートを ON にして、同じ道をやり直す」→ `/trip/:id/brief?day={day}`（alert のクエリ無し ＝ ON。brief-map の R6）。同じ旅 ＝ 同じ seed なので同じ条件で再生される。アラート ON のまま衝突したときは文言を「同じ道を、もう一度走る」にする（行き先は同じ。推奨で決定）。副: 「衝突の 3 秒前を見る」→ `/drive?trip={id}&day={day}(&alert=off)&replay={max(0, simMs − 3000)}`（巻き戻しは drive の機能。Deferred）、「別の旅をつくる」→ `/plan`
+- R9 A6-4 の導線: 主ボタン（1 つだけ大きく、`spruce`）「鹿アラートを ON にして、同じ道をやり直す」→ `/trip/:id/brief?day={day}`（alert のクエリ無し ＝ ON。brief-map の R6）。同じ旅 ＝ 同じ seed なので同じ条件で再生される。アラート ON のまま衝突したときは文言を「同じ道を、もう一度走る」にする（行き先は同じ。推奨で決定）。副: 「この日を最初から走り直す」（2026-11-06 result-screens R6 で「衝突の 3 秒前を見る」から変更。リプレイはユーザーが見送り）→ `/drive?trip={id}&day={day}(&alert=off)&replay={max(0, simMs − 3000)}`（`simMs` が null のあいだ replay は付かない。drive は replay を読まない）、「別の旅をつくる」→ `/plan`
   - 3 つの下に控えめな文字のリンク「この旅の記録を見る」→ A-7（record の `recordHref`、`/t/:id`）。その日は衝突として記録に残る（record の run。2026-11-04、record のマージ後に追加。推奨で決定）
 - R10 言語: 画面の文言は `plan.lang`（4 言語）。文言の表は 4 言語の欠けを `text.test.ts` で落とす。画面は音を出さない
 
@@ -151,7 +153,7 @@ R1〜R10 のとおり。4 指標・取り消し線（R2・R3）は sim の純粋
 - [Deferred: 担当=ユーザー（事実確認）/ 期日=2026-11-08（Day 6）/ 暫定挙動=`loss-baseline.json` の宿 1 人 1 泊・体験 1 人の単価を `verified:false` で使い、画面に「概算」と書く（税込かどうかも出典と一緒に決める）] キャンセル額の単価の出典
 - [Deferred: 担当=record / 期日=2026-11-08（Day 6）/ 暫定挙動=A-7 には喪失文を出さない（A-6 から A-7 へのリンクだけ）] A-7 に喪失文を出すかは record が決める（ID を知る人が作れる文なので、出すなら threat.md の扱いを引き継ぐ）
 - 旅の削除と一緒に喪失文を消す（cascade）は、record のマージ後に実装した（2026-11-05、`DrizzleRecordRepository.deleteTrip` が `trip_losses` も消す。record の UC-5a）
-- [Deferred: 担当=drive-link / 期日=2026-11-07（Day 5）/ 暫定挙動=`/drive?trip&day(&alert=off)&replay=` を開く。drive が `replay` を読むまでは、その日の最初から走る] 「衝突の 3 秒前を見る」の巻き戻し再生
+- [Deferred: 2026-11-06 にユーザーが見送り（result-screens R6。衝突の 3 秒前から衝突までのリプレイは作らない。推奨だった入力の記録＋決定的な再シミュレーションは約 1.5〜2 日・1 回 1〜3 KB）。副の導線は「この日を最初から走り直す」/ 担当=drive-link / 期日=2026-11-07（Day 5）/ 暫定挙動=`/drive?trip&day(&alert=off)&replay=` を開く。drive が `replay` を読むまでは、その日の最初から走る] 「衝突の 3 秒前を見る」の巻き戻し再生
 - [Deferred: 担当=ユーザー / 期日=2026-11-06 / 暫定挙動=消さない（plan-trip の TripPlan と同じ）] 喪失文の保持期間
 
 ## Test List（Canon TDD Step 1）

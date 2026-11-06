@@ -1,11 +1,18 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { RECORD_TEXT } from '@antler/trip'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
-import { renderWithProviders } from '@/test/render'
+import { createTestQueryClient, renderWithProviders } from '@/test/render'
 import { OWNER_TOKEN, personaRecord, run, TRIP_ID } from '../test-fixtures'
+import { RECORD_CLEAR_TEXT } from '../text'
 import type { RecordData } from '../types'
 import { RecordPage } from './RecordPage'
+
+// vitest は CSS を空にして読む（?raw でも）ので、ファイルを直に読む
+const recordCss = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'record.css'), 'utf8')
 
 // A-7 の画面（docs/specs/record/functional.md AC-2・UC-8・UC-9、resilience.md FAIL-3〜FAIL-5）。api は fetch のスタブ。
 
@@ -336,3 +343,176 @@ describe('A-7 の操作', () => {
     expect(localStorage.getItem(OWNER_KEY)).toBe(OWNER_TOKEN)
   })
 })
+
+// 「クリア」の祝い（docs/specs/result-screens/functional.md R3・R4、UC-3・UC-4・S-1・S-2）
+describe('A-7 の「クリア」', () => {
+  // 上の describe の画面も祝いを出し、その履歴（MemoryRouter の最初の key は default）を覚えている
+  beforeEach(() => {
+    sessionStorage.clear()
+  })
+
+  const CLEARED = personaRecord([run({ day: 1 }), run({ day: 2 })])
+  // ON で完走した D2 に、OFF で挑戦して衝突した（その日の結果は ON の完走のまま）
+  const OFF_CRASHED = personaRecord([
+    run({ day: 1 }),
+    run({ day: 2 }),
+    run({ day: 2, alertEnabled: false, outcome: 'collided' }),
+  ])
+  const h1 = () => screen.findByRole('heading', { level: 1, name: 'D2 まで走った。' })
+  const confetti = () => document.querySelectorAll('.record-confetti')
+  const clearBlock = (el: HTMLElement) => el.closest('.record-clear__text')
+
+  function renderAt(entry: { pathname: string; state?: unknown; key?: string }) {
+    const router = createMemoryRouter(
+      [
+        { path: '/t/:id', element: <RecordPage /> },
+        { path: '/plan', element: <p>plan</p> },
+      ],
+      { initialEntries: [entry] },
+    )
+    return renderWithProviders(<RouterProvider router={router} />)
+  }
+
+  it('CLEAR-4 完走のあと: 「クリア」と説明が出て、フォーカスは「クリア」。円・紙吹雪は aria-hidden', async () => {
+    stubApi(() => recordReply(CLEARED))
+    renderAt({ pathname: `/t/${TRIP_ID}` })
+    await h1()
+    // フォーカスは「クリア」と説明の塊（読み上げが両方を読む）。見出しではない
+    const block = clearBlock(screen.getByText('クリア'))
+    expect(block).toHaveFocus()
+    expect(block).toHaveTextContent('クリアD2 を、鹿にぶつからずに走りきりました。')
+    expect(within(block as HTMLElement).queryByRole('heading')).toBeNull()
+    expect(document.querySelector('.record-clear__mark')).toHaveAttribute('aria-hidden', 'true')
+    expect(document.querySelector('.record-clear__confetti')).toHaveAttribute('aria-hidden', 'true')
+    expect(confetti()).toHaveLength(24)
+    // 読み上げの順: 「クリア」→ 記録の見出し
+    const banner = document.querySelector('.record-clear')
+    const heading = screen.getByRole('heading', { level: 1 })
+    expect(
+      banner && banner.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('CLEAR-4 4 言語: en の旅は CLEAR と英語の説明', async () => {
+    stubApi(() => recordReply(personaRecord([run({ day: 1 })], 'en')))
+    renderAt({ pathname: `/t/${TRIP_ID}` })
+    expect(clearBlock(await screen.findByText('CLEAR'))).toHaveFocus()
+    expect(screen.getByText('You drove Day 1 without hitting a deer.')).toBeInTheDocument()
+  })
+
+  it('CLEAR-5 A-6 から（衝突のあとの合図つき）: 「クリア」・円・紙吹雪が無く、フォーカスは見出し', async () => {
+    stubApi(() => recordReply(OFF_CRASHED))
+    renderAt({ pathname: `/t/${TRIP_ID}`, state: { arrival: 'after-collision' } })
+    const heading = await h1()
+    expect(heading).toHaveFocus()
+    expect(screen.queryByText('クリア')).toBeNull()
+    expect(document.querySelector('.record-clear')).toBeNull()
+    expect(confetti()).toHaveLength(0)
+  })
+
+  it('S-1 最後の日が衝突 → 合図が無くても祝いを出さない', async () => {
+    stubApi(() =>
+      recordReply(personaRecord([run({ day: 1 }), run({ day: 2, outcome: 'collided' })])),
+    )
+    renderAt({ pathname: `/t/${TRIP_ID}` })
+    expect(await h1()).toHaveFocus()
+    expect(document.querySelector('.record-clear')).toBeNull()
+  })
+
+  it('ONCE-1 祝いを出した履歴に戻る・再読み込みでは出さない。別の履歴なら出す', async () => {
+    stubApi(() => recordReply(CLEARED))
+    const first = renderAt({ pathname: `/t/${TRIP_ID}`, key: 'entry-a' })
+    expect(clearBlock(await screen.findByText('クリア'))).toHaveFocus()
+    first.unmount()
+
+    // 同じ履歴（戻る・再読み込み）
+    const again = renderAt({ pathname: `/t/${TRIP_ID}`, key: 'entry-a' })
+    expect(await h1()).toHaveFocus()
+    expect(document.querySelector('.record-clear')).toBeNull()
+    again.unmount()
+
+    // 別の履歴（新しく走りきって移ってきた）
+    renderAt({ pathname: `/t/${TRIP_ID}`, key: 'entry-b' })
+    expect(clearBlock(await screen.findByText('クリア'))).toHaveFocus()
+  })
+
+  it('ONCE-1 sessionStorage が使えなくても画面は出る（祝いは毎回判定）', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('denied')
+    })
+    stubApi(() => recordReply(CLEARED))
+    renderAt({ pathname: `/t/${TRIP_ID}` })
+    expect(await screen.findByText('クリア')).toBeInTheDocument()
+    expect(await h1()).toBeInTheDocument()
+  })
+
+  it('FRESH-1 キャッシュに前の記録があっても、取り直した記録が来るまで「読み込み中」で、来た記録で判定する', async () => {
+    // 前の記録（D2 完走）がキャッシュにある。取り直すと D2 は衝突（保存された衝突の run）
+    let resolve: (r: Response) => void = () => undefined
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        () =>
+          new Promise<Response>((r) => {
+            resolve = r
+          }),
+      ),
+    )
+    const queryClient = createTestQueryClient()
+    queryClient.setQueryData(['trip-record', TRIP_ID], CLEARED)
+    const router = createMemoryRouter([{ path: '/t/:id', element: <RecordPage /> }], {
+      initialEntries: [`/t/${TRIP_ID}`],
+    })
+    renderWithProviders(<RouterProvider router={router} />, { queryClient })
+    expect(screen.getByRole('status')).toHaveTextContent('記録を読み込んでいます')
+    expect(document.querySelector('.record-clear')).toBeNull()
+
+    const crashed = personaRecord([run({ day: 1 }), run({ day: 2, outcome: 'collided' })])
+    resolve(
+      new Response(JSON.stringify(crashed), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+    expect(await h1()).toHaveFocus()
+    expect(document.querySelector('.record-clear')).toBeNull()
+  })
+
+  it('CLEAR-6 record.css: 動きを減らす設定では紙吹雪を出さず、円・チェック・文字の動きを止める', () => {
+    const reduced = cssBlock(recordCss, '@media (prefers-reduced-motion: reduce)')
+    expect(cssBlock(reduced, '.record-clear__confetti')).toContain('display: none')
+    for (const part of ['disc', 'ring', 'check', 'title', 'lead']) {
+      expect(reduced).toContain(`.record-clear__${part}`)
+    }
+    expect(reduced).toContain('animation: none')
+    // ふだんの形が描き終わった形（動きが止まっても円とチェックが見える）
+    expect(cssBlock(recordCss, '.record-clear__ring')).toContain('stroke-dashoffset: 0')
+    expect(cssBlock(recordCss, '.record-clear__check')).toContain('stroke-dashoffset: 0')
+    // 祝いの色は spruce・alert-safe だけ（alert-danger・clay を使わない）
+    const clearCss = recordCss.slice(recordCss.indexOf('.record-clear {'))
+    expect(clearCss).not.toMatch(/alert-danger|--clay/)
+  })
+
+  it('CLEAR-7 祝いの文言は 4 言語の表にあり、差し込み {n} がそろう', () => {
+    for (const lang of ['ja', 'en', 'zh', 'ko'] as const) {
+      expect(RECORD_CLEAR_TEXT.clear[lang].trim()).not.toBe('')
+      expect(RECORD_CLEAR_TEXT.clearLead[lang]).toContain('{n}')
+    }
+  })
+})
+
+/** CSS の文字列から `head { … }` の中身を取り出す（入れ子の {} を数える） */
+function cssBlock(css: string, head: string): string {
+  const start = css.indexOf(`${head} {`)
+  if (start < 0) return ''
+  let depth = 0
+  for (let i = css.indexOf('{', start); i < css.length; i += 1) {
+    if (css[i] === '{') depth += 1
+    if (css[i] === '}') depth -= 1
+    if (depth === 0) return css.slice(start, i + 1)
+  }
+  return ''
+}
