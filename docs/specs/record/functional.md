@@ -45,7 +45,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
   - 共有する URL は api の `/t/{id}`（OG の meta を出せるのはサーバーだけ）。sim の A-7 はこの URL（`VITE_API_BASE_URL` + `/t/{id}`）を表示・コピーする
   - api が og:url・og:image・リンクに書く公開 URL は env だけから作る（`PUBLIC_API_URL`・`SIM_PUBLIC_URL`・`PWA_PUBLIC_URL`。既定は開発の `http://localhost:8787`・`5173`・`5174`）。要求の `Host` ヘッダは使わない（偽の og:url を返さない。spec-adversary [4]）。`PUBLIC_API_URL` と `VITE_API_BASE_URL` は同じ公開の api を指す（.env.example に書く）
 - R2 走行の記録（run）: 1 日の運転 1 回の要約。`POST /api/trips/:id/runs` に `Authorization: Bearer <ownerToken>` を付けて送る
-  - 欄: `runId`（UUID）・`day`（1〜日数）・`alertEnabled`・`outcome`（completed | collided）・`zonePasses`（入った鹿ゾーンの区間の数 0〜50）・`encounters`（最大 50。`pattern`・`at`（ゲーム内の時刻 ISO、赤が出ていなければ null）・`alertToBrakeMs`（0〜60,000 か null）・`closestM`（0〜500）・`outcome`（avoided | collided））・`frames`（fps の中央値・5 パーセンタイル・枚数・落ちたフレームの数 `dropped`（0 以上の整数。performance R1 で足した。省略できるので、足す前に保存した run も読める）、無ければ null）
+  - 欄: `runId`（UUID）・`day`（1〜日数）・`alertEnabled`・`outcome`（completed | collided）・`zonePasses`（入った鹿ゾーンの区間の数 0〜50）・`encounters`（最大 50。`pattern`・`at`（ゲーム内の時刻 ISO、赤が出ていなければ null）・`alertToBrakeMs`（0〜60,000 か null）・`closestM`（0〜500）・`outcome`（avoided | collided））・`frames`（fps の中央値・5 パーセンタイル・枚数・落ちたフレームの数 `dropped` と数えたフレームの数 `counted`（どちらも走行の全体の 0 以上の整数。performance R1 で足した。省略できるので、足す前に保存した run も読める）、無ければ null）
   - 1 つの旅の 1 日に 20 件まで（21 件目は 409 `RUN_LIMIT`。旅全体だと、やり直しを重ねた日のせいでほかの日が残せなくなるため日ごと。spec-adversary [2]）
   - body は 16 KB まで（超えたら 413 `PAYLOAD_TOO_LARGE`。zod の前に読む量を抑える）
   - 同じ `runId` の再送は保存せずに既存を 200 で返す（冪等。中身が違っても上書きしない）

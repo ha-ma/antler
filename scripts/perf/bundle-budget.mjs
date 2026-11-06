@@ -17,21 +17,26 @@ import { gzipSync } from 'node:zlib'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const SIM = join(ROOT, 'apps/sim')
 
-/** 上限（gzip の KB）。画面は「最初に読む JS」の合計、3d は 3D のチャンク 1 つ */
+/**
+ * 上限（gzip -9 の KB）。画面は「最初に読む JS ＋ CSS」の合計、3d は 3D のチャンクとそれが読む共有のチャンクのうち
+ * 運転の画面の最初の JS に無いもの、all は全部の JS ＋ CSS。
+ * 2026-11-06 の実測（括弧）の約 1 割増し: /plan（186.1）・A-2（211.3）・A-6（205.3）・A-7（194.6）・
+ * 運転（263.9）・A-4 の確認（197.7）・3d（246.5）・all（975.8）。main の /plan は 228.6（画面の遅延読込の前）
+ */
 export const BUDGET_KB = {
-  '/plan': 200,
-  '/trip/:id/brief': 215,
-  '/loss/:id': 200,
-  '/t/:id': 200,
-  '/drive': 260,
-  '/trip/:id/day/:n/stops': 200,
-  '3d': 275,
-  all: 1000,
+  '/plan': 205,
+  '/trip/:id/brief': 232,
+  '/loss/:id': 226,
+  '/t/:id': 214,
+  '/drive': 290,
+  '/trip/:id/day/:n/stops': 217,
+  '3d': 271,
+  all: 1075,
 }
 
-/** 画面のルートと、その遅延読込の元のファイル（manifest のキー） */
+/** 画面のルートと、その遅延読込の元のファイル（manifest のキー）。A-1 は入口のチャンクに入っている */
 const ROUTES = {
-  '/plan': 'src/features/plan-trip/index.ts',
+  '/plan': [],
   '/trip/:id/brief': 'src/features/brief-map/index.ts',
   '/loss/:id': 'src/features/loss/index.ts',
   '/t/:id': 'src/features/record/index.ts',
@@ -61,13 +66,26 @@ function build(outDir) {
 }
 
 /** 遅延読込の口のうち、画面ではないもの（3D・地図のライブラリ）。ここにも ROUTES にも無い口があれば失敗にする */
-const OTHER_DYNAMIC = [SCENE, /^node_modules\/maplibre-gl\//, 'src/app/DriveRoute.tsx']
+const OTHER_DYNAMIC = [SCENE, /(^|\/)node_modules\/maplibre-gl\//, 'src/app/DriveRoute.tsx']
+
+/**
+ * manifest のキー。feature の barrel をほかのチャンクも静的に読むと、バンドラはそれを共有のチャンク
+ * （キー `_<feature>-<hash>.js`）にまとめるので、元のファイルのキーが無ければその名前で探す
+ */
+function resolveKey(manifest, key) {
+  if (manifest[key]) return key
+  const feature = /^src\/features\/([^/]+)\/index\.ts$/.exec(key)?.[1]
+  const shared = feature
+    ? Object.keys(manifest).filter((k) => k.startsWith(`_${feature}-`) && k.endsWith('.js'))
+    : []
+  if (shared.length === 1) return shared[0]
+  throw new Error(`manifest に ${key} がない（ルートの元のファイルを確かめる）`)
+}
 
 /** key と、それが静的に読むチャンクの全部（JS と CSS のファイル名の集合） */
 function closure(manifest, keys, into = new Set()) {
   for (const key of keys) {
-    const chunk = manifest[key]
-    if (!chunk) throw new Error(`manifest に ${key} がない（ルートの元のファイルを確かめる）`)
+    const chunk = manifest[resolveKey(manifest, key)]
     if (into.has(chunk.file)) continue
     into.add(chunk.file)
     for (const css of chunk.css ?? []) into.add(css)
@@ -102,8 +120,9 @@ export function measure(manifest, outDir) {
     rows.push({ name: route, kb: gzipKb(outDir, closure(manifest, keys)) })
   }
   // 3D は 3D のチャンクと、それが静的に読むチャンクのうち入口に無いもの（three・R3F を共有のチャンクに分けられても抜けない）
-  const initial = closure(manifest, [entry])
-  const scene = [...closure(manifest, [SCENE])].filter((f) => !initial.has(f))
+  // （3D は運転の画面の後にしか読まないので、運転の画面の最初の JS に入っているものは除く）
+  const before3d = closure(manifest, [entry, ...ROUTES['/drive']])
+  const scene = [...closure(manifest, [SCENE])].filter((f) => !before3d.has(f))
   rows.push({ name: '3d', kb: gzipKb(outDir, scene) })
   // 全部の JS と CSS（地図のワーカーを含む。どこにも数えられないチャンクが増えても抜けない）
   const all = Object.values(manifest).flatMap((c) => [c.file, ...(c.css ?? [])])

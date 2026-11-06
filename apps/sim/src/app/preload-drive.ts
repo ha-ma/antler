@@ -8,6 +8,7 @@ let pending: Promise<void> | null = null
  * 失敗したら次に呼ばれたときに読み直す（運転の画面に入ったときにも普通に読むので、ここでは握りつぶす）
  */
 export function preloadDrive(): Promise<void> {
+  // DriveRoute は drive の barrel を静的に読む（同じチャンクの流れ）。3D はその先でもう一段
   pending ??= Promise.all([
     import('./DriveRoute'),
     import('@/features/drive').then((m) => m.preloadDriveScene()),
