@@ -29,6 +29,7 @@ import { INITIAL_POWERTRAIN, stepPowertrain } from './powertrain'
 import { createRng, deriveSeed } from './rng'
 import { createRoadFrame, lonLatAt, poseAt } from './road'
 import { buildSimFlag } from './sim-flag'
+import { countSeen } from './spot'
 import { buildStages, capIntervals, scheduledClockAt } from './stages'
 import { firstEntryBetween, intervalAt, withoutRanges, zoneStatusFromS } from './zone-status'
 import { initialVehicle, LANE_CENTER_D, stepVehicle } from './vehicle'
@@ -69,7 +70,7 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
   )
   const frame = createRoadFrame(scenario.route)
   const startMs = toInstant(scenario.startAt)
-  // 最初のステージの始まり（鹿ゾーンの 5 km 手前）から走る。時計はしおりどおりに走った時刻（drive-tune R1・UC-1b）
+  // 最初のステージの始まり（鹿ゾーンの 1 km 手前。drive-crash-spot R1）から走る。時計はしおりどおりに走った時刻（drive-tune R1・UC-1b）
   const stages = buildStages(plan)
   const firstS = stages[0]?.startM ?? 0
   const vehicle = initialVehicle(firstS)
@@ -114,6 +115,7 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
       previous: null,
     }),
     encounters: [],
+    spotting: { appeared: 0, found: 0, early: 0 },
     outcome: 'driving',
     internal: {
       frame,
@@ -133,6 +135,8 @@ export function createWorld(scenario: DriveScenario, zones: ZoneCollection): Wor
       stageIndex: 0,
       stageClearedAt: null,
       leftBehind: new Set(),
+      spotted: new Set(),
+      seen: new Set(),
     },
   }
 }
@@ -161,6 +165,7 @@ export function driveResult(world: World, frames: DriveResult['frames']): DriveR
     endedAt: toJst(new Date(clockMs(world)).toISOString()),
     collidedDeerId: internal.collidedDeerId,
     encounters: resultEncounters(world.encounters),
+    spotting: { ...world.spotting },
     inputs: internal.inputLog.map((l) => ({ t: l.t, input: { ...l.input } })),
     frames,
   }
@@ -449,6 +454,8 @@ function tick(world: World, events: SimEvent[]): void {
     const seen = cameraSees(camera, { id: d.id, x: p.x, z: p.z, occluded: d.occluded })
     if (seen) sightings.push(seen)
   }
+  // 運転者から見えた鹿を「出た数」に数える（drive-crash-spot R4）
+  countSeen(world)
 
   if (scenario.alertEnabled) {
     const probability = detectProbability(world.light, scenario.weather, scenario.windowFog)

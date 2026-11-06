@@ -69,7 +69,7 @@ describe('観光の楽しみ（drive-tourism）', () => {
   it('AC-2・UC-4e: ゾーンの手前でおすすめのカードが右の列の音量の操作の上に出て、ゾーンに入ると消え、同じステージでは出し直さない', async () => {
     const { engine, frames } = setup()
     await userEvent.click(screen.getByRole('button', { name: '出発（音を出します）' }))
-    // ステージはゾーンの 5 km 手前から始まる。帯が無いので走り出すとすぐ出る
+    // ステージはゾーンの 1 km 手前から始まる（drive-crash-spot R1）。帯が無いので走り出すとすぐ出る
     const card = screen.getByTestId('recommend-card')
     expect(card).toHaveAccessibleName('この先のおすすめ')
     // 見本の場面（2 月の釧路 → 阿寒湖、立ち寄りなし）は到着地の楽しみ
