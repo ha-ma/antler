@@ -11,7 +11,8 @@ import { RECOMMEND_TEXT } from './recommend-text'
 
 /**
  * 鹿ゾーンの前のおすすめ（docs/specs/drive-tourism/functional.md T11〜T15）。右の列の下、音量の操作の上。
- * 1 つのステージに 1 回、帯が消えた後から最初のゾーンに入るまで出す（出しどきは RecommendTracker）。
+ * ゾーンの外で出し、ゾーンを出た後・赤の後は実時間 4 秒で出し直し、12 秒ごとに入れ替える
+ * （出しどきは RecommendTracker。drive-sound-tourism S16・S17）。
  * 操作要素を置かない・フォーカスを取らない・ポインタを通す。読み上げの領域にしない（アラートの読み上げと重ねない）。
  * 到着地の時刻は、出ている間だけ自分で購読して読む（親の 10 Hz の描き直しに頼らない）
  */
@@ -32,7 +33,9 @@ export const RecommendCard = memo(function RecommendCard({
   const [before, after] = RECOMMEND_TEXT.hours[lang]
   return (
     // 名前は見出し（eyebrow）を指す（同じ文を aria-label と本文で 2 回読ませない。code-reviewer I5）
+    // 入れ替わったら作り直して、現れるときと同じふわっとをもう一度（drive-sound-tourism S19）
     <aside
+      key={pleasure.id}
       className="drive-recommend"
       aria-labelledby={titleId}
       lang={htmlLang(lang)}

@@ -38,6 +38,8 @@ const frame = (over: Partial<ChatFrame>): ChatFrame => ({
   zoneInterval: null,
   alert: 'safe',
   alertEnabled: true,
+  rate: 1,
+  toZoneM: null,
   paused: false,
   outcome: 'driving',
   avoidedCount: 0,

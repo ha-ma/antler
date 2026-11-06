@@ -38,6 +38,8 @@ tier: 2
 
 > 2026-11-06 performance（`docs/specs/performance/functional.md`）が `DrivePage.tsx`（3D のチャンクの読み込み口・開発用の fps の表示）と `engine.ts`（落ちたフレームを数える）を変えた。話題・写真・おすすめのカード（R1〜R6）は変えていない。
 
+**後の変更（2026-11-06、drive-sound-tourism）**: T11 の出しどき（1 ステージ 1 回をやめ、ゾーンの外ならいつでも。ゾーンを出た後・赤の後は実時間 4 秒あける）と T12 の選び方（先のその日の楽しみ → 到着地の楽しみを実時間 12 秒ごとに入れ替える）は `docs/specs/drive-sound-tourism/functional.md` の S16〜S19 が正。`stopPositionsM` は `chat/tourism.ts` に移した（`recommend.ts` から再び出す）。UC-4a・UC-4b のテストはその決まりに合わせて直した。
+
 ## Example Map
 
 Story: 台湾から 4 人で初めての北海道を走るドライバーとして、運転中の車内の会話で今日の楽しみ（流氷・タンチョウ）の話を写真つきで聞き、鹿ゾーンに入る前には次の楽しみを思い出して、気持ちよく慎重に走りたい。

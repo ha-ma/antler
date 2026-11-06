@@ -6,7 +6,7 @@ import { deckFits, fetchChatDeck, shouldRetryChat } from './chat-api'
 import { buildChatTrack } from './chat-track'
 import type { ChatDeck, ChatTrack } from './chat-types'
 import { fallbackChatDeck } from './fallback-deck'
-import { tourismPleasures } from './tourism'
+import { tourismStops } from './tourism'
 
 // その日の会話（docs/specs/drive-audio-chat/functional.md R18・R19）。
 // - Server state: POST /api/trips/:id/day/:n/chat（TanStack Query。旅と日で決まるので staleTime: Infinity）
@@ -50,13 +50,12 @@ export function useChatTrack(scenario: DriveScenario, route: RouteInfo): ChatTra
   // 見本の会話の楽しみ（drive-tourism T9）。値（立ち寄りの id の列・到着地・出発の時刻）だけを依存にし、
   // 選ぶのは useMemo の中（約 10 Hz の描き直しで毎回選ばない。component-guard W1）
   const stopsKey = scenario.stops.join(',')
-  const { to, startAt } = scenario
+  const { to, startAt, route: line, legStarts } = scenario
   return useMemo(() => {
     const stops = stopsKey ? stopsKey.split(',') : []
-    const pleasures = tourismPleasures({ stops, to, startAt }).map((p) => ({
-      id: p.id,
-      name: p.name,
-    }))
+    // 補いの観光の行は楽しみの位置も使う（drive-sound-tourism S14。tourismPleasures と同じ順）
+    const placed = tourismStops({ stops, to, startAt, route: line, legStarts }, totalM)
+    const pleasures = placed.map(({ pleasure }) => ({ id: pleasure.id, name: pleasure.name }))
     const legStartsM = [0, ...(legKey ? legKey.split(',').map(Number) : [])]
     const zonesKm = zonesKey
       ? zonesKey.split(',').map((z) => z.split(':').map(Number) as [number, number])
@@ -80,7 +79,13 @@ export function useChatTrack(scenario: DriveScenario, route: RouteInfo): ChatTra
             seed,
             pleasures,
           })
-    return buildChatTrack(deck, { legStartsM, totalM, partySize, seed })
+    return buildChatTrack(deck, {
+      legStartsM,
+      totalM,
+      partySize,
+      seed,
+      pleasures: placed.map(({ pleasure, atM }) => ({ id: pleasure.id, name: pleasure.name, atM })),
+    })
   }, [
     data,
     tripId,
@@ -95,5 +100,7 @@ export function useChatTrack(scenario: DriveScenario, route: RouteInfo): ChatTra
     stopsKey,
     to,
     startAt,
+    line,
+    legStarts,
   ])
 }

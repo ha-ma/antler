@@ -1,5 +1,10 @@
 import { checkTables, formatProblems, type TableAllowance } from '@antler/i18n-check'
-import { FALLBACK_PLEASURE_TEXT, RADIO_PLEASURE_TEXT } from './features/drive/chat/chat-text'
+import {
+  FALLBACK_PLEASURE_TEXT,
+  FILLER_PLEASURE_TEXT,
+  RADIO_FILLER_PLEASURE_TEXT,
+  RADIO_PLEASURE_TEXT,
+} from './features/drive/chat/chat-text'
 
 // sim の 4 言語の文言の表を全部集めて検査する（docs/specs/i18n/functional.md R2・R3、INV-1）。
 // 名前の規則（text.ts・*-text.ts・i18n.ts）の表は自動で集まる。規則に合わない表はここに足す
@@ -20,6 +25,9 @@ const EXTRA: Record<string, unknown> = {
   'features/drive/chat/chat-text.ts（関数の見本）': {
     fallbackPleasure: FALLBACK_PLEASURE_TEXT.map((line) => line(PLEASURE_NAME)),
     radioPleasure: RADIO_PLEASURE_TEXT.map((line) => line(PLEASURE_NAME)),
+    // 補いの観光の行の言い回し（drive-sound-tourism S14）
+    fillerPleasure: FILLER_PLEASURE_TEXT.map((line) => line(PLEASURE_NAME)),
+    radioFillerPleasure: RADIO_FILLER_PLEASURE_TEXT.map((line) => line(PLEASURE_NAME)),
   },
 }
 
@@ -35,6 +43,15 @@ const ALLOW: TableAllowance[] = [
   ),
   ...[0, 1].map((i) =>
     sampled(`RADIO_PLEASURE_TEXT.${String(i)}`, 'EXTRA の radioPleasure で見本を検査する'),
+  ),
+  ...[0, 1, 2].map((i) =>
+    sampled(`FILLER_PLEASURE_TEXT.${String(i)}`, 'EXTRA の fillerPleasure で見本を検査する'),
+  ),
+  ...[0, 1].map((i) =>
+    sampled(
+      `RADIO_FILLER_PLEASURE_TEXT.${String(i)}`,
+      'EXTRA の radioFillerPleasure で見本を検査する',
+    ),
   ),
   {
     path: './features/drive/components/hud/hud-text.ts:HUD_TEXT.controls.3.0',

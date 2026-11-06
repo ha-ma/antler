@@ -28,6 +28,7 @@ export function useDriveAudio(
         createGraph,
         settings,
         seed,
+        assetBase: import.meta.env.BASE_URL,
         onError: (event) => logger.warn(event, { feature: 'drive' }),
       }),
   )

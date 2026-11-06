@@ -5,13 +5,15 @@ import {
   INITIAL_RECOMMEND,
   pickRecommendation,
   recommendFrameOf,
+  rotationSlot,
   stopPositionsM,
   type Recommendation,
   type RecommendState,
 } from './recommend'
 
-// ## State設計（ゾーンの前のおすすめ。docs/specs/drive-tourism/functional.md T11・T12）
-// - Shared state（このクラス）: いま出すおすすめ（出さないなら null）と、ステージごとに「もう出さない」かの記録。
+// ## State設計（ゾーンの外のおすすめ。docs/specs/drive-tourism/functional.md T11・T12、drive-sound-tourism S16・S17）
+// - Shared state（このクラス）: いま出すおすすめ（出さないなら null）と、実時間・ゾーンを出た後の間の記録。
+//   入れ替え（12 秒ごと）も出すものの変化として知らせる。
 //   運転のスナップショット（DriveEngine.subscribe、約 10 Hz）から進めるので、ChatFeedStore と同じく
 //   subscribe / getSnapshot を持つ小さなクラスにした（React からは useSyncExternalStore で読む）。
 //   出すものが変わったときだけ知らせる（10 Hz で描き直さない）
@@ -72,7 +74,7 @@ export class RecommendTracker {
           this.scenario,
           this.stops,
           snapshot.zone.positionKm * 1000,
-          snapshot.stage.index,
+          rotationSlot(state.visibleMs),
         )
       : null
     const same =
