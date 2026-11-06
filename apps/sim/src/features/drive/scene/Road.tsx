@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { Color, Fog, Mesh, MeshPhongMaterial } from 'three'
 import type { Surface } from '../types'
 import type { SceneSeason } from '../domain/season'
@@ -83,7 +83,15 @@ export function Road({ road, surface, season }: Props) {
     [road, surface, season],
   )
 
+  // 作り直す前のキャッシュ（ルート・路面・季節が変わったら、古い区間の形を GPU から外す。component-guard W3）
+  const previous = useRef(cache)
+
   useFrame((state) => {
+    if (previous.current !== cache) {
+      for (const chunk of previous.current.chunks.values()) chunk.geometry.dispose()
+      previous.current.chunks.clear()
+      previous.current = cache
+    }
     const { road, surface, season } = cache
     if (material.userData.surface !== surface) {
       const params = roadMaterialParams(surface)
