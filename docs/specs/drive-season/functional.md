@@ -9,11 +9,13 @@ target_paths:
   - apps/sim/src/features/drive/components/season-text.ts
   - packages/trip/src/day/conditions.ts
   - packages/trip/src/day/schema.ts
-spec_confirmed_at: c712268
+spec_confirmed_at: 7a58bf3
 tier: 1
 ---
 
 # 仕様: drive-season（季節と天気で路面・景色・ブレーキを変える）
+
+> 2026-11-06 mobile-landscape が運転画面にスマホの入力と配置を足した（`docs/specs/mobile-landscape/functional.md`）。季節・天候・路面の決め方と出発の案内の季節の切り替えは変えていない（低い画面で段の間を詰めただけ）。
 
 ## 概要
 

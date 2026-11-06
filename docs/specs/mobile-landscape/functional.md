@@ -2,7 +2,7 @@
 feature: mobile-landscape
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 925bb98
+spec_confirmed_at: 7a58bf3
 tier: 1
 ---
 

@@ -2,11 +2,13 @@
 feature: drive-3d
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 4e4b8b6
+spec_confirmed_at: 7a58bf3
 tier: 1
 ---
 
 # 仕様: drive-3d（運転中 3D と鹿ゾーン・検知アラート）
+
+> 2026-11-06 mobile-landscape が A3-2・A3-3 のスマホの入力を足した: 視線の目標は `domain/look-input.ts`（ジャイロ → 指のドラッグ → マウスのカーソル）から取り、イージングは R10 の `easeLook` のまま。キーの入力は指の入力と `InputMixer` で OR してエンジンに渡す。HUD は小さい画面で詰め、上の帯・赤のバナーは左右の列の間に置く（`docs/specs/mobile-landscape/functional.md`）。この仕様のルールは変えていない。
 
 > 2026-11-06 drive-tourism で HUD の右の列に会話の写真とゾーンの前のおすすめのカードを足した（`docs/specs/drive-tourism/functional.md` T8・T11〜T14）。この仕様のルール（3D・ゾーン・アラート）は変えていない。
 
