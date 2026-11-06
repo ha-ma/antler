@@ -13,6 +13,9 @@ const TOKEN = {
   spruceNight: '#3FA98C',
   inkNight: '#F2F5F1',
   inkFaintNight: '#7A8C84',
+  inkMutedNight: '#B9C6BF',
+  lineNight: '#2C3C34',
+  clayNight: '#F0A26B',
 } as const
 
 /** 地形・道路（Lambert のフラット） */
@@ -77,9 +80,10 @@ export const CABIN = {
   /** ハンドルはダッシュボードより暗く（輪郭で見分ける） */
   wheel: '#121516',
   meterFace: '#0C0F10',
-  meterTick: TOKEN.inkFaintNight,
   /** 針は白（琥珀・赤は 3 状態の色なので計器に使わない） */
   meterNeedle: TOKEN.inkNight,
+  /** 針の軸の蓋 */
+  meterHub: '#1E2426',
   navFrame: '#101314',
   navScreen: TOKEN.mapLandNight,
   navRoute: TOKEN.spruceNight,
@@ -89,6 +93,28 @@ export const CABIN = {
   phoneMount: '#202527',
   /** 車内の自発光（暗い時間に真っ黒にならないための下駄） */
   ambientGlow: '#2A3330',
+} as const
+
+/**
+ * メーター（drive-tune R5）の canvas に描く色。夜の計器のように暗い板に明るい文字。
+ * ABS の灯は clay（注意。night の明るい方）。琥珀（alert-zone）と赤（alert-danger）は 3 状態の色なので計器に使わない
+ */
+export const CLUSTER = {
+  face: CABIN.meterFace,
+  /** 文字盤の輪と区切り線 */
+  ring: TOKEN.lineNight,
+  tick: TOKEN.inkFaintNight,
+  label: TOKEN.inkMutedNight,
+  text: TOKEN.inkNight,
+  /** 回転計の上の方（シフトアップの手前）の目盛り */
+  tickHigh: TOKEN.clayNight,
+  absOn: TOKEN.clayNight,
+  /** 消えている灯の縁 */
+  absOff: TOKEN.lineNight,
+  onAbs: TOKEN.groundNight,
+  /** ナビの案内の帯 */
+  navBand: TOKEN.mapLandNight,
+  navText: TOKEN.inkNight,
 } as const
 
 /** ヘッドライト（PBR の光） */

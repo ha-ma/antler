@@ -149,11 +149,7 @@ export function DrivePage({ createEngine = defaultEngine, canvas, webgl2, onFini
         </div>
       )}
       {!started && (
-        <StartOverlay
-          scenario={scenario}
-          noZone={engine.world.internal.stages.length === 0}
-          onStart={begin}
-        />
+        <StartOverlay scenario={scenario} noZone={snapshot.stage.count === 0} onStart={begin} />
       )}
     </main>
   )
