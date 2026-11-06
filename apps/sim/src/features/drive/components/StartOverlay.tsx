@@ -66,20 +66,21 @@ export function StartOverlay({
           </div>
         ))}
       </dl>
-      {gyro && (
-        <button
-          type="button"
-          className="drive-hud__button drive-start__toggle"
-          aria-pressed={gyro.on}
-          onClick={() => gyro.onToggle(!gyro.on)}
-        >
-          {m.gyro}
-        </button>
-      )}
       <div className="drive-start__actions">
         <button type="button" className="drive-hud__primary" onClick={onStart}>
           {t.go}
         </button>
+        {/* 「出発」の行に置く（低い画面で行ごと下に留まり、スクロールしなくても見える） */}
+        {gyro && (
+          <button
+            type="button"
+            className="drive-hud__button drive-start__toggle"
+            aria-pressed={gyro.on}
+            onClick={() => gyro.onToggle(!gyro.on)}
+          >
+            {m.gyro}
+          </button>
+        )}
         {trip && (
           <Link
             className="drive-start__link"
