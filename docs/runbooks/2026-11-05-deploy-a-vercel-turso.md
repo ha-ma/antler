@@ -68,8 +68,8 @@ npm run db:migrate -w @antler/api -- --env-file .env.turso-production
 npm run db:migrate -w @antler/api -- --env-file .env.turso-preview
 ```
 
-確かめる: それぞれ最後の行が `"event":"db.migrated"` で `"version":2`、`"target":"libsql://antler-…turso.io"`。トークンは出ない。
-何度流しても壊れない。**表を変える PR（`SCHEMA_VERSION` が上がる）を main に入れる前に、この 2 行をもう一度流す**。
+確かめる: それぞれ最後の行が `"event":"db.migrated"` で `"version"` が `apps/api/src/infrastructure/db/migrate.ts` の `SCHEMA_VERSION`（2026-11-06 の drive-audio-chat で 3。表 `trip_chats` が増えた）と同じ、`"target":"libsql://antler-…turso.io"`。トークンは出ない。
+何度流しても壊れない。**表を変える PR（`SCHEMA_VERSION` が上がる）を main に入れる前に、この 2 行をもう一度流す**。まだ Vercel に出していない（4 より前の）あいだは、PR を先に main に入れてよい。最初のデプロイの前にここで流せば、そのときの main の版までの表がまとめてできる。
 
 ## 4. ★ Vercel のプロジェクトと GitHub の連携（10 分）
 
@@ -149,7 +149,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' "$U/plan"       # 200（sim の index.
 | 見ること                        | 期待                                                                                                                  | 違ったら                                                                                                                                                             |
 | ------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/health` が 200                | 書き換えのあとも関数が元のパス（`/health`）で受けている。関数の形（`export default { fetch }`）を Vercel が受けている | 503 → Runtime Logs の `vercel.boot_failed`（env・版）。404 → `vercel.json` の書き換え。500・`FUNCTION_INVOCATION_FAILED` → 関数の形・読み込み（Runtime Logs の例外） |
-| `/health/ready` が 200          | Turso に届き、表の版が 2                                                                                              | 503 → 3 のマイグレーション、`TRIPS_DB_URL`・`TURSO_AUTH_TOKEN`                                                                                                       |
+| `/health/ready` が 200          | Turso に届き、表の版が `SCHEMA_VERSION`（いまは 3）                                                                   | 503 → 3 のマイグレーション、`TRIPS_DB_URL`・`TURSO_AUTH_TOKEN`                                                                                                       |
 | ブラウザで `$U/plan` → 旅を作る | 201 でしおりが出る（Claude の呼び出しと Drizzle のトランザクションが Turso に通る）                                   | 500 → Runtime Logs                                                                                                                                                   |
 | 運転を終えて `$U/t/<id>`        | SSR の共有ページ（JS なしで読める）                                                                                   |                                                                                                                                                                      |
 | `$U/t/<id>/og.png`              | 200 の PNG（`@resvg/resvg-js` の Linux のネイティブが動く）。日本語が四角なら「残っていること」                       | 500 → Runtime Logs                                                                                                                                                   |
