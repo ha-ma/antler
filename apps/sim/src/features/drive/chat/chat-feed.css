@@ -150,3 +150,20 @@
     transition: none;
   }
 }
+
+/* 小さい画面（mobile-landscape R1）。右の列の幅は drive.css の --drive-chat-w、端の余白は --drive-edge */
+@media (max-width: 1100px), (max-height: 560px) {
+  .drive-chat-column {
+    top: var(--drive-edge);
+    right: var(--drive-edge);
+    bottom: var(--drive-edge);
+    gap: var(--space-2);
+  }
+}
+
+/* 低い画面では、おすすめのカードを列の 45% までにする（音量の操作を押し出さない。mobile-landscape ML-1e） */
+@media (max-height: 560px) {
+  .drive-chat-column .drive-recommend {
+    max-height: 45%;
+  }
+}

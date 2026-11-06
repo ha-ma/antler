@@ -12,11 +12,42 @@
   line-height: var(--body-line);
   /* 右側は車内の会話の表示（drive-audio-chat）のために空ける幅（drive-tune R4。HUD はここに置かない） */
   --drive-chat-w: 360px;
+  /* 左の列の幅と画面の端の余白（mobile-landscape R1。小さい画面で詰める） */
+  --drive-left-w: 320px;
+  --drive-edge: var(--space-5);
+  /* 左右の円の大きさ（mobile-landscape R3） */
+  --drive-stick: 120px;
+  --drive-brake: 88px;
+  /* ステージの帯・赤のバナーの上端（上の帯より下）と左端（左の列の右。左の列は旅の場面で 176px より長くなる） */
+  --drive-banner-top: 176px;
+  --drive-banner-left: calc(var(--drive-edge) + var(--drive-left-w) + var(--space-3));
 }
 
+/* 小さい画面（幅 1100px 以下か高さ 560px 以下。スマホの横画面 844×390 など。mobile-landscape R1） */
+@media (max-width: 1100px), (max-height: 560px) {
+  .drive {
+    --drive-chat-w: min(260px, 30vw);
+    --drive-left-w: 240px;
+    --drive-edge: var(--space-3);
+  }
+}
+
+/* 低い画面では左の列が区間の案内だけで 176px より短いので、帯は右の列より左の全体の中央に置く */
+@media (max-height: 560px) {
+  .drive {
+    --drive-banner-left: var(--drive-edge);
+  }
+}
+
+/* z-index で重なりの文脈を作り、車内のスマホ（drei の Html。z-index が大きい）を HUD・案内の下に閉じこめる（ML-1d）。
+   運転画面の上ではスクロール・拡大・長押しのメニューをしない（指のドラッグは視線。mobile-landscape R3・R4） */
 .drive__scene {
   position: absolute;
   inset: 0;
+  z-index: 0;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .drive-hud {
@@ -44,12 +75,20 @@
 /* 左の列: ゾーン状態と、いまの区間の案内（drive-tune R4） */
 .drive-hud__left {
   position: absolute;
-  top: var(--space-5);
-  left: var(--space-5);
+  top: var(--drive-edge);
+  left: var(--drive-edge);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  max-width: 360px;
+  max-width: var(--drive-left-w);
+}
+
+/* 低い画面では左の列を区間・残り・ステージだけにする（楽しみの一覧は右の列のおすすめに任せる。赤のバナーと重ねない） */
+@media (max-height: 560px) {
+  .drive-hud__route-title,
+  .drive-hud__route-list {
+    display: none;
+  }
 }
 
 .drive-hud__route {
@@ -95,12 +134,14 @@
   color: var(--ink-muted);
 }
 
-/* ステージのクリアの帯（drive-tune R1） */
+/* ステージのクリアの帯（drive-tune R1）。上の帯・左の列より下（mobile-landscape R1） */
 .drive-hud__stage {
   position: absolute;
-  top: 120px;
-  left: calc((100% - var(--drive-chat-w)) / 2);
-  transform: translateX(-50%);
+  top: var(--drive-banner-top);
+  left: var(--drive-banner-left);
+  right: calc(var(--drive-chat-w) + var(--drive-edge) * 2);
+  width: fit-content;
+  margin-inline: auto;
   margin: 0;
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-l);
@@ -134,16 +175,39 @@
   border-color: var(--alert-danger);
 }
 
-/* 上部 */
+/* 上部。左の列の右端から右の列の左端までの間の中央（どの大きさでも左右の列と重ならない。mobile-landscape ML-1b） */
 .drive-hud__top {
   position: absolute;
-  top: var(--space-5);
-  left: calc((100% - var(--drive-chat-w)) / 2);
-  transform: translateX(-50%);
+  top: var(--drive-edge);
+  left: calc(var(--drive-edge) + var(--drive-left-w) + var(--space-3));
+  right: calc(var(--drive-chat-w) + var(--drive-edge) * 2);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
+}
+
+@media (max-width: 1100px), (max-height: 560px) {
+  .drive-hud__top {
+    gap: var(--space-1);
+  }
+
+  .drive-hud__clock,
+  .drive-hud__playback,
+  .drive-hud__chips {
+    gap: var(--space-1);
+    padding: 0 var(--space-2);
+  }
+
+  .drive-hud__playback {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .drive-hud__playback .drive-hud__button {
+    padding: 0 var(--space-2);
+    white-space: nowrap;
+  }
 }
 
 .drive-hud__clock,
@@ -204,14 +268,146 @@
 /* 下部 */
 .drive-hud__bottom {
   position: absolute;
-  left: var(--space-5);
-  right: calc(var(--drive-chat-w) + var(--space-5));
-  bottom: var(--space-5);
+  left: var(--drive-edge);
+  right: calc(var(--drive-chat-w) + var(--drive-edge) * 2);
+  bottom: var(--drive-edge);
   display: flex;
   align-items: center;
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: var(--space-4);
+}
+
+/* 左右の円があるときは、速さと音トグルを円の間に置く（mobile-landscape R1・R3） */
+.drive-hud[data-touch='true'] .drive-hud__bottom {
+  left: calc(var(--drive-edge) + var(--drive-stick) + var(--space-3));
+  right: calc(var(--drive-chat-w) + var(--drive-edge) * 2 + var(--drive-brake) + var(--space-3));
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+/* 左右の円（mobile-landscape R3）。色は surface・line・spruce（alert-danger・clay は使わない） */
+.drive-touch {
+  position: absolute;
+  bottom: var(--drive-edge);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 72%, transparent);
+  color: var(--ink);
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.drive-touch__stick {
+  left: var(--drive-edge);
+  width: var(--drive-stick);
+  height: var(--drive-stick);
+}
+
+.drive-touch__knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.drive-touch__knob[data-active='true'] {
+  border-color: var(--spruce);
+  background: var(--spruce);
+  color: var(--on-spruce);
+}
+
+.drive-touch__label {
+  position: absolute;
+  bottom: var(--space-1);
+  font-size: var(--caption-size);
+  line-height: var(--caption-line);
+  font-weight: var(--label-weight);
+  color: var(--ink-muted);
+}
+
+.drive-touch__brake {
+  right: calc(var(--drive-chat-w) + var(--drive-edge) * 2);
+  width: var(--drive-brake);
+  height: var(--drive-brake);
+  padding: 0 0 var(--space-3);
+  font: inherit;
+  cursor: pointer;
+}
+
+.drive-touch__brake[aria-pressed='true'] {
+  border-color: var(--spruce);
+  background: var(--spruce);
+  color: var(--on-spruce);
+}
+
+.drive-touch__brake[aria-pressed='true'] .drive-touch__label {
+  color: var(--on-spruce);
+}
+
+.drive-touch__brake:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* 縦画面の案内（mobile-landscape R2）。運転画面の全面を覆う。操作要素なし */
+.drive-rotate {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--ground);
+  color: var(--ink);
+  text-align: center;
+}
+
+.drive-rotate__icon {
+  color: var(--spruce);
+}
+
+.drive-rotate p {
+  margin: 0;
+}
+
+.drive-rotate__title {
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: var(--title-weight);
+}
+
+.drive-rotate__note {
+  color: var(--ink-muted);
+}
+
+.drive-rotate__others {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-muted);
+  font-size: var(--label-size);
+  line-height: var(--label-line);
 }
 
 .drive-hud__controls {
@@ -328,6 +524,17 @@
   }
 }
 
+/* さらに低い画面（スマホの横画面）では一言も出さない（音量の操作を押し出さない。mobile-landscape ML-1e） */
+@media (max-height: 560px) {
+  .drive-recommend__note {
+    display: none;
+  }
+
+  .drive-recommend__body {
+    padding: var(--space-2) var(--space-3);
+  }
+}
+
 @keyframes drive-recommend-in {
   from {
     opacity: 0;
@@ -354,9 +561,11 @@
 
 .drive-hud__banner {
   position: absolute;
-  top: 120px;
-  left: calc((100% - var(--drive-chat-w)) / 2);
-  transform: translateX(-50%);
+  top: var(--drive-banner-top);
+  left: var(--drive-banner-left);
+  right: calc(var(--drive-chat-w) + var(--drive-edge) * 2);
+  width: fit-content;
+  margin-inline: auto;
   margin: 0;
   padding: var(--space-2) var(--space-5);
   border-radius: var(--radius-l);
@@ -376,12 +585,54 @@
   top: 50%;
   transform: translate(-50%, -50%);
   width: min(560px, calc(100% - var(--space-6)));
+  /* 画面の高さに収め、はみ出す分は中でスクロール（mobile-landscape ML-1c） */
+  max-height: calc(100% - var(--drive-edge) * 2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--space-5);
   border-radius: var(--radius-xl);
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-card);
   pointer-events: auto;
+}
+
+@media (max-width: 1100px), (max-height: 560px) {
+  .drive-hud__end,
+  .drive-start {
+    width: min(640px, calc(100% - var(--drive-edge) * 2));
+    padding: var(--space-4);
+  }
+}
+
+/* 低い画面では段の間を詰め、「出発」「もう一度」を案内の下に留める（スクロールしても見える。ML-1c） */
+@media (max-height: 560px) {
+  .drive-start p,
+  .drive-hud__end p {
+    margin: 0 0 var(--space-2);
+  }
+
+  .drive-start h1,
+  .drive-hud__end h2 {
+    margin-bottom: var(--space-2);
+  }
+
+  .drive-start .drive-hud__controls {
+    margin: var(--space-2) 0;
+  }
+
+  .drive-start__seasons ul {
+    margin-top: var(--space-2);
+  }
+
+  .drive-start .drive-start__actions,
+  .drive-hud__end .drive-start__actions {
+    position: sticky;
+    bottom: calc(var(--space-4) * -1);
+    margin: var(--space-2) calc(var(--space-4) * -1) calc(var(--space-4) * -1);
+    padding: var(--space-2) var(--space-4) var(--space-4);
+    background: var(--surface);
+  }
 }
 
 .drive-start h1,
@@ -396,6 +647,12 @@
   margin: var(--space-4) 0;
   padding: 0;
   background: none;
+}
+
+/* ジャイロの視線の切り替え（mobile-landscape R4、WCAG 2.5.4）。文章なので sans */
+.drive-start__toggle {
+  font-family: var(--font-sans);
+  font-size: var(--label-size);
 }
 
 .drive-start__actions {

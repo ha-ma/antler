@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { briefHref } from '../hooks/use-drive-params'
 import type { DriveScenario } from '../types'
 import { HUD_TEXT, SURFACE_TEXT, WEATHER_TEXT } from './hud/hud-text'
+import { MOBILE_TEXT } from './mobile-text'
 import { SeasonSwitch } from './SeasonSwitch'
 
 /** 地点の名前（マスターに無ければ slug のまま） */
@@ -17,15 +18,23 @@ function placeName(slug: string): string {
 export function StartOverlay({
   scenario,
   noZone = false,
+  touch = false,
+  gyro,
   onStart,
 }: {
   scenario: DriveScenario
   /** その日のルートに鹿ゾーンが無い（「出発」ですぐにその日の旅程をクリア。drive-tune UC-1e） */
   noZone?: boolean
+  /** 主のポインタが指の端末（操作の説明を円とスマホの向きにする。mobile-landscape R3） */
+  touch?: boolean
+  /** 指で操る端末のジャイロの視線の切り替え（WCAG 2.5.4。無ければ出さない。mobile-landscape R4） */
+  gyro?: { on: boolean; onToggle: (on: boolean) => void } | undefined
   onStart: () => void
 }) {
   const t = HUD_TEXT.start
   const trip = scenario.source === 'trip'
+  const m = MOBILE_TEXT[scenario.trip.lang]
+  const touchHints = [...m.hints, gyro?.on ? m.lookGyro : m.lookDrag]
   return (
     <section className="drive-start" aria-labelledby="drive-start-title">
       <h1 id="drive-start-title">{trip ? scenario.trip.title : t.title}</h1>
@@ -47,8 +56,8 @@ export function StartOverlay({
       )}
       {noZone && <p data-testid="no-zone">{HUD_TEXT.stage.noZone}</p>}
       <p>{scenario.alertEnabled ? t.alertOn : t.alertOff}</p>
-      <dl className="drive-hud__controls">
-        {HUD_TEXT.controls.map(([key, label]) => (
+      <dl className="drive-hud__controls" data-testid="start-controls">
+        {(touch ? touchHints : HUD_TEXT.controls).map(([key, label]) => (
           <div key={key}>
             <dt>
               <kbd>{key}</kbd>
@@ -61,6 +70,17 @@ export function StartOverlay({
         <button type="button" className="drive-hud__primary" onClick={onStart}>
           {t.go}
         </button>
+        {/* 「出発」の行に置く（低い画面で行ごと下に留まり、スクロールしなくても見える） */}
+        {gyro && (
+          <button
+            type="button"
+            className="drive-hud__button drive-start__toggle"
+            aria-pressed={gyro.on}
+            onClick={() => gyro.onToggle(!gyro.on)}
+          >
+            {m.gyro}
+          </button>
+        )}
         {trip && (
           <Link
             className="drive-start__link"

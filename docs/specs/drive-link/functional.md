@@ -2,11 +2,13 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 4e4b8b6
+spec_confirmed_at: 70bb182
 tier: 1
 ---
 
 # 仕様: drive-link（A-1・A-2 で作った旅を運転 A-3 へ渡す）
+
+> 2026-11-06 mobile-landscape が運転画面（`/drive`）にスマホの横画面の配置・縦画面の案内・指とジャイロの入力を足した（`docs/specs/mobile-landscape/functional.md`）。旅の場面の読み込み・結果の受け渡しは変えていない。
 
 > 2026-11-06 drive-tourism が場面の `stops`・`to`・`startAt` を読んで、会話とおすすめのカードの楽しみを選ぶ（`docs/specs/drive-tourism/functional.md` T9・T12）。`DriveScreen.test.tsx` のテストの時間の上限をファイル単位で 20 秒にした（全 workspace の並列で 5 秒を超えるため。2026-11-04 の「時間切れの設定は変えない」（4eb3c7a）を、同じ日に drive-season が trip-day のテストで変えたのに合わせて見直した）。この仕様のルール（旅の渡し方）は変えていない。
 

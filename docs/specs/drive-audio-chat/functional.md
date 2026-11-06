@@ -12,11 +12,13 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-chat.repository.ts
   - apps/api/src/infrastructure/http/routes/chat.routes.ts
   - apps/api/src/infrastructure/http/schemas/chat.schema.ts
-spec_confirmed_at: 320f632
+spec_confirmed_at: 7a58bf3
 tier: 2
 ---
 
 # 仕様: drive-audio-chat（A-3 運転中の音・車内の会話）
+
+> 2026-11-06 mobile-landscape: `useKeyboardDrive` はエンジンではなく、指の入力と合わせる口（`InputMixer` の keys）に渡す（入力欄のフォーカスの扱いは同じ）。小さい画面では音量の操作のスライダーが右の列の幅に縮む（`docs/specs/mobile-landscape/functional.md` R1・R3）。
 
 ## 概要
 
