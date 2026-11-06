@@ -78,7 +78,9 @@ export function runDeerCase(c: DeerCase, zones: ZoneCollection): CaseResult {
       redGapM = lead ? lead.s - w.vehicle.s : null
     }
     // 鹿が車の後ろへ過ぎて、車が止まるか走り去ったら終わり
-    if (w.deer.every((d) => d.s < w.vehicle.s - 15) && w.decided.size > 0) break
+    if (w.deer.every((d) => d.gone || d.s < w.vehicle.s - 15) && w.decided.size > 0) break
+    // 赤で踏んで止まりきったら、もう当たらない（5 km/h 未満は衝突にしない。R5）
+    if (c.driver === 'brake' && redAt !== null && w.vehicle.speed < 0.1) break
   }
   return { red: redAt !== null, firstSide, collided: w.outcome === 'collided', startGapM, redGapM }
 }
