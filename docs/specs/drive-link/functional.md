@@ -2,7 +2,7 @@
 feature: drive-link
 target_paths:
   - apps/sim/src/features/drive/
-spec_confirmed_at: 320f632
+spec_confirmed_at: 3e91a6e
 tier: 1
 ---
 
@@ -60,6 +60,7 @@ Story: A-1 で自分の旅をつくった旅行者として、A-2 で「エン�
   - `source: "straight"`（直線で引いた概算のルート）の移動では区間を作らない（brief-map R1: 直線ではゾーンを判定しない。A-2 に出ないゾーンで琥珀にも鹿にもしない）
   - API の `DayPlan.zones` とは、区間の数とゾーンの id が一致し、入口の道のりの差が 0.5 km 以内であることをテストで確かめる（なめらかにした線は API の間引いた線より少し長い）
   - `day.data.zones`（API のゾーン DB の hash）が同梱のものと違えば、警告をログに残して同梱のものを使う（api と sim のデプロイがずれたとき。画面は止めない）
+  - 2026-11-06（drive-deer R2）: 運転では、8 km より長い区間を入口から 8 km で切る（ゾーン状態・ステージ・鹿の候補・会話の区間は切ったあとの区間を使う）。上の API との照合（区間の数・id・入口）は切る前の `planRoute` の結果で行い、切っても変わらない
   - ゾーン状態は車の道のり s から直接出す（区間を二分探索。s / 1000）。0.1 秒ごとに `measureAlongRoute` で全線分（280 km なら 20 m 間隔で 1 万 4 千本）を走査しない（performance-analyzer W-1）
 - R6: 車内の曇りは当日の条件の `windowFog` から（none 1.0・light 0.95・medium 0.9・heavy 0.85 を検知の確率に掛ける）。drive-3d の人数による係数を置き換える
 - R7: 出発の案内に、旅のタイトル、日（D2 など）、出発地 → 到着地（地点のマスターの名前）、距離（`distanceKm` の和）、天候・路面を出す。A-2 へ戻るリンク（アラートの状態を引き継ぐ）
