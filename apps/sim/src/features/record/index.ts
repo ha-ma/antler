@@ -6,3 +6,5 @@ export { saveRun, useSaveRun, type SaveRunVariables } from './hooks/useSaveRun'
 export { recordHref } from './utils/links'
 export { toDriveRun, type FinishedDrive } from './utils/drive-run'
 export type { SaveRunOutcome } from './types'
+// A-6（衝突のあと）から A-7 へ移るリンクの location state。A-7 は祝い（クリア）を出さない（result-screens R4）
+export { RECORD_AFTER_COLLISION } from './utils/celebration'
