@@ -62,3 +62,6 @@ edge/detector/calibration.json
 
 # edge-capture: 車載で保存した検知フレーム（同意の前の実走行の画像。リポジトリに入れない）
 edge/detector/captures/
+
+# pwa-https: 車ごとの CA とサーバー証明書（鍵を含む。scripts/make_tls.py が作る）
+edge/detector/tls/

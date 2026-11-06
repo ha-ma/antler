@@ -44,6 +44,7 @@ from detector.ports import SourceError
 from detector.runner import pump
 from detector.server import AlertServer, ServerError
 from detector.sources import open_camera, open_video_file
+from detector.tls import TlsError, server_context
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine, Mapping
@@ -345,7 +346,12 @@ async def serve(
     reason = "startup"
     try:
         hub = AlertHub(config.judge, tracker=config.tracker, l1=config.l1)
-        server = AlertServer(hub, config.server)
+        try:
+            # [tls] があれば wss（pwa-https R3）。壊れていたら起動しない（平文に戻らない）
+            tls_context = server_context(config)
+        except TlsError as exc:
+            raise StartupError(str(exc)) from exc
+        server = AlertServer(hub, config.server, ssl_context=tls_context)
         try:
             ws_port = await server.start()
         except ServerError as exc:
@@ -353,7 +359,7 @@ async def serve(
         try:
             service = deps.capture(config)
             capture_port = service.start() if service is not None else None
-        except CaptureServerError as exc:
+        except (CaptureServerError, TlsError) as exc:
             raise StartupError(str(exc)) from exc
         except (OSError, ValueError) as exc:
             msg = f"capture を始められない（{type(exc).__name__}）"

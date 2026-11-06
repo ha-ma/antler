@@ -48,6 +48,8 @@ tier: 1
 **Tier 1 の根拠**: 開発者の手元で動く計測・書き出しの道具で、サービスの挙動を変えない。新しい待ち受けを作らず、外へ送る先は既存の L1 client と同じループバックの local-jev だけ（`remote_not_allowed` を継承）。
 認可・永続化スキーマに触れない。並行性はスレッド 1 本（YOLO のループ）で、計測の中に閉じる。
 
+> 2026-11-06 pwa-https が `pyproject.toml` の ruff に `src/detector/pwa_server.py` の E501 の除外を足した（設定ページの 4 言語の文言が長いため）。Day 0 の手順と依存は変わらない。
+
 ## Example Map
 
 Story: 人 B として、Mac mini の前で手順書を上から打つだけで、YOLO が ANE で何 fps 出るか、L1 が何 ms か、併走で L0 がどれだけ遅くなるかの数字を 1 つの JSON で得て、メインセッションに貼りたい。

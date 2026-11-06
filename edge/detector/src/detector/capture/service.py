@@ -21,6 +21,7 @@ from detector.capture.jpeg import JpegEncoder, OpenCvJpegEncoder
 from detector.capture.recorder import CaptureRecorder
 from detector.capture.store import CaptureStore
 from detector.config import resolve_path
+from detector.tls import server_context
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
@@ -74,7 +75,9 @@ class CaptureService:
             segment=segment,
         )
         api = CaptureApi(store, recorder.idle_seconds, config.capture_server.allowed_origins)
-        return cls(store, recorder, api, CaptureServer(api, config.capture_server))
+        # [tls] があれば https（pwa-https R3）。壊れた設定は TlsError で止める（平文に戻らない）
+        server = CaptureServer(api, config.capture_server, ssl_context=server_context(config))
+        return cls(store, recorder, api, server)
 
     def wrap(self, results: Iterator[FrameResult]) -> Iterator[FrameResult]:
         """結果を先に下流へ渡してから offer する（赤の判定のあとに保存を考える）。

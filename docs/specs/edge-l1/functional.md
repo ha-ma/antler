@@ -54,6 +54,8 @@ B の判断を 3 層にする変更指示の Step 3。L1 は Mac mini 上の jev
   **detector の依存には入れない**（別プロセスのサーバー。torch とモデルの重みを引く）。Mac mini で `local-jev serve --model llm-qwen2.5-1.5b --port 8766` として別に動かす（Step 0）。コミットは `CREDITS.md` と config の見本に書く
 - `mlx` とモデルの重みは入れない（local-jev の側が使う）
 
+> 2026-11-06 pwa-https が `config.py` に `[tls]`・`[pwa_server]` のセクションを足した（`pyproject.toml` は pwa_server の E501 の除外だけ）。`[l1]` の読み方・既定値は変わらない。
+
 ## Example Map
 
 Story: B の検知システムとして、L0 の赤を遅らせずに、看板・雪・杭の誤検知や路肩で止まっている鹿の赤を、校正済みの L1 が確信しているときだけ下げたい。
