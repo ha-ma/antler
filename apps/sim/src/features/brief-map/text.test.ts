@@ -20,6 +20,13 @@ describe('BRIEF_TEXT', () => {
     }
   })
 
+  it('UC-5a（drive-season）: 当日の条件のどの天候にも 4 言語の文言がある（雨を足した）', () => {
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+    for (const w of ['clear', 'cloudy', 'rain', 'snow', 'fog'] as const)
+      expect(Object.keys(BRIEF_TEXT), w).toContain(`weather${cap(w)}`)
+    expect(BRIEF_TEXT.weatherRain).toEqual({ ja: '雨', en: 'Rain', zh: '雨', ko: '비' })
+  })
+
   it('UI に絵文字を使わない', () => {
     // © は帰属表示に要るので Extended_Pictographic ではなく絵文字の表示のものだけを見る
     const emoji = /\p{Emoji_Presentation}/u

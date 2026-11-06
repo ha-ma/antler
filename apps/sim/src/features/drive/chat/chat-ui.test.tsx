@@ -15,7 +15,7 @@ import { useChatDeck, useChatTrack } from './use-chat-track'
 
 const TOKEN = 'a'.repeat(64)
 const DEMO = demoScenario(ZONES)
-const DATA = { routes: '2026-11-01', zones: 'abc123', conditions: 1 } as const
+const DATA = { routes: '2026-11-01', zones: 'abc123', conditions: 2 } as const
 const TRIP: DriveScenario = { ...DEMO, source: 'trip', data: DATA }
 const OWNER_KEY = `antler.trip-owner.${TRIP.trip.id}`
 const ROUTE = { totalM: 60_000, zonesKm: [] as [number, number][] }

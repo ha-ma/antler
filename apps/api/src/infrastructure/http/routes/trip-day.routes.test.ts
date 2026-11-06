@@ -116,7 +116,7 @@ describe('GET /api/trips/:id/day/:n', () => {
     const text = await (await get(`/api/trips/${ID}/day/1`)).text()
     expect(text).not.toContain('ownerTokenHash')
     expect(text).not.toContain(OWNER_HASH)
-  })
+  }, 20_000)
 
   it('UC-5b: n が 1 以上の整数でない → 400 INVALID_INPUT', async () => {
     const { get } = await setup()

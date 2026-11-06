@@ -15,6 +15,8 @@ tier: 2
 
 ## 概要
 
+**drive-season（2026-11-06）での変更**: `packages/trip` の当日の条件 v2（天候に `rain`）と、api の trip-day のテストの時間切れ・会話の素材の天候の union の 1 行。旅の作り方は変えていない（`docs/specs/drive-season/functional.md`）。
+
 A-1 の画面で、人数・日程・出発地・楽しみを選ぶと、その場で「旅のしおり」と「この旅が失われるリスク」が組み上がる（端末の中で決定的に計算）。
 「この旅を守りに行く」で `POST /api/trips` を呼ぶと、api が同じ計算をやり直し、Claude にタイトルと各日の 1 行説明を 4 言語で書かせて、TripPlan と一緒に保存する。
 

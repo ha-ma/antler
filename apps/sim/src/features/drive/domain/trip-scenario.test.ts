@@ -352,3 +352,19 @@ describe('ゾーン（R5）', () => {
     expect(covering.intervals).not.toContainEqual(first)
   })
 })
+
+describe('旅の場面の季節（drive-season R2）', () => {
+  it('UC-2c: 旅の URL に month・weather があっても、場面の条件はその日の DayPlan のまま', () => {
+    const plain = scenarioFromDay({ plan, day: day1 }, '?trip=K7m2abcd&day=1')
+    const tampered = scenarioFromDay(
+      { plan, day: day1 },
+      '?trip=K7m2abcd&day=1&month=7&weather=clear',
+    )
+    expect(tampered).toEqual(plain)
+    expect(tampered?.startAt).toBe(day1.legs[0]?.departAt)
+    expect({ surface: tampered?.surface, weather: tampered?.weather }).toEqual({
+      surface: day1.conditions.surface,
+      weather: day1.conditions.weather,
+    })
+  })
+})

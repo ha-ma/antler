@@ -33,6 +33,8 @@ tier: 2
 
 ## 概要
 
+**drive-season（2026-11-06）での変更**: デプロイの形は変えていない。`apps/api/src/infrastructure/http/routes/trip-day.routes.test.ts` の全日のテストの時間切れを 20 秒にしただけ（負荷の高い全体実行で 5 秒を超える既知の問題）（`docs/specs/drive-season/functional.md`）。
+
 A（`apps/sim` の静的配信と `apps/api` の Hono）を、Vercel の 1 つのプロジェクトに載せられるようにする。実際のデプロイ・アカウントの作成・秘密の値の入力はユーザーの作業で、この feature は**リポジトリの側の準備**と**手順書**（`docs/runbooks/2026-11-05-deploy-a-vercel-turso.md`）を作る。
 
 - sim は `apps/sim/dist` を静的に配る。api は同じプロジェクトの関数 1 つ（`apps/sim/api/index.mjs`）で、Hono アプリを呼ぶ

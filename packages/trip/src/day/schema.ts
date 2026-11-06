@@ -40,7 +40,7 @@ export const DayConditionsSchema = z.strictObject({
   drivers: z.number().int().min(1).max(8),
   vehicle: z.enum(['compact', 'compact-suv', 'minivan']),
   fourWd: z.boolean(),
-  weather: z.enum(['clear', 'cloudy', 'snow', 'fog']),
+  weather: z.enum(['clear', 'cloudy', 'rain', 'snow', 'fog']),
   surface: z.enum(['dry', 'wet', 'packed-snow', 'ice']),
   occupants: z.number().int().min(1).max(8),
   windowFog: z.enum(['none', 'light', 'medium', 'heavy']),
