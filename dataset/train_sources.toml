@@ -1,0 +1,19 @@
+# train_sources.toml — L0 の鹿の検出器の学習・評価に使う素材の一覧（docs/specs/dataset-train R1）。
+# path は dataset/ からの相対。画像はどれも Git に入れない（dataset/README.md の「置き場所」と「取得方法」）。
+# use = "train" にできるのは license が CC0 / CC-BY / self（自作）/ permission（撮影者の許諾）だけ。
+# CC-BY-SA は ch6 の許可リスト外なので use = "eval" だけ（train_l0.py が止める）。
+# ラベルの無い写真（Osaki さん・Yuki Fujita さん）と S データはここに書かない（dataset-train の Deferred）。
+
+[[source]]
+name = "commons"
+kind = "yolo"
+path = "external/antler-yolo/commons"
+license = "CC-BY"  # CC0 と CC BY の混在。厳しい側の CC BY として扱う（CREDITS.md）
+use = "train"
+
+[[source]]
+name = "eval-by-sa"
+kind = "yolo"
+path = "private/antler-yolo/eval-by-sa"
+license = "CC-BY-SA"
+use = "eval"
