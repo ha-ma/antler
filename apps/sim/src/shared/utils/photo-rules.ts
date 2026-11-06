@@ -1,5 +1,6 @@
 // 楽しみの写真の判定（docs/specs/plan-trip-photos/functional.md R5・R8）。
-// 取得のスクリプト（apps/sim/scripts/fetch-photos.ts）と、写真の記録の検証（photos.ts）が同じ判定を使う。
+// 取得のスクリプト（apps/sim/scripts/fetch-photos.ts）と、写真の記録の検証（features/plan-trip/utils/photos.ts）が
+// 同じ判定を使う。スクリプトは feature の内部を import できないので shared に置く。
 // 純粋関数だけを置く（通信・ファイルは扱わない）。
 
 /** 保存する画像の上限（受信中のバイト数で効かせる） */

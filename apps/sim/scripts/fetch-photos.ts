@@ -25,7 +25,7 @@ import {
   isAllowedSource,
   plainText,
   stripJpegMetadata,
-} from '../src/features/plan-trip/utils/photo-rules'
+} from '../src/shared/utils/photo-rules'
 
 const API = 'https://commons.wikimedia.org/w/api.php'
 const USER_AGENT =

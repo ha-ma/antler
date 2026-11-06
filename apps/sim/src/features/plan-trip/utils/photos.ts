@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import photosJson from '../data/photos.json'
-import { isAllowedLicense } from './photo-rules'
+import { isAllowedLicense } from '@/shared/utils/photo-rules'
 
 // 楽しみの写真の記録（docs/specs/plan-trip-photos/functional.md R6）。scripts/fetch-photos.ts が書き、
 // 画面は読み込み時に検証する（形が違う・使えないライセンスなら例外）。画像は public/photos/ に同梱する。

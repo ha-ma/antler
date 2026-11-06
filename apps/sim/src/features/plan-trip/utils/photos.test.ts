@@ -4,7 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PLEASURES } from '@antler/trip'
 import photosJson from '../data/photos.json'
-import { imageKind, imageSize, isAllowedLicense } from './photo-rules'
+import { imageKind, imageSize, isAllowedLicense } from '@/shared/utils/photo-rules'
 import { PHOTOS, photoOf } from './photos'
 
 // plan-trip-photos R5・R6・R9: 写真の記録と、同梱した画像・CREDITS.md の整合。
