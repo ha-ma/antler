@@ -5,7 +5,7 @@ target_paths:
   - apps/sim/src/features/loss/
   - apps/sim/src/features/record/
   - packages/trip/src/record/
-spec_confirmed_at: 4619d4d
+spec_confirmed_at: 3f0f79f
 tier: 1
 ---
 

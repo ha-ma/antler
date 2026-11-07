@@ -12,7 +12,7 @@ target_paths:
   - apps/sim/src/features/record/hooks/useTripRecord.ts
   - apps/sim/src/features/record/text.ts
   - apps/sim/src/features/record/index.ts
-spec_confirmed_at: 4619d4d
+spec_confirmed_at: 3f0f79f
 tier: 1
 ---
 

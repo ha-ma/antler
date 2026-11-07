@@ -10,7 +10,7 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-loss.repository.ts
   - apps/api/src/infrastructure/http/routes/loss.routes.ts
   - apps/api/src/infrastructure/http/schemas/loss.schema.ts
-spec_confirmed_at: 4619d4d
+spec_confirmed_at: 3f0f79f
 tier: 2
 ---
 
