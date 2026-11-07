@@ -18,7 +18,12 @@
   padding: var(--space-4);
 }
 
+/* 見出し: SHIKASHI のロゴ（shared/components/BrandLogo）＋ NAVIGATOR ＋ 4 言語の一語（rebrand-shikashi R2） */
 .connect__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
   margin: 0;
   font-size: var(--title-size);
   line-height: var(--title-line);

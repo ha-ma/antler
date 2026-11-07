@@ -45,26 +45,10 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* ロゴと製品の行は shared/components/BrandLogo（docs/specs/rebrand-shikashi R2） */
 .record-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-weight: 700;
-  font-size: var(--heading-size);
-  letter-spacing: 0.04em;
-}
-
-.record-brand-mark {
-  width: 24px;
-  height: 24px;
-}
-
-.record-brand-mark__outer {
-  stroke: var(--spruce);
-}
-
-.record-brand-mark__inner {
-  stroke: var(--clay);
 }
 
 .record-share {
@@ -142,7 +126,8 @@
 .record-main {
   max-width: 1360px;
   margin: 0 auto;
-  padding: var(--space-6) var(--space-6) var(--space-7);
+  /* 下は画面の下に固定した帯（主ボタン）の分も空ける（sticky-cta R1） */
+  padding: var(--space-6) var(--space-6) calc(var(--space-7) + var(--action-bar-reserve, 0px));
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-6);
@@ -497,7 +482,8 @@
   gap: var(--space-2);
 }
 
-.record-actions .record-button {
+/* 直の子だけ（主ボタンは下に固定した帯の中。sticky-cta） */
+.record-actions > .record-button {
   flex: 1 1 140px;
   min-height: 48px;
 }

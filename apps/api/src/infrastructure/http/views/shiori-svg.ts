@@ -11,6 +11,10 @@ export const OG_WIDTH = 1200
 export const OG_HEIGHT = 630
 /** 日の行の上限（超えたら最後の行を「ほか n 日」にする） */
 export const OG_MAX_DAY_ROWS = 7
+/** 左上のブランド（SHIKASHI SIMULATOR、26px・字間 2）と、その右の eyebrow の始まり。
+ * ブランドは約 360px の幅になるので、eyebrow は 440 から（docs/specs/rebrand-shikashi R4） */
+export const OG_BRAND_X = 60
+export const OG_EYEBROW_X = 440
 
 const c = tokens.color.trip
 
@@ -47,7 +51,7 @@ export function buildShioriSvg(view: RecordView): string {
   parts.push(`<rect x="0" y="0" width="${String(OG_WIDTH)}" height="10" fill="${c.spruce}"/>`)
   parts.push(
     text(
-      60,
+      OG_BRAND_X,
       78,
       26,
       c.spruce,
@@ -55,7 +59,7 @@ export function buildShioriSvg(view: RecordView): string {
       ' font-weight="700" letter-spacing="2"',
     ),
   )
-  parts.push(text(250, 78, 22, c['ink-muted'], fitText(view.eyebrow, 38)))
+  parts.push(text(OG_EYEBROW_X, 78, 22, c['ink-muted'], fitText(view.eyebrow, 38)))
 
   const titleLines = wrapText(view.title, 21, 2)
   titleLines.forEach((line, i) => {

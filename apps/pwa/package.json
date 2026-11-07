@@ -2,7 +2,7 @@
   "name": "@antler/pwa",
   "private": true,
   "version": "0.0.0",
-  "description": "EZO ROAD B: スマホ PWA",
+  "description": "SHIKASHI NAVIGATOR（B）: スマホ PWA",
   "type": "module",
   "scripts": {
     "dev": "vite --port 5174",

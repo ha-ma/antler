@@ -49,30 +49,18 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* ロゴと製品の行は shared/components/BrandLogo（docs/specs/rebrand-shikashi R2） */
 .brief-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--heading-size);
-  font-weight: 900;
-  letter-spacing: var(--eyebrow-tracking);
 }
 
-.brief-brand__logo path,
 .brief-step__check path,
 .brief-start path {
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-}
-
-.brief-brand__ridge {
-  stroke: var(--spruce);
-}
-
-.brief-brand__road {
-  stroke: var(--clay);
 }
 
 .brief-steps {
@@ -147,7 +135,8 @@
   gap: var(--space-6);
   max-width: 1360px;
   margin: 0 auto;
-  padding: var(--space-5) var(--space-6) var(--space-7);
+  /* 下は画面の下に固定した帯（主ボタン）の分も空ける（sticky-cta R1） */
+  padding: var(--space-5) var(--space-6) calc(var(--space-7) + var(--action-bar-reserve, 0px));
 }
 
 .brief-main {

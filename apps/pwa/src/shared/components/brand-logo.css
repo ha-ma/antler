@@ -1,0 +1,22 @@
+/* SHIKASHI のロゴと製品の行。色・文字・余白は tokens.css の CSS 変数だけを使う（ch8 規約 1・4）。
+   製品の行は eyebrow（12px・700・字間 0.12em）を ink-muted で（docs/specs/rebrand-shikashi R2）。 */
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+.brand-logo__image {
+  display: block;
+}
+
+.brand-logo__product {
+  color: var(--ink-muted);
+  font-family: var(--font-sans);
+  font-size: var(--eyebrow-size);
+  line-height: var(--eyebrow-line);
+  font-weight: var(--eyebrow-weight);
+  letter-spacing: var(--eyebrow-tracking);
+}

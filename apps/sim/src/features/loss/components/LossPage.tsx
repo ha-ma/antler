@@ -2,6 +2,7 @@ import type { Lang } from '@antler/schema'
 import { formatBudget } from '@antler/trip'
 import { Link } from 'react-router'
 import { RECORD_AFTER_COLLISION, recordHref } from '@/features/record'
+import { ActionBar, ACTION_BAR_PRIMARY } from '@/shared/components/ActionBar'
 import { CountUpText } from '@/shared/components/CountUpText'
 import { browserLang } from '@/shared/utils/browser-lang'
 import baseline from '../data/loss-baseline.json'
@@ -216,15 +217,22 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
               />
             </dl>
           </section>
-          {/* 導線は落とさず、並びの位置で静かに現れる（loss-drop--fade） */}
+          {/* 主ボタンは画面の下に固定した帯で、最初から見せる（sticky-cta R5）。.loss-drop の transform の
+              中に置くと fixed が画面に付かないので、副の導線の nav の前（DOM の順は今までどおり）に置く */}
+          <ActionBar>
+            <Link
+              className={`loss-button loss-button--primary ${ACTION_BAR_PRIMARY}`}
+              to={retryHref(collision)}
+            >
+              {collision.alertEnabled ? t.primaryOn[lang] : t.primaryOff[lang]}
+            </Link>
+          </ActionBar>
+          {/* 副の導線は落とさず、並びの位置で静かに現れる（loss-drop--fade） */}
           <nav
             className="loss-actions loss-drop loss-drop--fade"
             style={drop(0)}
             aria-label={t.actions[lang]}
           >
-            <Link className="loss-button loss-button--primary" to={retryHref(collision)}>
-              {collision.alertEnabled ? t.primaryOn[lang] : t.primaryOff[lang]}
-            </Link>
             <div className="loss-actions__sub">
               <Link className="loss-button loss-button--secondary" to={replayHref(collision)}>
                 {t.replay[lang]}

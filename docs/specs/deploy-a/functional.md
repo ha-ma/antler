@@ -29,6 +29,8 @@ tier: 2
 
 # 仕様: deploy-a（A の sim と api を Vercel に置く準備。DB は Turso、Capture の画像は Vercel Blob）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、package.json の説明を直し、共有ページの名前のテスト（rebrand-shikashi BRAND-5）を足した。共有ページのボタンは「SHIKASHI SIMULATOR で開く」になった。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-07 最初の Preview のデプロイで、Vercel の既定の install が Root Directory（`apps/sim`）の中だけに入れ、`tsc` が無くてビルドが止まった。`apps/sim/vercel.json` に `installCommand: "cd ../.. && npm ci"` を足した（R1）。この仕様のルール（関数・書き換え・env・DB）は変えていない。
 
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 各 workspace の `package.json` に devDependency `@antler/i18n-check` を足した（テストだけで使う。ビルドの中身は変わらない）。この仕様のルールは変えていない。

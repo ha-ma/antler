@@ -16,6 +16,8 @@ tier: 1
 
 # 仕様: edge-day0（Mac mini の実機作業 Step 0 の道具と手順書）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、CREDITS.md（名前とロゴの行）と pyproject.toml の説明を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 **edge-run（2026-11-06）での変更**: `bench.py` に `--no-l1`（L1 のクライアント・合成の例を作らず、YOLO だけを測る。`mode: "yolo"`、ch6 の予算 100 ms・目標 50 ms に対する判定、満たさなければ exit 4）を足した。既存の bench / compare の出力と終了コードは同じ（出力の書き出しを `_emit` にまとめただけ）。`scripts/bench_l1.py` の docstring に例を足し、手順書の冒頭に「起動と YOLO 単独の計測は `docs/runbooks/2026-11-06-mac-mini-edge-run.md`」を足した。pyproject に実行用の extra `run` を足した（`docs/specs/edge-run/functional.md`）。
 
 **og-font（2026-11-06）での変更**: CLAUDE.md の MUST と CREDITS.md に、フォントは SIL OFL も可を足した（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。

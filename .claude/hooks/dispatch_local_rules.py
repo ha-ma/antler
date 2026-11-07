@@ -1,4 +1,4 @@
-"""antler（EZO ROAD）固有の規則。dispatcher（dispatch-architecture.py）が Write / Edit / MultiEdit のときに呼ぶ。
+"""SHIKASHI（リポジトリ名 antler）固有の規則。dispatcher（dispatch-architecture.py）が Write / Edit / MultiEdit のときに呼ぶ。
 
 stack のチェッカー（Amptech 由来）は案件ごとに直さない約束なので、antler だけの決まりはここに置く。
 止めるのは**置き場所と文字列で機械的に決まるものだけ**。判断を要するもの（alert-danger を検知以外に使っていないか、

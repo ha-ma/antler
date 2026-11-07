@@ -87,6 +87,17 @@ describe('BriefPage（A-2）', () => {
     expect(start).toHaveAttribute('href', `/drive?trip=${TRIP_ID}&day=${String(zoneDay)}&alert=off`)
   })
 
+  it('BRAND-3: ヘッダーに SHIKASHI SIMULATOR のロゴ（昼の版）、title の末尾も SHIKASHI SIMULATOR', async () => {
+    stubApi((d) => ok(d))
+    renderBrief(`/trip/${TRIP_ID}/brief?day=1`)
+    await heading()
+    const logo = screen.getByRole('img', { name: 'SHIKASHI SIMULATOR' })
+    expect(logo).toHaveAttribute('src', '/brand/shikashi-logo.png')
+    await waitFor(() => {
+      expect(document.title).toMatch(/ \| SHIKASHI SIMULATOR$/)
+    })
+  })
+
   it('UC-6a: ?day=2 で DAY 2、?day=x は DAY 1。DAY 1〜5 の切り替えはリンク', async () => {
     const calls = stubApi((d) => ok(d))
     renderBrief(`/trip/${TRIP_ID}/brief?day=x`)

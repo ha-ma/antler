@@ -13,6 +13,8 @@ tier: 2
 
 # 仕様: schema-judge（L1 判断の契約 JudgeRequest と、AlertFlag.l1・Capture.l1Probs）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、pyproject.toml の説明を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 **edge-run（2026-11-06）での変更**: target_paths の `edge/detector/pyproject.toml` に実行用の extra `run`（coremltools・Pillow・opencv）を足した（`docs/specs/edge-run/functional.md`）。schema と JudgeRequest には触れていない。この feature の挙動は変わらない。
 
 **edge-day0 の 640×480 の書き出し（2026-11-06）での変更**: target_paths の `edge/detector/scripts/` にある `export_yolo_world.py`（edge-day0 の道具）の `--imgsz` の既定を変えた。schema と JudgeRequest には触れていない。この feature の挙動は変わらない。

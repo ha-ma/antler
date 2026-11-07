@@ -25,6 +25,8 @@ tier: 2
 
 # 仕様: edge-l1（L1: local-jev への 4 問、校正後 0.9 以上のときだけ降格する fusion）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、pyproject.toml の説明を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 **l0-fp-filter（2026-11-06）での変更**: L0 の検出に後処理（`[l0_filter]`）が入った。fusion の「赤の候補のトラックが 1 つだけ」の候補は後処理の後の検出から数える（無視する領域で弱めた枠は候補から外れる。領域は画面の端だけ・既定は空なので、既定では変わらない）。この仕様のコードと規則は変えていない（`docs/specs/l0-fp-filter/functional.md` R3）。
 
 **edge-run（2026-11-06）での変更**: 起動の入口 `python -m detector` が `start_l1(config, hub, observer=capture.on_l1_answer)` を呼んで pump の background に渡す。`--no-l1` で `l1.enabled = false` に上書きできる。pyproject に実行用の extra `run` を足し、config.example.toml の `[infer]` にコメントを足した（`docs/specs/edge-run/functional.md`）。L1 の挙動は変わらない。

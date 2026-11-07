@@ -306,6 +306,21 @@ describe('GET /t/:id（SSR）', () => {
     expect(page).not.toMatch(/<script/i)
   })
 
+  it('BRAND-5: 共有ページと無い記録のページのブランドは SHIKASHI SIMULATOR、ボタンは「SHIKASHI SIMULATOR で開く」', async () => {
+    const app = appWith()
+    const { id, ownerToken, plan } = await h.newTrip()
+    await postRun(app, id, makeRun({ day: 1 }), auth(ownerToken))
+    const page = await (await app.request(`/t/${id}`)).text()
+    expect(page).toContain('<span class="brand">SHIKASHI SIMULATOR</span>')
+    const open = recordText('openInApp', plan.lang)
+    expect(open).toContain('SHIKASHI SIMULATOR')
+    expect(page).toContain(`href="${URLS.sim}/t/${id}?app=1">${open}</a>`)
+    expect(page).not.toContain('EZO ROAD') // テストの URL（ezoroad.example）は内部の名前なので見ない
+    const missing = await (await app.request('/t/Zz99Zz99')).text()
+    expect(missing).toContain('<span class="brand">SHIKASHI SIMULATOR</span>')
+    expect(missing).not.toContain('EZO ROAD')
+  })
+
   it('UC-7e: Host を書き換えても og:url・og:image は PUBLIC_API_URL', async () => {
     const { id } = await h.newTrip()
     const res = await appWith().request(`http://evil.example/t/${id}`, {
