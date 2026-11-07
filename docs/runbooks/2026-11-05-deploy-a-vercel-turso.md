@@ -5,7 +5,8 @@ A（`apps/sim` の画面と `apps/api` の Hono）を、Vercel の 1 つのプ�
 - 仕様: `docs/specs/deploy-a/functional.md`。決まっていること: ホスティングは Vercel、DB は Turso、Capture の画像は Vercel Blob（非公開）
 - **★ が付いた段はユーザーの作業**（アカウントの作成・支払い・秘密の値の入力・外への公開）。Claude は代わりに行わない
 - 秘密の値（トークン・API キー）は、チャット・Issue・PR・コミットに貼らない。Vercel の画面と、手元の `.env.*`（gitignore 済み）にだけ置く
-- 環境は 2 つ: **Production**（`main`）と **Preview**（PR ごと）。DB・トークン・Anthropic のキーを環境ごとに分ける
+- 環境は 2 つ: **Production**（`release` ブランチ）と **Preview**（PR ごと・`main`）。DB・トークン・Anthropic のキーを環境ごとに分ける
+- **本番は `release` ブランチ**（2026-11-07 ユーザー判断「案 A」）。Claude が `main` にマージしても本番には出ない。`main` を本番に出すのはユーザーの作業（7 の「本番に出す」）
 - **範囲外: B の PWA（`apps/pwa`）**。位置情報に HTTPS が要る一方で車内の edge へ `ws://` でつなぐので、Vercel に置くだけでは車載につながらない。この手順では出さない
 
 ## 0. 前提（1 分）
@@ -22,7 +23,7 @@ git status       # main を取り込んだきれいな状態
 
 ## 1. ★ アカウント（5 分。ユーザーの作業）
 
-1. **Vercel**: <https://vercel.com/signup> で GitHub のアカウントで登録する（Hobby で動く。上限を広げたくなったら Pro）
+1. **Vercel**: <https://vercel.com/signup> で GitHub のアカウントで登録する。**ハッカソンの間は Hobby、その後は Pro**（2026-11-07 ユーザー判断。Hobby は個人の非商用だけ。商用で使う前に Pro に上げる。Pro にすると Firewall のレート制限（8）なども使える）
 2. **Turso**: `turso auth signup`（初めて）か `turso auth login`（2 回目から）。ブラウザでログインする
 3. **Anthropic**: Console（<https://console.anthropic.com>）で、**Production 用と Preview 用の 2 つの API キー**を作る（名前は `antler-production`・`antler-preview` など）。値はこのあとの 5 で Vercel に入れるまで、どこにも貼らない
 
@@ -69,7 +70,7 @@ npm run db:migrate -w @antler/api -- --env-file .env.turso-preview
 ```
 
 確かめる: それぞれ最後の行が `"event":"db.migrated"` で `"version"` が `apps/api/src/infrastructure/db/migrate.ts` の `SCHEMA_VERSION`（2026-11-06 の drive-audio-chat で 3。表 `trip_chats` が増えた）と同じ、`"target":"libsql://antler-…turso.io"`。トークンは出ない。
-何度流しても壊れない。**表を変える PR（`SCHEMA_VERSION` が上がる）を main に入れる前に、この 2 行をもう一度流す**。まだ Vercel に出していない（4 より前の）あいだは、PR を先に main に入れてよい。最初のデプロイの前にここで流せば、そのときの main の版までの表がまとめてできる。
+何度流しても壊れない。**表を変える PR（`SCHEMA_VERSION` が上がる）を main に入れる前に Preview の行を、その変更を `release` に出す前に Production の行を、もう一度流す**。まだ Vercel に出していない（4 より前の）あいだは、PR を先に main に入れてよい。最初のデプロイの前にここで流せば、そのときの main の版までの表がまとめてできる。
 
 ## 4. ★ Vercel のプロジェクトと GitHub の連携（10 分）
 
@@ -79,7 +80,9 @@ npm run db:migrate -w @antler/api -- --env-file .env.turso-preview
    - **Framework Preset**: Vite（`apps/sim/vercel.json` が `framework`・`buildCommand`・`outputDirectory` を決めるので、ほかは触らない）
    - Node.js のバージョン: `apps/sim/package.json` の `engines`（22.x）が使われる
    - ここでは **Deploy を押さない**（5 の env が無いと、関数は 503 になる）。押してしまったら 5 のあとで Redeploy すればよい
-3. **Settings → Git**: Production Branch が `main`。PR ごとに Preview ができる（既定）
+3. **Settings → Environments → Production → Branch Tracking**（画面によっては Settings → Git の Production Branch）: **`release` にする**（既定の `main` から変える）。`release` は GitHub に作ってある。PR ごとと `main` には Preview ができる（既定）
+   - 確かめる: Settings → Environments の Production に `release` と出る
+   - 最初の Import のときは既定のブランチ（`main`）がそのまま Production に出ることがある。2 の「Deploy を押さない」を守り、ここで `release` に変えてから 7 で出す
 4. **Settings → Deployment Protection**: **Vercel Authentication を Preview に効かせる（Standard Protection）**。Preview の URL は推測できるので、Vercel のチームの人だけが開けるようにする（必須）
 5. **Settings → Git → Git Fork Protection** が有効のまま（フォークからの PR が秘密の env でビルドされない）
 
@@ -132,9 +135,21 @@ DB と同じく、Production と Preview で**ストアを分ける**（Preview 
 
 ### デプロイ
 
-- Preview: このブランチの PR を開くと、Vercel のボットが Preview の URL をコメントする（4 の保護で、開くときに Vercel のログインを求められる）
-- Production: PR を `main` に入れると、Production にデプロイされる（**外への公開**。入れる判断はユーザー）
-- 手元から出すときは `vercel deploy`（Preview）／`vercel deploy --prod`（Production）。どちらもユーザーの作業
+- Preview: PR を開くと、Vercel のボットが Preview の URL をコメントする（4 の保護で、開くときに Vercel のログインを求められる）。`main` に入った変更も Preview に出る
+- **★ 本番に出す（ユーザーの作業）**: Preview で確かめた `main` を、そのまま `release` に進める。`release` に push されると、Vercel が Production にデプロイする（**外への公開**）
+
+  ```sh
+  git fetch origin
+  git log --oneline origin/release..origin/main      # 本番に出る変更の一覧を見る
+  git push origin origin/main:refs/heads/release     # 早送りだけ（release に main に無いコミットがあれば止まる）
+  ```
+
+  - 表を変える変更（`SCHEMA_VERSION` が上がる）が一覧にあれば、push の前に 3 のマイグレーションを Production の DB に流す
+  - 止まったら（早送りできない）、`release` に直接コミットした人がいる。`--force` で上書きせず、何が入っているかを確かめる
+  - Claude はこの push をしない（CLAUDE.md）。頼むときは「`main` の <コミット> を本番に出して」とその都度言う
+
+- 戻すときは、7 の「おかしいとき」の Instant Rollback（`release` は戻さなくてよい。次に出すときに直した `main` を進める）
+- 手元から直接出す `vercel deploy --prod` は使わない（`release` と本番の中身がずれる）。Preview を手元から作るだけなら `vercel deploy`
 
 ### 確かめる（Production の URL を `$U` に入れて上から）
 
