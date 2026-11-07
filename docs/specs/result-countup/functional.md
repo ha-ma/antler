@@ -11,7 +11,7 @@ target_paths:
   - apps/sim/src/features/loss/utils/fill-nodes.tsx
   - apps/sim/src/features/record/components/StatTiles.tsx
   - apps/sim/src/test/count-up.ts
-spec_confirmed_at: 737a270
+spec_confirmed_at: dcea501
 tier: 1
 ---
 
