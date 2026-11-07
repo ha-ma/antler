@@ -15,6 +15,8 @@ tier: 2
 
 # 仕様: brief-map（A-2 出発前ブリーフィング・その日のルートとゾーン）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、ヘッダーの印（SVG）を SHIKASHI のロゴに替え、画面の title の名前を SHIKASHI SIMULATOR にした。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 ## 概要
 
 **drive-season（2026-11-06）での変更**: 当日の条件 v2（天候に `rain`、4〜11 月の表、版 2。冬の表は v1 のまま）と、`trip-day.routes.test.ts` の全日のテストの時間切れを 20 秒に（R4 の本文に v2 を書いた）（`docs/specs/drive-season/functional.md`）。

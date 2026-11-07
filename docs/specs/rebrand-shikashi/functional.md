@@ -25,7 +25,7 @@ target_paths:
   - apps/pwa/src/features/connect/components/ConnectScreen.tsx
   - apps/pwa/src/features/connect/components/connect.css
   - edge/detector/src/detector/pwa_server.py
-spec_confirmed_at: d0c23d0
+spec_confirmed_at: c03c061
 tier: 1
 ---
 

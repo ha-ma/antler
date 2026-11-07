@@ -17,6 +17,8 @@ tier: 2
 
 # 仕様: pwa-https（スマホの PWA を車内で HTTPS として開く）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、設定ページの title・見出し・開くボタンの名前を SHIKASHI NAVIGATOR にした。プロファイルの手順の「EZO ROAD」は CA の名前（subject は替えていない）なので残し、「証明書の名前」と添えた。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 ## 概要
 
 いまの PWA は Mac mini から http で配る前提で、http は安全なコンテキストではないため、Geolocation（鹿ゾーンの判定・速度）・Wake Lock・Service Worker が使えない（pwa-connect と pwa-drive の最優先の Deferred）。

@@ -17,6 +17,8 @@ tier: 2
 
 # 仕様: record（A-7 旅の記録・走行の記録・記録ページ・削除）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、記録の文言（`brand`・`openInApp`）、ヘッダーのロゴ、しおりの画像の保存名（`ezo-road-{id}.png` → `shikashi-{id}.png`）、OG 画像の eyebrow の位置（x 250 → 440）を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 **result-screens（2026-11-06）での変更**: sim の A-7（`/t/:id`）に「クリア」の帯を足した（`docs/specs/result-screens/functional.md` R3・R4）。保存順で最後の run の日が完走のときだけ、本文の一番上に円とチェック・「クリア」・紙吹雪を 1 回出し、フォーカスを「クリア」に移す。A-6 から来た（location state の合図 `RECORD_AFTER_COLLISION`）・同じ履歴に戻った・最後の日が衝突なら出さない。画面を開いたあとに取り直した記録が来るまで「読み込み中」を出す（前のキャッシュで判定しない。`useTripRecord` は `refetchOnMount: 'always'`）。api・SSR・OG 画像・集計の規則は変えていない。
@@ -84,7 +86,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
   - タイトルは 2 行で切って末尾を「…」、日の行は 7 行までで、それより多ければ「ほか n 日」。制御文字（U+0000〜U+001F・U+007F）は取り除いてから XML エスケープする（spec-adversary [6]）
   - 描いた PNG をプロセスのメモリに 100 枚まで持つ（鍵は旅の id・run の数・最後の seq。run が増えれば鍵が変わり描き直す）。読み出しは毎回 DB を引いてから鍵を作るので、削除のあとは 404 で、持っている画像を返さない。持っている画像を返すときは描画の枠を使わない（spec-adversary [5]）
   - 同時に描くのは 2 枚まで（超えたら 503 `OG_BUSY`）
-  - sim の「しおりを画像で保存」はこの PNG を取得して `ezo-road-{id}.png` で保存する（推奨で決定。ブラウザでもう 1 つ描画を持たない）
+  - sim の「しおりを画像で保存」はこの PNG を取得して `shikashi-{id}.png`（rebrand-shikashi で `ezo-road-{id}.png` から変更）で保存する（推奨で決定。ブラウザでもう 1 つ描画を持たない）
 - R7 共有用の SSR ページ `GET /t/:id`: JS なしで記録が読める HTML
   - `og:title`（しおりのタイトル）・`og:description`（状態と StatTile の 1 文）・`og:image`（R6 の絶対 URL）・`og:url`・`twitter:card=summary_large_image`
   - 本文は R5 と同じ順の読み取り専用（StatTile・守れたもの・ログ・しおり・B の導線）。「EZO ROAD で開く」（sim の `/t/:id`）と「自分の旅をつくる」（sim の `/plan`）
@@ -297,7 +299,7 @@ Story: 自分で描いた旅を最後まで走った旅行者として、守れ�
 ### UC-9: コピー・保存・削除
 
 - [x] UC-9a: 記録 URL は `VITE_API_BASE_URL` + `/t/{id}`。コピーで clipboard に入り「コピーしました」
-- [x] UC-9b: 「しおりを画像で保存」で `og.png` を取得し `ezo-road-{id}.png` で保存。失敗は「画像を作れませんでした」
+- [x] UC-9b: 「しおりを画像で保存」で `og.png` を取得し `shikashi-{id}.png` で保存。失敗は「画像を作れませんでした」
 - [x] UC-9c: トークンのある端末だけに削除。確かめずに消えない（「やめる」で戻る）。確認の文に「共有先に表示されたカードは残ることがあります」
 - [x] UC-9d: 削除の成功で「削除しました」とトークンの消去。403 は「この端末の鍵では削除できません」、通信の失敗は「つながりません」
 - [x] UC-9e: `useSaveRun` はトークンがあれば Bearer 付きで POST、無ければ送らずに `not-owner`
