@@ -15,6 +15,8 @@ tier: 1
 
 # 仕様: plan-trip-photos（A-1 の楽しみから「重さ」を外し、カードに写真と引用を出す）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、CREDITS.md（ロゴの行）と、ヘッダーのロゴを直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で `packages/trip/src/i18n-tables.test.ts` が地点・楽しみの JSON の名前を 4 言語の規則で検査する（写真の台帳は変えていない）。この仕様のルールは変えていない。
 
 > 2026-11-06 drive-tourism が plan-trip の barrel から `photoOf`・`photoSrc` を読み、運転中の会話とおすすめのカードに同じ写真と出典（平文）を出す（`docs/specs/drive-tourism/functional.md` T8・T13）。この仕様のルール（写真の選び方・引用）は変えていない。

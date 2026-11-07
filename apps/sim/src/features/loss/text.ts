@@ -6,7 +6,12 @@ import type { Lang } from '@antler/schema'
 type UiText = Record<Lang, string>
 
 export const LOSS_TEXT = {
-  brand: { ja: 'EZO ROAD', en: 'EZO ROAD', zh: 'EZO ROAD', ko: 'EZO ROAD' },
+  brand: {
+    ja: 'SHIKASHI SIMULATOR',
+    en: 'SHIKASHI SIMULATOR',
+    zh: 'SHIKASHI SIMULATOR',
+    ko: 'SHIKASHI SIMULATOR',
+  },
   pageTitle: { ja: '旅の喪失', en: 'What the trip lost', zh: '旅程的損失', ko: '여행의 상실' },
   loadingTrip: {
     ja: 'しおりを読み込んでいます',

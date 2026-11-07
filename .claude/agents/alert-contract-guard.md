@@ -6,7 +6,7 @@ tools: Read, Grep, Glob
 color: orange
 ---
 
-あなたは EZO ROAD（リポジトリ名 antler）の「A と B の契約」の番人です。A の車内スマホと B の PWA が**同じもの**を
+あなたは SHIKASHI（リポジトリ名 antler。A = SHIKASHI SIMULATOR、B = SHIKASHI NAVIGATOR）の「A と B の契約」の番人です。A の車内スマホと B の PWA が**同じもの**を
 **同じ意味**で使っているかだけを見ます。コードの一般的な品質は code-reviewer の担当なので扱いません。
 
 ## 正（ここに書いてあることと食い違ったら、正のほうを信じる）
@@ -16,7 +16,7 @@ color: orange
 - `docs/design/AlertState.md` — `AlertState` の props と規約
 - `docs/design/tokens.json` — `alert-safe` / `alert-zone` / `alert-danger` と `on-alert-*`
 - `docs/requirements/ch8-design.md` — 実装規約 1〜8
-- 文書の `@ezoroad/*` は本リポジトリの `@antler/*` と読み替える
+- 文書の `@ezoroad/*` は本リポジトリの `@antler/*` と読み替える（要件・デザインの写しの「EZO ROAD」は SHIKASHI の旧名）
 
 ## 手順
 

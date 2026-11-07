@@ -5,7 +5,12 @@ import type { UiText } from './types'
 // `{name}` の形の差し込みは fillText で埋める。統計の数字はここに書かない（stats.json から読む）。
 
 export const PLAN_TEXT = {
-  brand: { ja: 'EZO ROAD', en: 'EZO ROAD', zh: 'EZO ROAD', ko: 'EZO ROAD' },
+  brand: {
+    ja: 'SHIKASHI SIMULATOR',
+    en: 'SHIKASHI SIMULATOR',
+    zh: 'SHIKASHI SIMULATOR',
+    ko: 'SHIKASHI SIMULATOR',
+  },
   steps: { ja: '進み具合', en: 'Progress', zh: '進度', ko: '진행 단계' },
   stepPlan: { ja: '旅をつくる', en: 'Plan the trip', zh: '規劃旅程', ko: '여행 만들기' },
   stepBrief: { ja: '出発前チェック', en: 'Pre-drive check', zh: '出發前確認', ko: '출발 전 점검' },

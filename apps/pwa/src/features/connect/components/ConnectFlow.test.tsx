@@ -145,6 +145,17 @@ describe('UC-5 B-0', () => {
     expect(r.port.playBeep).not.toHaveBeenCalled()
   })
 
+  it('BRAND-9: 見出しは夜のロゴと「鹿アラート」。名前は「SHIKASHI NAVIGATOR 鹿アラート」', async () => {
+    render(<ConnectFlow services={rig().services} />)
+    await flush()
+    const heading = screen.getByRole('heading', { level: 1 })
+    expect(heading).toHaveAccessibleName('SHIKASHI NAVIGATOR 鹿アラート')
+    expect(screen.getByRole('img', { name: 'SHIKASHI NAVIGATOR' })).toHaveAttribute(
+      'src',
+      '/brand/shikashi-logo-night.png',
+    )
+  })
+
   it('UC-5e: navigator.languages が zh-TW なら主文が zh', async () => {
     render(<ConnectFlow services={rig({ languages: ['zh-TW'] }).services} />)
     await flush()

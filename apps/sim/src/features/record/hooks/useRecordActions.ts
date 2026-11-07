@@ -51,7 +51,7 @@ async function saveImage(tripId: string): Promise<void> {
   const url = URL.createObjectURL(await res.blob())
   const a = document.createElement('a')
   a.href = url
-  a.download = `ezo-road-${tripId}.png`
+  a.download = `shikashi-${tripId}.png`
   a.click()
   // すぐに消すと保存が始まらないブラウザがあるので、少し待ってから消す
   setTimeout(() => {

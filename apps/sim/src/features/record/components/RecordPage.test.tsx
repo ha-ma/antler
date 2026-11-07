@@ -277,7 +277,14 @@ describe('A-7 の操作', () => {
     expect(await screen.findByText(/コピーできませんでした/)).toBeInTheDocument()
   })
 
-  it('UC-9b: 「しおりを画像で保存」で og.png を取り ezo-road-{id}.png で保存。失敗は案内', async () => {
+  it('BRAND-3: ヘッダーに SHIKASHI SIMULATOR のロゴ（昼の版）', async () => {
+    stubApi(() => recordReply(DONE))
+    renderRecord()
+    const logo = await screen.findByRole('img', { name: 'SHIKASHI SIMULATOR' })
+    expect(logo).toHaveAttribute('src', '/brand/shikashi-logo.png')
+  })
+
+  it('UC-9b・BRAND-7: 「しおりを画像で保存」で og.png を取り shikashi-{id}.png で保存。失敗は案内', async () => {
     let imageOk = true
     const calls = stubApi((c) =>
       c.url.endsWith('/og.png')
@@ -291,7 +298,7 @@ describe('A-7 の操作', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
       this: HTMLAnchorElement,
     ) {
-      expect(this.download).toBe(`ezo-road-${TRIP_ID}.png`)
+      expect(this.download).toBe(`shikashi-${TRIP_ID}.png`)
     })
     const user = userEvent.setup()
     renderRecord()

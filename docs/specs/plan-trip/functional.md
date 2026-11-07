@@ -11,6 +11,8 @@ tier: 2
 
 # 仕様: plan-trip（A-1 旅をつくる・Claude がしおりを仕上げる）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、ヘッダーの印（SVG）を SHIKASHI のロゴに替え、画面の title・記録の文言・OG 画像の名前を SHIKASHI SIMULATOR にした。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で api のしおりの文の検証を共通の文字種の規則（`apps/api/src/domain/shared/policies/lang-script-policy.ts`）に寄せ、zh の簡体字も落とすようにした（外れたら今までどおり 1 回だけ作り直す）。`packages/trip` に文言の表の検査（`src/i18n-tables.test.ts`）を足した。この仕様のルールは変えていない。
 
 > 2026-11-06 result-screens（`docs/specs/result-screens/functional.md` R1）で、送信ボタンの文言を「この旅を守りに行く →」から「しおりを作って鹿ゾーンを確かめる →」（4 言語）に変えた（ユーザーの 3 回目の指摘「守りに行くはよくわからない」）。押したときの振る舞い（R5・R8）は変えていない。下の R5・AC-2 の文言も合わせた。

@@ -1,8 +1,8 @@
 import { recordText, type RecordView } from '@antler/trip'
 import { useState } from 'react'
+import { BrandLogo } from '@/shared/components/BrandLogo'
 import { useSaveImage } from '../hooks/useRecordActions'
 import { recordShareUrl } from '../utils/links'
-import { BrandMark } from './BrandMark'
 
 // 上部: ブランド・記録 URL・リンクのコピー・しおりの画像の保存（R5・R6、UC-9a・UC-9b、FAIL-5）
 
@@ -27,8 +27,7 @@ export function RecordHeader({ tripId, lang }: { tripId: string; lang: RecordVie
   return (
     <header className="record-header">
       <span className="record-brand">
-        <BrandMark />
-        {t('brand')}
+        <BrandLogo theme="trip" />
       </span>
       <div className="record-share">
         <input

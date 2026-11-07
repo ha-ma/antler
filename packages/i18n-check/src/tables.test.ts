@@ -124,7 +124,9 @@ describe('I18N-3: 文字種', () => {
     expect(
       rules({ ja: '{n} / {of}', en: '{n} / {of}', zh: '{n} / {of}', ko: '{n} / {of}' }),
     ).toEqual([])
-    expect(rules({ ja: 'EZO ROAD', en: 'EZO ROAD', zh: 'EZO ROAD', ko: 'EZO ROAD' })).toEqual([])
+    // BRAND-11（rebrand-shikashi）: 大文字だけのブランド名は中立
+    const brand = 'SHIKASHI SIMULATOR'
+    expect(rules({ ja: brand, en: brand, zh: brand, ko: brand })).toEqual([])
     expect(rules({ ja: 'km/h', en: 'km/h', zh: 'km/h', ko: 'km/h' })).toEqual([])
   })
 

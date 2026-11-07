@@ -15,6 +15,8 @@ tier: 1
 
 # 仕様: og-font（OG 画像のフォントを同梱して、日本語・繁体字・ハングルが「□」にならないようにする）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、OG 画像の左上の名前（SHIKASHI SIMULATOR）と、それに合わせた eyebrow の位置（x 250 → 440）を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 ## 概要
 
 記録ページの OG 画像（`GET /t/:id/og.png`。resvg でしおりの SVG を PNG にする）は、サーバーのフォントで文字を描く。Vercel の関数の Linux には CJK のフォントが無く、タイトルが「□」になる（deploy-a の Deferred）。

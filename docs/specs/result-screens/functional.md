@@ -18,6 +18,8 @@ tier: 1
 
 # 仕様: result-screens（A-1 の送信ボタンの文言、A-6 の「落ちて積み重なる」、A-7 の「クリア」）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、記録のヘッダーのロゴと、画面の title の名前を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md` R4）が A-6 の導入（`loss-intro`）に鹿の発見の 1 行（`data-testid="loss-spotting"`、URL の `spot` があるときだけ）、A-7 の導入（`record-intro`）に 1 行（`record-spotting`）を足した。落ちて積み重なるカード・クリアの演出には入れていない（導入の中の静的な行）。並べ方・演出に入れるかはこの feature で決めてよい。
 
 ## 概要

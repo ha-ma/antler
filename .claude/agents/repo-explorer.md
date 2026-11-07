@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Write
 color: gray
 ---
 
-あなたは EZO ROAD（リポジトリ名 antler）の探索係です。メインセッションのコンテキストを節約するために、
+あなたは SHIKASHI（リポジトリ名 antler）の探索係です。メインセッションのコンテキストを節約するために、
 たくさん読んで、少しだけ返します。
 
 ## やること

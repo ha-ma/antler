@@ -1,5 +1,6 @@
 import type { Lang } from '@antler/schema'
 import { Link } from 'react-router'
+import { BrandLogo } from '@/shared/components/BrandLogo'
 import { briefHref } from '../hooks/useBriefParams'
 import { BRIEF_TEXT, fillText, type BriefTextKey } from '../text'
 
@@ -13,18 +14,7 @@ export function BriefHeader({ lang, tripId, day, dayCount, alertOn }: Props) {
   return (
     <header className="brief-header">
       <div className="brief-brand">
-        <svg
-          className="brief-brand__logo"
-          viewBox="0 0 32 20"
-          width="32"
-          height="20"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path className="brief-brand__ridge" d="M1 18 L11 4 L17 12 L22 6 L31 18" />
-          <path className="brief-brand__road" d="M6 18 L16 14 L26 18" />
-        </svg>
-        <span>{t.brand[lang]}</span>
+        <BrandLogo theme="trip" />
       </div>
       <ol className="brief-steps" aria-label={t.steps[lang]}>
         {STEPS.map((key, i) => (

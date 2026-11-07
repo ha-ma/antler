@@ -21,6 +21,8 @@ tier: 1
 
 # 仕様: i18n（A と B の全画面が 4 言語で欠けないことを機械で確かめる）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、i18n-check のテストの中立の文の例（`EZO ROAD` → `SHIKASHI SIMULATOR`）と hook の説明の名前を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-06 drive-sound-tourism（`docs/specs/drive-sound-tourism/functional.md` S14）が `apps/sim/src/i18n-tables.test.ts` の見本に、補いの観光の行の言い回し（`FILLER_PLEASURE_TEXT`・`RADIO_FILLER_PLEASURE_TEXT`）を足した（`unsampled` の例外も同じ数）。この仕様の規則は変えていない。
 
 ## 概要
