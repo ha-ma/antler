@@ -503,6 +503,29 @@ describe('LOSS-1: しおりを読む前・失敗はブラウザの言語（i18n 
     })
   })
 
+  it('ACCENT-1 loss.css: アクセントは root の --accent（alert-danger）で、主ボタン・フォーカス・見出しの帯・4 指標の線がそれを読み、緑を使わない（result-countup R7）', () => {
+    const root = cssBlock(lossCss, '.loss')
+    expect(root).toContain('--accent: var(--alert-danger);')
+    expect(root).toContain('--on-accent: var(--on-alert-danger);')
+    const primary = cssBlock(lossCss, '.loss-button--primary')
+    expect(primary).toContain('background: var(--accent, var(--spruce));')
+    expect(primary).toContain('color: var(--on-accent, var(--on-spruce));')
+    expect(cssBlock(lossCss, '.loss-button--primary:hover')).toContain('var(--accent-deep')
+    expect(cssBlock(lossCss, '.loss :focus-visible')).toContain('var(--accent, var(--spruce))')
+    expect(cssBlock(lossCss, '.loss-intro')).toContain('border-left: 6px solid var(--accent')
+    expect(cssBlock(lossCss, '.loss-tile')).toContain('border-top: 4px solid var(--accent')
+    // 緑は --accent が無いときの予備だけ。直に spruce を色に使う宣言は残っていない
+    const direct = lossCss
+      .split('\n')
+      .filter((l) => /var\(--spruce/.test(l) && !/var\(--accent[^,]*, var\(--spruce/.test(l))
+    expect(direct).toEqual([])
+    // alert-danger は文字の色には ✕ の行（大きい文字）だけ。night の面で 4.5:1 に届かないため
+    const textRed = lossCss
+      .split('\n')
+      .filter((l) => /^\s*color: var\(--(alert-danger|accent)/.test(l))
+    expect(textRed).toEqual(['  color: var(--alert-danger);'])
+  })
+
   it('TEXT-2 副の導線の文言は 4 言語とも「この日を最初から走り直す」で、「3 秒前」を言わない（result-screens R6）', () => {
     expect(LOSS_TEXT.replay).toEqual({
       ja: 'この日を最初から走り直す',

@@ -7,6 +7,7 @@ target_paths:
   - apps/sim/src/shared/components/count-up.css
   - apps/sim/src/features/loss/components/LossPage.tsx
   - apps/sim/src/features/loss/components/StatsCard.tsx
+  - apps/sim/src/features/loss/components/loss.css
   - apps/sim/src/features/loss/utils/drop.ts
   - apps/sim/src/features/loss/utils/fill-nodes.tsx
   - apps/sim/src/features/record/components/StatTiles.tsx
@@ -15,11 +16,13 @@ spec_confirmed_at: dcea501
 tier: 1
 ---
 
-# 仕様: result-countup（A-6・A-7 の結果の数字をカウントアップする）
+# 仕様: result-countup（A-6・A-7 の結果の数字をカウントアップする。A-6 のアクセントを赤にする）
 
 ## 概要
 
 ユーザーの依頼（2026-11-08）「結果ページ（衝突した場合も、衝突しないで成功した場合も）の数字は、カウントアップして動きのあるようにしたい」。
+
+同じ日のユーザーの依頼「鹿にぶつかったあとの結果画面の表現は、緑ではなく赤をアクセントカラーに使ったほうが良いと思います」も、この feature で入れる（R7）。
 
 A-6（`/loss/:id`、衝突の結果）と A-7（`/t/:id`、旅の記録。完走のあとの「クリア」の画面を含む）の結果の数字を、見えたときに 0 から最後の値まで数え上げる。最後の 1 コマは今の表示と 1 文字も違わない（通貨の記号・3 桁区切り・小数・単位・言語ごとの書き方）。
 
@@ -70,8 +73,8 @@ Questions は 2026-11-08 にすべて推奨で決定した（ユーザーの方�
   - 止めたままにする数字（分母）は、呼ぶ側が数字の並びの番号で指定する（`hold`）。`/` の前後で決め打ちしない（A-7 の「遭遇 / 回避」は両方動く）
   - 文の中の数字は、文の型（`fillText` の `{key}`）の置き場所の名前で差し込む（言語ごとに順番が違うので、並びの番号では選ばない）。loss の `fillNodes`
 - R3 読み上げ（推奨で決定）
-  - 動いているあいだだけ、見える数字を `aria-hidden`、最後の値を視覚的に隠した要素（読み上げは読む）に置く。途中の値は読み上げに出ない
-  - 最後の値の幅をとる見えない写し（`visibility: hidden`・`aria-hidden`）を同じ場所に重ね、桁が増えても文が折り返し直さない
+  - 動いているあいだだけ、見える数字を `aria-hidden`、最後の値を透明（`opacity: 0`）の写しに置く。読み上げは写しを読み、途中の値は読み上げに出ない
+  - 写しは見える数字と同じ場所に重ね（`display: inline-grid`）、最後の値の幅をとるので、桁が増えても文が折り返し直さない（`visibility`・`display` で隠すと読み上げからも消えるので使わない）
   - 終わったら、ふつうの文字だけ（今と同じ 1 つの文字の並び）に戻る。見出し（統計カードの `aria-labelledby`）の名前も最後の値
   - `aria-live` は付けない（数え上げを知らせない）
 - R4 動かさないとき（推奨で決定）: `prefers-reduced-motion: reduce`、`IntersectionObserver`・`requestAnimationFrame` の無い環境（古いブラウザ・テストの jsdom）では、最初から最後の値をふつうの文字で出す（R3 の分けた形を作らない）
@@ -83,6 +86,12 @@ Questions は 2026-11-08 にすべて推奨で決定した（ユーザーの方�
   - A-7 の StatTile は 300 ms ＋ 番号 × 100 ms（「クリア」の円が描き始めてから。並びで少しずつずれる）
   - 数え上げの途中で再描画されても最初からやり直さない。値（文字列）が変わったら、新しい値を最後の値として出す（数え直さない。値は画面を開いたあとに変わらない）
 - R6 見た目（推奨で決定）: 数字は `font-variant-numeric: tabular-nums`（桁の幅が揃い、数え上げの途中で揺れない）。書体は今の場所のまま（StatTile の値は IBM Plex Mono の num-l、統計カードの文は文の書体）。色を足さない（金額の clay はそのまま）。数字は最後の値の幅の中で右に寄せる（1 の位が動かない）
+- R7 A-6 のアクセントを赤にする（2026-11-08 ユーザー判断「鹿にぶつかったあとの結果画面の表現は、緑ではなく赤をアクセントカラーに使ったほうが良い」。親セッション経由。`docs/design/README.md` の冒頭の注記）
+  - 衝突の結果画面（A-6 `/loss/:id`。読み込み中・読めない画面を含む）だけ。成功の結果（A-7）は `spruce` のまま
+  - `loss.css` の `.loss`（ページの root）で `--accent: var(--alert-danger)`・`--on-accent: var(--on-alert-danger)`・`--accent-deep`（alert-danger を ground に 30 % 混ぜた濃い赤。押したときと主ボタンの影）を定義する。色は直書きしない
+  - アクセントを読むもの: 主ボタン（白文字 4.6:1）・フォーカスの枠（線。night の ground で 4.02:1、紙の ground で 4.34:1。3:1 以上）・導入（いつ・見出し・事実）の左の帯（6 px）・4 指標の上の線（4 px。surface で 3.47:1）。固定の導線（sticky-cta）の主ボタンも同じ `--accent` を読めば赤になる
+  - 文字の色には使わない（推奨で決定）: alert-danger は night の ground で 4.02:1、surface で 3.47:1 で、4.5:1 に届かない。数え上げる数字は今の色のまま（金額は clay で 7.66:1、日数・楽しみは ink）。例外は今までの ✕ の衝突の行（大きい文字）だけ
+  - 済みの ✓ は緑（spruce）をやめて ink-muted にする（推奨で決定）。赤は ✕ の衝突の行に取っておく（済みを赤にすると衝突と同じ色になる）。形と「済み」の読み上げの文字で分かる
 
 ## ユースケース
 
@@ -146,8 +155,9 @@ Questions は 2026-11-08 にすべて推奨で決定した（ユーザーの方�
 - [x] LOSS-3: `fillNodes` は置き場所の名前で差し込み、文字だけを渡せば `fillText` と同じ文字列になる（R2）
 - [x] RECORD-1: A-7 の 4 つの値が数え上がり、「楽しみ 達成」の分母は動かず、「遭遇 / 回避」は両方動く。「—」は動かない（UC-3）
 - [x] KEEP-1: 既存のテスト（loss・record・result-screens）が Green のまま（jsdom は S-2 で最後の値）
+- [x] ACCENT-1: `loss.css` の `.loss` が `--accent: var(--alert-danger)` を定義し、主ボタン・フォーカス・導入の帯・4 指標の線がそれを読む。緑（spruce）は `--accent` の予備だけで、alert-danger を文字の色に使うのは ✕ の行だけ（R7）
 
-テストの場所: FRAME は `shared/utils/count-up.test.ts`、COUNT は `shared/components/CountUpText.test.tsx`、LOSS-1・LOSS-2 は `loss/components/LossPage.test.tsx`（`result-countup` の付いた it）、LOSS-2 の CSS との突き合わせは `loss/utils/drop.test.ts`、LOSS-3 は `loss/utils/fill-nodes.test.tsx`、RECORD-1 は `record/components/RecordPage.test.tsx`（「A-7 の数え上げ」）。IntersectionObserver・rAF・matchMedia の偽物は `src/test/count-up.ts`。
+テストの場所: FRAME は `shared/utils/count-up.test.ts`、COUNT は `shared/components/CountUpText.test.tsx`、LOSS-1・LOSS-2 は `loss/components/LossPage.test.tsx`（`result-countup` の付いた it）、LOSS-2 の CSS との突き合わせは `loss/utils/drop.test.ts`、LOSS-3 は `loss/utils/fill-nodes.test.tsx`、RECORD-1 は `record/components/RecordPage.test.tsx`（「A-7 の数え上げ」）、ACCENT-1 は `loss/components/LossPage.test.tsx`。IntersectionObserver・rAF・matchMedia の偽物は `src/test/count-up.ts`。
 
 ## 非機能要件
 

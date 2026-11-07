@@ -1,8 +1,15 @@
 /* A-6 喪失（/loss/:id）。night テーマ。色・文字・余白は tokens.css の CSS 変数だけを使う（ch8 規約 1・4）。
-   しおりのカードだけ data-theme="trip" で紙（ground）の面にする。alert-danger は ✕ の行だけに使う。
-   喪失の金額は clay（R3）。ground の上の小さい文字は ink-muted。 */
+   しおりのカードだけ data-theme="trip" で紙（ground）の面にする。alert-danger は ✕ の行とアクセント（下）に使う。
+   喪失の金額は clay（R3）。ground の上の小さい文字は ink-muted。
+   アクセントは緑（spruce）ではなく alert-danger（2026-11-08 ユーザー判断。鹿にぶつかった結果の画面なので）。
+   ページの root で --accent を替え、主ボタン・フォーカスの枠・見出しの帯・4 指標の上の線がそれを読む。
+   alert-danger は night の ground で 4.02:1・surface で 3.47:1 なので文字の色には使わない（線・面・白文字の背景だけ）。 */
 
 .loss {
+  --accent: var(--alert-danger);
+  --on-accent: var(--on-alert-danger);
+  --accent-deep: color-mix(in srgb, var(--alert-danger) 70%, var(--ground));
+
   min-height: 100vh;
   background: var(--ground);
   color: var(--ink);
@@ -43,7 +50,7 @@
 }
 
 .loss :focus-visible {
-  outline: 3px solid var(--spruce);
+  outline: 3px solid var(--accent, var(--spruce));
   outline-offset: 2px;
 }
 
@@ -75,10 +82,13 @@
   gap: var(--space-4);
 }
 
+/* 見出しの帯: 導入（いつ・見出し・事実）の左にアクセントの太い線（線なので 3:1 で足りる。night の ground で 4.02:1） */
 .loss-intro {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 6px solid var(--accent, var(--spruce));
 }
 
 .loss-eyebrow {
@@ -162,6 +172,7 @@
   gap: var(--space-1);
   padding: var(--space-4);
   border: 1px solid var(--line);
+  border-top: 4px solid var(--accent, var(--line));
   border-radius: var(--radius-l);
   background: var(--surface);
 }
@@ -203,7 +214,7 @@
   display: block;
 }
 
-/* A6-4 の導線（主ボタンは 1 つだけ大きく spruce。44 px 以上） */
+/* A6-4 の導線（主ボタンは 1 つだけ大きくアクセントの色。この画面は alert-danger に白文字で 4.6:1。44 px 以上） */
 .loss-actions {
   display: flex;
   flex-direction: column;
@@ -252,16 +263,16 @@
   min-height: 64px;
   border: 0;
   border-radius: var(--radius-l);
-  background: var(--spruce);
-  color: var(--on-spruce);
+  background: var(--accent, var(--spruce));
+  color: var(--on-accent, var(--on-spruce));
   font-size: var(--title-size);
   line-height: var(--title-line);
   font-weight: var(--title-weight);
-  box-shadow: 0 6px 0 var(--spruce-deep);
+  box-shadow: 0 6px 0 var(--accent-deep, var(--spruce-deep));
 }
 
 .loss-button--primary:hover {
-  background: var(--spruce-deep);
+  background: var(--accent-deep, var(--spruce-deep));
 }
 
 .loss-button--secondary {
@@ -346,8 +357,9 @@
   stroke-linejoin: round;
 }
 
+/* 済みの ✓ は緑にしない（この画面のアクセントは赤。赤は ✕ の衝突の行に取っておく）。形と「済み」の文字で分かる */
 .loss-row--achieved .loss-row__mark {
-  color: var(--spruce);
+  color: var(--ink-muted);
 }
 
 /* alert-danger は紙（ground）の上で 4.5:1 に少し届かないので、大きい文字（20 px・太字。3:1 で足りる）にする */
