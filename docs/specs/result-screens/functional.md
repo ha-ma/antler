@@ -12,13 +12,15 @@ target_paths:
   - apps/sim/src/features/record/hooks/useTripRecord.ts
   - apps/sim/src/features/record/text.ts
   - apps/sim/src/features/record/index.ts
-spec_confirmed_at: d986329
+spec_confirmed_at: 737a270
 tier: 1
 ---
 
 # 仕様: result-screens（A-1 の送信ボタンの文言、A-6 の「落ちて積み重なる」、A-7 の「クリア」）
 
 > 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md` R4）が A-6 の導入（`loss-intro`）に鹿の発見の 1 行（`data-testid="loss-spotting"`、URL の `spot` があるときだけ）、A-7 の導入（`record-intro`）に 1 行（`record-spotting`）を足した。落ちて積み重なるカード・クリアの演出には入れていない（導入の中の静的な行）。並べ方・演出に入れるかはこの feature で決めてよい。
+
+> 2026-11-08 result-countup（`docs/specs/result-countup/functional.md`）で、R3 の「数字のカウントアップは作らない」をユーザーの依頼（2026-11-08「結果ページの数字は、カウントアップして動きのあるようにしたい」）で替えた。R3 の 2 つの理由には次のように答えた: 読み上げは最後の値だけを読む（動いているあいだ、見える数字は `aria-hidden`、最後の値は透明の写し。終わったら 1 つの文字の並び）。画像の保存は api が描く `/t/:id/og.png` で画面の DOM を写さないので、途中の値は入らない。A-6 の数え上げは R2 のカードの着地のあとに始まる（`utils/drop.ts` の `dropLandedMs`）。R2・R4 のほかのルールは変えていない。
 
 ## 概要
 
@@ -60,7 +62,7 @@ Questions は 2026-11-06 にすべて推奨で決定した（ユーザーの方�
   - しおりの読み込み中・読めない・失敗の画面は動かさない
 - R3 A-7 の「クリア」（推奨で決定）
   - 出すもの: (1) 3 状態の safe と同じ形の円（`alert-safe` の線）が描かれ、続いてチェックが描かれる、(2) 大きな「クリア」の見出し（display-xl、`spruce`）と 1 行の説明「D{n} を、鹿にぶつからずに走りきりました。」、(3) 控えめな紙吹雪（24 片、`spruce`・`alert-safe`・`spruce-deep`、1 回だけ落ちて消える。位置と遅れは番号から決まる式で、乱数を使わない）
-  - 数字のカウントアップは作らない（推奨で決定）。理由: 4 指標の値は「3 / 4」「1.2 秒」のような組み合わせで、途中の値を読み上げ・画像の保存が拾ってしまう。円とチェックと見出しで「成功」が分かる
+  - 数字のカウントアップは作らない（推奨で決定。**2026-11-08 にユーザーの依頼で替えた。result-countup**）。理由: 4 指標の値は「3 / 4」「1.2 秒」のような組み合わせで、途中の値を読み上げ・画像の保存が拾ってしまう。円とチェックと見出しで「成功」が分かる
   - 置き場所: 本文の左の列の一番上（見出しの上）。円とチェック・紙吹雪は `aria-hidden`・`pointer-events: none`。紙吹雪は落ち終わったら不透明度 0 で残る。「クリア」の文字は読み上げる
   - 「クリア」は見出しにしない（h1 は記録の見出しのまま、見出しの順を崩さない）。祝いを出すときだけ遷移のフォーカスを「クリア」と説明の塊（`<div tabIndex=-1>`。読み上げが両方を読む。accessibility-checker W-1）に移し、h1 のフォーカスを外す。出さないときは今までどおり h1
   - 紙吹雪は帯の幅の 4〜92 % から落ち、横の流れは ±20 px。横は帯の幅で切る（`overflow-x: clip`。320 px 幅で横スクロールを出さない。accessibility-checker W-2）

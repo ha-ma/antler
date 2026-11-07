@@ -1,4 +1,9 @@
-import { DROP_TILTS, dropSequence } from './drop'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { DROP_DURATION_MS, DROP_STAGGER_MS, DROP_TILTS, dropLandedMs, dropSequence } from './drop'
+
+// 落ちて積み重なる並び（result-screens R2）と、数え上げの始まり（result-countup R5）
 
 describe('dropSequence（result-screens R2）', () => {
   it('DROP-1 呼ぶたびに 0, 1, 2 … の番号と、決まった表の傾きを返す', () => {
@@ -22,5 +27,21 @@ describe('dropSequence（result-screens R2）', () => {
     const b = dropSequence()
     const seq = (f: typeof a) => Array.from({ length: 12 }, () => f()['--loss-tilt'])
     expect(seq(a)).toEqual(seq(b))
+  })
+})
+
+describe('dropLandedMs（result-countup R5）', () => {
+  // vitest は CSS を空にして読むので、ファイルを直に読む
+  const css = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '../components/loss.css'),
+    'utf8',
+  )
+
+  it('LOSS-2 着地の時刻は 番号 × 150 ms ＋ 820 ms で、loss.css の値と同じ', () => {
+    expect(css).toContain(`--loss-drop-duration: ${String(DROP_DURATION_MS)}ms;`)
+    expect(css).toContain(`--loss-drop-stagger: ${String(DROP_STAGGER_MS)}ms;`)
+    const next = dropSequence()
+    expect([next(), next(), next()].map(dropLandedMs)).toEqual([820, 970, 1120])
+    expect(dropLandedMs(undefined)).toBe(0)
   })
 })

@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { RECORD_TEXT } from '@antler/trip'
+import { buildRecordView, RECORD_TEXT } from '@antler/trip'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
+import { stubCountUpEnv } from '@/test/count-up'
 import { createTestQueryClient, renderWithProviders } from '@/test/render'
 import { OWNER_TOKEN, personaRecord, run, TRIP_ID } from '../test-fixtures'
 import { RECORD_CLEAR_TEXT } from '../text'
@@ -501,6 +502,61 @@ describe('A-7 の「クリア」', () => {
       expect(RECORD_CLEAR_TEXT.clear[lang].trim()).not.toBe('')
       expect(RECORD_CLEAR_TEXT.clearLead[lang]).toContain('{n}')
     }
+  })
+})
+
+describe('A-7 の数え上げ（result-countup）', () => {
+  const frames = () =>
+    screen
+      .getAllByRole('definition')
+      .map((dd) => dd.querySelector('.count-up__frame')?.textContent ?? null)
+
+  it('RECORD-1: 4 つの値が数え上がる。「守れた楽しみ」の分母は動かず、「遭遇 / 回避」は両方動き、終わると今の表示と同じ', async () => {
+    const env = stubCountUpEnv()
+    stubApi(() => recordReply(DONE))
+    renderRecord()
+    await screen.findByRole('heading', { level: 1, name: 'D2 まで走った。' })
+    const stats = buildRecordView(DONE.trip, DONE.record).stats
+    const [pleasures, zones, deer, brake] = stats.map((s) => s.value)
+    expect(deer).toBe('2 / 2')
+    expect(brake).toBe('1.4')
+    const total = pleasures?.split(' / ')[1]
+    // 始まりのコマ
+    expect(frames()).toEqual([`0 / ${String(total)}`, '0', '0 / 0', '0.0'])
+    env.intersect()
+    // 300 ms ＋ 番号 × 100 ms までは動かない: 450 ms では 3 つ目・4 つ目はまだ始まりのコマ
+    env.advance(450)
+    expect(frames().slice(2)).toEqual(['0 / 0', '0.0'])
+    // 1000 ms では 4 つ目も動いている（分母は動かない）
+    env.advance(550)
+    const mid = frames()
+    expect(mid[3]).not.toBe('0.0')
+    expect(mid[0]?.endsWith(` / ${String(total)}`)).toBe(true)
+    env.advance(2000)
+    // 終わった: 分けた形が無く、値は buildRecordView の文字列（＋単位）のまま
+    expect(frames()).toEqual([null, null, null, null])
+    expect(screen.getAllByRole('definition').map((dd) => dd.textContent)).toEqual(
+      stats.map((s) => `${s.value}${s.unit}`),
+    )
+    expect(zones).toMatch(/^\d+$/)
+  })
+
+  it('RECORD-1: 平均が無いときの「—」は動かない', async () => {
+    stubCountUpEnv()
+    stubApi(() => recordReply(personaRecord([])))
+    renderRecord()
+    await screen.findByRole('heading', { level: 1, name: 'まだ走っていません。' })
+    expect(frames()[3]).toBeNull()
+    expect(screen.getByText('—')).toBeInTheDocument()
+  })
+
+  it('S-1: 動きを減らす設定では最初から最後の値', async () => {
+    stubCountUpEnv({ reducedMotion: true })
+    stubApi(() => recordReply(DONE))
+    renderRecord()
+    await screen.findByRole('heading', { level: 1, name: 'D2 まで走った。' })
+    expect(frames()).toEqual([null, null, null, null])
+    expect(screen.getByText('2 / 2')).toBeInTheDocument()
   })
 })
 

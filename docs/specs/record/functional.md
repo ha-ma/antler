@@ -11,7 +11,7 @@ target_paths:
   - apps/api/src/infrastructure/http/views/
   - apps/sim/src/features/record/
   - apps/sim/src/app/DriveRoute.tsx
-spec_confirmed_at: 7435a29
+spec_confirmed_at: 737a270
 tier: 2
 ---
 
@@ -20,6 +20,8 @@ tier: 2
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 **result-screens（2026-11-06）での変更**: sim の A-7（`/t/:id`）に「クリア」の帯を足した（`docs/specs/result-screens/functional.md` R3・R4）。保存順で最後の run の日が完走のときだけ、本文の一番上に円とチェック・「クリア」・紙吹雪を 1 回出し、フォーカスを「クリア」に移す。A-6 から来た（location state の合図 `RECORD_AFTER_COLLISION`）・同じ履歴に戻った・最後の日が衝突なら出さない。画面を開いたあとに取り直した記録が来るまで「読み込み中」を出す（前のキャッシュで判定しない。`useTripRecord` は `refetchOnMount: 'always'`）。api・SSR・OG 画像・集計の規則は変えていない。
+
+**result-countup（2026-11-08）での変更**: sim の A-7 の StatTile 4 つの値を、見えたときに 0 から数え上げるようにした（`docs/specs/result-countup/functional.md`、`@/shared/components/CountUpText`）。文字列は `buildRecordView` のまま（最後の 1 コマは今の表示と同じ）。「守れた楽しみ」の総数は動かさない。「—」は動かない。api の SSR（JS なし）・OG 画像・集計の規則は変えていない。
 
 ## 概要
 
