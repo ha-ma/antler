@@ -714,7 +714,9 @@ def test_tr1c_buildのあとの改変と元の重みの出所(tmp_path):
         allow_by_sa_base=True,
         **{**args, "known_bases": deer},
     )
-    assert json.loads((models / "deer-a.json").read_text())["base"]["by_sa"] is True
+    card = json.loads((models / "deer-a.json").read_text())
+    assert card["base"]["by_sa"] is True
+    assert card["distribution"] == "not_allowed"  # BY-SA の派生の重みは配らない
     assert set(train_l0.KNOWN_BASES) >= {COCO_SHA}
 
 

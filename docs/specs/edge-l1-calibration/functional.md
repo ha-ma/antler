@@ -8,9 +8,11 @@ target_paths:
   - edge/detector/src/detector/l1/calibrate.py
   - edge/detector/tests/test_l1_calibrate.py
   - edge/detector/tests/l1_synth.py
-spec_confirmed_at: 4eeeab6
+spec_confirmed_at: 6c7c3f3
 tier: 2
 ---
+
+> 2026-11-07 dataset-train の更新（sdata 比較）が `dataset/pyproject.toml` のカバレッジの対象と isort の first-party に `self_labels`・`compare_l0` を足し、`dataset/tests/` に `test_self_labels.py`・`test_train_l0_sdata.py`・`test_compare_l0.py` を足した。L1 の校正の挙動は変えていない。
 
 > 2026-11-07 dataset-synth が `dataset/pyproject.toml` のカバレッジの対象と isort の first-party に `synth` を足し、`dataset/tests/` に `test_synth.py` を足した。L1 の校正の挙動は変えていない。
 

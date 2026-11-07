@@ -90,7 +90,7 @@ YOLO のラベルはすべて 1 クラス `0: deer`、座標は中心基準の�
 
 - **評価だけに使う**（CC BY-SA は ch6 の許可リスト外）。**学習用の合成の背景にも使わない**（合成画像も CC BY-SA になる）。合成の試作の見た目の確認には使ってよいが、その合成画像は学習に使わない
 - ラベルは無い（鹿のいない前提の画像）。誤検出の評価に使う。約 4 分の 1 は車から道路を見た画像ではないので、評価の前に選別する。写真の間隔が数秒あくので、連続フレームの警報ルールの評価には使えない
-- `train_sources.toml` にはまだ載せていない（`kind = "yolo"` はラベル付きの素材用）。dataset-train の次の cycle で「鹿のいない画像」の `kind`（例 `negatives`、`use = "eval"`）を足して登録する
+- `train_sources.toml` に `kind = "negatives"`・`use = "eval"` で登録した（2026-11-07、dataset-train の更新）。評価は 1 枚あたりの誤報だけで、撮影者名・経度緯度・地域は run の manifest に写さない。選別はまだしていない（道路でない画像も分母に入る）
 - 撮影時刻は投稿者によってずれていて当てにならない。昼・夜は目で見て分ける
 
 ### 3D の鹿 M01〜M04（S データ研究の引継ぎ、2026-11-06 取り込み）
@@ -140,7 +140,7 @@ python dataset/synth.py run --run s1 --count 1300 --seed 7 --blender <Blender �
 - `--count` は計画の枚数。暗い背景では鹿も暗く描かれて捨てられるので、書ける枚数は計画の約半分。捨てた数（理由ごと）と距離の帯ごとの明るさが表示される
 - `<run>-review/` に箱を描いた最大 40 枚ができる。見えない鹿に箱・箱の無い鹿・浮いた鹿・暗い縁が無いかを目で見る
 - 一覧を変えたら新しい run 名で作り直す（前の run は上書きしない。消すときは手で）
-- `train_sources.toml` にはまだ載せていない（dataset-train の更新で、漏れの検査を `files[].group` で行う変更と一緒に載せる）
+- `train_sources.toml` に `kind = "synth"`（学習だけ、`footage` に背景の self の素材）で登録した（2026-11-07、dataset-train の更新）。漏れの検査は背景の走行（`files[].group`）で行う
 
 ## 学習・評価の分け方
 
@@ -165,3 +165,31 @@ python dataset/train_l0.py evaluate --run r1 --model edge/detector/models/yolo26
 - `build` の出力（`dataset/out/train/<run>/`）は絶対パスの `dataset.yaml` を持つ。別の機械では `build` し直す（`train` は manifest との照合で止まる）
 - Capture は `kind = "capture"` で、置き方は api の保存（`{key}.json` ＋ `{key}-{sha12}.jpg`）か、**止めた edge からコピーした**フォルダ（`{id}.json` ＋ `{id}.jpg`。動いている edge は 24 時間で消すため）。`consent: true`・`source: sim`・`reviewed` の一覧にある id・`by: user` の箱だけを使う。vehicle の Capture は ch9 ③・edge-capture の判断まで使わない
 - 写しは run のフォルダごと手で消す。コミットする報告書には件数と評価の数だけを書き、画像・Capture の id・ファイル名・`roadSegment` を書かない
+- `kind` は `yolo`・`capture`・`self`（自分の映像。`labels` に台帳、`negative_every` で学習側の鹿なしを間引く）・`synth`（S データ。学習だけ、`footage` に背景の self の素材の名前）・`negatives`（鹿のいない画像。評価だけ、1 枚あたりの誤報）
+- 漏れの検査は走行（`group`）単位で素材をまたぐ。S データの背景の走行が評価側にあると止まる
+- `evaluate` は後処理（edge の l0-fp-filter）あり / なしの両方と、閾値 0.25・0.4・0.8 を出す。self の鹿なしの連続したフレームでは、予測のあるサンプルが 2 枚以上続く塊を「連続した誤報」として 1 分あたりで数える
+- 開発機の worktree で回すときは `--root <main の checkout>/dataset`、`train` に `--models <main の checkout>/edge/detector/models`（重みと model card の置き場）
+
+### 実写の鹿の台帳（`self_labels.toml`）
+
+自分の映像（匿名化した後のフレーム）の鹿の箱。`[[track]]` は 1 頭の 1 区間のキー（`[frame, x1, y1, x2, y2]`、1920×1080 の画素）で、間はフレーム番号で線形補間する。`[[mark]]` は `empty`（鹿が見えないと確かめた）と `ignore`（使わない。暗くて判断できない・群れが重なる）。manifest の鹿ありのフレームは、どれかの track か mark に当たらないと `build` が止まる。確かめ用の重ね描きは:
+
+```bash
+python dataset/self_labels.py sheet --footage <checkout>/dataset/private/self-footage \
+    --labels dataset/self_labels.toml --video <動画> --out <作業用のフォルダ>   # Git に入れない
+```
+
+### 「実写のみ」と「実写＋S データ」の比較（`compare_l0.py`）
+
+同じ一覧・同じ seed から `<prefix>-real`（synth を除く）と `<prefix>-mix`（全部）を作り、val・評価側が同じことを確かめる。学習と評価は arm × seed で 1 回ずつ（重い処理の共有の鍵を 1 回ずつ取る）。重みの名前は `<prefix>-<arm>-s<seed>`、比べるのは `.pt` の評価だけ。
+
+```bash
+python dataset/compare_l0.py build --prefix sd1 --seed 7
+python dataset/train_l0.py train --run sd1-real --name sd1-real-s1 --seed 1 --epochs 12   # arm × seed
+python dataset/train_l0.py evaluate --run sd1-real --model edge/detector/models/sd1-real-s1.pt
+python dataset/compare_l0.py summarize --prefix sd1   # dataset/out/compare/sd1.json と .md
+```
+
+- 条件（元の重み・epochs・imgsz・batch・device・版、評価の閾値・前処理・後処理の設定、重みの SHA-256）がそろわない・seed が 1 つ・元の重みが CC BY-SA を含む → エラー
+- 評価側に self の鹿の箱が無いと表の先頭に「暫定」。seed の最小〜最大の範囲が重ならない数だけ `separated`
+- 重みは外に配らない（Ultralytics は AGPL、private の素材を含む。model card の `distribution`）

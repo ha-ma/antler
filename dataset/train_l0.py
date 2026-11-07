@@ -25,17 +25,20 @@ import sys
 import tempfile
 import tomllib
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 import numpy as np
 
-from detector.config import TrackerConfig
+import self_labels
+from detector.config import L0FilterConfig, TrackerConfig
+from detector.l0.fp_filter import BoxFilter
+from detector.ports import Detection
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, Sequence
+    from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 
 HERE: Final = Path(__file__).resolve().parent
 REPO: Final = HERE.parent
@@ -43,16 +46,29 @@ MODELS: Final = REPO / "edge/detector/models"
 CAPTURE_SCHEMA: Final = REPO / "packages/schema/json/capture.schema.json"
 
 NAME: Final = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-KINDS: Final = ("yolo", "capture")
+KINDS: Final = ("yolo", "capture", "self", "synth", "negatives")
 LICENSES: Final = ("CC0", "CC-BY", "CC-BY-SA", "self", "permission")
 USES: Final = ("train", "eval")
 STRICTNESS: Final = {"CC0": 0, "CC-BY": 1, "CC-BY-SA": 2}
-KEYS: Final = {"name", "kind", "path", "license", "use", "reviewed"}
+BASE_KEYS: Final = frozenset({"name", "kind", "path", "license", "use"})
+KIND_KEYS: Final = {
+    "yolo": frozenset(),
+    "capture": frozenset({"reviewed"}),
+    "self": frozenset({"labels", "negative_every"}),
+    "synth": frozenset({"footage"}),
+    "negatives": frozenset(),
+}
+SELF_SIDES: Final = {"train": "train", "val": "val", "test": "eval"}  # 走行の分割 → 側
 JST: Final = timezone(timedelta(hours=9))
 API_KEY: Final = re.compile(r"^cap_[a-z0-9]+$")
 API_FILE: Final = re.compile(r"^(cap_[a-z0-9]+)-([0-9a-f]{12})\.(?:jpg|png)$")
 EDGE_ID: Final = re.compile(r"^cap_[0-9a-f]{12}$")
-THRESHOLDS: Final = (0.25, 0.4)
+THRESHOLDS: Final = (0.25, 0.4, 0.8)  # 0.8 は [judge] threshold（赤の下限）
+FILTER = L0FilterConfig()  # 評価の後処理（l0-fp-filter の既定。テストが差し替える）
+RUNS_NOTE: Final = (
+    "鹿なしのフレームは約 1 秒おきのサンプル。予測のあるサンプルが 2 枚以上続く塊を 1 回と数える。"
+    "実機の 10 fps での 2 フレーム連続より粗い近似"
+)
 IOU: Final = 0.5
 FRAME: Final = (640, 480)  # B2-1: L0 に渡るフレーム（幅, 高さ）
 PREPROCESS: Final = "resize 640x480 → model input (L0; a 640x640 model is stretched)"
@@ -76,13 +92,16 @@ class Source:
     license: str
     use: str
     reviewed: frozenset[str] = frozenset()
+    labels: Path | None = None  # self の台帳（一覧のフォルダからの相対を解決した実体）
+    negative_every: int = 1
+    footage: str | None = None  # synth の背景の自分の映像の素材名
 
 
 @dataclass(frozen=True)
 class Item:
     source: str
     split: str  # train / val / eval
-    group: str  # <kind>:<グループ>
+    group: str  # <kind>:<グループ>。self・synth は走行の self:<drive>（R4 の追記）
     image: Path
     origin: str  # dataset/ からの相対
     name: str  # 元のファイル名
@@ -90,6 +109,7 @@ class Item:
     license: str
     boxes: tuple[tuple[float, float, float, float], ...]
     capture: Mapping[str, str] | None = None
+    seq: Mapping[str, object] | None = None  # 自分の映像の動画・フレーム・t・間隔
 
     @property
     def file(self) -> str:
@@ -102,6 +122,7 @@ class Collected:
     skipped: Counter[str] = field(default_factory=Counter)
     notes: list[str] = field(default_factory=list)
     labels_note: str | None = None
+    distribution: str | None = None
 
 
 @dataclass(frozen=True)
@@ -183,8 +204,9 @@ def load_sources(toml_path: Path, root: Path) -> list[Source]:
             raise TrainError(msg)
         name = str(raw.get("name", ""))
         label = f"source {name!r}"
-        if set(raw) - KEYS:
-            msg = f"{label}: 知らないキー {sorted(set(raw) - KEYS)}"
+        extra = KIND_KEYS.get(raw.get("kind"), frozenset().union(*KIND_KEYS.values()))
+        if unknown := set(raw) - BASE_KEYS - extra:
+            msg = f"{label}: 知らないキー {sorted(unknown)}（kind {raw.get('kind')!r}）"
             raise TrainError(msg)
         if not NAME.match(name):
             msg = f"{label}: name は英小文字・数字・- だけ"
@@ -206,6 +228,7 @@ def load_sources(toml_path: Path, root: Path) -> list[Source]:
         if raw["kind"] == "capture" and raw["license"] not in ("self", "permission"):
             msg = f"{label}: capture の license は self か permission"
             raise TrainError(msg)
+        extras = _kind_extras(raw, label, toml_path.parent)
         path = _source_path(root, raw.get("path"), label)
         st = path.stat()
         for other, other_name in stats:
@@ -220,9 +243,62 @@ def load_sources(toml_path: Path, root: Path) -> list[Source]:
                 line.strip().lower() for line in rpath.read_text().splitlines() if line.strip()
             )
         sources.append(
-            Source(name, raw["kind"], path, str(raw["path"]), raw["license"], raw["use"], reviewed)
+            Source(
+                name,
+                raw["kind"],
+                path,
+                str(raw["path"]),
+                raw["license"],
+                raw["use"],
+                reviewed,
+                **extras,
+            )
         )
+    selfs = {s.name for s in sources if s.kind == "self"}
+    for src in sources:
+        if src.kind == "synth" and src.footage not in selfs:
+            msg = f"source {src.name!r}: footage {src.footage!r} は一覧の self の素材でない"
+            raise TrainError(msg)
     return sources
+
+
+def _kind_extras(raw: Mapping, label: str, toml_dir: Path) -> dict:
+    """self・synth・negatives の決まり（R9〜R11）と、kind だけのキー。"""
+    kind, lic, use = raw["kind"], raw["license"], raw["use"]
+    if kind in ("self", "synth") and lic != "self":
+        msg = f"{label}: {kind} の license は self だけ"
+        raise TrainError(msg)
+    if kind == "synth" and use != "train":
+        msg = f"{label}: S データ（synth）は use = train だけ（合成で測った精度は根拠にしない）"
+        raise TrainError(msg)
+    if kind == "negatives" and use != "eval":
+        msg = f"{label}: 鹿のいない画像（negatives）は use = eval だけ"
+        raise TrainError(msg)
+    if kind == "synth":
+        if not isinstance(raw.get("footage"), str):
+            msg = f"{label}: synth には footage（背景の自分の映像の素材名）が要る"
+            raise TrainError(msg)
+        return {"footage": raw["footage"]}
+    if kind != "self":
+        return {}
+    every = raw.get("negative_every", 1)
+    if type(every) is not int or every < 1:
+        msg = f"{label}: negative_every は 1 以上の整数"
+        raise TrainError(msg)
+    rel = raw.get("labels")
+    if not isinstance(rel, str) or not rel or Path(rel).is_absolute():
+        msg = f"{label}: self には labels（台帳。一覧のフォルダからの相対）が要る"
+        raise TrainError(msg)
+    base = toml_dir.resolve()
+    given = toml_dir / rel
+    if given.is_symlink():
+        msg = f"{label}: labels がシンボリックリンク（{rel}）"
+        raise TrainError(msg)
+    real = given.resolve()
+    if not _inside(real, base) or not real.is_file():
+        msg = f"{label}: labels は一覧と同じフォルダの中の台帳（{rel}）"
+        raise TrainError(msg)
+    return {"labels": real, "negative_every": every}
 
 
 def _source_path(root: Path, rel: object, label: str, *, want_file: bool = False) -> Path:
@@ -285,23 +361,27 @@ def parse_label(path: Path) -> tuple[tuple[float, float, float, float], ...]:
     return tuple(boxes)
 
 
-def collect_yolo(src: Source) -> Collected:
-    label = f"source {src.name!r}"
-    if src.license in ("self", "permission"):
-        msg = f"{label}: {src.license} の YOLO の素材は manifest の書き方が決まるまで受けない"
-        raise TrainError(msg)
+def _read_manifest(src: Source) -> dict:
+    msg = f"source {src.name!r}: manifest.json を読めない"
     try:
         manifest = json.loads((src.path / "manifest.json").read_text(encoding="utf-8"))
-        entries = {e["image"]: e for e in manifest["files"]}
-        licenses = {v: s["license"] for v, s in manifest["sources"].items()}
-    except (OSError, ValueError, KeyError, TypeError) as exc:
-        msg = f"{label}: manifest.json を読めない"
+    except (OSError, ValueError) as exc:
         raise TrainError(msg) from exc
-    images = sorted(p for p in (src.path / "images").rglob("*") if p.is_file())
-    labels = {p.relative_to(src.path).as_posix() for p in (src.path / "labels").rglob("*.txt")}
-    out = Collected(labels_note=manifest.get("labels_note"))
-    classes = []
-    for img in images:
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("files"), list):
+        raise TrainError(msg)
+    return manifest
+
+
+def _tree(src: Source, subdir: str, files: Sequence[Mapping]) -> list[tuple[str, Mapping, str]]:
+    """subdir の下の画像が manifest の files[] と 1 対 1 で SHA-256 が同じ。(相対, 行, SHA)。"""
+    label = f"source {src.name!r}"
+    try:
+        entries = {e["image"]: e for e in files}
+    except (KeyError, TypeError) as exc:
+        msg = f"{label}: manifest.json を読めない（files[] に image が無い）"
+        raise TrainError(msg) from exc
+    out = []
+    for img in sorted(p for p in (src.path / subdir).rglob("*") if p.is_file()):
         rel = img.relative_to(src.path).as_posix()
         if img.suffix != ".jpg":
             msg = f"{label}: 画像は .jpg だけ（{rel}）"
@@ -314,11 +394,48 @@ def collect_yolo(src: Source) -> Collected:
         if digest != entry.get("sha256"):
             msg = f"{label}: SHA-256 が manifest と違う（{rel}）"
             raise TrainError(msg)
+        out.append((rel, entry, digest))
+    if entries:
+        msg = f"{label}: manifest にあって無い画像（{sorted(entries)[0]}）"
+        raise TrainError(msg)
+    return out
+
+
+def _with_labels(
+    src: Source, tree: Sequence[tuple[str, Mapping, str]]
+) -> list[tuple[str, Mapping, str, tuple[tuple[float, float, float, float], ...]]]:
+    """YOLO のラベルファイルが画像と 1 対 1 であること。(相対, 行, SHA, 箱)。"""
+    label = f"source {src.name!r}"
+    labels = {p.relative_to(src.path).as_posix() for p in (src.path / "labels").rglob("*.txt")}
+    out = []
+    for rel, entry, digest in tree:
         lbl = entry.get("label", "")
         if lbl not in labels:
             msg = f"{label}: ラベルファイルが無い（{rel}）。負例は空のラベルファイルを置く"
             raise TrainError(msg)
         labels.discard(lbl)
+        out.append((rel, entry, digest, parse_label(src.path / lbl)))
+    if labels:
+        msg = f"{label}: 画像の無いラベル（{sorted(labels)[0]}）"
+        raise TrainError(msg)
+    return out
+
+
+def collect_yolo(src: Source) -> Collected:
+    label = f"source {src.name!r}"
+    if src.license in ("self", "permission"):
+        msg = f"{label}: {src.license} の YOLO の素材は manifest の書き方が決まるまで受けない"
+        raise TrainError(msg)
+    manifest = _read_manifest(src)
+    try:
+        licenses = {v: s["license"] for v, s in manifest["sources"].items()}
+    except (KeyError, TypeError, AttributeError) as exc:
+        msg = f"{label}: manifest.json を読めない"
+        raise TrainError(msg) from exc
+    out = Collected(labels_note=manifest.get("labels_note"))
+    classes = []
+    for rel, entry, digest, boxes in _with_labels(src, _tree(src, "images", manifest["files"])):
+        img = src.path / rel
         video = str(entry.get("video", ""))
         if video not in licenses:
             msg = f"{label}: 動画 {video!r} のライセンスが manifest に無い"
@@ -336,15 +453,9 @@ def collect_yolo(src: Source) -> Collected:
                 img.name,
                 digest,
                 src.license,
-                parse_label(src.path / lbl),
+                boxes,
             )
         )
-    if entries:
-        msg = f"{label}: manifest にあって無い画像（{sorted(entries)[0]}）"
-        raise TrainError(msg)
-    if labels:
-        msg = f"{label}: 画像の無いラベル（{sorted(labels)[0]}）"
-        raise TrainError(msg)
     strictest = max(classes, key=STRICTNESS.__getitem__, default=src.license)
     if strictest != src.license:
         msg = (
@@ -352,6 +463,191 @@ def collect_yolo(src: Source) -> Collected:
             f"素材の manifest（最も厳しいもの {strictest}）と違う"
         )
         raise TrainError(msg)
+    return out
+
+
+# ------------------------------------------------ R9〜R12 自分の映像・S データ・鹿のいない画像
+
+
+@dataclass(frozen=True)
+class Footage:
+    """自分の映像の manifest と、台帳を解決したフレームごとの状態（R9・R12）。"""
+
+    manifest: dict
+    labels: dict[tuple[str, int], self_labels.FrameLabel]
+    sha256: str
+
+
+def load_footage(src: Source) -> Footage:
+    label = f"source {src.name!r}"
+    manifest = _read_manifest(src)
+    if manifest.get("license") != "self":
+        msg = f"{label}: manifest の license が self でない"
+        raise TrainError(msg)
+    drives, clips = manifest.get("drives"), manifest.get("clips")
+    if not isinstance(drives, dict) or not isinstance(clips, dict):
+        msg = f"{label}: manifest に drives・clips が無い"
+        raise TrainError(msg)
+    for row in manifest["files"]:
+        where = f"{label}: {row.get('image')}"
+        drive = row.get("drive")
+        if drives.get(drive) not in SELF_SIDES or row.get("split") != drives[drive]:
+            msg = (
+                f"{where}: 分割 {row.get('split')!r} が manifest の drives の走行 {drive!r} と違う"
+            )
+            raise TrainError(msg)
+        if row.get("group") != f"self:{drive}":
+            msg = f"{where}: group {row.get('group')!r} が走行 self:{drive} でない"
+            raise TrainError(msg)
+        clip = clips.get(row.get("video"))
+        if not isinstance(clip, dict) or not {"fps", "size", "every_frames"} <= set(clip):
+            msg = f"{where}: manifest の clips に動画 {row.get('video')!r}（fps・size・間隔）が無い"
+            raise TrainError(msg)
+    try:
+        labels = self_labels.resolve(self_labels.load_ledger(src.labels), manifest)  # type: ignore[arg-type]
+    except self_labels.LabelError as exc:
+        msg = f"{label}: 台帳: {exc}"
+        raise TrainError(msg) from exc
+    return Footage(manifest, labels, sha256_file(src.path / "manifest.json"))
+
+
+def collect_self(src: Source, footage: Footage) -> Collected:
+    """走行の分割どおりに、台帳の状態で箱・鹿なし・使わないを決める（R9）。"""
+    label = f"source {src.name!r}"
+    manifest = footage.manifest
+    if src.use not in (manifest.get("allowed_use") or []):
+        msg = f"{label}: use {src.use} が manifest の allowed_use に無い"
+        raise TrainError(msg)
+    digests = {rel: digest for rel, _, digest in _tree(src, "frames", manifest["files"])}
+    rows = sorted(manifest["files"], key=lambda r: (r["video"], r["frame"]))
+    negative_no: dict[tuple[str, int], int] = {}  # 動画ごとの鹿なしの通し番号（間引きの順）
+    per_video: Counter[str] = Counter()
+    for row in rows:
+        if row["deer"] is not True:
+            negative_no[(row["video"], row["frame"])] = per_video[row["video"]]
+            per_video[row["video"]] += 1
+    out = Collected(distribution=manifest.get("distribution"))
+    for row in rows:
+        key = (row["video"], row["frame"])
+        clip = manifest["clips"][row["video"]]
+        side = "eval" if src.use == "eval" else SELF_SIDES[row["split"]]
+        lab = footage.labels.get(key)
+        if lab is not None and lab.status == "ignore":
+            out.skipped[lab.reason] += 1
+            continue
+        if row["deer"] is True:
+            if lab is None:
+                msg = f"{label}: 台帳に無い鹿ありのフレーム（{row['video']} の {row['frame']}）"
+                raise TrainError(msg)
+            boxes = tuple(self_labels.to_center(b, clip["size"]) for b in lab.boxes)
+        else:
+            if side == "train" and negative_no[key] % src.negative_every:
+                out.skipped["thinned"] += 1
+                continue
+            boxes = ()
+        out.items.append(
+            Item(
+                src.name,
+                side,
+                row["group"],
+                src.path / row["image"],
+                f"{src.rel}/{row['image']}",
+                Path(row["image"]).name,
+                digests[row["image"]],
+                src.license,
+                boxes,
+                seq={
+                    "video": row["video"],
+                    "frame": row["frame"],
+                    "t": row["t"],
+                    "step": clip["every_frames"]["no_deer"],
+                    "fps": clip["fps"],
+                    "no_deer": row["deer"] is not True,
+                },
+            )
+        )
+    return out
+
+
+def collect_synth(src: Source, footage: Footage) -> Collected:
+    """背景の SHA で footage の走行を引き、全部を train に入れる（R10）。"""
+    label = f"source {src.name!r}"
+    manifest = _read_manifest(src)
+    if manifest.get("kind") != "synth" or manifest.get("license") != "self":
+        msg = f"{label}: manifest の kind が synth・license が self でない"
+        raise TrainError(msg)
+    if "train" not in (manifest.get("allowed_use") or []):
+        msg = f"{label}: manifest の allowed_use に train が無い"
+        raise TrainError(msg)
+    fman = footage.manifest
+    by_image = {r["image"]: r for r in fman["files"]}
+    out = Collected(distribution=manifest.get("distribution"))
+    for rel, entry, digest, boxes in _with_labels(src, _tree(src, "images", manifest["files"])):
+        bg = entry.get("background") or {}
+        row = by_image.get(bg.get("image"))
+        if row is None or row["sha256"] != bg.get("sha256"):
+            msg = f"{label}: 背景が footage の manifest で引けない（{rel}）"
+            raise TrainError(msg)
+        if entry.get("group") is not None and entry["group"] != row["group"]:
+            msg = f"{label}: group の自己申告 {entry['group']!r} が背景の走行と違う（{rel}）"
+            raise TrainError(msg)
+        if fman["drives"][row["drive"]] != "train":
+            msg = f"{label}: 背景の走行 {row['drive']!r} が train でない（{rel}）"
+            raise TrainError(msg)
+        if "synth_background" not in (row.get("uses") or []):
+            msg = f"{label}: 背景の uses に synth_background が無い（{rel}）"
+            raise TrainError(msg)
+        lab = footage.labels.get((row["video"], row["frame"]))
+        if lab is not None and lab.status == "ignore":
+            msg = f"{label}: 背景が台帳で ignore（{lab.reason}。{rel}）"
+            raise TrainError(msg)
+        img = src.path / rel
+        out.items.append(
+            Item(
+                src.name,
+                "train",
+                row["group"],
+                img,
+                f"{src.rel}/{rel}",
+                img.name,
+                digest,
+                src.license,
+                boxes,
+            )
+        )
+    if manifest.get("footage_manifest_sha256") != footage.sha256:
+        out.notes.append(
+            f"{src.name}: footage_manifest_sha256 が今の footage の manifest と違う"
+            "（2 回目の取り込みなど。背景は 1 枚ずつ SHA で引き当てて確かめた）"
+        )
+    return out
+
+
+def collect_negatives(src: Source) -> Collected:
+    """ラベルの無い鹿のいない画像を評価側へ。写すのは許可リストだけ（R11）。"""
+    label = f"source {src.name!r}"
+    manifest = _read_manifest(src)
+    found = license_class(str(manifest.get("license", "")))
+    if found != src.license:
+        msg = f"{label}: 一覧の license {src.license} が素材の manifest（{found}）と違う"
+        raise TrainError(msg)
+    out = Collected(distribution=manifest.get("distribution"))
+    for rel, entry, digest in _tree(src, "images", manifest["files"]):
+        creator = hashlib.sha256(str(entry.get("creator_username", "")).encode()).hexdigest()
+        img = src.path / rel
+        out.items.append(
+            Item(
+                src.name,
+                "eval",
+                f"negatives:{src.name}:c-{creator[:10]}",
+                img,
+                f"{src.rel}/{rel}",
+                img.name,
+                digest,
+                src.license,
+                (),
+            )
+        )
     return out
 
 
@@ -530,17 +826,37 @@ def build(
     seed: int = 0,
     val_ratio: float = 0.2,
     is_valid: Callable[[object], bool] | None = None,
+    skip: Collection[str] = (),
 ) -> Path:
+    """skip: 使わない素材の名前（compare_l0 の real の arm が synth を外す）。manifest に書く。"""
     if not NAME.match(run):
         msg = f"run の名前は英小文字・数字・- だけ（{run!r}）"
         raise TrainError(msg)
     root = root.resolve()
     sources = load_sources(sources_path, root)
+    if unknown := set(skip) - {s.name for s in sources}:
+        msg = f"外す素材が一覧に無い（{sorted(unknown)[0]}）"
+        raise TrainError(msg)
+    by_name = {s.name: s for s in sources}
+    used = [s for s in sources if s.name not in skip]
     validate = is_valid
     collected: dict[str, Collected] = {}
-    for src in sources:
+    footage: dict[str, Footage] = {}
+
+    def footage_of(name: str) -> Footage:
+        if name not in footage:
+            footage[name] = load_footage(by_name[name])
+        return footage[name]
+
+    for src in used:
         if src.kind == "yolo":
             collected[src.name] = collect_yolo(src)
+        elif src.kind == "self":
+            collected[src.name] = collect_self(src, footage_of(src.name))
+        elif src.kind == "synth":
+            collected[src.name] = collect_synth(src, footage_of(str(src.footage)))
+        elif src.kind == "negatives":
+            collected[src.name] = collect_negatives(src)
         else:
             validate = validate or _validator()
             collected[src.name] = collect_captures(src, seed, val_ratio, validate)
@@ -554,7 +870,7 @@ def build(
         msg = f"run {run!r} は既にある（上書きしない）"
         raise TrainError(msg) from exc
     try:
-        _write_run(run_dir, sources, collected, items, seed, val_ratio)
+        _write_run(run_dir, used, collected, items, seed, val_ratio, sorted(skip))
     except BaseException:
         shutil.rmtree(run_dir, ignore_errors=True)
         raise
@@ -584,6 +900,7 @@ def _write_run(
     items: Sequence[Item],
     seed: int,
     val_ratio: float,
+    excluded: Sequence[str] = (),
 ) -> None:
     for split in SPLITS:
         (run_dir / "images" / split).mkdir(parents=True)
@@ -607,6 +924,8 @@ def _write_run(
         }
         if item.capture is not None:
             entry["capture"] = dict(item.capture)
+        if item.seq is not None:
+            entry["seq"] = dict(item.seq)
         files.append(entry)
     counts = Counter(item.split for item in items)
     manifest = {
@@ -624,9 +943,11 @@ def _write_run(
                     for s in ("train", "val", "eval")
                 },
                 "skipped": dict(sorted(collected[src.name].skipped.items())),
+                "distribution": collected[src.name].distribution,
             }
             for src in sources
         },
+        "excluded_sources": list(excluded),
         "labels_note": {
             n: c.labels_note for n, c in collected.items() if c.labels_note is not None
         },
@@ -751,9 +1072,19 @@ def train(
             target.unlink(missing_ok=True)  # 半端な重みを残さない（次の「既にある」の原因になる）
             raise
     root = run_dir.resolve().parents[2]
+    learned = [s for s in manifest["sources"].values() if s["use"] == "train"]
+    private = known.by_sa or any(s.get("distribution") == "not_allowed" for s in learned)
     card = {
         "name": name,
         "weights": "last.pt",
+        "sha256": sha256_file(target),
+        "distribution": "not_allowed" if private else "ask_user",
+        "distribution_note": (
+            "重みを外に配らない。配るならユーザーに聞く（Ultralytics は AGPL。"
+            "private の素材は distribution = not_allowed）"
+        ),
+        "train_images": manifest["counts"]["train"],
+        "excluded_sources": manifest.get("excluded_sources", []),
         "base": {
             "name": base.name,
             "sha256": base_sha,
@@ -917,6 +1248,113 @@ def _tally() -> dict[str, int]:
     return {"tp": 0, "fn": 0, "fp": 0, "images": 0, "negative_images_with_detection": 0}
 
 
+class _Clock:
+    """後処理の時計。自分の映像はフレームの t を返す（l0-fp-filter の「続き」の 3 秒）。"""
+
+    def __init__(self) -> None:
+        self.now = 0.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
+def _seq_key(entry: Mapping) -> tuple[str, int]:
+    seq = entry.get("seq")
+    return (str(seq["video"]), int(seq["frame"])) if seq else ("", -1)
+
+
+def _new_tallies() -> dict[float, dict]:
+    return {t: {"total": _tally(), "by_source": {}, "by_group": {}} for t in THRESHOLDS}
+
+
+def _count(
+    tallies: Mapping[float, dict],
+    entry: Mapping,
+    preds: Sequence[tuple[float, Sequence[float]]],
+    gts: Sequence[Sequence[float]],
+) -> None:
+    for t in THRESHOLDS:
+        tp, fn, fp = match(preds, gts, t)
+        buckets = (
+            tallies[t]["total"],
+            tallies[t]["by_source"].setdefault(entry["source"], _tally()),
+            tallies[t]["by_group"].setdefault(entry["group"], _tally()),
+        )
+        for bucket in buckets:
+            bucket["tp"] += tp
+            bucket["fn"] += fn
+            bucket["fp"] += fp
+            bucket["images"] += 1
+            bucket["negative_images_with_detection"] += int(not gts and fp > 0)
+
+
+def _report(tallies: Mapping[float, dict]) -> dict:
+    return {
+        str(t): {
+            "total": {**v["total"], **rates(v["total"]["tp"], v["total"]["fn"], v["total"]["fp"])},
+            "by_source": v["by_source"],
+            "by_group": v["by_group"],
+        }
+        for t, v in tallies.items()
+    }
+
+
+def _run_tally() -> dict:
+    return {"frames": 0, "seconds": 0.0, "frames_with_detection": 0, "runs": 0}
+
+
+def _per_minute(tally: dict) -> dict:
+    minutes = tally["seconds"] / 60
+    return {
+        **tally,
+        "runs_per_min": tally["runs"] / minutes if minutes else None,
+        "frames_with_detection_per_min": tally["frames_with_detection"] / minutes
+        if minutes
+        else None,
+    }
+
+
+def fp_runs(rows: Sequence[tuple[str, Mapping, Mapping[str, Sequence]]]) -> dict:
+    """鹿なしのサンプルで、予測のあるサンプルが隣り合って 2 枚以上続く塊を 1 回と数える（R13）。
+
+    rows: (素材, seq, {後処理: 予測の列})。隣り合う = 同じ動画でフレーム番号の差が step 以下。
+    """
+    videos: dict[tuple[str, str], list[tuple[Mapping, Mapping[str, Sequence]]]] = {}
+    for source, seq, preds in rows:
+        videos.setdefault((source, str(seq["video"])), []).append((seq, preds))
+    out: dict = {}
+    for post in ("raw", "fp_filter"):
+        out[post] = {}
+        for t in THRESHOLDS:
+            total, by_source = _run_tally(), {}
+            for (source, _), samples in sorted(videos.items()):
+                samples.sort(key=lambda s: int(s[0]["frame"]))
+                tally = _run_tally()
+                length, prev = 0, None
+                for seq, preds in samples:
+                    hit = any(c >= t for c, _ in preds[post])
+                    near = prev is not None and int(seq["frame"]) - prev <= int(seq["step"])
+                    if hit and near and length:
+                        length += 1
+                    else:
+                        tally["runs"] += int(length >= 2)
+                        length = int(hit)
+                    prev = int(seq["frame"])
+                    tally["frames"] += 1
+                    tally["frames_with_detection"] += int(hit)
+                    tally["seconds"] += float(seq["step"]) / float(seq["fps"])
+                tally["runs"] += int(length >= 2)
+                bucket = by_source.setdefault(source, _run_tally())
+                for k in tally:
+                    bucket[k] += tally[k]
+                    total[k] += tally[k]
+            out[post][str(t)] = {
+                "total": _per_minute(total),
+                "by_source": {s: _per_minute(v) for s, v in by_source.items()},
+            }
+    return out
+
+
 def evaluate(
     model: Path,
     run_dir: Path,
@@ -955,43 +1393,43 @@ def evaluate(
         "iou": IOU,
         "labels_note": manifest.get("labels_note", {}),
         "note": "静止画のフレーム単位。速度は数えない（開発機の値を Mac mini の値と混同しない）",
+        "model_sha256": sha256_file(model) if model.is_file() else None,
+        "thresholds": list(THRESHOLDS),
+        "filter_config": asdict(FILTER),
+        "fp_filter": {},
+        "fp_runs": {"note": RUNS_NOTE},
     }
     for side in ("val", "eval"):
-        tallies = {t: {"total": _tally(), "by_source": {}, "by_group": {}} for t in THRESHOLDS}
-        for entry in manifest["files"]:
-            if entry["split"] != side:
-                continue
+        tallies = {post: _new_tallies() for post in ("raw", "fp_filter")}
+        runs: list[tuple[str, Mapping, dict[str, list]]] = []
+        entries = sorted(
+            (e for e in manifest["files"] if e["split"] == side),
+            key=lambda e: (e["source"], *_seq_key(e), e["file"]),
+        )
+        clock = _Clock()
+        box_filter, current = BoxFilter(FILTER, clock), None
+        for entry in entries:
             image = root / entry["origin"]
             if not image.is_file() or sha256_file(image) != entry["sha256"]:
                 msg = f"評価の画像が manifest と違う（{entry['file']}）。build し直す"
                 raise TrainError(msg)
             frame = resize((reader or _read_image)(image), FRAME)
             preds = detector.detect(frame, Path(entry["file"]))
+            seq = entry.get("seq")
+            key = (entry["source"], seq["video"]) if seq else None
+            if key is None or key != current:  # 動画が変わる・静止画 → 「続き」を持ち越さない
+                box_filter, current = BoxFilter(FILTER, clock), key
+            clock.now = float(seq["t"]) if seq else 0.0
+            dets = [Detection("deer", float(c), tuple(b)) for c, b in preds]  # type: ignore[arg-type]
+            both = {"raw": list(preds), "fp_filter": [(d.conf, d.xywh) for d in box_filter(dets)]}
             gts = [tuple(b) for b in entry["boxes"]]
-            for t in THRESHOLDS:
-                tp, fn, fp = match(preds, gts, t)
-                buckets = (
-                    tallies[t]["total"],
-                    tallies[t]["by_source"].setdefault(entry["source"], _tally()),
-                    tallies[t]["by_group"].setdefault(entry["group"], _tally()),
-                )
-                for bucket in buckets:
-                    bucket["tp"] += tp
-                    bucket["fn"] += fn
-                    bucket["fp"] += fp
-                    bucket["images"] += 1
-                    bucket["negative_images_with_detection"] += int(not gts and fp > 0)
-        report[side] = {
-            str(t): {
-                "total": {
-                    **v["total"],
-                    **rates(v["total"]["tp"], v["total"]["fn"], v["total"]["fp"]),
-                },
-                "by_source": v["by_source"],
-                "by_group": v["by_group"],
-            }
-            for t, v in tallies.items()
-        }
+            for post, found in both.items():
+                _count(tallies[post], entry, found, gts)
+            if seq and seq["no_deer"]:
+                runs.append((entry["source"], seq, both))
+        report[side] = _report(tallies["raw"])
+        report["fp_filter"][side] = _report(tallies["fp_filter"])
+        report["fp_runs"][side] = fp_runs(runs)
     out_dir.mkdir(parents=True, exist_ok=True)
     with target.open("x", encoding="utf-8") as handle:
         handle.write(json.dumps(report, ensure_ascii=False, indent=1) + "\n")
@@ -1068,6 +1506,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     t.add_argument("--batch", type=int, default=8)
     t.add_argument("--device", default="auto")
     t.add_argument("--allow-by-sa-base", action="store_true")
+    t.add_argument("--models", type=Path, default=MODELS, help="重みと model card の置き場")
     e = sub.add_parser("export")
     e.add_argument("--weights", type=Path, required=True)
     e.add_argument("--conf", type=float, default=0.25)
@@ -1088,7 +1527,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             run_dir = args.root.resolve() / "out/train" / args.run
             pt = train(
                 run_dir,
-                MODELS,
+                args.models,
                 args.name,
                 args.seed,
                 args.base,
