@@ -56,6 +56,7 @@ Questions は 2026-11-08 にすべて推奨で決定した（ユーザーの方�
   - Tab で進んだ先が帯の下に隠れない（WCAG 2.4.11）: 帯がある画面だけ `scroll-padding-bottom` に帯の高さを入れる（`:root:has(.action-bar)`）
 - R2 主ボタンの見た目（いちばん目立つ要素）
   - `spruce` の面、`on-spruce` の文字、`heading`（16px・700）、高さ 56px（R1 の低い画面は 48px）、`radius-l`、影 `0 6px 0 var(--spruce-deep)`（押し込み影。night のテーマでも spruce-deep に合う）
+  - 色は画面ごとに変えられる（2026-11-08 追加。lead 経由のユーザーの指示で A-6 の主ボタンを `alert-danger` の赤にするため）: 主ボタンの面・文字・影・ホバー・押下・処理中・アイコンの線は `var(--accent, var(--spruce))`・`var(--on-accent, var(--on-spruce))`・`var(--accent-deep, var(--spruce-deep))` を読む。帯の CSS は `--accent` 系を定義しない（既定は spruce 系のまま、見た目は変わらない）。A-6 の root の値は result-countup（`loss.css`）が置く。R1 の「`alert-*` を使わない」は帯の CSS の決まりで、画面が `--accent` に置く色はその画面の仕様が決める
   - ホバーは `spruce-deep`、押すと 2px 沈む、フォーカスは `ink` の 3px の輪
   - 処理中（A-1 の送信中、`aria-disabled`）は `spruce-deep` の面と `cursor: progress`
   - night のテーマ（A-6）では spruce-deep の上の on-spruce が 3.07:1 で 4.5:1 に届かないので、ホバー・処理中も面は spruce のまま下線で示す（自己レビューで見つけた。今までの A-6 の主ボタンのホバーも同じ組み合わせだった）
@@ -138,6 +139,7 @@ api は Playwright の `page.route` で差し替えた（A-2・A-6 は `src/test
 - [x] BAR-2: `action-bar.css` は帯を下に固定し（`position: fixed`・`bottom: 0`・`env(safe-area-inset-bottom)`）、面は surface と line、主ボタンは spruce・on-spruce・spruce-deep の影で 44px 以上。帯がある画面は `scroll-padding-bottom` に帯の高さ、night のホバー・処理中は面が spruce のまま。`alert-` の色と 16 進の色を使わない（R1・R2）
 - [x] BAR-3: 動きを減らす設定の中で主ボタンの動きが `animation: none`、動きの最後の形に transform が残らない（S-1）
 - [x] BAR-4: 各画面の CSS が本文の下の余白に `--action-bar-reserve` を足す（帯が本文を隠さない。R1）
+- [x] BAR-5: 主ボタンの色の宣言はすべて `--accent`・`--on-accent`・`--accent-deep`（無ければ spruce 系）を読み、帯の CSS はそれらを定義しない（R2）
 - [x] PLAN-1: A-1 の主ボタンが帯の中に 1 つだけあり、直すところの文が無い（UC-1）
 - [x] PLAN-2: A-1 で入力が通らないと帯に「直すところ: 運転できる人」が出て、主ボタンの `aria-describedby` が指す。直すと消える（UC-2・R3）
 - [x] PLAN-3: 直すところの文言が 4 言語の表にあり、en では「Fix: Drivers」（R3）

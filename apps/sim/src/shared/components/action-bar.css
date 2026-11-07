@@ -64,7 +64,10 @@
   font-weight: 700;
 }
 
-/* 主ボタン（画面でいちばん目立つ要素）。ページの class より強くするため .action-bar を前に付ける */
+/* 主ボタン（画面でいちばん目立つ要素）。ページの class より強くするため .action-bar を前に付ける。
+   色は画面ごとに変えられる: ページの root に --accent（面）・--on-accent（文字・アイコン）・--accent-deep（影・ホバー・処理中）を
+   置けばそれを読む（例: A-6 は鹿検知の赤。2026-11-08 ユーザーの指示、result-countup が loss.css に置く）。
+   置かなければ spruce・on-spruce・spruce-deep。既定はここでは定義しない */
 .action-bar .action-bar__primary {
   flex: 0 1 420px;
   display: inline-flex;
@@ -77,9 +80,9 @@
   padding: var(--space-2) var(--space-5);
   border: 0;
   border-radius: var(--radius-l);
-  background: var(--spruce);
-  color: var(--on-spruce);
-  box-shadow: 0 6px 0 var(--spruce-deep);
+  background: var(--accent, var(--spruce));
+  color: var(--on-accent, var(--on-spruce));
+  box-shadow: 0 6px 0 var(--accent-deep, var(--spruce-deep));
   font: inherit;
   font-size: var(--heading-size);
   line-height: var(--heading-line);
@@ -93,12 +96,12 @@
 }
 
 .action-bar .action-bar__primary:hover {
-  background: var(--spruce-deep);
+  background: var(--accent-deep, var(--spruce-deep));
 }
 
 .action-bar .action-bar__primary:active {
   transform: translateY(2px);
-  box-shadow: 0 4px 0 var(--spruce-deep);
+  box-shadow: 0 4px 0 var(--accent-deep, var(--spruce-deep));
 }
 
 .action-bar .action-bar__primary:focus-visible {
@@ -107,14 +110,14 @@
 }
 
 .action-bar .action-bar__primary[aria-disabled='true'] {
-  background: var(--spruce-deep);
+  background: var(--accent-deep, var(--spruce-deep));
   cursor: progress;
 }
 
-/* night（A-6）の spruce-deep の上の on-spruce は 3.07:1 で 4.5:1 に届かない。面は spruce のまま、下線で示す */
+/* night（A-6）の spruce-deep の上の on-spruce は 3.07:1 で 4.5:1 に届かない。面は --accent（無ければ spruce）のまま、下線で示す */
 [data-theme='night'] .action-bar .action-bar__primary:hover,
 [data-theme='night'] .action-bar .action-bar__primary[aria-disabled='true'] {
-  background: var(--spruce);
+  background: var(--accent, var(--spruce));
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -122,7 +125,7 @@
 /* 中のアイコン（A-2 の矢印など）は文字の色の線 */
 .action-bar .action-bar__primary svg path {
   fill: none;
-  stroke: var(--on-spruce);
+  stroke: var(--on-accent, var(--on-spruce));
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;

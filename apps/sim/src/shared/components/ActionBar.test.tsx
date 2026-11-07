@@ -66,10 +66,11 @@ describe('ActionBar（sticky-cta）', () => {
     expect(bar).toContain('background: var(--surface)')
     expect(bar).toContain('border-top: 1px solid var(--line)')
 
+    // 色は --accent 系を読み、無ければ spruce 系（BAR-5）
     const primary = cssBlocks(css, '.action-bar .action-bar__primary')
-    expect(primary).toContain('background: var(--spruce)')
-    expect(primary).toContain('color: var(--on-spruce)')
-    expect(primary).toContain('box-shadow: 0 6px 0 var(--spruce-deep)')
+    expect(primary).toContain('background: var(--accent, var(--spruce))')
+    expect(primary).toContain('color: var(--on-accent, var(--on-spruce))')
+    expect(primary).toContain('box-shadow: 0 6px 0 var(--accent-deep, var(--spruce-deep))')
     const heights = [...primary.matchAll(/min-height: (\d+)px/g)].map((m) => Number(m[1]))
     expect(heights.length).toBeGreaterThan(0)
     for (const h of heights) expect(h).toBeGreaterThanOrEqual(44)
@@ -81,10 +82,33 @@ describe('ActionBar（sticky-cta）', () => {
     // night の spruce-deep は on-spruce と 3.07:1 なので、ホバー・処理中も面は spruce のまま
     expect(
       cssBlocks(css, "[data-theme='night'] .action-bar .action-bar__primary[aria-disabled='true']"),
-    ).toContain('background: var(--spruce)')
+    ).toContain('background: var(--accent, var(--spruce))')
 
     expect(css).not.toMatch(/alert-(safe|zone|danger)/)
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
+  })
+
+  it('BAR-5 主ボタンの色は画面の root の --accent・--on-accent・--accent-deep で変えられ、既定はここで定義しない', () => {
+    // 帯の CSS は変数を定義しない（定義すると画面の root の値を上書きする。A-6 は root に alert-danger を置く）
+    expect(css).not.toMatch(/--(on-)?accent(-deep)?\s*:/)
+    // 主ボタンの色の宣言（面・文字・影・ホバー・押下・処理中・アイコンの線）はすべて --accent 系を通し、spruce は既定の値としてだけ出る
+    const colorDecls = [
+      ...css.matchAll(/^\s*(background|color|box-shadow|stroke):\s*([^;]+);/gm),
+    ].filter((m) => (m[2] ?? '').includes('spruce'))
+    expect(colorDecls.length).toBeGreaterThanOrEqual(7)
+    for (const m of colorDecls) {
+      const value = m[2] ?? ''
+      expect(value, m[0]).toMatch(/var\(--(on-)?accent(-deep)?, var\(--(on-)?spruce(-deep)?\)\)/)
+      expect(
+        value.replace(/var\(--(on-)?accent(-deep)?, var\(--(on-)?spruce(-deep)?\)\)/g, ''),
+      ).not.toContain('spruce')
+    }
+    for (const [name, fallback] of [
+      ['--accent-deep', '--spruce-deep'],
+      ['--on-accent', '--on-spruce'],
+    ]) {
+      expect(css).toContain(`var(${name}, var(${fallback}))`)
+    }
   })
 
   it('BAR-3 動きを減らす設定では主ボタンを動かさず、動きの最後の形に transform が残らない', () => {
