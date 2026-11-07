@@ -16,6 +16,8 @@ tier: 2
 
 # 仕様: loss（A-6 喪失・Claude が「失ったもの」を書く）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、画面の title の名前を SHIKASHI SIMULATOR にした。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-08 sticky-cta（`docs/specs/sticky-cta/functional.md` R5）で、R9 の主ボタンを画面の下に固定した帯（`shared/components/ActionBar`）に載せ、本文の下の余白に帯の高さを足した。主ボタンは副の導線の `nav` の前（`.loss-drop` の外）。行き先・文言・副の導線は変えていない。
 
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で A-6 のしおりを読む前・読めない・失敗の画面の言語を、`ja` 固定からブラウザの言語（`initialLang`）にした。しおりを読んだあとは今までどおり `plan.lang`。この仕様のルールは変えていない。

@@ -21,6 +21,8 @@ tier: 1
 
 # 仕様: edge-run（B の車載検知を Mac mini で 1 つのコマンドで起動する）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、pyproject.toml と CLI（`python -m detector --help`）の説明を SHIKASHI NAVIGATOR にした。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 **l0-fp-filter（2026-11-06）での変更**: config.example.toml に `[l0_filter]` のセクション（L0 の誤検出の後処理。既定でオン・無視する領域は空）を足した。起動の入口と `bench` は `load_coreml_detector` を通るので、後処理は自動で入る（入口のコードは変えていない。1 フレーム 1 ms 未満。`docs/specs/l0-fp-filter/functional.md`）。この feature の挙動は変わらない。
 
 ## 概要

@@ -1,3 +1,4 @@
+import { BrandLogo } from '@/shared/components/BrandLogo'
 import { usePlanTripStore } from '../store'
 import { PLAN_TEXT, type PlanTextKey } from '../text'
 import { LangSelect } from './LangSelect'
@@ -10,18 +11,7 @@ export function PlanHeader() {
   return (
     <header className="plan-header">
       <div className="plan-brand">
-        <svg
-          className="plan-brand__logo"
-          viewBox="0 0 32 20"
-          width="32"
-          height="20"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path className="plan-brand__ridge" d="M1 18 L11 4 L17 12 L22 6 L31 18" />
-          <path className="plan-brand__road" d="M6 18 L16 14 L26 18" />
-        </svg>
-        <span>{PLAN_TEXT.brand[lang]}</span>
+        <BrandLogo theme="trip" />
       </div>
       <ol className="plan-steps" aria-label={PLAN_TEXT.steps[lang]}>
         {STEPS.map((key, i) => (

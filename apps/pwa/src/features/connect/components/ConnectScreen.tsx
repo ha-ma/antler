@@ -1,4 +1,5 @@
 import { AlertState, type Lang } from '@antler/alert-ui'
+import { BrandLogo } from '@/shared/components/BrandLogo'
 import type { ConnectText } from '../i18n'
 import type { LinkStatus } from '../lib/edge-client'
 import type { LocationState } from '../lib/location'
@@ -36,7 +37,9 @@ const LOCATION_TEXT = {
 export function ConnectScreen({ text, lang, status, rate, delayMs, location, onDepart }: Props) {
   return (
     <main className="connect" lang={lang}>
-      <h1 className="connect__title">{text.title}</h1>
+      <h1 className="connect__title">
+        <BrandLogo /> <span>{text.tagline}</span>
+      </h1>
 
       <section className="connect__card" aria-labelledby="connect-link">
         <h2 id="connect-link" className="connect__heading">

@@ -219,6 +219,33 @@ def test_uc_4h_auth_10_setup_page_has_four_languages_and_no_host() -> None:
     assert "192.168.77.5" not in html  # Host の値をページに入れない
 
 
+def test_brand_10_setup_page_names_shikashi_navigator_and_keeps_ca_name() -> None:
+    """BRAND-10（rebrand-shikashi）: 名前は SHIKASHI NAVIGATOR。
+
+    手順の「EZO ROAD」は CA の名前（make_tls.py の O = EZO ROAD）なので残す。
+    """
+    html = setup_page("AA", 8443)[0].decode()
+    assert "<title>SHIKASHI NAVIGATOR setup</title>" in html
+    for heading in ("最初に 1 回だけ", "one-time setup", "只需設定一次", "처음 한 번만"):
+        assert f"<h2>SHIKASHI NAVIGATOR — {heading}</h2>" in html
+    for button in (
+        "SHIKASHI NAVIGATOR を開く",
+        "Open SHIKASHI NAVIGATOR",
+        "開啟 SHIKASHI NAVIGATOR",
+        "SHIKASHI NAVIGATOR 열기",
+    ):
+        assert f'<a class="button open" href="#">{button}</a>' in html
+    for step in (
+        "EZO ROAD（証明書の名前）",
+        "EZO ROAD (the certificate name)",
+        "EZO ROAD（憑證名稱）",
+        "EZO ROAD(인증서 이름)",
+    ):
+        assert step in html
+    assert "EZO ROAD を開く" not in html
+    assert "<h2>EZO ROAD" not in html
+
+
 def test_uc_4i_auth_4_auth_5_ca_download_and_no_keys(tls_dir: Path, assets) -> None:
     pem = (tls_dir / "ca.crt").read_bytes()
     page = setup_page("AA", 8443)

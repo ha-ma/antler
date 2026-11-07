@@ -9,6 +9,8 @@ tier: 1
 
 # 仕様: pwa-drive（スマホの GPS × 鹿ゾーンで 3 状態を出す）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、文言の `title`（運転中の画面の aria-label）を SHIKASHI NAVIGATOR にした。接続画面の見出しにロゴを置いた。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 描画が壊れたときのエラー画面を 4 言語を並べる形にした（先頭はブラウザの言語＝`resolveLang`、各行に `lang`）。この仕様のルールは変えていない。
 
 ## 概要

@@ -10,6 +10,8 @@ tier: 1
 
 # 仕様: pwa-connect（スマホ PWA が車載の検知につながり、3 状態を出す）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、接続画面の見出しをロゴ＋NAVIGATOR＋4 言語の一語（文言 `tagline` を追加）にし、文言の `title` を SHIKASHI NAVIGATOR にした。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 描画が壊れたときのエラー画面を 4 言語を並べる形にした（先頭はブラウザの言語＝`resolveLang`、各行に `lang`）。この仕様のルールは変えていない。
 
 ## 概要

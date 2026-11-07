@@ -15,6 +15,8 @@ tier: 2
 
 # 仕様: brief-map（A-2 出発前ブリーフィング・その日のルートとゾーン）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、ヘッダーの印（SVG）を SHIKASHI のロゴに替え、画面の title の名前を SHIKASHI SIMULATOR にした。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-08 sticky-cta（`docs/specs/sticky-cta/functional.md` R4）で、「エンジンをかける」（運転のある日）と「次の日（DAY n）へ」（運転の無い日）を画面の下に固定した帯（`shared/components/ActionBar`）に載せ、本文の下の余白に帯の高さを足した。行き先・文言・DOM の位置（右の列）は変えていない。運転の無い最後の日は帯を出さない。
 
 ## 概要

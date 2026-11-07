@@ -45,26 +45,10 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* ロゴと製品の行は shared/components/BrandLogo（docs/specs/rebrand-shikashi R2） */
 .record-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-weight: 700;
-  font-size: var(--heading-size);
-  letter-spacing: 0.04em;
-}
-
-.record-brand-mark {
-  width: 24px;
-  height: 24px;
-}
-
-.record-brand-mark__outer {
-  stroke: var(--spruce);
-}
-
-.record-brand-mark__inner {
-  stroke: var(--clay);
 }
 
 .record-share {

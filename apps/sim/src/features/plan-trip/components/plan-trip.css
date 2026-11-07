@@ -41,28 +41,10 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* ロゴと製品の行は shared/components/BrandLogo（docs/specs/rebrand-shikashi R2） */
 .plan-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: var(--heading-size);
-  font-weight: 900;
-  letter-spacing: var(--eyebrow-tracking);
-}
-
-.plan-brand__logo path {
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.plan-brand__ridge {
-  stroke: var(--spruce);
-}
-
-.plan-brand__road {
-  stroke: var(--clay);
 }
 
 .plan-steps {

@@ -18,6 +18,8 @@ tier: 1
 
 # 仕様: result-screens（A-1 の送信ボタンの文言、A-6 の「落ちて積み重なる」、A-7 の「クリア」）
 
+> 2026-11-08 rebrand-shikashi（`docs/specs/rebrand-shikashi/functional.md`）: サービス名を SHIKASHI に変えた（A は SHIKASHI SIMULATOR、B は SHIKASHI NAVIGATOR）。この仕様の対象では、記録のヘッダーのロゴと、画面の title の名前を直した。文中の「EZO ROAD」は旧名。この仕様の規則は変えていない。
+
 > 2026-11-08 sticky-cta（`docs/specs/sticky-cta/functional.md` R5）で、A-6 の主ボタンを画面の下に固定した帯に載せ、最初から見せるようにした（ユーザーの依頼「ファーストビューで次に押すところが分かる」）。主ボタンは `.loss-drop` の外（副の導線の `nav` の前。DOM の順は今までどおり）に置く（`.loss-drop` の transform の中では fixed が画面に付かない）。副の導線の `nav`（`.loss-actions`）は今までどおり落ちる順の位置でフェードで現れる（R2・DROP-2 の並びは変わらない）。A-7 の「別の旅をつくる」も帯に載せた（`record.css` の `.record-actions` のボタンの規則は直の子だけにした）。A-1 の送信ボタンの文言（R1）は変えていない（`plan-trip/text.ts` には帯の「直すところ」の文言を足した）。
 
 > 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md` R4）が A-6 の導入（`loss-intro`）に鹿の発見の 1 行（`data-testid="loss-spotting"`、URL の `spot` があるときだけ）、A-7 の導入（`record-intro`）に 1 行（`record-spotting`）を足した。落ちて積み重なるカード・クリアの演出には入れていない（導入の中の静的な行）。並べ方・演出に入れるかはこの feature で決めてよい。

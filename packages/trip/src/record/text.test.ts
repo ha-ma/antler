@@ -16,6 +16,15 @@ describe('RECORD_TEXT', () => {
     }
   })
 
+  it('BRAND-4: brand と openInApp は 4 言語で SHIKASHI SIMULATOR。旧名（EZO ROAD）はどの文言にも無い', () => {
+    for (const lang of Lang.options) {
+      expect(recordText('brand', lang)).toBe('SHIKASHI SIMULATOR')
+      expect(recordText('openInApp', lang)).toContain('SHIKASHI SIMULATOR')
+    }
+    expect(recordText('openInApp', 'ja')).toBe('SHIKASHI SIMULATOR で開く')
+    expect(JSON.stringify(RECORD_TEXT)).not.toMatch(/EZO ?ROAD/i)
+  })
+
   it('差し込みを埋める', () => {
     expect(recordText('headingPartial', 'ja', { n: 2 })).toBe('D2 まで走った。')
     expect(recordText('headingPartial', 'en', { n: 2 })).toBe('Drove through Day 2.')
