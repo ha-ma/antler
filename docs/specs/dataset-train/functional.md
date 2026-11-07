@@ -340,4 +340,4 @@ UC-10 比較:
 - [x] 静的解析ゲート通過（ruff check・ruff format）
 - [x] code-reviewer の Critical 0（`docs/reports/2026-11-06-code-reviewer-dataset-train.md`。Warning は REV-1 と R6〜R8 の追記で対応）
 - [x] 実データで 1 周（Commons の train / val・評価専用の BY-SA、開発用の Mac）を回し、件数と評価の数だけを `docs/reports/2026-11-06-dataset-train-run.md` に残す（M2 での値で、Mac mini の値ではないと書く。評価側の V006 は前のモデルの学習に入っていたと書く）
-- [ ] （2026-11-07）今ある素材で real / mix × 2 seed を 1 回回し、件数と評価の数だけを `docs/reports/2026-11-07-dataset-train-sdata-run.md` に「暫定（テスト専用の走行なし）」と書いて残す。画像・ファイル名・撮影者名を書かない
+- [x] （2026-11-07）今ある素材で real / mix × 2 seed を 1 回回し、件数と評価の数だけを `docs/reports/2026-11-07-dataset-train-sdata-run.md` に「暫定（テスト専用の走行なし）」と書いて残す。画像・ファイル名・撮影者名を書かない
