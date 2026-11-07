@@ -27,7 +27,9 @@ const frameOf = (container: HTMLElement) =>
   container.querySelector('.count-up__frame')?.textContent ?? null
 
 describe('CountUpText', () => {
-  it('COUNT-1: IntersectionObserver が無いと、最初からふつうの文字で最後の値（rAF はある）', () => {
+  // KEEP-1: jsdom には IntersectionObserver が無いので、既存の loss・record のテスト（getByText・toHaveTextContent）は
+  // 今と同じ 1 つの文字の並びを見る。この前提が崩れたら（jsdom が IntersectionObserver を持ったら）ここが落ちる
+  it('COUNT-1 / KEEP-1: IntersectionObserver が無いと、最初からふつうの文字で最後の値（rAF はある）', () => {
     expect(typeof window.requestAnimationFrame).toBe('function')
     expect('IntersectionObserver' in window).toBe(false)
     const { container } = renderInList(MONEY)
