@@ -12,7 +12,7 @@ target_paths:
   - apps/sim/src/features/record/hooks/useTripRecord.ts
   - apps/sim/src/features/record/text.ts
   - apps/sim/src/features/record/index.ts
-spec_confirmed_at: 737a270
+spec_confirmed_at: 4619d4d
 tier: 1
 ---
 
@@ -21,6 +21,8 @@ tier: 1
 > 2026-11-07 drive-crash-spot（`docs/specs/drive-crash-spot/functional.md` R4）が A-6 の導入（`loss-intro`）に鹿の発見の 1 行（`data-testid="loss-spotting"`、URL の `spot` があるときだけ）、A-7 の導入（`record-intro`）に 1 行（`record-spotting`）を足した。落ちて積み重なるカード・クリアの演出には入れていない（導入の中の静的な行）。並べ方・演出に入れるかはこの feature で決めてよい。
 
 > 2026-11-08 result-countup（`docs/specs/result-countup/functional.md`）で、R3 の「数字のカウントアップは作らない」をユーザーの依頼（2026-11-08「結果ページの数字は、カウントアップして動きのあるようにしたい」）で替えた。R3 の 2 つの理由には次のように答えた: 読み上げは最後の値だけを読む（動いているあいだ、見える数字は `aria-hidden`、最後の値は透明の写し。終わったら 1 つの文字の並び）。画像の保存は api が描く `/t/:id/og.png` で画面の DOM を写さないので、途中の値は入らない。A-6 の数え上げは R2 のカードの着地のあとに始まる（`utils/drop.ts` の `dropLandedMs`）。R2・R4 のほかのルールは変えていない。
+
+> 2026-11-08 同じ result-countup（R7）で、A-6 のアクセントを緑から `alert-danger` にした（ユーザー判断。`loss.css` の `.loss` の `--accent`）。R2 の「色は今のまま（喪失の金額は clay、✕ の行だけ alert-danger）」のうち、主ボタン・フォーカスの枠・導入の帯・4 指標の線がアクセントの赤になった。落ちる動き・傾きと金額の clay は変えていない。済みの ✓ は ink-muted。
 
 ## 概要
 
