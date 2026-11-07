@@ -11,7 +11,7 @@ target_paths:
   - apps/sim/src/features/loss/utils/fill-nodes.tsx
   - apps/sim/src/features/record/components/StatTiles.tsx
   - apps/sim/src/test/count-up.ts
-spec_confirmed_at: d0c23d0
+spec_confirmed_at: 737a270
 tier: 1
 ---
 
@@ -102,7 +102,7 @@ Questions は 2026-11-08 にすべて推奨で決定した（ユーザーの方�
 
 - **Given**: 完走の記録の `/t/:id` を開いた
 - **When**: 画面が出る
-- **Then**: 守れた楽しみ（分母は動かない）・鹿ゾーンの通過・遭遇 / 回避・ブレーキの秒（小数 1 桁）が順に少しずつずれて数え上がる。「—」は動かない
+- **Then**: 楽しみ 達成（分母は動かない）・鹿ゾーン通過・遭遇 / 回避・アラート→ブレーキの平均の秒（小数 1 桁）が順に少しずつずれて数え上がる。「—」は動かない
 
 ### UC-4: 読み上げは最後の値だけ
 
@@ -144,7 +144,7 @@ Questions は 2026-11-08 にすべて推奨で決定した（ユーザーの方�
 - [x] LOSS-1: A-6 の 4 指標の値・統計カードの件数と金額が数え上がり、年・期間・補足・導入は動かない。分母は動かない（UC-1・R1）
 - [x] LOSS-2: A-6 の数え上げの始まりは、そのカードの着地（番号 × 150 ms ＋ 820 ms）（R5）
 - [x] LOSS-3: `fillNodes` は置き場所の名前で差し込み、文字だけを渡せば `fillText` と同じ文字列になる（R2）
-- [x] RECORD-1: A-7 の 4 つの値が数え上がり、「守れた楽しみ」の分母は動かず、「遭遇 / 回避」は両方動く。「—」は動かない（UC-3）
+- [x] RECORD-1: A-7 の 4 つの値が数え上がり、「楽しみ 達成」の分母は動かず、「遭遇 / 回避」は両方動く。「—」は動かない（UC-3）
 - [x] KEEP-1: 既存のテスト（loss・record・result-screens）が Green のまま（jsdom は S-2 で最後の値）
 
 テストの場所: FRAME は `shared/utils/count-up.test.ts`、COUNT は `shared/components/CountUpText.test.tsx`、LOSS-1・LOSS-2 は `loss/components/LossPage.test.tsx`（`result-countup` の付いた it）、LOSS-2 の CSS との突き合わせは `loss/utils/drop.test.ts`、LOSS-3 は `loss/utils/fill-nodes.test.tsx`、RECORD-1 は `record/components/RecordPage.test.tsx`（「A-7 の数え上げ」）。IntersectionObserver・rAF・matchMedia の偽物は `src/test/count-up.ts`。
