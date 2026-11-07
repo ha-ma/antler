@@ -12,11 +12,13 @@ target_paths:
   - apps/sim/src/features/loss/utils/fill-nodes.tsx
   - apps/sim/src/features/record/components/StatTiles.tsx
   - apps/sim/src/test/count-up.ts
-spec_confirmed_at: 3f0f79f
+spec_confirmed_at: 2c28b1f
 tier: 1
 ---
 
 # 仕様: result-countup（A-6・A-7 の結果の数字をカウントアップする。A-6 のアクセントを赤にする）
+
+> 2026-11-08 main の rebrand-shikashi（#65）と sticky-cta（#66）を取り込んだ。A-6 の主ボタンは sticky-cta の固定の帯（`ActionBar`）に移り、帯の CSS が `--accent`・`--on-accent`・`--accent-deep` を読むので、R7 の `.loss` の変数で赤になる（ブラウザで trip・night とも確かめた）。`LossPage.tsx` の import だけが重なり、両方を残した。この仕様のルールは変えていない。
 
 ## 概要
 
