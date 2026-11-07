@@ -11,7 +11,7 @@ target_paths:
   - dataset/tests/test_self_labels.py
   - dataset/tests/test_train_l0_sdata.py
   - dataset/tests/test_compare_l0.py
-spec_confirmed_at: f6c0103
+spec_confirmed_at: 6c7c3f3
 tier: 1
 ---
 
