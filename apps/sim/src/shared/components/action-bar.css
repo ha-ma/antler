@@ -15,6 +15,11 @@
 
 /* 狭い画面は補足が主ボタンの上に積まれるので、補足の文がある間はその分も空ける */
 @media (max-width: 640px) {
+  /* 狭い画面では主ボタンの文言が 2 行になることがある（A-6 の 390px など）。2 行の分（24px）を足す */
+  :root {
+    --action-bar-reserve: calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+
   :root:has(.action-bar__note p) {
     --action-bar-reserve: calc(152px + env(safe-area-inset-bottom, 0px));
   }
@@ -88,6 +93,10 @@
   line-height: var(--heading-line);
   font-weight: 700;
   text-align: center;
+  /* 2 行に折れるときは文節で折り、行の長さをそろえる（「…やり直 / す」のように 1 文字だけ落ちない）。
+     auto-phrase の無いブラウザは今までどおりの折り方 */
+  text-wrap: balance;
+  word-break: auto-phrase;
   text-decoration: none;
   cursor: pointer;
   /* 開いて少ししてから 2 回だけ浮いて戻る。最後の形は止まった形（点滅しない）。
@@ -183,8 +192,11 @@
     margin-bottom: var(--space-2);
   }
 
+  /* 横の余白を詰め、390px で A-6 の文言（19 字前後）が 1 行に収まるようにする */
   .action-bar .action-bar__primary {
     flex: none;
     width: 100%;
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
   }
 }
