@@ -1,5 +1,6 @@
 import type { Lang } from '@antler/schema'
 import { Link } from 'react-router'
+import { ActionBar, ACTION_BAR_PRIMARY } from '@/shared/components/ActionBar'
 import { briefHref, driveHref, useBriefParams } from '../hooks/useBriefParams'
 import { TripDayError, useTripDay } from '../hooks/useTripDay'
 import { BRIEF_TEXT, fillText } from '../text'
@@ -140,22 +141,39 @@ function BriefContent({ data, alertOn, setAlertOn }: ContentProps) {
         <aside className="brief-aside">
           <AlertToggleCard lang={lang} alertOn={alertOn} onChange={setAlertOn} />
           <ConditionsCard conditions={day.conditions} lang={lang} />
+          {/* 次へ進む主ボタンは画面の下に固定した帯（sticky-cta R4）。DOM の位置は今までどおり */}
           {day.legs.length > 0 ? (
-            <Link className="brief-button brief-start" to={driveHref(plan.id, day.day, alertOn)}>
-              {t.start[lang]}
-              <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
-                <path d="M3 8 H13 M9 4 L13 8 L9 12" />
-              </svg>
-            </Link>
+            <ActionBar>
+              <Link
+                className={`brief-button brief-start ${ACTION_BAR_PRIMARY}`}
+                to={driveHref(plan.id, day.day, alertOn)}
+              >
+                {t.start[lang]}
+                <svg
+                  viewBox="0 0 16 16"
+                  width="16"
+                  height="16"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path d="M3 8 H13 M9 4 L13 8 L9 12" />
+                </svg>
+              </Link>
+            </ActionBar>
           ) : (
             <div className="brief-card">
               <p>
                 {fillText(t.noDrive[lang], { place: placeName(day.stayAt ?? day.sun.place, lang) })}
               </p>
               {nextDay ? (
-                <Link className="brief-link" to={briefHref(plan.id, nextDay, alertOn)}>
-                  {fillText(t.toNextDay[lang], { n: nextDay })}
-                </Link>
+                <ActionBar>
+                  <Link
+                    className={`brief-link ${ACTION_BAR_PRIMARY}`}
+                    to={briefHref(plan.id, nextDay, alertOn)}
+                  >
+                    {fillText(t.toNextDay[lang], { n: nextDay })}
+                  </Link>
+                </ActionBar>
               ) : null}
             </div>
           )}

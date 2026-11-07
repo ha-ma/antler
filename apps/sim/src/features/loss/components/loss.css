@@ -55,7 +55,8 @@
   align-items: flex-start;
   max-width: 1360px;
   margin: 0 auto;
-  padding: var(--space-7) var(--space-6) var(--space-6);
+  /* 下は画面の下に固定した帯（主ボタン）の分も空ける（sticky-cta R1） */
+  padding: var(--space-7) var(--space-6) calc(var(--space-6) + var(--action-bar-reserve, 0px));
 }
 
 .loss-main {
