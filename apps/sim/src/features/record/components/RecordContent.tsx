@@ -3,6 +3,7 @@ import { buildRecordView, recordText } from '@antler/trip'
 import type { UseMutationResult } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { Link } from 'react-router'
+import { ActionBar, ACTION_BAR_PRIMARY } from '@/shared/components/ActionBar'
 import { useCelebration } from '../hooks/useCelebration'
 import { useIsOwner } from '../hooks/useIsOwner'
 import type { RecordData } from '../types'
@@ -70,9 +71,15 @@ export function RecordContent({
           <ShioriCard view={view} />
           <BIntro lang={lang} href={pwaUrl()} />
           <nav className="record-actions" aria-label={t('shioriHeading')}>
-            <Link className="record-button record-button--primary" to="/plan">
-              {t('planAnother')}
-            </Link>
+            {/* 次へ進む主ボタンは画面の下に固定した帯（sticky-cta R5）。DOM の位置は今までどおり */}
+            <ActionBar>
+              <Link
+                className={`record-button record-button--primary ${ACTION_BAR_PRIMARY}`}
+                to="/plan"
+              >
+                {t('planAnother')}
+              </Link>
+            </ActionBar>
             <Link
               className="record-button record-button--secondary"
               to={challengeOffHref(data.trip.id, data.record.lastDay)}

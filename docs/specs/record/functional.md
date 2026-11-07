@@ -17,6 +17,8 @@ tier: 2
 
 # 仕様: record（A-7 旅の記録・走行の記録・記録ページ・削除）
 
+> 2026-11-08 sticky-cta（`docs/specs/sticky-cta/functional.md` R5）で、「別の旅をつくる」（R9）を画面の下に固定した帯（`shared/components/ActionBar`）に載せ、本文の下の余白に帯の高さを足した。行き先・文言・DOM の位置（`nav` の中）は変えていない。「アラート OFF で挑戦」・ヘッダの「リンクをコピー」は今のまま。
+
 **og-font（2026-11-06）での変更**: OG 画像（`/t/:id/og.png`）は同梱の Noto Sans JP / TC / KR（OFL）で描く（`docs/specs/og-font/functional.md`）。この feature の挙動は変わらない。
 
 **result-screens（2026-11-06）での変更**: sim の A-7（`/t/:id`）に「クリア」の帯を足した（`docs/specs/result-screens/functional.md` R3・R4）。保存順で最後の run の日が完走のときだけ、本文の一番上に円とチェック・「クリア」・紙吹雪を 1 回出し、フォーカスを「クリア」に移す。A-6 から来た（location state の合図 `RECORD_AFTER_COLLISION`）・同じ履歴に戻った・最後の日が衝突なら出さない。画面を開いたあとに取り直した記録が来るまで「読み込み中」を出す（前のキャッシュで判定しない。`useTripRecord` は `refetchOnMount: 'always'`）。api・SSR・OG 画像・集計の規則は変えていない。

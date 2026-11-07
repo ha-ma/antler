@@ -1,0 +1,187 @@
+/* 画面の下に固定する帯と主ボタン（docs/specs/sticky-cta/functional.md R1・R2）。
+   色は tokens.css の CSS 変数だけ（ch8 規約 1）。alert-* は 3 状態の専用なので使わない。
+   帯の高さ = 上の線 1px ＋ 上下の余白 ＋ 主ボタン ＋ 影 6px。各画面は本文の下の余白に --action-bar-reserve を足す。 */
+
+:root {
+  --action-bar-reserve: calc(88px + env(safe-area-inset-bottom, 0px));
+}
+
+/* 低い画面（スマホ横）は帯を低くする */
+@media (max-height: 560px) {
+  :root {
+    --action-bar-reserve: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* 狭い画面は補足が主ボタンの上に積まれるので、補足の文がある間はその分も空ける */
+@media (max-width: 640px) {
+  :root:has(.action-bar__note p) {
+    --action-bar-reserve: calc(152px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Tab で進んだ先が帯の下に隠れない（WCAG 2.4.11）。帯がある画面だけ、スクロールの止まる位置を帯の分だけ上げる */
+:root:has(.action-bar) {
+  scroll-padding-bottom: var(--action-bar-reserve);
+}
+
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* A-6 の落ちるカード（.loss-drop の z-index は 1 ＋ 番号）より上 */
+  z-index: 50;
+  padding: var(--space-3) var(--space-6) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.action-bar__inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.action-bar__note {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--label-size);
+  line-height: var(--label-line);
+  text-align: right;
+}
+
+.action-bar__note p {
+  margin: 0;
+}
+
+.action-bar__hint {
+  color: var(--clay-deep);
+  font-weight: 700;
+}
+
+/* 主ボタン（画面でいちばん目立つ要素）。ページの class より強くするため .action-bar を前に付ける */
+.action-bar .action-bar__primary {
+  flex: 0 1 420px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 0;
+  min-height: 56px;
+  margin: 0 0 6px;
+  padding: var(--space-2) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-l);
+  background: var(--spruce);
+  color: var(--on-spruce);
+  box-shadow: 0 6px 0 var(--spruce-deep);
+  font: inherit;
+  font-size: var(--heading-size);
+  line-height: var(--heading-line);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  /* 開いて少ししてから 2 回だけ浮いて戻る。最後の形は止まった形（点滅しない）。
+     fill-mode は付けない（終わったあとも transform を持ち続けると、押したときの沈みが効かない） */
+  animation: action-bar-nudge 1.4s ease-in-out 0.6s 2;
+}
+
+.action-bar .action-bar__primary:hover {
+  background: var(--spruce-deep);
+}
+
+.action-bar .action-bar__primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 4px 0 var(--spruce-deep);
+}
+
+.action-bar .action-bar__primary:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.action-bar .action-bar__primary[aria-disabled='true'] {
+  background: var(--spruce-deep);
+  cursor: progress;
+}
+
+/* night（A-6）の spruce-deep の上の on-spruce は 3.07:1 で 4.5:1 に届かない。面は spruce のまま、下線で示す */
+[data-theme='night'] .action-bar .action-bar__primary:hover,
+[data-theme='night'] .action-bar .action-bar__primary[aria-disabled='true'] {
+  background: var(--spruce);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* 中のアイコン（A-2 の矢印など）は文字の色の線 */
+.action-bar .action-bar__primary svg path {
+  fill: none;
+  stroke: var(--on-spruce);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes action-bar-nudge {
+  0%,
+  40%,
+  100% {
+    transform: none;
+  }
+
+  20% {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action-bar .action-bar__primary {
+    animation: none;
+  }
+}
+
+@media (max-height: 560px) {
+  .action-bar {
+    padding-top: var(--space-2);
+    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .action-bar .action-bar__primary {
+    min-height: 48px;
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+  }
+}
+
+/* 狭い画面: 補足を上、主ボタンを横いっぱい */
+@media (max-width: 640px) {
+  .action-bar {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .action-bar__inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .action-bar__note {
+    text-align: left;
+  }
+
+  .action-bar__note p {
+    margin-bottom: var(--space-2);
+  }
+
+  .action-bar .action-bar__primary {
+    flex: none;
+    width: 100%;
+  }
+}

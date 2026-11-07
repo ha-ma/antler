@@ -245,6 +245,14 @@ export const PLAN_TEXT = {
     zh: '預算請填 0～{max} 日圓。',
     ko: '예산은 0~{max}엔으로 해 주세요.',
   },
+  // 下の帯の「直すところ」（sticky-cta R3）。{fields} は問題のある欄の名前（上の欄のラベル）を区切りでつないだもの
+  fixFields: {
+    ja: '直すところ: {fields}',
+    en: 'Fix: {fields}',
+    zh: '需修正：{fields}',
+    ko: '수정할 항목: {fields}',
+  },
+  fixFieldsSeparator: { ja: '・', en: ', ', zh: '、', ko: ', ' },
 } satisfies Record<string, UiText>
 
 export type PlanTextKey = keyof typeof PLAN_TEXT

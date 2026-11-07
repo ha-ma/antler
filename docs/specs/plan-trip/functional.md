@@ -11,6 +11,8 @@ tier: 2
 
 # 仕様: plan-trip（A-1 旅をつくる・Claude がしおりを仕上げる）
 
+> 2026-11-08 sticky-cta（`docs/specs/sticky-cta/functional.md` R1〜R3）で、送信ボタン「しおりを作って鹿ゾーンを確かめる →」を画面の下に固定した帯（`shared/components/ActionBar`）に載せた。入力が通らないあいだは帯に「直すところ: 人数・運転できる人」（4 言語、`fixFields`）を出し、作成の失敗（`CreateTripStatus`）も帯の中に出す。押したときの振る舞い（R5・R8）・文言・DOM の位置（右パネルの中）は変えていない。
+
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で api のしおりの文の検証を共通の文字種の規則（`apps/api/src/domain/shared/policies/lang-script-policy.ts`）に寄せ、zh の簡体字も落とすようにした（外れたら今までどおり 1 回だけ作り直す）。`packages/trip` に文言の表の検査（`src/i18n-tables.test.ts`）を足した。この仕様のルールは変えていない。
 
 > 2026-11-06 result-screens（`docs/specs/result-screens/functional.md` R1）で、送信ボタンの文言を「この旅を守りに行く →」から「しおりを作って鹿ゾーンを確かめる →」（4 言語）に変えた（ユーザーの 3 回目の指摘「守りに行くはよくわからない」）。押したときの振る舞い（R5・R8）は変えていない。下の R5・AC-2 の文言も合わせた。
