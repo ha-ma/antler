@@ -6,11 +6,13 @@ target_paths:
   - apps/sim/src/features/brief-map/components/BriefPage.tsx
   - apps/sim/src/features/loss/components/LossPage.tsx
   - apps/sim/src/features/record/components/RecordContent.tsx
-spec_confirmed_at: d0c23d0
+spec_confirmed_at: e75d9cd
 tier: 1
 ---
 
 # 仕様: sticky-cta（次へ進むボタンを、最初の画面で分かり、スクロールしても見える場所に置く）
+
+> 2026-11-08 main の rebrand-shikashi（#65、`docs/specs/rebrand-shikashi/functional.md`）を取り込んだ。同じ `apps/sim/src/shared/components/` に `BrandLogo` が入り、各画面のヘッダーが SHIKASHI SIMULATOR とロゴになった。帯（`ActionBar`）と主ボタンの決まりは変えていない。
 
 ## 概要
 
