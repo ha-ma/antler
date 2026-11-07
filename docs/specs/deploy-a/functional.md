@@ -23,11 +23,13 @@ target_paths:
   - apps/api/src/infrastructure/http/unavailable.ts
   - apps/api/src/domain/captures/policies/capture-claim-policy.ts
   - apps/api/tests/vercel/
-spec_confirmed_at: a138fb0
+spec_confirmed_at: e2d04d2
 tier: 2
 ---
 
 # 仕様: deploy-a（A の sim と api を Vercel に置く準備。DB は Turso、Capture の画像は Vercel Blob）
+
+> 2026-11-07 最初の Preview のデプロイで、Vercel の既定の install が Root Directory（`apps/sim`）の中だけに入れ、`tsc` が無くてビルドが止まった。`apps/sim/vercel.json` に `installCommand: "cd ../.. && npm ci"` を足した（R1）。この仕様のルール（関数・書き換え・env・DB）は変えていない。
 
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で 各 workspace の `package.json` に devDependency `@antler/i18n-check` を足した（テストだけで使う。ビルドの中身は変わらない）。この仕様のルールは変えていない。
 
@@ -67,7 +69,7 @@ Story: ハッカソンの審査員・利用者として、URL 1 つで A（旅�
 
 - R1: Vercel のプロジェクトの形（推奨で決定）
   - プロジェクトは 1 つ。Root Directory は `apps/sim`。設定は `apps/sim/vercel.json`（framework `vite`・`buildCommand`・`outputDirectory: dist`・関数・書き換え・region）
-  - ビルドは `npm run build:vercel`（sim の `tsc --noEmit && vite build` と、api の bundle `apps/api/vite.vercel.config.ts`）。install は Vercel の既定（リポジトリの直下の npm workspaces）
+  - ビルドは `npm run build:vercel`（sim の `tsc --noEmit && vite build` と、api の bundle `apps/api/vite.vercel.config.ts`）。install は `cd ../.. && npm ci`（リポジトリの直下で npm workspaces を入れる。`vercel.json` の `installCommand`）。Vercel の既定は Root Directory（`apps/sim`）の中だけに入れ、直下の devDependencies（`tsc` など）が無くてビルドが止まる（2026-11-07 の最初の Preview で確かめた）
   - 関数は `apps/sim/api/index.mjs` の 1 つ。中身は api の bundle（`apps/api/dist/vercel/handler.mjs`）の再輸出だけ。**bundle を作る理由**: `@antler/*` は TS のまま（`exports` が `./src/index.ts`、拡張子なしの相対 import）で、Vercel の関数の TS の変換（ファイルごと）では Node の ESM として読めない（`vercel build` で確かめた）
   - bundle は Vite の SSR のビルド。`@antler/*` と `apps/api/src` は bundle に入れ、`node_modules` の依存は外のまま（Vercel が import を辿って関数に入れる。`@resvg/resvg-js` のネイティブもこの経路）
   - 関数の上限時間 `maxDuration` は 60 秒（Claude の呼び出しは 30 秒まで。Hobby の上限 300 秒の内側）。region は `hnd1`（東京。Turso も東京に置く）
