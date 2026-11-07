@@ -74,6 +74,8 @@ npm run db:migrate -w @antler/api -- --env-file .env.turso-preview
 
 ## 4. ★ Vercel のプロジェクトと GitHub の連携（10 分）
 
+> **2026-11-07 の実施では、画面の Import を使わずに CLI で作った**（画面の Import は、作成と同時に既定のブランチ（`main`）を Production にデプロイするため）。手順は下の「CLI で作るとき」。画面で作るときは 1〜5 のとおり。
+
 1. Vercel の画面で **Add New → Project** → GitHub の `ha-ma/antler` を **Import**（初回は Vercel の GitHub App に、このリポジトリだけへのアクセスを許可する）
 2. 設定（**Configure Project**）:
    - **Root Directory**: `apps/sim`（「Include files outside the root directory in the Build Step」は有効のまま。api と packages を使う）
@@ -86,6 +88,16 @@ npm run db:migrate -w @antler/api -- --env-file .env.turso-preview
 4. **Settings → Deployment Protection**: **Vercel Authentication を Preview に効かせる（Standard Protection）**。Preview の URL は推測できるので、Vercel のチームの人だけが開けるようにする（必須）
 5. **Settings → Git → Git Fork Protection** が有効のまま（フォークからの PR が秘密の env でビルドされない）
 
+### CLI で作るとき（2026-11-07 の実施。デプロイを走らせずに作れる）
+
+`vercel login` 済みの CLI で、Vercel の API を直接呼ぶ（`vercel api`）。`--input` に渡す本文は **オブジェクト 1 つ**（配列や標準入力は `Invalid JSON` になった）。
+
+1. プロジェクトを作る（`POST /v11/projects?teamId=<チーム>`）。本文は `name: "antler"`・`framework: "vite"`・`rootDirectory: "apps/sim"`・`gitRepository: {type: "github", repo: "ha-ma/antler"}`・**`commandForIgnoringBuildStep: "exit 0"`**（env が揃うまで、push でのビルドを全部飛ばす）
+2. 本番のブランチを `release` にする: `PATCH /v9/projects/antler/branch?teamId=<チーム>` に `-f branch=release`。`GET /v9/projects/antler` の `link.productionBranch` が `release` になったことを確かめる
+3. Node: `PATCH /v9/projects/antler` に `-f nodeVersion=22.x`（`engines` があればそちらが使われる）
+4. 5 が終わったら、`PATCH /v9/projects/antler` に `{"commandForIgnoringBuildStep": null}` でビルドの停止を外す
+5. Deployment Protection は既定（Standard Protection: 独自ドメイン以外を保護）のまま。Git Fork Protection も既定で有効
+
 ## 5. ★ Blob のストアと環境変数（10 分）
 
 ### Blob のストア（非公開）
@@ -95,29 +107,29 @@ DB と同じく、Production と Preview で**ストアを分ける**（Preview 
 1. プロジェクトの **Storage** タブ → **Create Database** → **Blob** → **Continue**
 2. **Access を Private** にする。名前は `antler-captures-production`。region を選べるなら東京に近い場所。つなぐ環境は **Production だけ**
 3. もう一度 1〜2 を、名前 `antler-captures-preview`・つなぐ環境 **Preview だけ**で行う
-4. つなぐと Vercel が環境ごとの `BLOB_STORE_ID` を env に足す（Settings → Environment Variables で、Production と Preview で値が違うことを確かめる）。関数の SDK は OIDC（Vercel が自動で付ける `VERCEL_OIDC_TOKEN`）で読み書きするので、`BLOB_READ_WRITE_TOKEN` は Vercel の env に要らない（手元から Blob を触るときだけ使う）
+4. つなぐと Vercel が環境ごとの `BLOB_STORE_ID` を env に足す（Settings → Environment Variables で、Production と Preview で値が違うことを確かめる）。**2026-11-07 に CLI（`vercel blob create-store <名前> --access private -e production -r hnd1 --yes`、Preview は `-e preview`）で作ったときは、`BLOB_STORE_ID` ではなく環境ごとの `BLOB_READ_WRITE_TOKEN` が付いた**。api はどちらかがあれば動く（R4）。CLI の create-store は、そのフォルダがリンクしているプロジェクトにつなぐ（`vercel link --project antler --yes` をリポジトリの外の空のフォルダで行い、できた `.env.local` は消す）。関数の SDK は OIDC（Vercel が自動で付ける `VERCEL_OIDC_TOKEN`）で読み書きするので、`BLOB_READ_WRITE_TOKEN` は Vercel の env に要らない（手元から Blob を触るときだけ使う）
 
 ### 環境変数（Settings → Environment Variables）
 
 秘密は **Sensitive** にする（あとから値を読めなくなる）。「既定」の行は、書かなければその値になる。
 
-| 変数                          | Production                                                            | Preview                                  | 必須 / 既定                   | 秘密 |
-| ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------- | ----------------------------- | ---- |
-| `ANTHROPIC_API_KEY`           | Production 用のキー                                                   | **Preview 用の別のキー**                 | 必須                          | 秘密 |
-| `OWNER_TOKEN_SECRET`          | `openssl rand -hex 32` の値                                           | **別の** `openssl rand -hex 32` の値     | 必須（32 文字以上）           | 秘密 |
-| `TRIPS_DB_URL`                | `libsql://antler-production-<org>.turso.io`                           | `libsql://antler-preview-<org>.turso.io` | 必須                          | なし |
-| `TURSO_AUTH_TOKEN`            | `.env.turso-production` の値                                          | `.env.turso-preview` の値                | 必須                          | 秘密 |
-| `BLOB_STORE_ID`               | `antler-captures-production` をつなぐと Vercel が付ける               | `antler-captures-preview` の値（自動）   | 必須（自動）                  | なし |
-| `CLAUDE_DAILY_CALL_LIMIT`     | `400`                                                                 | `50`                                     | 既定 400                      | なし |
-| `CLAUDE_MAX_CONCURRENT_CALLS` | `4`                                                                   | `2`                                      | 既定 4（インスタンスごと）    | なし |
-| `CAPTURES_MAX_ITEMS`          | `5000`                                                                | `500`                                    | 既定 50000                    | なし |
-| `CAPTURES_MAX_BYTES`          | `1073741824`（1 GiB）                                                 | `104857600`（100 MiB）                   | 既定 5 GiB                    | なし |
-| `PUBLIC_API_URL`              | 独自ドメインがあれば `https://<ドメイン>`、無ければ書かない           | 書かない                                 | 既定: Vercel の URL           | なし |
-| `SIM_PUBLIC_URL`              | `PUBLIC_API_URL` と同じ（同じオリジン）、無ければ書かない             | 書かない                                 | 既定: Vercel の URL           | なし |
-| `CORS_ORIGINS`                | 書かない                                                              | 書かない                                 | 既定: 自分のオリジン 1 つ     | なし |
-| `PWA_PUBLIC_URL`              | PWA の公開先が決まったら（範囲外）                                    | 書かない                                 | 既定 localhost（ログに warn） | なし |
-| `LOG_LEVEL`                   | `info`                                                                | `info`                                   | 既定 info                     | なし |
-| `OG_FONT_FILES`               | 書かない（同梱の Noto Sans JP / TC / KR を使う。og-font、2026-11-06） | 書かない                                 | 既定 空                       | なし |
+| 変数                                       | Production                                                            | Preview                                  | 必須 / 既定                   | 秘密 |
+| ------------------------------------------ | --------------------------------------------------------------------- | ---------------------------------------- | ----------------------------- | ---- |
+| `ANTHROPIC_API_KEY`                        | Production 用のキー                                                   | **Preview 用の別のキー**                 | 必須                          | 秘密 |
+| `OWNER_TOKEN_SECRET`                       | `openssl rand -hex 32` の値                                           | **別の** `openssl rand -hex 32` の値     | 必須（32 文字以上）           | 秘密 |
+| `TRIPS_DB_URL`                             | `libsql://antler-production-<org>.turso.io`                           | `libsql://antler-preview-<org>.turso.io` | 必須                          | なし |
+| `TURSO_AUTH_TOKEN`                         | `.env.turso-production` の値                                          | `.env.turso-preview` の値                | 必須                          | 秘密 |
+| `BLOB_STORE_ID` か `BLOB_READ_WRITE_TOKEN` | `antler-captures-production` をつなぐと Vercel が付ける               | `antler-captures-preview` の値（自動）   | どちらか必須（自動）          | なし |
+| `CLAUDE_DAILY_CALL_LIMIT`                  | `400`                                                                 | `50`                                     | 既定 400                      | なし |
+| `CLAUDE_MAX_CONCURRENT_CALLS`              | `4`                                                                   | `2`                                      | 既定 4（インスタンスごと）    | なし |
+| `CAPTURES_MAX_ITEMS`                       | `5000`                                                                | `500`                                    | 既定 50000                    | なし |
+| `CAPTURES_MAX_BYTES`                       | `1073741824`（1 GiB）                                                 | `104857600`（100 MiB）                   | 既定 5 GiB                    | なし |
+| `PUBLIC_API_URL`                           | 独自ドメインがあれば `https://<ドメイン>`、無ければ書かない           | 書かない                                 | 既定: Vercel の URL           | なし |
+| `SIM_PUBLIC_URL`                           | `PUBLIC_API_URL` と同じ（同じオリジン）、無ければ書かない             | 書かない                                 | 既定: Vercel の URL           | なし |
+| `CORS_ORIGINS`                             | 書かない                                                              | 書かない                                 | 既定: 自分のオリジン 1 つ     | なし |
+| `PWA_PUBLIC_URL`                           | PWA の公開先が決まったら（範囲外）                                    | 書かない                                 | 既定 localhost（ログに warn） | なし |
+| `LOG_LEVEL`                                | `info`                                                                | `info`                                   | 既定 info                     | なし |
+| `OG_FONT_FILES`                            | 書かない（同梱の Noto Sans JP / TC / KR を使う。og-font、2026-11-06） | 書かない                                 | 既定 空                       | なし |
 
 書かないもの:
 
@@ -150,6 +162,8 @@ DB と同じく、Production と Preview で**ストアを分ける**（Preview 
 
 - 戻すときは、7 の「おかしいとき」の Instant Rollback（`release` は戻さなくてよい。次に出すときに直した `main` を進める）
 - 手元から直接出す `vercel deploy --prod` は使わない（`release` と本番の中身がずれる）。Preview を手元から作るだけなら `vercel deploy`
+- **API でデプロイを作らない**: `POST /v13/deployments` に `gitSource`（`ref: main`）を渡して `target` を書かないと、本番のブランチと関係なく **Production** として作られた（2026-11-07、ビルド中に取り消したので公開はされていない）。Preview は `vercel deploy`（`--prod` なし）か、PR を開いて作る
+- すでにデプロイしたコミットと同じコミットのブランチを push しても、新しいデプロイは作られなかった（2026-11-07）。手元から `main` の Preview を作るときは、`origin/main` の worktree で `vercel deploy --yes --target preview`
 
 ### 確かめる（Production の URL を `$U` に入れて上から）
 
