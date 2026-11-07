@@ -23,7 +23,7 @@ target_paths:
   - apps/api/src/infrastructure/http/unavailable.ts
   - apps/api/src/domain/captures/policies/capture-claim-policy.ts
   - apps/api/tests/vercel/
-spec_confirmed_at: a138fb0
+spec_confirmed_at: e2d04d2
 tier: 2
 ---
 
