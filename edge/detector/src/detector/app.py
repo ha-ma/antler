@@ -557,7 +557,7 @@ async def _run(config: Config, deps: Deps, control: StopControl) -> RunResult:
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="python -m detector",
-        description="EZO ROAD B: 車載カメラの鹿検知を起動する（docs/specs/edge-run）",
+        description="SHIKASHI NAVIGATOR（B）: 車載カメラの鹿検知を起動する（docs/specs/edge-run）",
     )
     p.add_argument("--config", type=Path, required=True, help="設定 TOML（config.example.toml）")
     p.add_argument("--no-l1", action="store_true", help="L1（local-jev）を使わない")

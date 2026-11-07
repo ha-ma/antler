@@ -213,54 +213,58 @@ def route_https(
 
 
 # --- 設定ページ（http の口。4 言語。Host をページに入れない。https の URL はページの JS が組む） ---
+# サービス名は SHIKASHI NAVIGATOR（2026-11-08、docs/specs/rebrand-shikashi）。手順の中の「EZO ROAD」は
+# CA の名前（make_tls.py の subject `O = EZO ROAD`。替えると証明書の作り直しと各スマホへの入れ直しが要る）なので残す。
+
+BRAND = "SHIKASHI NAVIGATOR"
 
 _TEXTS: dict[str, dict[str, str]] = {
     "ja": {
-        "title": "EZO ROAD — 最初に 1 回だけ",
+        "title": f"{BRAND} — 最初に 1 回だけ",
         "intro": "鹿アラートを安全な接続（https）で開くために、この車の証明書をスマホに入れます。1 台につき 1 回だけです。",
-        "ios": "iPhone: 1)「証明書をダウンロード」→「許可」 2) 設定 → 一般 → VPN とデバイス管理 → EZO ROAD → インストール 3) 設定 → 一般 → 情報 → 証明書信頼設定 → EZO ROAD をオン",
+        "ios": "iPhone: 1)「証明書をダウンロード」→「許可」 2) 設定 → 一般 → VPN とデバイス管理 → EZO ROAD（証明書の名前）→ インストール 3) 設定 → 一般 → 情報 → 証明書信頼設定 → EZO ROAD をオン",
         "android": "Android: 1)「証明書をダウンロード」 2) 設定 → セキュリティ → 暗号化と認証情報 → 証明書をインストール → CA 証明書 → ダウンロードしたファイル",
         "warn": "ブラウザの警告は押し切らずに、証明書を入れてください。",
         "remove": "返却したら証明書を消してください。iPhone: 設定 → 一般 → VPN とデバイス管理 → EZO ROAD → プロファイルを削除。Android: 設定 → セキュリティ → 信頼できる認証情報 → ユーザー → EZO ROAD を削除。",
         "fingerprint": "証明書の指紋（SHA-256）",
         "download": "証明書をダウンロード",
-        "open": "EZO ROAD を開く",
+        "open": f"{BRAND} を開く",
         "checking": "証明書を確かめています…",
     },
     "en": {
-        "title": "EZO ROAD — one-time setup",
+        "title": f"{BRAND} — one-time setup",
         "intro": "To open the deer alert over a secure connection (https), install this car's certificate on your phone. Once per phone.",
-        "ios": "iPhone: 1) Tap “Download certificate” → Allow 2) Settings → General → VPN & Device Management → EZO ROAD → Install 3) Settings → General → About → Certificate Trust Settings → turn on EZO ROAD",
+        "ios": "iPhone: 1) Tap “Download certificate” → Allow 2) Settings → General → VPN & Device Management → EZO ROAD (the certificate name) → Install 3) Settings → General → About → Certificate Trust Settings → turn on EZO ROAD",
         "android": "Android: 1) Tap “Download certificate” 2) Settings → Security → Encryption & credentials → Install a certificate → CA certificate → the downloaded file",
         "warn": "Do not click through the browser warning. Install the certificate instead.",
         "remove": "After returning the car, remove the certificate. iPhone: Settings → General → VPN & Device Management → EZO ROAD → Remove Profile. Android: Settings → Security → Trusted credentials → User → EZO ROAD → Remove.",
         "fingerprint": "Certificate fingerprint (SHA-256)",
         "download": "Download certificate",
-        "open": "Open EZO ROAD",
+        "open": f"Open {BRAND}",
         "checking": "Checking the certificate…",
     },
     "zh": {
-        "title": "EZO ROAD — 只需設定一次",
+        "title": f"{BRAND} — 只需設定一次",
         "intro": "為了以安全連線（https）開啟鹿警示，請在手機安裝這輛車的憑證。每支手機只需一次。",
-        "ios": "iPhone：1) 點「下載憑證」→「允許」 2) 設定 → 一般 → VPN 與裝置管理 → EZO ROAD → 安裝 3) 設定 → 一般 → 關於本機 → 憑證信任設定 → 開啟 EZO ROAD",
+        "ios": "iPhone：1) 點「下載憑證」→「允許」 2) 設定 → 一般 → VPN 與裝置管理 → EZO ROAD（憑證名稱）→ 安裝 3) 設定 → 一般 → 關於本機 → 憑證信任設定 → 開啟 EZO ROAD",
         "android": "Android：1) 點「下載憑證」 2) 設定 → 安全性 → 加密與憑證 → 安裝憑證 → CA 憑證 → 選擇下載的檔案",
         "warn": "請不要略過瀏覽器的警告，請安裝憑證。",
         "remove": "還車後請刪除憑證。iPhone：設定 → 一般 → VPN 與裝置管理 → EZO ROAD → 移除描述檔。Android：設定 → 安全性 → 信任的憑證 → 使用者 → EZO ROAD → 移除。",
         "fingerprint": "憑證指紋（SHA-256）",
         "download": "下載憑證",
-        "open": "開啟 EZO ROAD",
+        "open": f"開啟 {BRAND}",
         "checking": "正在確認憑證…",
     },
     "ko": {
-        "title": "EZO ROAD — 처음 한 번만",
+        "title": f"{BRAND} — 처음 한 번만",
         "intro": "사슴 경보를 안전한 연결(https)로 열기 위해 이 차량의 인증서를 휴대폰에 설치합니다. 휴대폰마다 한 번만 하면 됩니다.",
-        "ios": "iPhone: 1) ‘인증서 다운로드’ → 허용 2) 설정 → 일반 → VPN 및 기기 관리 → EZO ROAD → 설치 3) 설정 → 일반 → 정보 → 인증서 신뢰 설정 → EZO ROAD 켜기",
+        "ios": "iPhone: 1) ‘인증서 다운로드’ → 허용 2) 설정 → 일반 → VPN 및 기기 관리 → EZO ROAD(인증서 이름) → 설치 3) 설정 → 일반 → 정보 → 인증서 신뢰 설정 → EZO ROAD 켜기",
         "android": "Android: 1) ‘인증서 다운로드’ 2) 설정 → 보안 → 암호화 및 사용자 인증 정보 → 인증서 설치 → CA 인증서 → 다운로드한 파일",
         "warn": "브라우저 경고를 무시하고 진행하지 말고 인증서를 설치하세요.",
         "remove": "반납 후에는 인증서를 삭제하세요. iPhone: 설정 → 일반 → VPN 및 기기 관리 → EZO ROAD → 프로파일 제거. Android: 설정 → 보안 → 신뢰할 수 있는 자격 증명 → 사용자 → EZO ROAD → 삭제.",
         "fingerprint": "인증서 지문(SHA-256)",
         "download": "인증서 다운로드",
-        "open": "EZO ROAD 열기",
+        "open": f"{BRAND} 열기",
         "checking": "인증서를 확인하는 중…",
     },
 }
@@ -312,7 +316,7 @@ def setup_page(fingerprint: str, https_port: int) -> tuple[bytes, str]:
     html = (
         '<!doctype html><html lang="ja"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f"<title>EZO ROAD setup</title><style>{style}</style></head><body>"
+        f"<title>{BRAND} setup</title><style>{style}</style></head><body>"
         + "".join(sections)
         + f"<script>{script}</script></body></html>"
     )

@@ -7,7 +7,12 @@ import type { Lang } from '@antler/schema'
 type UiText = Record<Lang, string>
 
 export const RECORD_TEXT = {
-  brand: { ja: 'EZO ROAD', en: 'EZO ROAD', zh: 'EZO ROAD', ko: 'EZO ROAD' },
+  brand: {
+    ja: 'SHIKASHI SIMULATOR',
+    en: 'SHIKASHI SIMULATOR',
+    zh: 'SHIKASHI SIMULATOR',
+    ko: 'SHIKASHI SIMULATOR',
+  },
   pageTitle: {
     ja: '{title} — 旅の記録',
     en: '{title} — Trip record',
@@ -172,10 +177,10 @@ export const RECORD_TEXT = {
     ko: '차량용 경보 안내',
   },
   openInApp: {
-    ja: 'EZO ROAD で開く',
-    en: 'Open in EZO ROAD',
-    zh: '在 EZO ROAD 開啟',
-    ko: 'EZO ROAD에서 열기',
+    ja: 'SHIKASHI SIMULATOR で開く',
+    en: 'Open in SHIKASHI SIMULATOR',
+    zh: '在 SHIKASHI SIMULATOR 開啟',
+    ko: 'SHIKASHI SIMULATOR에서 열기',
   },
   planOwn: {
     ja: '自分の旅をつくる',

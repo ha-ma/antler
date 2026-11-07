@@ -4,7 +4,10 @@ import type { Lang } from '@antler/alert-ui'
 // 全キー・全言語が空でないことをテストで確かめる（付録 A #9）。zh・ko はネイティブ確認が保留（alert-ui と同じ）。
 
 export type ConnectText = {
+  /** 画面の名前（SHIKASHI NAVIGATOR ＋ tagline）。運転中の画面の aria-label にも使う */
   title: string
+  /** 接続画面の見出しでロゴの後ろに出す語 */
+  tagline: string
   linkTitle: string
   linkOpen: string
   linkConnecting: string
@@ -38,7 +41,8 @@ export type ConnectText = {
 
 export const CONNECT_TEXT: Record<Lang, ConnectText> = {
   ja: {
-    title: 'EZO ROAD 鹿アラート',
+    title: 'SHIKASHI NAVIGATOR 鹿アラート',
+    tagline: '鹿アラート',
     linkTitle: '車載との接続',
     linkOpen: 'つながっています',
     linkConnecting: '接続しています',
@@ -72,7 +76,8 @@ export const CONNECT_TEXT: Record<Lang, ConnectText> = {
     etaLabel: '到達予定',
   },
   en: {
-    title: 'EZO ROAD Deer Alert',
+    title: 'SHIKASHI NAVIGATOR Deer Alert',
+    tagline: 'Deer Alert',
     linkTitle: 'Link to the car unit',
     linkOpen: 'Connected',
     linkConnecting: 'Connecting',
@@ -106,7 +111,8 @@ export const CONNECT_TEXT: Record<Lang, ConnectText> = {
     etaLabel: 'ETA',
   },
   zh: {
-    title: 'EZO ROAD 鹿警示',
+    title: 'SHIKASHI NAVIGATOR 鹿警示',
+    tagline: '鹿警示',
     linkTitle: '與車載裝置的連線',
     linkOpen: '已連線',
     linkConnecting: '連線中',
@@ -138,7 +144,8 @@ export const CONNECT_TEXT: Record<Lang, ConnectText> = {
     etaLabel: '預計抵達',
   },
   ko: {
-    title: 'EZO ROAD 사슴 경보',
+    title: 'SHIKASHI NAVIGATOR 사슴 경보',
+    tagline: '사슴 경보',
     linkTitle: '차량 장치 연결',
     linkOpen: '연결됨',
     linkConnecting: '연결 중',

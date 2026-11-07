@@ -14,6 +14,14 @@ describe('UC-5 文言', () => {
     }
   })
 
+  it('BRAND-9: 名前は 4 言語とも SHIKASHI NAVIGATOR ＋ tagline。旧名（EZO ROAD）はどの文言にも無い', () => {
+    for (const lang of LANGS) {
+      const text = CONNECT_TEXT[lang]
+      expect(text.title).toBe(`SHIKASHI NAVIGATOR ${text.tagline}`)
+    }
+    expect(JSON.stringify(CONNECT_TEXT)).not.toMatch(/EZO ?ROAD/i)
+  })
+
   it('UC-5e: zh-TW は zh、未知の言語は ja', () => {
     expect(resolveLang(['zh-TW'])).toBe('zh')
     expect(resolveLang(['ko-KR'])).toBe('ko')

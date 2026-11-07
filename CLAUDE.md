@@ -1,9 +1,9 @@
-# antler（EZO ROAD）— モノレポ共通ルール
+# SHIKASHI — モノレポ共通ルール
 
 北海道のレンタカー旅行者が、エゾシカとの衝突で旅を失わないためのプロダクト。Built with Claude Japan 2026、1 週間・2 名。
 
-- **A** 運転前: ブラウザの 3D 運転シミュレーション（apps/sim ＋ apps/api）
-- **B** 運転中: 車載 Mac Mini のカメラで鹿を検知し、スマホ PWA に通知（edge/detector ＋ apps/pwa）
+- **A** 運転前（**SHIKASHI SIMULATOR**）: ブラウザの 3D 運転シミュレーション（apps/sim ＋ apps/api）
+- **B** 運転中（**SHIKASHI NAVIGATOR**）: 車載 Mac Mini のカメラで鹿を検知し、スマホ PWA に通知（edge/detector ＋ apps/pwa）
 - A と B は同じ 3 状態（緑＝円／琥珀＝三角／赤＝八角）を同じ `AlertState` で出し、同じ `Capture` で教師データを残す
 
 ## 正（迷ったらここを読む。ここに無いことを推測で決めない）
@@ -39,7 +39,8 @@
 | `ch11-appendix-a.md` | 付録 A. ハッカソン評価と改善リスト（15 項目）・デモの 3 分構成 |
 
 要件・デザインの写しは原文のまま。直すときは原本（Claude Docs / Claude Design）を直して再エクスポートする（ch9 の判断記録を除く）。
-文書中の `@ezoroad/*` と `ezo-road/` は、このリポジトリでは `@antler/*` と `antler/`。
+**2026-11-08 にサービス名を SHIKASHI に変更（A = SHIKASHI SIMULATOR、B = SHIKASHI NAVIGATOR）。要件・デザインの写しの本文の「EZO ROAD」は旧名。原本はユーザーが直す。** 決めたことと、替えたもの・残したもの（内部の名前は後で替える）は `docs/changes/2026-11-08-shikashi-rebrand.md`。
+文書中の `@ezoroad/*` と `ezo-road/` は、このリポジトリでは `@antler/*` と `antler/`（npm のスコープ・リポジトリ名・ディレクトリは旧名のまま。SHIKASHI への変更は計画の ⑤）。
 
 **要件は章ファイル単位で読む。全章をまとめて読み込まない**（全文で約 25k トークン）。各 feature の `docs/specs/{feature}/functional.md` は担当の章と要件 ID だけを参照する。広く探す・長いログを読むときは repo-explorer に任せる。
 
@@ -48,7 +49,7 @@
 @docs/design/tokens.json
 @docs/design/AlertState.md
 
-**frontend-design スキルを使うときも、色・フォント・余白は tokens.json が正。** スキルの「独自のフォント・配色を選ぶ」指示は antler では使わない（数値は IBM Plex Mono、文章は Noto Sans JP。ch8 規約 4）。
+**frontend-design スキルを使うときも、色・フォント・余白は tokens.json が正。** スキルの「独自のフォント・配色を選ぶ」指示は SHIKASHI では使わない（数値は IBM Plex Mono、文章は Noto Sans JP。ch8 規約 4）。
 
 ## ディレクトリ・stack・担当
 
@@ -106,6 +107,7 @@ Amptech 由来（stack のチェッカーと SFAD）:
 - B の走行ログに `t_frame` / `t_sent` を必ず残し、PWA は `t_shown` を返す
 - 同意済みの Capture だけをアップロードする。車内を写す映像は保存しない
 - 乱数はシード付き（同じシードで再生できる）
+- ロゴはユーザーが用意した SHIKASHI のロゴ（`apps/sim/public/brand/`・`apps/pwa/public/brand/`。昼＝trip と夜＝night の 2 つ）。画面では `src/shared/components/BrandLogo` で出す。配色は tokens.json のまま（ブランドの色を足さない）
 - アセットは CC0 / CC-BY / 自作のみ。**フォントは SIL OFL 1.1 も可**（2026-11-06 にユーザーが許可。Noto Sans JP / TC / KR。ライセンス本文を同じ場所に置く）。入れたら `CREDITS.md` に出所を書く。ライセンス未確認のアセットを `dataset/` に入れない
 
 ## エージェントチームの動かし方

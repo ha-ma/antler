@@ -2,7 +2,7 @@
   "name": "@antler/sim",
   "private": true,
   "version": "0.0.0",
-  "description": "EZO ROAD A: 3D 運転シミュレーション",
+  "description": "SHIKASHI SIMULATOR（A）: 3D 運転シミュレーション",
   "type": "module",
   "engines": {
     "node": "22.x"

@@ -2,7 +2,7 @@
   "name": "@antler/api",
   "private": true,
   "version": "0.0.0",
-  "description": "EZO ROAD A API（Hono）",
+  "description": "SHIKASHI SIMULATOR（A）の API（Hono）",
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx watch --env-file-if-exists=.env src/index.ts",

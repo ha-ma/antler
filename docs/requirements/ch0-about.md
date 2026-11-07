@@ -1,6 +1,8 @@
 ## 0. この文書について
 
 > 出典: Claude Docs「EZO ROAD システム要件定義書 v1」https://claude.ai/artifact/Jr6zYHcjdSy5xEd1WaG7v8 （2026-11-03 エクスポート）。本文は原文のまま。変更は原文側で行い、再エクスポートする。
+>
+> 2026-11-08 にサービス名を SHIKASHI に変更（A = SHIKASHI SIMULATOR、B = SHIKASHI NAVIGATOR）。この写しの本文の「EZO ROAD」は旧名。原本はユーザーが直す（`docs/changes/2026-11-08-shikashi-rebrand.md`）。
 
 
 この文書は、Claude Code の PM エージェントが EZO ROAD の MVP を 1 週間で実装計画に落とすための要件定義書です。UI/UX は Claude Design キャンバス「北海道ドライブSim UI設計」の v2 ページ（A-1〜A-7、B-0〜B-3、B アーキテクチャ、スマホ横画面 A-3/A-4/A-5）を正とし、本書はその挙動・データ・制約を言葉にしたものです。
