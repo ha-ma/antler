@@ -10,6 +10,18 @@ export const DROP_TILTS: readonly number[] = [-0.6, 0.8, -0.7, 0.5, -0.9, 0.6, -
 
 export type DropStyle = CSSProperties & { '--loss-drop-i': number; '--loss-tilt': string }
 
+/** 1 枚が落ちきるまでと、次のカードの遅れ（loss.css の --loss-drop-duration・--loss-drop-stagger と同じ値。テストが突き合わせる） */
+export const DROP_DURATION_MS = 820
+export const DROP_STAGGER_MS = 150
+
+/**
+ * そのカードが着地する時刻（mount からの ms）。数え上げはここから始める（result-countup R5）。
+ * drop が無ければ 0（動かずに最初から出る要素）
+ */
+export function dropLandedMs(drop: DropStyle | undefined): number {
+  return drop ? drop['--loss-drop-i'] * DROP_STAGGER_MS + DROP_DURATION_MS : 0
+}
+
 /** 要素の class に `loss-drop` を足す（drop が無ければそのまま。動かずに最初から出る） */
 export function dropClass(base: string, drop: DropStyle | undefined): string {
   return drop ? `${base} loss-drop` : base

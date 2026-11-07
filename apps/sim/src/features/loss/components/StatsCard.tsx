@@ -1,7 +1,9 @@
 import type { Lang } from '@antler/schema'
 import { formatBudget, STATS } from '@antler/trip'
+import { CountUpText } from '@/shared/components/CountUpText'
 import { fillText, LOSS_TEXT } from '../text'
-import { dropClass, type DropStyle } from '../utils/drop'
+import { dropClass, dropLandedMs, type DropStyle } from '../utils/drop'
+import { fillNodes } from '../utils/fill-nodes'
 import { count, monthLabel } from '../utils/format'
 
 type Source = { name: string; verified: boolean }
@@ -15,6 +17,11 @@ export function StatsCard({ lang, drop }: { lang: Lang; drop?: DropStyle }) {
   const deer = STATS.deerAccidents
   const ins = STATS.vehicleInsurance
   const sources: Source[] = [deer.source, ins.source]
+  // 件数・金額はカードの着地のあとに 80 ms ずつずらして数え上げる。年・期間は動かさない（result-countup R1・R5）
+  const landed = dropLandedMs(drop)
+  const num = (text: string, order: number) => (
+    <CountUpText text={text} notBeforeMs={landed + order * 80} />
+  )
   return (
     <section
       className={dropClass('loss-stats', drop)}
@@ -22,21 +29,21 @@ export function StatsCard({ lang, drop }: { lang: Lang; drop?: DropStyle }) {
       aria-labelledby="loss-stats-heading"
     >
       <h2 id="loss-stats-heading" className="loss-stats__heading">
-        {fillText(t.statsHeading[lang], { year: deer.year, total: count(deer.total) })}
+        {fillNodes(t.statsHeading[lang], { year: deer.year, total: num(count(deer.total), 0) })}
       </h2>
       <p>
-        {fillText(t.statsAccidents[lang], {
-          previous: count(deer.previousYearTotal),
-          kushiro: count(deer.kushiroArea),
+        {fillNodes(t.statsAccidents[lang], {
+          previous: num(count(deer.previousYearTotal), 1),
+          kushiro: num(count(deer.kushiroArea), 2),
         })}
       </p>
       <p>
-        {fillText(t.statsInsurance[lang], {
+        {fillNodes(t.statsInsurance[lang], {
           from: monthLabel(ins.period.from, lang),
           to: monthLabel(ins.period.to, lang),
-          claims: count(ins.claims),
-          paid: formatBudget(ins.paidJPY, lang),
-          average: formatBudget(ins.averageJPY, lang),
+          claims: num(count(ins.claims), 3),
+          paid: num(formatBudget(ins.paidJPY, lang), 4),
+          average: num(formatBudget(ins.averageJPY, lang), 5),
         })}
       </p>
       <ul className="loss-stats__sources">
