@@ -2,13 +2,15 @@
    しおりのカードだけ data-theme="trip" で紙（ground）の面にする。alert-danger は ✕ の行とアクセント（下）に使う。
    喪失の金額は clay（R3）。ground の上の小さい文字は ink-muted。
    アクセントは緑（spruce）ではなく alert-danger（2026-11-08 ユーザー判断。鹿にぶつかった結果の画面なので）。
-   ページの root で --accent を替え、主ボタン・フォーカスの枠・見出しの帯・4 指標の上の線がそれを読む。
-   alert-danger は night の ground で 4.02:1・surface で 3.47:1 なので文字の色には使わない（線・面・白文字の背景だけ）。 */
+   ページの root で --accent を替え、主ボタン（固定の導線 ActionBar も）・フォーカスの枠・見出しの帯・4 指標の上の線・
+   しおりの ✓ がそれを読む。alert-danger は night の ground で 4.02:1・surface で 3.47:1 なので文字の色には使わない
+   （線・図形・白文字の背景だけ）。--accent-deep は alert-danger の明度だけを下げた濃い赤（影・押したとき。テーマで変わらない。
+   tokens に足すと凍結の alert-ui の公開 API が増えるので、ここで作る）。 */
 
 .loss {
   --accent: var(--alert-danger);
   --on-accent: var(--on-alert-danger);
-  --accent-deep: color-mix(in srgb, var(--alert-danger) 70%, var(--ground));
+  --accent-deep: oklch(from var(--alert-danger) calc(l - 0.15) c h);
 
   min-height: 100vh;
   background: var(--ground);
@@ -357,9 +359,10 @@
   stroke-linejoin: round;
 }
 
-/* 済みの ✓ は緑にしない（この画面のアクセントは赤。赤は ✕ の衝突の行に取っておく）。形と「済み」の文字で分かる */
+/* 済みの ✓ はアクセントの色（この画面は赤。紙の ground で 4.34:1、図形なので 3:1 で足りる）。
+   ✕ と同じ赤になるが、形（✓ と ✕）と「済み」の読み上げの文字、✕ の行の大きい文字で分かる */
 .loss-row--achieved .loss-row__mark {
-  color: var(--ink-muted);
+  color: var(--accent, var(--spruce));
 }
 
 /* alert-danger は紙（ground）の上で 4.5:1 に少し届かないので、大きい文字（20 px・太字。3:1 で足りる）にする */

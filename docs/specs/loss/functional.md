@@ -22,7 +22,7 @@ tier: 2
 
 > 2026-11-08 result-countup（`docs/specs/result-countup/functional.md`）で、4 指標の値と統計カードの件数・金額を、カードの着地のあとに 0 から数え上げるようにした（`@/shared/components/CountUpText`。統計カードの文は `utils/fill-nodes.tsx` の `fillNodes` で数字を差し込む。着地の時刻は `utils/drop.ts` の `dropLandedMs`）。最後の 1 コマは今の表示と同じ文字列。年・期間・補足・導入・しおりの数字は動かさない。動きを減らす設定では最初から最後の値。値の求め方・文言・STATS は変えていない。
 
-> 2026-11-08 衝突の結果画面（A-6）はアクセントに `alert-danger` を使う（ユーザー判断「鹿にぶつかったあとの結果画面の表現は、緑ではなく赤をアクセントカラーに」。`docs/design/README.md` の冒頭の注記、result-countup R7）。`loss.css` の `.loss` で `--accent` を替え、主ボタン（白文字 4.6:1）・フォーカスの枠・導入の左の帯・4 指標の上の線がそれを読む。済みの ✓ は緑をやめて ink-muted。喪失の金額は今までどおり clay（alert-danger は night の面で 4.5:1 に届かないので文字には使わない）。
+> 2026-11-08 衝突の結果画面（A-6）はアクセントに `alert-danger` を使う（ユーザー判断「鹿にぶつかったあとの結果画面の表現は、緑ではなく赤をアクセントカラーに」。`docs/design/README.md` の冒頭の注記、result-countup R7）。`loss.css` の `.loss` で `--accent` を替え、主ボタン（白文字 4.6:1。影・押したときは `--accent-deep`）・フォーカスの枠・導入の左の帯・4 指標の上の線・しおりの済みの ✓ がそれを読む（原則 2 の例外）。喪失の金額は今までどおり clay（alert-danger は night の面で 4.5:1 に届かないので文字には使わない）。
 
 ## 概要
 

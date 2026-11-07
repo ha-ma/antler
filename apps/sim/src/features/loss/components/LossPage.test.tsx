@@ -503,7 +503,7 @@ describe('LOSS-1: しおりを読む前・失敗はブラウザの言語（i18n 
     })
   })
 
-  it('ACCENT-1 loss.css: アクセントは root の --accent（alert-danger）で、主ボタン・フォーカス・見出しの帯・4 指標の線がそれを読み、緑を使わない（result-countup R7）', () => {
+  it('ACCENT-1 loss.css: アクセントは root の --accent（alert-danger）で、主ボタン・フォーカス・見出しの帯・4 指標の線・✓ がそれを読み、緑を使わない（result-countup R7）', () => {
     const root = cssBlock(lossCss, '.loss')
     expect(root).toContain('--accent: var(--alert-danger);')
     expect(root).toContain('--on-accent: var(--on-alert-danger);')
@@ -514,16 +514,28 @@ describe('LOSS-1: しおりを読む前・失敗はブラウザの言語（i18n 
     expect(cssBlock(lossCss, '.loss :focus-visible')).toContain('var(--accent, var(--spruce))')
     expect(cssBlock(lossCss, '.loss-intro')).toContain('border-left: 6px solid var(--accent')
     expect(cssBlock(lossCss, '.loss-tile')).toContain('border-top: 4px solid var(--accent')
+    expect(cssBlock(lossCss, '.loss-row--achieved .loss-row__mark')).toContain(
+      'color: var(--accent, var(--spruce));',
+    )
+    // 濃い赤（影・押したとき）は alert-danger から作る（色を直書きしない。テーマで変わらない）
+    expect(root).toMatch(/--accent-deep: oklch\(from var\(--alert-danger\)/)
     // 緑は --accent が無いときの予備だけ。直に spruce を色に使う宣言は残っていない
     const direct = lossCss
       .split('\n')
       .filter((l) => /var\(--spruce/.test(l) && !/var\(--accent[^,]*, var\(--spruce/.test(l))
     expect(direct).toEqual([])
-    // alert-danger は文字の色には ✕ の行（大きい文字）だけ。night の面で 4.5:1 に届かないため
+    // alert-danger を color に使うのは ✕ の行（大きい文字）と ✓ の印（SVG の線。文字ではない）だけ。
+    // night の面では 4.5:1 に届かないため、ふつうの文字・数字には使わない
     const textRed = lossCss
       .split('\n')
       .filter((l) => /^\s*color: var\(--(alert-danger|accent)/.test(l))
-    expect(textRed).toEqual(['  color: var(--alert-danger);'])
+    expect(textRed).toEqual([
+      '  color: var(--accent, var(--spruce));',
+      '  color: var(--alert-danger);',
+    ])
+    expect(cssBlock(lossCss, '.loss-row--achieved .loss-row__mark').match(/color:/g)?.length).toBe(
+      1,
+    )
   })
 
   it('TEXT-2 副の導線の文言は 4 言語とも「この日を最初から走り直す」で、「3 秒前」を言わない（result-screens R6）', () => {

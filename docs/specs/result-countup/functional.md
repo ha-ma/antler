@@ -88,10 +88,10 @@ Questions は 2026-11-08 にすべて推奨で決定した（ユーザーの方�
 - R6 見た目（推奨で決定）: 数字は `font-variant-numeric: tabular-nums`（桁の幅が揃い、数え上げの途中で揺れない）。書体は今の場所のまま（StatTile の値は IBM Plex Mono の num-l、統計カードの文は文の書体）。色を足さない（金額の clay はそのまま）。数字は最後の値の幅の中で右に寄せる（1 の位が動かない）
 - R7 A-6 のアクセントを赤にする（2026-11-08 ユーザー判断「鹿にぶつかったあとの結果画面の表現は、緑ではなく赤をアクセントカラーに使ったほうが良い」。親セッション経由。`docs/design/README.md` の冒頭の注記）
   - 衝突の結果画面（A-6 `/loss/:id`。読み込み中・読めない画面を含む）だけ。成功の結果（A-7）は `spruce` のまま
-  - `loss.css` の `.loss`（ページの root）で `--accent: var(--alert-danger)`・`--on-accent: var(--on-alert-danger)`・`--accent-deep`（alert-danger を ground に 30 % 混ぜた濃い赤。押したときと主ボタンの影）を定義する。色は直書きしない
-  - アクセントを読むもの: 主ボタン（白文字 4.6:1）・フォーカスの枠（線。night の ground で 4.02:1、紙の ground で 4.34:1。3:1 以上）・導入（いつ・見出し・事実）の左の帯（6 px）・4 指標の上の線（4 px。surface で 3.47:1）。固定の導線（sticky-cta）の主ボタンも同じ `--accent` を読めば赤になる
+  - `loss.css` の `.loss`（ページの root）で `--accent: var(--alert-danger)`・`--on-accent: var(--on-alert-danger)`・`--accent-deep`（`oklch(from var(--alert-danger) calc(l - 0.15) c h)`。alert-danger の明度だけを下げた濃い赤で、テーマで変わらない。押したときと主ボタンの影）を定義する。色は直書きしない。tokens に `alert-danger-deep` を足すと凍結の alert-ui の公開 API が増えるので、ページの CSS で作る（推奨で決定）
+  - アクセントを読むもの: 主ボタン（白文字 4.6:1）・フォーカスの枠（線。night の ground で 4.02:1、紙の ground で 4.34:1。3:1 以上）・導入（いつ・見出し・事実）の左の帯（6 px）・4 指標の上の線（4 px。surface で 3.47:1）・しおりの済みの ✓（図形。紙の ground で 4.34:1）。固定の導線（sticky-cta の ActionBar）の主ボタンも同じ `--accent`・`--on-accent`・`--accent-deep` を読むので赤になる
   - 文字の色には使わない（推奨で決定）: alert-danger は night の ground で 4.02:1、surface で 3.47:1 で、4.5:1 に届かない。数え上げる数字は今の色のまま（金額は clay で 7.66:1、日数・楽しみは ink）。例外は今までの ✕ の衝突の行（大きい文字）だけ
-  - 済みの ✓ は緑（spruce）をやめて ink-muted にする（推奨で決定）。赤は ✕ の衝突の行に取っておく（済みを赤にすると衝突と同じ色になる）。形と「済み」の読み上げの文字で分かる
+  - 済みの ✓ もアクセントの赤にする（親セッションの指示）。✕ と同じ色になるが、形（✓ と ✕）・「済み」の読み上げの文字・✕ の行の大きい文字で分かる（色だけで分けない）
 
 ## ユースケース
 
