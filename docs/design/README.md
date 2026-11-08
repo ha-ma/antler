@@ -4,6 +4,7 @@
 > - 本文は Claude Design からの写し（2026-11-03）。パッケージ名 `@ezoroad/alert-ui` は本リポジトリでは `@antler/alert-ui`。
 > - 2026-11-08 にサービス名を SHIKASHI に変更（A = SHIKASHI SIMULATOR、B = SHIKASHI NAVIGATOR）。この README の名前は SHIKASHI に直した。Claude Design の原本の名前（EZO ROAD Design System）はユーザーが直す。ロゴは `apps/sim/public/brand/`・`apps/pwa/public/brand/`（昼＝trip・夜＝night）。配色は変えない
 > - `alert-danger` と `shadow-danger` の赤を、白文字と 4.6:1 になるよう濃くした（2026-11-03、ユーザー判断。元は 4.02:1 で ch5 の 4.5:1 に届かなかった）。デザインシステムの原本（v8）にも反映済み。UI キャンバス v2 のモックは古い赤のまま。
+> - 衝突の結果画面（A-6 `/loss/:id`）はアクセントに `alert-danger` を使う（2026-11-08 ユーザー判断。原則 2 の例外。鹿にぶつかった結果なので）。ページの root で `--accent` を `var(--alert-danger)` に替え、主ボタン（白文字 4.6:1。影・押したときは `--accent-deep`＝alert-danger の明度を下げた濃い赤）・フォーカスの枠・見出しの帯・4 指標の上の線・しおりの ✓ に使う。night の面では文字に 4.5:1 届かないので文字の色には使わない（✕ の大きい文字を除く。金額は `clay` のまま）。成功の結果（A-7）は `spruce` のまま。デザインシステムの原本には未反映。
 
 # SHIKASHI Design System
 

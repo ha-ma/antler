@@ -3,6 +3,7 @@ import { formatBudget } from '@antler/trip'
 import { Link } from 'react-router'
 import { RECORD_AFTER_COLLISION, recordHref } from '@/features/record'
 import { ActionBar, ACTION_BAR_PRIMARY } from '@/shared/components/ActionBar'
+import { CountUpText } from '@/shared/components/CountUpText'
 import { browserLang } from '@/shared/utils/browser-lang'
 import baseline from '../data/loss-baseline.json'
 import { assessLoss } from '../domain/assess-loss'
@@ -14,7 +15,7 @@ import { fillText, LOSS_TEXT } from '../text'
 import type { LossBaseline, ResolvedCollision, TripDay } from '../types'
 import { checkAgainstDay, resolveCollision } from '../utils/collision-url'
 import { clockOf, factSentence, placeName } from '../utils/format'
-import { dropSequence } from '../utils/drop'
+import { dropLandedMs, dropSequence } from '../utils/drop'
 import { replayHref, retryHref } from '../utils/links'
 import { LossCard } from './LossCard'
 import { StatTile } from './StatTile'
@@ -23,6 +24,9 @@ import { StoryPanel } from './StoryPanel'
 import './loss.css'
 
 const BASELINE: LossBaseline = baseline
+
+/** 「楽しみ 済み / 総数」の総数（分母）は数え上げない（result-countup R2） */
+const PLEASURES_HOLD = [1] as const
 
 /** 遷移してきたら見出しにフォーカスを移す（ref のコールバック。useEffect を使わない） */
 function focusOnMount(el: HTMLHeadingElement | null): void {
@@ -114,6 +118,12 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
   // カードが DOM の順（＝読み上げ・Tab の順）に落ちて積み重なる（result-screens R2）。数え手は描画ごとに作る。
   // 行を足すときは、DOM の位置で drop() を呼んで渡す
   const drop = dropSequence()
+  // 文の欄と 4 指標は DOM の順に先に番号を受け取る（4 指標の値はカードの着地から数え上げる。result-countup R5）
+  const storyDrop = drop()
+  const vehicleDrop = drop()
+  const cancelDrop = drop()
+  const daysDrop = drop()
+  const pleasuresDrop = drop()
 
   return (
     <div className="loss" data-theme="night" lang={htmlLang(lang)}>
@@ -133,25 +143,35 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
               </p>
             )}
           </div>
-          <StoryPanel collision={collision} lang={lang} drop={drop()} />
+          <StoryPanel collision={collision} lang={lang} drop={storyDrop} />
           <section aria-labelledby="loss-metrics-heading">
             <h2 id="loss-metrics-heading" className="loss-visually-hidden">
               {t.metrics[lang]}
             </h2>
             <dl className="loss-tiles">
               <StatTile
-                drop={drop()}
+                drop={vehicleDrop}
                 label={t.tileVehicle[lang]}
-                value={formatBudget(loss.vehicle.averageJPY, lang)}
+                value={
+                  <CountUpText
+                    text={formatBudget(loss.vehicle.averageJPY, lang)}
+                    notBeforeMs={dropLandedMs(vehicleDrop)}
+                  />
+                }
                 tone="clay"
                 note={fillText(t.tileVehicleNote[lang], {
                   max: formatBudget(loss.vehicle.maxJPY, lang),
                 })}
               />
               <StatTile
-                drop={drop()}
+                drop={cancelDrop}
                 label={t.tileCancel[lang]}
-                value={formatBudget(loss.cancel.jpy, lang)}
+                value={
+                  <CountUpText
+                    text={formatBudget(loss.cancel.jpy, lang)}
+                    notBeforeMs={dropLandedMs(cancelDrop)}
+                  />
+                }
                 tone="clay"
                 note={
                   <>
@@ -167,20 +187,29 @@ function LossContent({ data, collision }: { data: TripDay; collision: ResolvedCo
                 }
               />
               <StatTile
-                drop={drop()}
+                drop={daysDrop}
                 label={t.tileDays[lang]}
                 value={
                   <>
-                    {loss.days.lost}
+                    <CountUpText
+                      text={String(loss.days.lost)}
+                      notBeforeMs={dropLandedMs(daysDrop)}
+                    />
                     <span className="loss-tile__unit"> {t.unitDays[lang]}</span>
                   </>
                 }
                 note={fillText(t.daysNote[lang], { from: loss.days.fromDay, to: loss.days.toDay })}
               />
               <StatTile
-                drop={drop()}
+                drop={pleasuresDrop}
                 label={fillText(t.tilePleasures[lang], { total: loss.pleasures.total })}
-                value={`${String(loss.pleasures.achieved)} / ${String(loss.pleasures.total)}`}
+                value={
+                  <CountUpText
+                    text={`${String(loss.pleasures.achieved)} / ${String(loss.pleasures.total)}`}
+                    hold={PLEASURES_HOLD}
+                    notBeforeMs={dropLandedMs(pleasuresDrop)}
+                  />
+                }
                 note={fillText(t.pleasuresNote[lang], {
                   achieved: loss.pleasures.achievedWeight,
                   total: loss.pleasures.totalWeight,

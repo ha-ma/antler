@@ -5,7 +5,7 @@ target_paths:
   - apps/sim/src/features/loss/
   - apps/sim/src/features/record/
   - packages/trip/src/record/
-spec_confirmed_at: 894f3c2
+spec_confirmed_at: 3f0f79f
 tier: 1
 ---
 
@@ -16,6 +16,8 @@ tier: 1
 > 2026-11-08 sticky-cta（`docs/specs/sticky-cta/functional.md` R5）が A-6・A-7 の主ボタンを画面の下に固定した帯に載せた（`LossPage.tsx`・`RecordContent.tsx`・`loss.css`・`record.css`）。鹿の発見の 1 行（R4）は変えていない。
 
 > 2026-11-07 main（result-screens #52・edge-run #53・sdata-materials #54）を取り込んだ。result-screens が A-6・A-7 の画面（落ちて積み重なるカード・クリア）を変えたが、発見の 1 行は導入の中のまま残した（R4 は変えていない）。
+
+> 2026-11-08 result-countup（`docs/specs/result-countup/functional.md`）が A-6 の 4 指標・統計カードと A-7 の StatTile の数字を数え上げるようにした。発見の 1 行（`loss-spotting`・`record-spotting`）は導入の文なので数え上げない（R4 は変えていない）。同じ日に A-6 のアクセントを赤（`alert-danger`）にし、導入の左に赤の帯が付いた（発見の 1 行も帯の内側。文字の色は変えていない）。
 
 > 2026-11-07 drive-sound-tourism（#58。`docs/specs/drive-sound-tourism/functional.md`）と合わせた: 衝突音は `link-drive.ts` が `onCue` の `collided` で鳴らし、演出が読む `outcome: collided` の知らせと同じ `engine.frame` の中で始まる（SND-4c）。衝突音は約 0.6 秒で、演出の 3.5 秒（`CRASH_MS`）より短い。ほかに `audio/`・`chat/`・おすすめのカード（ゾーンの外ならいつでも・12 秒ごとに入れ替え）を変えた。この仕様のルール（1 km 手前・スマホ・演出・発見）は変えていない。
 

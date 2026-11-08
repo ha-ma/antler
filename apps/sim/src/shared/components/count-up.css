@@ -1,0 +1,22 @@
+/* 数え上げる数字（docs/specs/result-countup/functional.md R3・R6）。
+   桁の幅を揃え（tabular-nums）、動いているあいだは最後の値（透明）と見える数字を同じ場所に重ねる。
+   最後の値の幅をとるので、桁が増えても文が折り返し直さない。数字は最後の値の幅の中で右に寄せる（1 の位が動かない）。
+   書体・色は置いた場所のまま（StatTile の値は num-l の等幅、文の中は文の書体）。 */
+.count-up {
+  font-variant-numeric: tabular-nums;
+}
+
+.count-up--running {
+  display: inline-grid;
+  justify-items: end;
+}
+
+.count-up--running > .count-up__frame,
+.count-up--running > .count-up__final {
+  grid-area: 1 / 1;
+}
+
+/* 見えないが読み上げは読む（visibility・display で隠さない） */
+.count-up__final {
+  opacity: 0;
+}

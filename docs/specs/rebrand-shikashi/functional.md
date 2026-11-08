@@ -25,13 +25,15 @@ target_paths:
   - apps/pwa/src/features/connect/components/ConnectScreen.tsx
   - apps/pwa/src/features/connect/components/connect.css
   - edge/detector/src/detector/pwa_server.py
-spec_confirmed_at: e75d9cd
+spec_confirmed_at: 2c28b1f
 tier: 1
 ---
 
 # 仕様: rebrand-shikashi（サービス名を EZO ROAD から SHIKASHI に変え、ロゴを入れる）
 
 > 2026-11-08 sticky-cta（`docs/specs/sticky-cta/functional.md`）が `apps/sim/src/shared/components/` に `ActionBar`（次へ進む主ボタンを画面の下に固定する帯）を足し、`plan-trip.css`・`brief-map.css`・`record.css` の本文の下の余白に帯の高さを足し、`plan-trip/text.ts` の表の末尾に帯の「直すところ」の文言を足した。`BrandLogo`・ヘッダー・名前の文言は変えていない。同じ日に `action-bar.css` の狭い画面の主ボタンの余白と折り方を直した（帯だけ）。
+
+> 2026-11-08 result-countup（`docs/specs/result-countup/functional.md`）が `apps/sim/src/shared/components/` に `CountUpText` と `count-up.css`（結果の数字の数え上げ）を足した。`BrandLogo`・ヘッダー・名前の文言は変えていない。
 
 ## 概要
 

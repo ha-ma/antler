@@ -5,6 +5,7 @@ import { formatBudget, placeById, STATS } from '@antler/trip'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
+import { stubCountUpEnv } from '@/test/count-up'
 import { renderWithProviders } from '@/test/render'
 import { TRIP_ID, tripDayBody } from '@/test/trip-day'
 import baseline from '../data/loss-baseline.json'
@@ -502,6 +503,41 @@ describe('LOSS-1: しおりを読む前・失敗はブラウザの言語（i18n 
     })
   })
 
+  it('ACCENT-1 loss.css: アクセントは root の --accent（alert-danger）で、主ボタン・フォーカス・見出しの帯・4 指標の線・✓ がそれを読み、緑を使わない（result-countup R7）', () => {
+    const root = cssBlock(lossCss, '.loss')
+    expect(root).toContain('--accent: var(--alert-danger);')
+    expect(root).toContain('--on-accent: var(--on-alert-danger);')
+    const primary = cssBlock(lossCss, '.loss-button--primary')
+    expect(primary).toContain('background: var(--accent, var(--spruce));')
+    expect(primary).toContain('color: var(--on-accent, var(--on-spruce));')
+    expect(cssBlock(lossCss, '.loss-button--primary:hover')).toContain('var(--accent-deep')
+    expect(cssBlock(lossCss, '.loss :focus-visible')).toContain('var(--accent, var(--spruce))')
+    expect(cssBlock(lossCss, '.loss-intro')).toContain('border-left: 6px solid var(--accent')
+    expect(cssBlock(lossCss, '.loss-tile')).toContain('border-top: 4px solid var(--accent')
+    expect(cssBlock(lossCss, '.loss-row--achieved .loss-row__mark')).toContain(
+      'color: var(--accent, var(--spruce));',
+    )
+    // 濃い赤（影・押したとき）は alert-danger から作る（色を直書きしない。テーマで変わらない）
+    expect(root).toMatch(/--accent-deep: oklch\(from var\(--alert-danger\)/)
+    // 緑は --accent が無いときの予備だけ。直に spruce を色に使う宣言は残っていない
+    const direct = lossCss
+      .split('\n')
+      .filter((l) => /var\(--spruce/.test(l) && !/var\(--accent[^,]*, var\(--spruce/.test(l))
+    expect(direct).toEqual([])
+    // alert-danger を color に使うのは ✕ の行（大きい文字）と ✓ の印（SVG の線。文字ではない）だけ。
+    // night の面では 4.5:1 に届かないため、ふつうの文字・数字には使わない
+    const textRed = lossCss
+      .split('\n')
+      .filter((l) => /^\s*color: var\(--(alert-danger|accent)/.test(l))
+    expect(textRed).toEqual([
+      '  color: var(--accent, var(--spruce));',
+      '  color: var(--alert-danger);',
+    ])
+    expect(cssBlock(lossCss, '.loss-row--achieved .loss-row__mark').match(/color:/g)?.length).toBe(
+      1,
+    )
+  })
+
   it('TEXT-2 副の導線の文言は 4 言語とも「この日を最初から走り直す」で、「3 秒前」を言わない（result-screens R6）', () => {
     expect(LOSS_TEXT.replay).toEqual({
       ja: 'この日を最初から走り直す',
@@ -528,6 +564,80 @@ describe('LOSS-1: しおりを読む前・失敗はブラウザの言語（i18n 
     await user.click(screen.getByRole('link', { name: 'この旅の記録を見る' }))
     expect(router.state.location.pathname).toBe(`/t/${TRIP_ID}`)
     expect(router.state.location.state).toEqual({ arrival: 'after-collision' })
+  })
+
+  it('result-countup LOSS-1: 4 指標の値と統計カードの件数・金額が数え上がり、年・期間・補足・導入・しおりは動かない。分母は動かない', async () => {
+    const env = stubCountUpEnv()
+    stubApi(() => okDay())
+    renderLoss(lossHref(collision))
+    await heading()
+    const metrics = tiles() as HTMLElement
+    const values = [...metrics.querySelectorAll('.loss-tile__value')]
+    const frameIn = (el: Element) => el.querySelector('.count-up__frame')?.textContent ?? null
+    // 始まりのコマ（円とドルの両方が 0、分母は 2 のまま）
+    expect(values.map(frameIn)).toEqual(['¥0（約 $0）', '¥0（約 $0）', '0', '0 / 2'])
+    // 補足・導入・しおりのカードには数え上げが無い
+    expect(metrics.querySelector('.loss-tile__note .count-up')).toBeNull()
+    expect(document.querySelector('.loss-intro .count-up')).toBeNull()
+    expect(document.querySelector('.loss-card .count-up')).toBeNull()
+
+    // 統計カード: 件数・金額の 6 つだけ。年と期間は最初から最後の値
+    const stats = screen.getByRole('region', { name: /これは、北海道で/ })
+    const d = STATS.deerAccidents
+    const ins = STATS.vehicleInsurance
+    const n = (v: number) => v.toLocaleString('en-US')
+    expect([...stats.querySelectorAll('.count-up__final')].map((e) => e.textContent)).toEqual([
+      n(d.total),
+      n(d.previousYearTotal),
+      n(d.kushiroArea),
+      n(ins.claims),
+      formatBudget(ins.paidJPY, 'ja'),
+      formatBudget(ins.averageJPY, 'ja'),
+    ])
+    // 見出しの名前（読み上げ）は最後の値
+    expect(
+      screen.getByRole('region', {
+        name: `これは、北海道で ${String(d.year)} 年に ${n(d.total)} 件起きたこと`,
+      }),
+    ).toBeInTheDocument()
+
+    // 見えて、全部のカードが着地して数え終わると、今の表示と同じ（既存の AC-2 と同じ文字列）
+    env.intersect()
+    env.advance(4000)
+    expect(document.querySelector('.count-up--running')).toBeNull()
+    const m = within(metrics)
+    expect(m.getByText(formatBudget(STATS.vehicleInsurance.averageJPY, 'ja'))).toBeInTheDocument()
+    expect(m.getByText('1 / 2')).toBeInTheDocument()
+    expect(stats).toHaveTextContent(`${String(d.year)} 年に ${n(d.total)} 件`)
+    expect(stats).toHaveTextContent(`前年 ${n(d.previousYearTotal)} 件`)
+    expect(stats).toHaveTextContent(formatBudget(ins.averageJPY, 'ja'))
+  })
+
+  it('result-countup LOSS-2: 数え上げはそのカードの着地（番号 × 150 ms ＋ 820 ms）から始まる', async () => {
+    const env = stubCountUpEnv()
+    stubApi(() => okDay())
+    renderLoss(lossHref(collision))
+    await heading()
+    const values = [...(tiles() as HTMLElement).querySelectorAll('.loss-tile__value')]
+    const frameIn = (el: Element | undefined) =>
+      el?.querySelector('.count-up__frame')?.textContent ?? null
+    env.intersect()
+    // 車の修理は 2 番目（番号 1）: 970 ms で着地。950 ms ではまだ 0
+    env.advance(950)
+    expect(frameIn(values[0])).toBe('¥0（約 $0）')
+    env.advance(200)
+    expect(frameIn(values[0])).not.toBe('¥0（約 $0）')
+    // 失った日数は番号 3: 1270 ms で着地。1150 ms ではまだ 0
+    expect(frameIn(values[2])).toBe('0')
+  })
+
+  it('result-countup S-1: 動きを減らす設定では最初から最後の値（分けた形が無い）', async () => {
+    stubCountUpEnv({ reducedMotion: true })
+    stubApi(() => okDay())
+    renderLoss(lossHref(collision))
+    await heading()
+    expect(document.querySelector('.count-up--running')).toBeNull()
+    expect(within(tiles() as HTMLElement).getByText('1 / 2')).toBeInTheDocument()
   })
 
   it('LOSS-1: en のブラウザで読めない URL は en', async () => {

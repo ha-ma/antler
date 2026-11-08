@@ -10,7 +10,7 @@ target_paths:
   - apps/api/src/infrastructure/repositories/drizzle-loss.repository.ts
   - apps/api/src/infrastructure/http/routes/loss.routes.ts
   - apps/api/src/infrastructure/http/schemas/loss.schema.ts
-spec_confirmed_at: a138fb0
+spec_confirmed_at: 3f0f79f
 tier: 2
 ---
 
@@ -23,6 +23,10 @@ tier: 2
 > 2026-11-06 i18n（`docs/specs/i18n/functional.md`）で A-6 のしおりを読む前・読めない・失敗の画面の言語を、`ja` 固定からブラウザの言語（`initialLang`）にした。しおりを読んだあとは今までどおり `plan.lang`。この仕様のルールは変えていない。
 
 > 2026-11-06 result-screens（`docs/specs/result-screens/functional.md` R2・R4）で、A-6 のカード（文の欄・4 指標・しおり・統計）が DOM の順に上から落ちて積み重なる動きを足した（`utils/drop.ts` の `dropSequence`、`loss.css` の `.loss-drop`。動きを減らす設定では不透明度だけ）。「この旅の記録を見る」のリンクは衝突のあとの合図（location state、record の `RECORD_AFTER_COLLISION`）を付け、A-7 は「クリア」を出さない。R2 のしおりのカードの −1.5° は `--loss-tilt` の既定に移した。この仕様のルール（中身・文言・導線の行き先）は変えていない。
+
+> 2026-11-08 result-countup（`docs/specs/result-countup/functional.md`）で、4 指標の値と統計カードの件数・金額を、カードの着地のあとに 0 から数え上げるようにした（`@/shared/components/CountUpText`。統計カードの文は `utils/fill-nodes.tsx` の `fillNodes` で数字を差し込む。着地の時刻は `utils/drop.ts` の `dropLandedMs`）。最後の 1 コマは今の表示と同じ文字列。年・期間・補足・導入・しおりの数字は動かさない。動きを減らす設定では最初から最後の値。値の求め方・文言・STATS は変えていない。
+
+> 2026-11-08 衝突の結果画面（A-6）はアクセントに `alert-danger` を使う（ユーザー判断「鹿にぶつかったあとの結果画面の表現は、緑ではなく赤をアクセントカラーに」。`docs/design/README.md` の冒頭の注記、result-countup R7）。`loss.css` の `.loss` で `--accent` を替え、主ボタン（白文字 4.6:1。影・押したときは `--accent-deep`）・フォーカスの枠・導入の左の帯・4 指標の上の線・しおりの済みの ✓ がそれを読む（原則 2 の例外）。喪失の金額は今までどおり clay（alert-danger は night の面で 4.5:1 に届かないので文字には使わない）。
 
 ## 概要
 

@@ -6,13 +6,15 @@ target_paths:
   - apps/sim/src/features/brief-map/components/BriefPage.tsx
   - apps/sim/src/features/loss/components/LossPage.tsx
   - apps/sim/src/features/record/components/RecordContent.tsx
-spec_confirmed_at: e75d9cd
+spec_confirmed_at: 2c28b1f
 tier: 1
 ---
 
 # 仕様: sticky-cta（次へ進むボタンを、最初の画面で分かり、スクロールしても見える場所に置く）
 
 > 2026-11-08 main の rebrand-shikashi（#65、`docs/specs/rebrand-shikashi/functional.md`）を取り込んだ。同じ `apps/sim/src/shared/components/` に `BrandLogo` が入り、各画面のヘッダーが SHIKASHI SIMULATOR とロゴになった。帯（`ActionBar`）と主ボタンの決まりは変えていない。
+
+> 2026-11-08 result-countup（#64、`docs/specs/result-countup/functional.md` R7）を合わせた。A-6 の `loss.css` の `.loss`（ページの root）が `--accent: var(--alert-danger)`・`--on-accent: var(--on-alert-danger)`・`--accent-deep`（alert-danger の明度を下げた濃い赤）を定義するので、A-6 の帯の主ボタンは赤に白文字（4.6:1）になる（ユーザー判断。ほかの画面は spruce のまま）。同じ feature が `apps/sim/src/shared/components/` に `CountUpText` を足し、`LossPage.tsx` の 4 指標の値を数え上げにした。帯の構造・`ActionBar` の CSS は変えていない。
 
 ## 概要
 
