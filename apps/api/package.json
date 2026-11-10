@@ -16,7 +16,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.4.0",
+    "@anthropic-ai/sdk": "^1.6.0",
     "@antler/alert-ui": "^0.0.0",
     "@antler/i18n-check": "^0.0.0",
     "@antler/schema": "^0.0.0",
