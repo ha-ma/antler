@@ -27,7 +27,7 @@ l1 = ["typesafe-sdk==0.7.5"]
 # macOS arm64・Python 3.11〜3.13 の wheel を確かめた。ultralytics 8.4.202 の CoreML 書き出しは
 # coremltools>=9.0、numpy<=2.3.5、Python<=3.13 を要る。mlx は L1 の local-jev では使われない（指示書の依存）。
 day0 = [
-  "ultralytics==8.4.202",
+  "ultralytics==8.4.204",
   "coremltools==9.0",
   "mlx==0.32.4",
   "numpy>=1.26,<=2.3.5",
